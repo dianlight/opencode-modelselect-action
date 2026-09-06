@@ -75,6 +75,9 @@ LIVEBENCH_GITHUB_IO_RAW_BASE = (
 
 FREE_FIRST_THRESHOLD_PCT = 5  # % within best paid to prefer free
 
+# Default blended-cost weights (input-heavy 3:1) when the config omits them.
+DEFAULT_COST_BLEND = (0.75, 0.25)
+
 # Map LiveBench fine-grained task columns to subscore categories
 LIVEBENCH_COLUMN_CATEGORIES = {
     "coding": [
@@ -150,14 +153,22 @@ def format_model_with_score(
     score: float | None,
     *,
     score_suffix: str = "",
+    cost: str | None = None,
 ) -> str:
-    """Format a model cell as "Model (score)".
+    """Format a model cell as "Model (score[, cost])".
 
     If score_suffix is provided (e.g. "+15%"), it's appended after the score.
+    If cost is provided (e.g. "$0.14/$0.28" or "Free"), it's appended after the
+    score as a second comma-separated item.
     """
     if not model_id:
         return "\u2014"
-    return f"`{model_id}` ({score}{score_suffix})" if score is not None else f"`{model_id}`"
+    if score is None:
+        return f"`{model_id}`" + (f" ({cost})" if cost else "")
+    parts = f"{score}{score_suffix}"
+    if cost:
+        parts += f", {cost}"
+    return f"`{model_id}` ({parts})"
 
 
 def _add_model_prefix(
@@ -802,6 +813,51 @@ def resolve_auto_models(task_type: str) -> tuple[str | None, str | None]:
     return entry.get("go"), entry.get("free")
 
 
+def _rank_models_for_config(
+    model_ids: list[str],
+    livebench: dict[str, Any],
+    priority: str,
+    price_lookup: dict[str, dict[str, Any]] | None,
+    cost_blend: tuple[float, float],
+    engine: str,
+) -> list[dict[str, Any]]:
+    """Rank models best-to-worst for a config tier entry.
+
+    Ordered by LiveBench score descending (blended-cost ascending, then name,
+    as tie-breaks). Each entry carries prefixed model, score and in/out/blended
+    $/1M costs (None when unknown). Models without a score are excluded.
+    """
+    w_in, w_out = cost_blend
+    ranked = []
+    for mid in model_ids:
+        score = get_model_score(mid, livebench, priority)
+        if score is None:
+            continue
+        cost = (
+            get_model_cost(mid, price_lookup, w_in, w_out)
+            if price_lookup is not None
+            else {"input": None, "output": None, "blended": None}
+        )
+        ranked.append(
+            {
+                "model": _add_model_prefix(mid, engine=engine),
+                "score": score,
+                "input_cost": cost["input"],
+                "output_cost": cost["output"],
+                "blended_cost": cost["blended"],
+            }
+        )
+    ranked.sort(
+        key=lambda e: (
+            -e["score"],
+            e["blended_cost"] is None,
+            e["blended_cost"] or 0,
+            e["model"],
+        )
+    )
+    return ranked
+
+
 def generate_model_config(
     free_models: list[dict[str, Any]],
     go_models: list[dict[str, Any]],
@@ -809,6 +865,8 @@ def generate_model_config(
     task_types: list[dict[str, Any]],
     threshold_pct: float,
     go_ids: set[str],
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+    cost_blend: tuple[float, float] | None = None,
 ) -> bool:
     """Compute the proposed central model config — without applying it.
 
@@ -817,18 +875,22 @@ def generate_model_config(
     keyed by task-type only, so any downstream workflow can preselect a model
     with the select-model action. Each entry uses the best free/paid models
     for the task type (prefixed, e.g. `opencode-go/kimi-k3`) after the
-    free-first policy.
+    blended cost selector and the free-first policy.
 
     Returns True when the proposal differs from the committed config (the
     proposal is saved to data/model-config.proposed.json so the workflow can
     open a review issue, and the committed file is left untouched).
     """
     task_map: dict[str, Any] = {}
+    blend = cost_blend or DEFAULT_COST_BLEND
+    free_ids = [m["id"] for m in free_models]
+    tier_go_ids = [m["id"] for m in go_models]
     for tt in task_types:
         name = tt["name"]
         priority = tt.get("priority", "overall")
         best_free, best_go = get_best_models_for_task(
-            name, free_models, go_models, livebench, task_types
+            name, free_models, go_models, livebench, task_types,
+            price_lookup, blend, threshold_pct,
         )
         best_free, best_go = apply_free_first_rule(
             best_free, best_go, livebench, priority, threshold_pct
@@ -836,6 +898,16 @@ def generate_model_config(
         task_map[name] = {
             "go": _add_model_prefix(best_go, go_ids) if best_go else None,
             "free": _add_model_prefix(best_free, go_ids) if best_free else None,
+            # Full best-to-worst ranking per tier so the select-model action
+            # can walk down to a cheaper fit when `max-cost` filters the pick.
+            "go_ranked": _rank_models_for_config(
+                tier_go_ids, livebench, priority, price_lookup, blend,
+                engine="opencode-go",
+            ),
+            "free_ranked": _rank_models_for_config(
+                free_ids, livebench, priority, price_lookup, blend,
+                engine="opencode",
+            ),
         }
 
     proposed = {
@@ -953,14 +1025,187 @@ def get_model_source(model_name: str, livebench: dict[str, Any]) -> str:
     return "missing"
 
 
+# --- Token Cost ---
+def _parse_price_value(cell: Any) -> float | None:
+    """Parse a Zen pricing cell into $/1M tokens.
+
+    "Free" -> 0.0, "$1.50" -> 1.5, None/"-"/"" -> None (unknown).
+    """
+    if cell is None:
+        return None
+    text = str(cell).strip()
+    if not text or text == "-":
+        return None
+    if text.lower() == "free":
+        return 0.0
+    m = re.search(r"\$?\s*([0-9]+(?:\.[0-9]+)?)", text)
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except ValueError:
+        return None
+
+
+def _build_price_lookup(
+    zen_models: list[dict[str, Any]],
+    free_ids: set[str] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """Build a model-id -> {input, output} price lookup ($/1M) from Zen pricing.
+
+    Keys are lowercased exact ids; `_lookup_price` also falls back to the
+    normalised (prefix/suffix-stripped) form so Go and `-free` variants match.
+    Free-tier models without published pricing (e.g. `*-free` ids missing from
+    the pricing page) are treated as Free (0.0/0.0); paid models without
+    pricing stay unknown (None/None).
+    """
+    lookup: dict[str, dict[str, Any]] = {}
+    for m in zen_models:
+        mid = str(m.get("id", ""))
+        if not mid:
+            continue
+        pricing = m.get("pricing") or {}
+        lookup[mid.strip().lower()] = {
+            "input": _parse_price_value(pricing.get("input")),
+            "output": _parse_price_value(pricing.get("output")),
+        }
+    for fid in free_ids or ():
+        key = str(fid).strip().lower()
+        if not key:
+            continue
+        entry = lookup.get(key)
+        if entry is None:
+            # Free tier by suffix/convention: no charge even when the pricing
+            # page has no row for this id.
+            lookup[key] = {"input": 0.0, "output": 0.0}
+        elif entry.get("input") is None and entry.get("output") is None:
+            # Zen catalog row exists but the pricing page has no prices for
+            # this free-tier id (e.g. `deepseek-v4-flash-free`): still Free.
+            lookup[key] = {"input": 0.0, "output": 0.0}
+    return lookup
+
+
+def _lookup_price(
+    model_id: str, price_lookup: dict[str, dict[str, Any]] | None
+) -> tuple[float | None, float | None]:
+    """Return (input $/1M, output $/1M) for a model id, or (None, None)."""
+    if not model_id or not price_lookup:
+        return None, None
+    key = model_id.strip().lower()
+    if key in price_lookup:
+        entry = price_lookup[key]
+        return entry.get("input"), entry.get("output")
+    norm = _normalise_model_for_lookup(model_id)
+    if norm in price_lookup:
+        entry = price_lookup[norm]
+        return entry.get("input"), entry.get("output")
+    return None, None
+
+
+def _resolve_cost_blend(
+    task_types_cfg: dict[str, Any] | None,
+    task_types: list[dict[str, Any]] | None = None,
+    task_type: str | None = None,
+) -> tuple[float, float]:
+    """Resolve (input_weight, output_weight) for the blended $/1M cost.
+
+    Global `cost_blend` mapping wins by default; a task-type entry may override
+    it with its own `cost_blend`. Weights are normalised to sum to 1.
+    """
+    w_in, w_out = DEFAULT_COST_BLEND
+    if task_types_cfg:
+        glob = task_types_cfg.get("cost_blend") or {}
+        try:
+            w_in = float(glob.get("input_weight", w_in))
+            w_out = float(glob.get("output_weight", w_out))
+        except (TypeError, ValueError):
+            w_in, w_out = DEFAULT_COST_BLEND
+    if task_type and task_types:
+        tt = next((t for t in task_types if t["name"] == task_type), None)
+        override = (tt or {}).get("cost_blend") or {}
+        try:
+            if "input_weight" in override:
+                w_in = float(override["input_weight"])
+            if "output_weight" in override:
+                w_out = float(override["output_weight"])
+        except (TypeError, ValueError):
+            pass
+    total = w_in + w_out
+    if total <= 0:
+        return DEFAULT_COST_BLEND
+    return w_in / total, w_out / total
+
+
+def get_model_cost(
+    model_id: str,
+    price_lookup: dict[str, dict[str, Any]] | None,
+    input_weight: float = DEFAULT_COST_BLEND[0],
+    output_weight: float = DEFAULT_COST_BLEND[1],
+) -> dict[str, float | None]:
+    """Return {input, output, blended} $/1M costs for a model id.
+
+    `blended` is None when either leg is unknown. Free models report 0.0.
+    """
+    price_in, price_out = _lookup_price(model_id, price_lookup)
+    blended = None
+    if price_in is not None and price_out is not None:
+        blended = round(price_in * input_weight + price_out * output_weight, 4)
+    return {"input": price_in, "output": price_out, "blended": blended}
+
+
+def format_cost_pair(price_in: float | None, price_out: float | None) -> str:
+    """Format an in/out cost pair: "Free", "$a/$b", "$a in", "$b out" or "—"."""
+    if price_in == 0.0 and price_out == 0.0:
+        return "Free"
+    if price_in is not None and price_out is not None:
+        return f"${price_in:g}/${price_out:g}"
+    if price_in is not None:
+        return f"${price_in:g} in"
+    if price_out is not None:
+        return f"${price_out:g} out"
+    return "—"
+
+
+def _pick_cheapest_within_threshold(
+    scored: list[tuple[str, float, float | None]],
+    threshold_pct: float,
+) -> str | None:
+    """Pick the cheapest model within threshold% of the top score.
+
+    `scored` is [(model_id, score, blended_cost)]. Candidates within
+    `threshold_pct` of the best score compete on blended cost (unknown costs
+    sort last); ties break on higher score, then alphabetically for stability.
+    """
+    if not scored:
+        return None
+    top = max(s for _, s, _ in scored)
+    if top <= 0:
+        return min(scored, key=lambda x: (-x[1], x[0]))[0]
+    candidates = [
+        (m, s, b) for m, s, b in scored if ((top - s) / top) * 100 <= threshold_pct
+    ] or sorted(scored, key=lambda x: (-x[1], x[0]))[:1]
+    candidates.sort(key=lambda x: (x[2] is None, x[2] if x[2] is not None else 0, -x[1], x[0]))
+    return candidates[0][0]
+
+
 def get_best_models_for_task(
     task_type: str,
     free_models: list[dict[str, Any]],
     go_models: list[dict[str, Any]],
     livebench: dict[str, Any],
     task_types: list[dict[str, Any]],
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+    cost_blend: tuple[float, float] | None = None,
+    threshold_pct: float | None = None,
 ) -> tuple[Any, Any]:
-    """Find best free and best paid model for a task type."""
+    """Find best free and best paid model for a task type.
+
+    Blended selector: when `price_lookup` and `threshold_pct` are given, each
+    tier picks the cheapest blended in/out cost ($/1M) among models within
+    `threshold_pct` of the tier's top LiveBench score (unknown costs sort
+    last, ties break on higher score). Without pricing context this falls back
+    to pure best-score selection.
+    """
     tt = next((t for t in task_types if t["name"] == task_type), None)
     if not tt:
         return None, None
@@ -1001,8 +1246,23 @@ def get_best_models_for_task(
     # Sort by score descending
     scored.sort(key=lambda x: x[2], reverse=True)
 
-    best_free = next((m for m, t, _s in scored if t == "free"), None)
-    best_go = next((m for m, t, _s in scored if t == "go"), None)
+    if price_lookup is not None and threshold_pct is not None and cost_blend is not None:
+        w_in, w_out = cost_blend
+        free_scored = [
+            (m, s, get_model_cost(m, price_lookup, w_in, w_out)["blended"])
+            for m, t, s in scored
+            if t == "free"
+        ]
+        go_scored = [
+            (m, s, get_model_cost(m, price_lookup, w_in, w_out)["blended"])
+            for m, t, s in scored
+            if t == "go"
+        ]
+        best_free = _pick_cheapest_within_threshold(free_scored, threshold_pct)
+        best_go = _pick_cheapest_within_threshold(go_scored, threshold_pct)
+    else:
+        best_free = next((m for m, t, _s in scored if t == "free"), None)
+        best_go = next((m for m, t, _s in scored if t == "go"), None)
 
     # If no scored free/go found, try config defaults
     if not best_free and not best_go:
@@ -1053,17 +1313,23 @@ def score_all_zen_models(
     zen_models: list[dict[str, Any]],
     livebench: dict[str, Any],
     task_types: list[dict[str, Any]],
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+    cost_blend: tuple[float, float] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Score every Zen model across all task types.
 
     Returns: {
         task_type_name: [
-            {"model": id, "score": float, "source": str, "rank": int},
+            {"model": id, "score": float, "source": str, "rank": int,
+             "input_cost": float|None, "output_cost": float|None,
+             "blended_cost": float|None, "value": float|None},
             ...
         ]
     }
+    `value` is score per blended $/1M (None for free/unknown costs).
     """
     zen_ids = [m["id"] for m in zen_models]
+    w_in, w_out = cost_blend or DEFAULT_COST_BLEND
     result = {}
     for tt in task_types:
         name = tt["name"]
@@ -1073,11 +1339,22 @@ def score_all_zen_models(
             score = get_model_score(model_id, livebench, priority)
             source = get_model_source(model_id, livebench)
             if score is not None:
-                scored.append({
+                entry: dict[str, Any] = {
                     "model": model_id,
                     "score": score,
                     "source": source,
-                })
+                }
+                if price_lookup is not None:
+                    cost = get_model_cost(model_id, price_lookup, w_in, w_out)
+                    entry["input_cost"] = cost["input"]
+                    entry["output_cost"] = cost["output"]
+                    entry["blended_cost"] = cost["blended"]
+                    entry["value"] = (
+                        round(score / cost["blended"], 2)
+                        if cost["blended"]
+                        else None
+                    )
+                scored.append(entry)
         scored.sort(key=lambda x: x["score"], reverse=True)
         for i, entry in enumerate(scored, 1):
             entry["rank"] = i
@@ -1090,6 +1367,8 @@ def get_benchmark_summary(
     go_models: list[dict[str, Any]],
     livebench: dict[str, Any],
     task_types: list[dict[str, Any]],
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+    cost_blend: tuple[float, float] | None = None,
 ) -> dict[str, Any]:
     """Generate a benchmark summary with best models per task type.
 
@@ -1097,8 +1376,21 @@ def get_benchmark_summary(
     - best_zen_per_task: best overall Zen model for each task type
     - best_go_per_task: best Go (paid) model for each task type (= benchmark ceiling)
     - all_zen_ranked: full ranking of all Zen models per task type
+    Best entries carry in/out/blended $/1M costs and score-per-$ value when
+    pricing context is provided.
     """
     go_ids = {m["id"] for m in go_models}
+    w_in, w_out = cost_blend or DEFAULT_COST_BLEND
+
+    def _cost_fields(model_id: str | None) -> dict[str, Any]:
+        if model_id is None or price_lookup is None:
+            return {}
+        cost = get_model_cost(model_id, price_lookup, w_in, w_out)
+        return {
+            "input_cost": cost["input"],
+            "output_cost": cost["output"],
+            "blended_cost": cost["blended"],
+        }
 
     best_zen_per_task = {}
     best_go_per_task = {}
@@ -1114,6 +1406,7 @@ def get_benchmark_summary(
             "model": zid,
             "score": zscore,
             "subscore": priority,
+            **(_cost_fields(zid) if zid else {}),
         }
 
         # Best Go (paid) = benchmark ceiling
@@ -1132,6 +1425,7 @@ def get_benchmark_summary(
                 "model": gid,
                 "score": gscore,
                 "subscore": priority,
+                **_cost_fields(gid),
             }
         else:
             best_go_per_task[name] = {
@@ -1140,7 +1434,9 @@ def get_benchmark_summary(
                 "subscore": priority,
             }
 
-    all_zen_ranked = score_all_zen_models(zen_models, livebench, task_types)
+    all_zen_ranked = score_all_zen_models(
+        zen_models, livebench, task_types, price_lookup, (w_in, w_out)
+    )
 
     return {
         "best_zen_per_task": best_zen_per_task,
@@ -1238,15 +1534,27 @@ def classify_model_status(
 
 
 # --- Coverage Checks ---
-def detect_coverage_issues(free_models: list[dict[str, Any]], go_models: list[dict[str, Any]], livebench: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+def detect_coverage_issues(
+    free_models: list[dict[str, Any]],
+    go_models: list[dict[str, Any]],
+    livebench: dict[str, Any],
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, list[dict[str, Any]]]:
     """Detect stale fallback entries and models missing scores entirely.
 
     Returns: {
         "stale_fallback": [{"model": str, "livebench_scores": {...}}],
         "missing_scores": [{"model": str, "tier": str}],
+        "missing_prices": [{"model": str, "tier": str}],
     }
+    `missing_prices` lists paid models with no in/out pricing (unknown cost);
+    free-tier models default to Free and are never listed there.
     """
-    issues = {"stale_fallback": [], "missing_scores": []}
+    issues: dict[str, list[dict[str, Any]]] = {
+        "stale_fallback": [],
+        "missing_scores": [],
+        "missing_prices": [],
+    }
     lb_models = _lb_models(livebench)
     fallback = _get_fallback_scores()
 
@@ -1282,6 +1590,15 @@ def detect_coverage_issues(free_models: list[dict[str, Any]], go_models: list[di
             tier = "Free" if model_id in free_ids else "Go (Paid)"
             issues["missing_scores"].append({"model": model_id, "tier": tier})
 
+    # Check paid models for missing in/out pricing
+    if price_lookup is not None:
+        for model_id in sorted({m["id"] for m in go_models} - free_ids):
+            price_in, price_out = _lookup_price(model_id, price_lookup)
+            if price_in is None or price_out is None:
+                issues["missing_prices"].append(
+                    {"model": model_id, "tier": "Go (Paid)"}
+                )
+
     return issues
 
 
@@ -1292,11 +1609,14 @@ def generate_model_recommendation_table(
     livebench: dict[str, Any],
     threshold_pct: float,
     zen_models: list[dict[str, Any]] | None = None,
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+    cost_blend: tuple[float, float] | None = None,
 ) -> str:
     """Generate the task-type model recommendation table.
 
     Columns: Task Type | Description | Best Zen | Best Free | Best Go
-    Each cell shows "Model (score)".
+    Each cell shows "Model (score, in/out $/1M)". Tier picks use the blended
+    cost selector: cheapest blended cost within threshold% of the top score.
     """
     models = _lb_models(livebench)
     snapshot_date = (
@@ -1315,9 +1635,12 @@ def generate_model_recommendation_table(
         header_lines.append(f"> LiveBench snapshot: **{snapshot_date}**.")
     if source:
         header_lines.append(f"> Source: {source}")
+    w_in, w_out = cost_blend or DEFAULT_COST_BLEND
     header_lines.extend(
         [
             f"> Free-first threshold: **{threshold_pct}%**.",
+            f"> Blended cost weights: **{w_in:.0%} in / {w_out:.0%} out** ($/1M).",
+            "> Costs shown as in/out $/1M (Free = $0).",
             "",
             "| Task Type | Description | Best Zen | Best Free | Best Go |",
             "|-----------|-------------|----------|-----------|---------|",
@@ -1328,13 +1651,22 @@ def generate_model_recommendation_table(
     all_zen = zen_models or []
     go_ids = {m["id"] for m in go_models}
 
+    def _cell_cost(model_id: str | None) -> str | None:
+        if not model_id or price_lookup is None:
+            return None
+        c = get_model_cost(model_id, price_lookup, w_in, w_out)
+        if c["input"] is None and c["output"] is None:
+            return None
+        return format_cost_pair(c["input"], c["output"])
+
     for tt in task_types:
         name = tt["name"]
         desc = tt.get("description", "")
         priority = tt.get("priority", "overall")
 
         best_free, best_go = get_best_models_for_task(
-            name, free_models, go_models, livebench, task_types
+            name, free_models, go_models, livebench, task_types,
+            price_lookup, (w_in, w_out), threshold_pct,
         )
         best_free, best_go = apply_free_first_rule(
             best_free, best_go, livebench, priority, threshold_pct
@@ -1360,25 +1692,27 @@ def generate_model_recommendation_table(
         if best_free_disp and best_go_disp and best_free_disp == best_go_disp:
             # Same model (free model wins due to free-first rule)
             free_display = "\U0001f3c6 " + format_model_with_score(
-                best_free_disp, free_score,
+                best_free_disp, free_score, cost=_cell_cost(best_free),
             )
-            go_display = format_model_with_score(best_go_disp, go_score)
+            go_display = format_model_with_score(
+                best_go_disp, go_score, cost=_cell_cost(best_go)
+            )
         elif best_go and best_free:
             # Different models - go model wins (free wasn't within threshold)
             free_display = format_model_with_score(
-                best_free_disp, free_score,
+                best_free_disp, free_score, cost=_cell_cost(best_free),
             )
             go_display = "\U0001f3c6 " + format_model_with_score(
-                best_go_disp, go_score,
+                best_go_disp, go_score, cost=_cell_cost(best_go),
             )
         elif best_go:
             free_display = "\u2014"
             go_display = "\U0001f3c6 " + format_model_with_score(
-                best_go_disp, go_score,
+                best_go_disp, go_score, cost=_cell_cost(best_go),
             )
         elif best_free:
             free_display = "\U0001f3c6 " + format_model_with_score(
-                best_free_disp, free_score,
+                best_free_disp, free_score, cost=_cell_cost(best_free),
             )
             go_display = "\u2014"
         else:
@@ -1386,7 +1720,7 @@ def generate_model_recommendation_table(
             go_display = "\u2014"
 
         zen_display = format_model_with_score(
-            zen_id_disp, zen_score,
+            zen_id_disp, zen_score, cost=_cell_cost(zen_id),
         )
 
         lines.append(
@@ -1402,16 +1736,21 @@ def generate_score_reference_table(
     go_models: list[dict[str, Any]],
     zen_models: list[dict[str, Any]] | None = None,
     task_types: list[dict[str, Any]] | None = None,
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+    cost_blend: tuple[float, float] | None = None,
 ) -> str:
     """Generate the detailed score reference table with source indicators.
 
     Adds a "Best For" column that shows which task type each model is
     best suited for, based on its highest-scoring subscore relative to
     task_type priorities. Uses emoji badges for visual distinction.
+    Adds In/Out/Blended $/1M cost columns plus score-per-$ value (overall
+    score divided by blended cost; "—" for free/unknown costs).
     """
     _ = zen_models  # kept for API compatibility
     all_model_ids = [m["id"] for m in free_models] + [m["id"] for m in go_models]
     free_ids = {m["id"] for m in free_models}
+    w_in, w_out = cost_blend or DEFAULT_COST_BLEND
 
     # Build a reverse map: model -> list of task types it's best suited for.
     # For each model, find the top 2 task types whose priority subscore the
@@ -1447,8 +1786,10 @@ def generate_score_reference_table(
         "",
         "### LiveBench Score Reference",
         "",
-        "| Model | Tier | Source | Best For | Overall | Coding | Reasoning | Vision | Instruction Following |",
-        "|-------|------|--------|----------|---------|--------|-----------|--------|----------------------|",
+        f"> Token costs ($/1M, blended {w_in:.0%} in / {w_out:.0%} out). Value = overall score per blended $.",
+        "",
+        "| Model | Tier | Source | Best For | Overall | Coding | Reasoning | Vision | Instruction Following | In $/1M | Out $/1M | Blended $/1M | Value |",
+        "|-------|------|--------|----------|---------|--------|-----------|--------|----------------------|---------|----------|--------------|-------|",
     ]
 
     for model_id in sorted(all_model_ids):
@@ -1474,11 +1815,25 @@ def generate_score_reference_table(
         re_s = get_model_score(model_id, livebench, "reasoning")
         vs = get_model_score(model_id, livebench, "vision")
         if_ = get_model_score(model_id, livebench, "instruction_following")
+        cost = get_model_cost(model_id, price_lookup, w_in, w_out)
+        in_c = f"${cost['input']:g}" if cost["input"] is not None else "—"
+        if cost["input"] == 0.0 and cost["output"] == 0.0:
+            in_c = out_c = blend_c = "Free"
+            value_c = "—"
+        else:
+            out_c = f"${cost['output']:g}" if cost["output"] is not None else "—"
+            blend_c = f"${cost['blended']:g}" if cost["blended"] else "—"
+            value_c = (
+                f"{round(ov / cost['blended'], 1)}"
+                if ov is not None and cost["blended"]
+                else "—"
+            )
         lines.append(
             f"| `{model_id}` | {tier} | {src_icon} | {best_for_cell} | "
             + f"{ov if ov is not None else '—'} | {cd if cd is not None else '—'} | "
             + f"{re_s if re_s is not None else '—'} | {vs if vs is not None else '—'} | "
-            + f"{if_ if if_ is not None else '—'} |"
+            + f"{if_ if if_ is not None else '—'} | "
+            + f"{in_c} | {out_c} | {blend_c} | {value_c} |"
         )
 
     return "\n".join(lines)
@@ -1492,6 +1847,8 @@ def generate_workflow_audit_table(
     task_types: list[dict[str, Any]],
     threshold_pct: float,
     zen_models: list[dict[str, Any]] | None = None,
+    price_lookup: dict[str, dict[str, Any]] | None = None,
+    cost_blend: tuple[float, float] | None = None,
 ) -> str:
     """Generate the workflow audit table with status icons.
 
@@ -1506,6 +1863,15 @@ def generate_workflow_audit_table(
     all_zen = zen_models or []
     go_ids = {m["id"] for m in go_models}
     free_ids = {m["id"] for m in free_models}
+    w_in, w_out = cost_blend or DEFAULT_COST_BLEND
+
+    def _audit_cost(model_id: str | None) -> str | None:
+        if not model_id or price_lookup is None:
+            return None
+        c = get_model_cost(model_id, price_lookup, w_in, w_out)
+        if c["input"] is None and c["output"] is None:
+            return None
+        return format_cost_pair(c["input"], c["output"])
 
     lines = [
         "",
@@ -1530,7 +1896,8 @@ def generate_workflow_audit_table(
         current = r.get("model", "NOT_SET")
 
         best_free, best_go = get_best_models_for_task(
-            task_type, free_models, go_models, livebench, task_types
+            task_type, free_models, go_models, livebench, task_types,
+            price_lookup, (w_in, w_out), threshold_pct,
         )
         best_free, best_go = apply_free_first_rule(
             best_free,
@@ -1571,6 +1938,7 @@ def generate_workflow_audit_table(
         if zen_id_disp:
             zen_display = format_model_with_score(
                 zen_id_disp, zen_score, score_suffix=zen_suffix,
+                cost=_audit_cost(zen_id),
             )
         else:
             zen_display = "\u2014"
@@ -1605,24 +1973,28 @@ def generate_workflow_audit_table(
         if best_free and best_go and best_free == best_go:
             # Same model - show in both columns with trophy on free (preferred)
             free_display = "\U0001f3c6 " + format_model_with_score(
-                best_free_disp, free_score,
+                best_free_disp, free_score, cost=_audit_cost(best_free),
             )
-            go_display = format_model_with_score(best_go_disp, go_score)
+            go_display = format_model_with_score(
+                best_go_disp, go_score, cost=_audit_cost(best_go)
+            )
         elif best_go and best_free:
             free_display = format_model_with_score(
-                best_free_disp, free_score,
+                best_free_disp, free_score, cost=_audit_cost(best_free),
             )
             go_display = "\U0001f3c6 " + format_model_with_score(
                 best_go_disp, go_score, score_suffix=diff_str,
+                cost=_audit_cost(best_go),
             )
         elif best_go:
             free_display = "\u2014"
             go_display = "\U0001f3c6 " + format_model_with_score(
                 best_go_disp, go_score, score_suffix=diff_str,
+                cost=_audit_cost(best_go),
             )
         elif best_free:
             free_display = "\U0001f3c6 " + format_model_with_score(
-                best_free_disp, free_score,
+                best_free_disp, free_score, cost=_audit_cost(best_free),
             )
             go_display = "\u2014"
         else:
@@ -1708,8 +2080,10 @@ def main() -> None:
     print("=" * 60)
 
     # Load config
-    task_types = load_yaml(TASK_TYPES_PATH).get("task_types") or []
-    threshold_pct = load_yaml(TASK_TYPES_PATH).get("free_first_threshold_pct") or 5
+    task_types_cfg = load_yaml(TASK_TYPES_PATH)
+    task_types = task_types_cfg.get("task_types") or []
+    threshold_pct = task_types_cfg.get("free_first_threshold_pct") or 5
+    cost_blend = _resolve_cost_blend(task_types_cfg)
 
     # 1. Fetch model catalogs
     free_models, go_models = fetch_opencode_models()
@@ -1729,23 +2103,35 @@ def main() -> None:
     go_ids = {m["id"] for m in go_models}
     free_ids = {m["id"] for m in free_models}
 
+    # In/out token costs ($/1M) from Zen pricing; Go-only ids without a Zen
+    # pricing row stay unknown and sort after priced models in the selector.
+    price_lookup = _build_price_lookup(all_zen_models, free_ids)
+    print(
+        f"  v Pricing: {sum(1 for v in price_lookup.values() if v['input'] is not None)} "
+        f"model(s) with costs, blend {cost_blend[0]:.0%} in / {cost_blend[1]:.0%} out"
+    )
+
     model_table = generate_model_recommendation_table(
         task_types, free_models, go_models, livebench, threshold_pct,
         zen_models=all_zen_models,
+        price_lookup=price_lookup, cost_blend=cost_blend,
     )
     score_table = generate_score_reference_table(
         livebench, free_models, go_models,
         zen_models=all_zen_models, task_types=task_types,
+        price_lookup=price_lookup, cost_blend=cost_blend,
     )
     audit_table = generate_workflow_audit_table(
         scan_results, free_models, go_models, livebench, task_types, threshold_pct,
         zen_models=all_zen_models,
+        price_lookup=price_lookup, cost_blend=cost_blend,
     )
 
     # 5. Generate and save benchmark data
     print("-> Generating benchmark data...")
     benchmark = get_benchmark_summary(
-        all_zen_models, go_models, livebench, task_types
+        all_zen_models, go_models, livebench, task_types,
+        price_lookup, cost_blend,
     )
     benchmark_path = DATA_DIR / "benchmark_results.json"
     save_json(
@@ -1760,6 +2146,11 @@ def main() -> None:
             else None,
             "zen_models_count": len(all_zen_models),
             "go_models_count": len(go_models),
+            "cost_blend": {
+                "input_weight": cost_blend[0],
+                "output_weight": cost_blend[1],
+            },
+            "pricing_source": ZEN_PRICING_URL,
             **benchmark,
         },
     )
@@ -1786,7 +2177,8 @@ def main() -> None:
         current = r.get("model", "NOT_SET")
 
         best_free, best_go = get_best_models_for_task(
-            task_type, free_models, go_models, livebench, task_types
+            task_type, free_models, go_models, livebench, task_types,
+            price_lookup, cost_blend, threshold_pct,
         )
         best_free, best_go = apply_free_first_rule(
             best_free,
@@ -1801,6 +2193,8 @@ def main() -> None:
         priority = next(
             (t["priority"] for t in task_types if t["name"] == task_type), "overall"
         )
+        free_cost = get_model_cost(best_free, price_lookup, *cost_blend) if best_free else None
+        go_cost = get_model_cost(best_go, price_lookup, *cost_blend) if best_go else None
 
         # Action-preselected steps resolve their model from the central
         # config by task type during the scan, so `current` is directly
@@ -1848,7 +2242,9 @@ def main() -> None:
                 "current_model_free": r.get("model_free"),
                 "auto": r.get("auto", False),
                 "recommended_free": best_free,
+                "recommended_free_cost": free_cost,
                 "recommended_go": best_go,
+                "recommended_go_cost": go_cost,
                 "preferred_tier": preferred_tier,
                 "preferred_diff": preferred_diff,
                 "status": status,
@@ -1858,7 +2254,8 @@ def main() -> None:
     # 7b. Compute the proposed central model config — never applied to the
     # committed file; drift is reported (not applied) and flows into the issue.
     config_drift = generate_model_config(
-        free_models, go_models, livebench, task_types, threshold_pct, go_ids
+        free_models, go_models, livebench, task_types, threshold_pct, go_ids,
+        price_lookup, cost_blend,
     )
 
     save_json(
@@ -1874,6 +2271,11 @@ def main() -> None:
             "livebench_models": len(_lb_models(livebench)),
             "free_models": len(free_models),
             "go_models": len(go_models),
+            "cost_blend": {
+                "input_weight": cost_blend[0],
+                "output_weight": cost_blend[1],
+            },
+            "pricing_source": ZEN_PRICING_URL,
             "workflows_audited": len({r["file"] for r in scan_results}),
             "steps_audited": len(scan_results),
             "model_config_drift": {
@@ -1892,9 +2294,11 @@ def main() -> None:
         },
     )
 
-    # 8. Detect coverage issues (stale fallback, missing scores)
+    # 8. Detect coverage issues (stale fallback, missing scores/prices)
     print("-> Checking model coverage...")
-    coverage = detect_coverage_issues(free_models, go_models, livebench)
+    coverage = detect_coverage_issues(
+        free_models, go_models, livebench, price_lookup
+    )
     save_json(COVERAGE_ISSUES_PATH, coverage)
     if coverage.get("stale_fallback"):
         for m in coverage["stale_fallback"]:
@@ -1902,6 +2306,9 @@ def main() -> None:
     if coverage.get("missing_scores"):
         for m in coverage["missing_scores"]:
             print(f"  x Missing scores: {m['model']} ({m['tier']})")
+    if coverage.get("missing_prices"):
+        for m in coverage["missing_prices"]:
+            print(f"  w Missing prices: {m['model']} ({m['tier']}) — cost unknown")
     if not coverage.get("stale_fallback") and not coverage.get("missing_scores"):
         print("  v All models have scores, no stale fallback entries")
 

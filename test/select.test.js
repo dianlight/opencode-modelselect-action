@@ -112,3 +112,87 @@ describe('select-model action', () => {
     assert.match(stderr, /tier/);
   });
 });
+
+const RANKED_FIXTURE = {
+  'task-types': {
+    'pr-review': {
+      go: 'opencode-go/pricey',
+      free: 'opencode/cheap-free',
+      go_ranked: [
+        { model: 'opencode-go/pricey', score: 90, input_cost: 10, output_cost: 50, blended_cost: 20 },
+        { model: 'opencode-go/mid', score: 88, input_cost: 1, output_cost: 3, blended_cost: 1.5 },
+        { model: 'opencode-go/unknown', score: 87, input_cost: null, output_cost: null, blended_cost: null },
+      ],
+      free_ranked: [
+        { model: 'opencode/cheap-free', score: 75, input_cost: 0, output_cost: 0, blended_cost: 0 },
+      ],
+    },
+  },
+};
+
+function runRanked(extra = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-model-'));
+  const configPath = path.join(dir, 'model-config.json');
+  fs.writeFileSync(configPath, JSON.stringify(RANKED_FIXTURE));
+  const result = run(localInputs(configPath, extra));
+  fs.rmSync(dir, { recursive: true, force: true });
+  return result;
+}
+
+describe('select-model max-cost', () => {
+  it('keeps the resolved model and reports its cost when within budget', () => {
+    const { exit, outputs } = runRanked({ TIER: 'go', 'MAX-COST': '25' });
+    assert.equal(exit, 0);
+    assert.equal(outputs.model, 'opencode-go/pricey');
+    assert.equal(outputs['model-cost'], '20');
+  });
+
+  it('walks best-to-worst to the first model within budget', () => {
+    const { exit, outputs } = runRanked({ TIER: 'go', 'MAX-COST': '10' });
+    assert.equal(exit, 0);
+    assert.equal(outputs.model, 'opencode-go/mid');
+    assert.equal(outputs['model-cost'], '1.5');
+  });
+
+  it('skips models with unknown cost and fails when nothing fits', () => {
+    const { exit, stderr } = runRanked({ TIER: 'go', 'MAX-COST': '0.5' });
+    assert.equal(exit, 1);
+    assert.match(stderr, /fits max-cost/);
+  });
+
+  it('uses fallback-model when nothing fits the budget', () => {
+    const { exit, outputs } = runRanked({
+      TIER: 'go',
+      'MAX-COST': '0.5',
+      'FALLBACK-MODEL': 'opencode/fallback',
+    });
+    assert.equal(exit, 0);
+    assert.equal(outputs.model, 'opencode/fallback');
+    assert.equal(outputs['model-cost'], '');
+  });
+
+  it('selects the free model at zero budget', () => {
+    const { exit, outputs } = runRanked({ TIER: 'free', 'MAX-COST': '0' });
+    assert.equal(exit, 0);
+    assert.equal(outputs.model, 'opencode/cheap-free');
+    assert.equal(outputs['model-cost'], '0');
+  });
+
+  it('rejects a non-numeric or negative max-cost', () => {
+    for (const bad of ['abc', '-1']) {
+      const { exit, stderr } = runRanked({ TIER: 'go', 'MAX-COST': bad });
+      assert.equal(exit, 1);
+      assert.match(stderr, /max-cost/);
+    }
+  });
+
+  it('fails when the config has no ranking for max-cost filtering', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-model-'));
+    const configPath = path.join(dir, 'model-config.json');
+    fs.writeFileSync(configPath, JSON.stringify(FIXTURE));
+    const { exit, stderr } = run(localInputs(configPath, { TIER: 'go', 'MAX-COST': '5' }));
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(exit, 1);
+    assert.match(stderr, /max-cost/);
+  });
+});

@@ -133,3 +133,13 @@ task_types:
 
 # Free-first policy: if free model scores within this % of best paid, prefer free
 free_first_threshold_pct: 5
+
+# Cost blend: weight input vs output token prices ($/1M) into a single blended
+# $/1M figure used by the blended cost selector. The default 3:1 split reflects
+# input-heavy review/triage workloads (large diffs in, short comments out).
+# Weights are normalised to sum to 1. A task type may override the global mix
+# with its own `cost_blend` mapping (e.g. code-implementation with heavy output
+# could use `{input_weight: 0.5, output_weight: 0.5}`).
+cost_blend:
+  input_weight: 0.75
+  output_weight: 0.25

@@ -11,9 +11,11 @@
  *   config-path     Local path (relative to GITHUB_WORKSPACE) preferred
  *                   over the remote URL when present.
  *   fallback-model  Optional escape hatch when the task-type has no entry.
+ *   max-cost        Optional budget cap as blended $/1M: an over-budget pick
+ *                   is replaced by the best-scoring ranked model within budget.
  *
  * Outputs (via GITHUB_OUTPUT):
- *   model, model-go, model-free, config-source, task-type
+ *   model, model-go, model-free, model-cost, config-source, task-type
  *
  * Fail-closed: exits non-zero when no model can be resolved and no
  * fallback-model was given. No default models exist.
@@ -87,15 +89,80 @@ async function fetchRemoteConfig(url) {
   }
 }
 
+function normModelName(value) {
+  const s = String(value ?? '').trim();
+  const i = s.lastIndexOf('/');
+  return (i >= 0 ? s.slice(i + 1) : s).toLowerCase();
+}
+
+function rankedCost(row) {
+  if (!row || typeof row !== 'object') return null;
+  const c = row.blended_cost;
+  return typeof c === 'number' && Number.isFinite(c) && c >= 0 ? c : null;
+}
+
+function selectWithinBudget(entry, taskKey, tier, recommended, maxCost) {
+  const ranked = entry ? entry[`${tier}_ranked`] : null;
+  if (!Array.isArray(ranked)) {
+    fail(
+      `Input 'max-cost' needs a '${tier}_ranked' best-to-worst ranking for ` +
+        `task-type='${taskKey}' in the model config; regenerate ` +
+        'data/model-config.json via maintenance.',
+    );
+  }
+  const ordered = ranked
+    .filter((r) => r && typeof r.model === 'string' && r.model)
+    .slice()
+    .sort((a, b) => {
+      const sa = typeof a.score === 'number' ? a.score : -Infinity;
+      const sb = typeof b.score === 'number' ? b.score : -Infinity;
+      if (sb !== sa) return sb - sa;
+      const ca = rankedCost(a);
+      const cb = rankedCost(b);
+      if (ca === null && cb === null) return 0;
+      if (ca === null) return 1;
+      if (cb === null) return -1;
+      return ca - cb;
+    });
+  const wanted = normModelName(recommended);
+  const rec = ordered.find((r) => normModelName(r.model) === wanted);
+  const recCost = rec ? rankedCost(rec) : null;
+  if (recCost !== null && recCost <= maxCost) {
+    return { model: recommended, cost: String(recCost) };
+  }
+  for (const row of ordered) {
+    const c = rankedCost(row);
+    if (c !== null && c <= maxCost) return { model: row.model, cost: String(c) };
+  }
+  const known = ordered.map(rankedCost).filter((c) => c !== null);
+  const cheapest = known.length ? Math.min(...known) : null;
+  return {
+    model: null,
+    hint:
+      cheapest === null
+        ? 'no ranked model has a known cost'
+        : `cheapest ranked model costs $${cheapest}/1M`,
+  };
+}
+
 async function main() {
   const taskTypeInput = getInput('task-type', { required: true });
   const tier = (getInput('tier', { fallback: 'go' }) || 'go').toLowerCase();
   const configUrl = getInput('config-url');
   const configPath = getInput('config-path', { fallback: 'data/model-config.json' });
   const fallbackModel = getInput('fallback-model');
+  const maxCostInput = getInput('max-cost');
 
   if (tier !== 'go' && tier !== 'free') {
     fail(`Input 'tier' must be 'go' or 'free', got '${tier}'.`);
+  }
+
+  let maxCost = null;
+  if (maxCostInput) {
+    maxCost = Number(maxCostInput);
+    if (!Number.isFinite(maxCost) || maxCost < 0) {
+      fail(`Input 'max-cost' must be a non-negative number (blended $/1M), got '${maxCostInput}'.`);
+    }
   }
 
   const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -137,8 +204,9 @@ async function main() {
 
   let goModel = '';
   let freeModel = '';
+  let entry = null;
   if (key) {
-    const entry = table[key];
+    entry = table[key];
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
       fail(`Invalid model config: task-type '${key}' must be an object.`);
     }
@@ -153,6 +221,8 @@ async function main() {
   }
 
   let model = tier === 'free' ? freeModel : goModel;
+  let modelCost = '';
+  let fromFallback = false;
   if (!model && fallbackModel) {
     warn(
       `No model configured for task-type='${taskTypeInput}' tier='${tier}'; ` +
@@ -160,6 +230,7 @@ async function main() {
     );
     model = fallbackModel;
     source = `${source}+fallback`;
+    fromFallback = true;
   }
   if (!model) {
     fail(
@@ -168,14 +239,47 @@ async function main() {
     );
   }
 
+  if (maxCost !== null && !fromFallback) {
+    const budgeted = selectWithinBudget(entry, key, tier, model, maxCost);
+    if (!budgeted.model) {
+      if (fallbackModel) {
+        warn(
+          `No '${tier}' model for task-type='${key}' fits max-cost=${maxCost} ` +
+            `(${budgeted.hint}); using fallback-model.`,
+        );
+        model = fallbackModel;
+        source = `${source}+fallback`;
+      } else {
+        fail(
+          `No '${tier}' model for task-type='${key}' fits max-cost=${maxCost} ` +
+            `(${budgeted.hint}); raise max-cost or pass fallback-model.`,
+        );
+      }
+    } else {
+      if (budgeted.model !== model) {
+        warn(
+          `Resolved model '${model}' is over max-cost=${maxCost}; ` +
+            `using cheaper '${budgeted.model}' ($${budgeted.cost}/1M).`,
+        );
+      }
+      model = budgeted.model;
+      modelCost = budgeted.cost;
+    }
+  }
+
   writeOutputs({
     model,
     'model-go': goModel,
     'model-free': freeModel,
+    'model-cost': modelCost,
     'config-source': source,
     'task-type': key ?? taskTypeInput,
   });
-  notice(`Selected model '${model}' for task-type='${key ?? taskTypeInput}' tier='${tier}'.`);
+  notice(
+    `Selected model '${model}' for task-type='${key ?? taskTypeInput}' tier='${tier}'` +
+      (modelCost ? ` (blended $${modelCost}/1M)` : '') +
+      '.',
+  );
 }
 
 main().catch((err) => fail(`Unexpected error: ${err?.message ?? err}`));

@@ -33,6 +33,14 @@ inputs:
       config. Prefer adding the entry to data/model-config.json instead.
     required: false
     default: ""
+  max-cost:
+    description: >-
+      Optional budget cap as blended in/out token cost in $/1M (same blend as
+      the maintenance evaluation). When set, a resolved model over budget is
+      replaced by the best-scoring ranked model within budget; the step fails
+      when no ranked model fits (unless fallback-model is given).
+    required: false
+    default: ""
 
 outputs:
   model:
@@ -41,6 +49,10 @@ outputs:
     description: Resolved Go (paid) model for the task-type.
   model-free:
     description: Resolved free model for the task-type.
+  model-cost:
+    description: >-
+      Blended in/out token cost in $/1M of the resolved model, from the
+      config ranking. Empty when the cost is unknown (e.g. fallback-model).
   config-source:
     description: "Where the config was loaded from: local, remote, local+fallback or remote+fallback."
   task-type:

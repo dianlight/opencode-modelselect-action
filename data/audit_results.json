@@ -1,15 +1,20 @@
 {
-  "timestamp": "2026-09-06T06:25:41.091202+00:00",
+  "timestamp": "2026-09-06T08:09:53.175271+00:00",
   "livebench_snapshot": "2026_06_25",
   "livebench_source": "https://livebench.ai/table_2026_06_25.csv",
   "livebench_models": 341,
   "free_models": 8,
   "go_models": 35,
-  "workflows_audited": 4,
-  "steps_audited": 7,
+  "cost_blend": {
+    "input_weight": 0.75,
+    "output_weight": 0.25
+  },
+  "pricing_source": "https://opencode.ai/docs/it/zen#pricing",
+  "workflows_audited": 1,
+  "steps_audited": 1,
   "model_config_drift": {
     "detected": true,
-    "timestamp": "2026-09-06T06:25:41.091212+00:00",
+    "timestamp": "2026-09-06T08:09:53.175276+00:00",
     "livebench_snapshot": "2026_06_25",
     "current_task_types": {
       "Plan": {
@@ -60,36 +65,6 @@
   },
   "results": [
     {
-      "file": ".github/workflows/opencode-issue-handler.yml",
-      "workflow": "opencode-issue-handler",
-      "job": "process-4",
-      "step": "Run opencode (Process 4 \u2014 Issue Review & Refinement)",
-      "task_type": "issue-triage",
-      "current_model": "opencode-go/qwen3.8-max",
-      "current_model_free": "opencode/deepseek-v4-flash-free",
-      "auto": true,
-      "recommended_free": "nemotron-3-ultra-free",
-      "recommended_go": "nemotron-3-ultra-free",
-      "preferred_tier": "free",
-      "preferred_diff": null,
-      "status": "\u2757"
-    },
-    {
-      "file": ".github/workflows/opencode-issue-handler.yml",
-      "workflow": "opencode-issue-handler",
-      "job": "process-5",
-      "step": "Run opencode (Process 5 \u2014 Issue Work & PR Creation)",
-      "task_type": "issue-implementation",
-      "current_model": "opencode/big-pickle",
-      "current_model_free": "opencode/big-pickle",
-      "auto": true,
-      "recommended_free": "big-pickle",
-      "recommended_go": "big-pickle",
-      "preferred_tier": "free",
-      "preferred_diff": null,
-      "status": "\u2705"
-    },
-    {
       "file": ".github/workflows/opencode-maintenance.yaml",
       "workflow": "OpenCode Maintenance",
       "job": "Handle Checked Tasks",
@@ -99,70 +74,20 @@
       "current_model_free": "opencode/big-pickle",
       "auto": true,
       "recommended_free": "big-pickle",
+      "recommended_free_cost": {
+        "input": 0.0,
+        "output": 0.0,
+        "blended": 0.0
+      },
       "recommended_go": "big-pickle",
+      "recommended_go_cost": {
+        "input": 0.0,
+        "output": 0.0,
+        "blended": 0.0
+      },
       "preferred_tier": "free",
       "preferred_diff": null,
       "status": "\u2705"
-    },
-    {
-      "file": ".github/workflows/opencode-pr-comment.yml",
-      "workflow": "opencode-pr-comment",
-      "job": "process-2",
-      "step": "Run opencode (Process 2 \u2014 Bot thread reply)",
-      "task_type": "pr-review",
-      "current_model": "opencode-go/qwen3.8-max",
-      "current_model_free": "opencode/deepseek-v4-flash-free",
-      "auto": true,
-      "recommended_free": "nemotron-3-ultra-free",
-      "recommended_go": "grok-4.6",
-      "preferred_tier": "go",
-      "preferred_diff": 18,
-      "status": "\u274c"
-    },
-    {
-      "file": ".github/workflows/opencode-pr-comment.yml",
-      "workflow": "opencode-pr-comment",
-      "job": "process-3",
-      "step": "Run opencode (Process 3 \u2014 User-owned thread takeover)",
-      "task_type": "pr-review",
-      "current_model": "opencode-go/qwen3.8-max",
-      "current_model_free": "opencode/deepseek-v4-flash-free",
-      "auto": true,
-      "recommended_free": "nemotron-3-ultra-free",
-      "recommended_go": "grok-4.6",
-      "preferred_tier": "go",
-      "preferred_diff": 18,
-      "status": "\u274c"
-    },
-    {
-      "file": ".github/workflows/opencode-pr-comment.yml",
-      "workflow": "opencode-pr-comment",
-      "job": "process-6",
-      "step": "Run opencode (Process 6 \u2014 PR Task Execution)",
-      "task_type": "code-implementation",
-      "current_model": "opencode/big-pickle",
-      "current_model_free": "opencode/big-pickle",
-      "auto": true,
-      "recommended_free": "big-pickle",
-      "recommended_go": "big-pickle",
-      "preferred_tier": "free",
-      "preferred_diff": null,
-      "status": "\u2705"
-    },
-    {
-      "file": ".github/workflows/opencode-pr-review.yml",
-      "workflow": "opencode-pr-review",
-      "job": "review",
-      "step": "Run opencode (PR code review)",
-      "task_type": "pr-review",
-      "current_model": "opencode-go/qwen3.8-max",
-      "current_model_free": "opencode/deepseek-v4-flash-free",
-      "auto": true,
-      "recommended_free": "nemotron-3-ultra-free",
-      "recommended_go": "grok-4.6",
-      "preferred_tier": "go",
-      "preferred_diff": 18,
-      "status": "\u274c"
     }
   ]
 }

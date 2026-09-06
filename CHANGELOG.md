@@ -30,6 +30,12 @@
   `input_cost`/`output_cost`/`blended_cost` in `benchmark_results.json` and
   `audit_results.json`, and report paid models with unknown pricing under
   `coverage_issues.json` `missing_prices` (warn-only)
+- New select-model `max-cost` input (blended $/1M budget cap): an over-budget
+  pick is replaced by the best-scoring ranked model within budget from the new
+  per-task-type `go_ranked`/`free_ranked` lists (best-to-worst with scores and
+  costs) in `data/model-config.json`; the step fails when nothing fits unless
+  `fallback-model` is given. New `model-cost` output reports the resolved
+  model's blended $/1M
 
 ### Removed
 - Delete the 6-process pipeline workflows (`opencode-pr-review.yml`,
