@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-06T06:25:41.034660+00:00",
+  "timestamp": "2026-09-06T07:42:36.387468+00:00",
   "livebench_snapshot": "2026_06_25",
   "livebench_source": "https://livebench.ai/table_2026_06_25.csv",
   "zen_models_count": 70,
@@ -337,14 +337,14 @@
         "rank": 36
       },
       {
-        "model": "gpt-5.1",
-        "score": 80.7,
+        "model": "gemini-3-flash",
+        "score": 80.0,
         "source": "livebench",
         "rank": 37
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
+        "model": "gpt-5.3-codex",
+        "score": 79.3,
         "source": "livebench",
         "rank": 38
       },
@@ -367,80 +367,80 @@
         "rank": 41
       },
       {
-        "model": "gpt-5.1-codex-max",
+        "model": "gpt-5.1",
         "score": 77.0,
         "source": "livebench",
         "rank": 42
       },
       {
-        "model": "qwen3.6-plus",
+        "model": "gpt-5.1-codex-max",
         "score": 77.0,
         "source": "livebench",
         "rank": 43
       },
       {
+        "model": "qwen3.6-plus",
+        "score": 77.0,
+        "source": "livebench",
+        "rank": 44
+      },
+      {
         "model": "kimi-k2.7-code",
         "score": 76.9,
         "source": "livebench",
-        "rank": 44
+        "rank": 45
       },
       {
         "model": "minimax-m3",
         "score": 76.7,
         "source": "livebench",
-        "rank": 45
+        "rank": 46
       },
       {
         "model": "kimi-k2.5",
         "score": 76.7,
         "source": "livebench",
-        "rank": 46
+        "rank": 47
       },
       {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
-        "rank": 47
+        "rank": 48
       },
       {
         "model": "glm-5.1",
         "score": 75.6,
         "source": "livebench",
-        "rank": 48
+        "rank": 49
       },
       {
         "model": "nemotron-3-ultra-free",
         "score": 75.6,
         "source": "livebench",
-        "rank": 49
+        "rank": 50
       },
       {
         "model": "gpt-5.4",
         "score": 74.1,
         "source": "livebench",
-        "rank": 50
+        "rank": 51
       },
       {
         "model": "glm-5",
         "score": 74.0,
         "source": "livebench",
-        "rank": 51
+        "rank": 52
       },
       {
         "model": "deepseek-v4-flash",
         "score": 73.1,
         "source": "livebench",
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 73.1,
-        "source": "livebench",
-        "rank": 53
-      },
-      {
-        "model": "gpt-5.3-codex",
-        "score": 72.6,
         "source": "livebench",
         "rank": 54
       },
@@ -451,14 +451,14 @@
         "rank": 55
       },
       {
-        "model": "gpt-5.1-codex-mini",
-        "score": 66.3,
+        "model": "claude-sonnet-4-5",
+        "score": 72.2,
         "source": "livebench",
         "rank": 56
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 66.0,
+        "model": "gpt-5.1-codex-mini",
+        "score": 66.3,
         "source": "livebench",
         "rank": 57
       },
@@ -505,8 +505,8 @@
         "rank": 64
       },
       {
-        "model": "claude-sonnet-4-5",
-        "score": 47.8,
+        "model": "claude-haiku-4-5",
+        "score": 41.9,
         "source": "livebench",
         "rank": 65
       },
@@ -657,56 +657,56 @@
         "rank": 22
       },
       {
-        "model": "gpt-5.3-codex",
+        "model": "nemotron-3-ultra-free",
         "score": 74.0,
         "source": "livebench",
         "rank": 23
       },
       {
-        "model": "nemotron-3-ultra-free",
-        "score": 74.0,
-        "source": "livebench",
-        "rank": 24
-      },
-      {
-        "model": "gpt-5.1",
-        "score": 73.9,
-        "source": "livebench",
-        "rank": 25
-      },
-      {
         "model": "grok-4.5",
         "score": 73.9,
         "source": "livebench",
-        "rank": 26
+        "rank": 24
       },
       {
         "model": "glm-5.3",
         "score": 72.3,
         "source": "livebench",
-        "rank": 27
+        "rank": 25
       },
       {
         "model": "gpt-5.6-terra",
         "score": 72.2,
         "source": "livebench",
-        "rank": 28
+        "rank": 26
       },
       {
         "model": "claude-opus-5",
         "score": 71.9,
         "source": "livebench",
-        "rank": 29
+        "rank": 27
       },
       {
         "model": "claude-opus-4-7",
         "score": 71.1,
         "source": "livebench",
-        "rank": 30
+        "rank": 28
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 71.1,
+        "source": "livebench",
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
         "score": 71.1,
+        "source": "livebench",
+        "rank": 30
+      },
+      {
+        "model": "gpt-5.3-codex",
+        "score": 70.8,
         "source": "livebench",
         "rank": 31
       },
@@ -861,27 +861,27 @@
         "rank": 56
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 64.2,
+        "source": "livebench",
+        "rank": 57
+      },
+      {
         "model": "gpt-5.1-codex-mini",
         "score": 63.1,
         "source": "livebench",
-        "rank": 57
+        "rank": 58
       },
       {
         "model": "minimax-m2.5",
         "score": 62.2,
         "source": "livebench",
-        "rank": 58
+        "rank": 59
       },
       {
         "model": "mimo-v2.5-free",
         "score": 62.0,
         "source": "fallback",
-        "rank": 59
-      },
-      {
-        "model": "claude-haiku-4-5",
-        "score": 60.7,
-        "source": "livebench",
         "rank": 60
       },
       {
@@ -909,8 +909,8 @@
         "rank": 64
       },
       {
-        "model": "claude-sonnet-4-5",
-        "score": 49.9,
+        "model": "claude-haiku-4-5",
+        "score": 41.1,
         "source": "livebench",
         "rank": 65
       },
@@ -947,45 +947,45 @@
         "rank": 3
       },
       {
-        "model": "gpt-5.3-codex",
-        "score": 71.0,
-        "source": "livebench",
-        "rank": 4
-      },
-      {
         "model": "muse-spark-1.3",
         "score": 70.9,
         "source": "livebench",
-        "rank": 5
+        "rank": 4
       },
       {
         "model": "kimi-k3",
         "score": 69.9,
         "source": "livebench",
-        "rank": 6
+        "rank": 5
       },
       {
         "model": "glm-5.3",
         "score": 68.1,
         "source": "livebench",
-        "rank": 7
+        "rank": 6
       },
       {
         "model": "claude-sonnet-5",
         "score": 67.9,
         "source": "livebench",
-        "rank": 8
+        "rank": 7
       },
       {
         "model": "gpt-5.6-sol",
         "score": 67.3,
         "source": "livebench",
-        "rank": 9
+        "rank": 8
       },
       {
         "model": "big-pickle",
         "score": 67.0,
         "source": "fallback",
+        "rank": 9
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 66.6,
+        "source": "livebench",
         "rank": 10
       },
       {
@@ -1043,128 +1043,128 @@
         "rank": 19
       },
       {
-        "model": "gpt-5.1",
+        "model": "gpt-5.3-codex",
         "score": 64.3,
         "source": "livebench",
         "rank": 20
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 64.1,
+        "source": "livebench",
+        "rank": 21
+      },
+      {
         "model": "claude-opus-4-7",
         "score": 63.2,
         "source": "livebench",
-        "rank": 21
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
         "score": 63.1,
         "source": "livebench",
-        "rank": 22
+        "rank": 23
       },
       {
         "model": "glm-5.1",
         "score": 63.1,
         "source": "livebench",
-        "rank": 23
+        "rank": 24
       },
       {
         "model": "claude-opus-4-8",
         "score": 63.0,
         "source": "livebench",
-        "rank": 24
+        "rank": 25
       },
       {
         "model": "glm-5.2",
         "score": 62.9,
         "source": "livebench",
-        "rank": 25
+        "rank": 26
       },
       {
         "model": "glm-5",
         "score": 62.5,
         "source": "livebench",
-        "rank": 26
+        "rank": 27
       },
       {
         "model": "gpt-5.6-luna",
         "score": 62.2,
         "source": "livebench",
-        "rank": 27
+        "rank": 28
       },
       {
         "model": "gemini-3.8-flash",
         "score": 61.5,
         "source": "livebench",
-        "rank": 28
+        "rank": 29
       },
       {
         "model": "grok-4.5",
         "score": 61.3,
         "source": "livebench",
-        "rank": 29
+        "rank": 30
       },
       {
         "model": "claude-opus-4-6",
         "score": 60.7,
         "source": "livebench",
-        "rank": 30
+        "rank": 31
       },
       {
         "model": "gemini-3.5-flash",
         "score": 60.7,
         "source": "livebench",
-        "rank": 31
+        "rank": 32
       },
       {
         "model": "gpt-5.1-codex",
         "score": 60.7,
         "source": "livebench",
-        "rank": 32
+        "rank": 33
       },
       {
         "model": "gpt-5.2",
         "score": 60.6,
         "source": "livebench",
-        "rank": 33
+        "rank": 34
       },
       {
         "model": "kimi-k2.5",
         "score": 60.1,
         "source": "livebench",
-        "rank": 34
+        "rank": 35
       },
       {
         "model": "gpt-5.5-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 35
+        "rank": 36
       },
       {
         "model": "gpt-5.4-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 36
+        "rank": 37
       },
       {
         "model": "gpt-5.3-codex-spark",
         "score": 60.0,
         "source": "livebench",
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "gpt-5",
         "score": 60.0,
         "source": "livebench",
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "kimi-k2.6",
         "score": 59.6,
-        "source": "livebench",
-        "rank": 39
-      },
-      {
-        "model": "claude-sonnet-4-5",
-        "score": 59.4,
         "source": "livebench",
         "rank": 40
       },
@@ -1235,74 +1235,74 @@
         "rank": 51
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 54.1,
-        "source": "livebench",
-        "rank": 52
-      },
-      {
         "model": "gemini-3-flash",
         "score": 53.6,
         "source": "livebench",
-        "rank": 53
+        "rank": 52
       },
       {
         "model": "gpt-5.4",
         "score": 53.6,
         "source": "livebench",
-        "rank": 54
+        "rank": 53
       },
       {
         "model": "grok-build-0.1",
         "score": 53.6,
         "source": "livebench",
-        "rank": 55
+        "rank": 54
       },
       {
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "rank": 56
+        "rank": 55
       },
       {
         "model": "gpt-5.1-codex-mini",
         "score": 52.0,
         "source": "livebench",
-        "rank": 57
+        "rank": 56
       },
       {
         "model": "minimax-m2.7",
         "score": 52.0,
         "source": "livebench",
-        "rank": 58
+        "rank": 57
       },
       {
         "model": "qwen3.5-plus",
         "score": 52.0,
         "source": "fallback",
-        "rank": 59
+        "rank": 58
       },
       {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
-        "rank": 60
+        "rank": 59
       },
       {
         "model": "nemotron-3-ultra-free",
         "score": 51.5,
         "source": "livebench",
-        "rank": 61
+        "rank": 60
       },
       {
         "model": "deepseek-v4-flash",
         "score": 50.3,
         "source": "livebench",
-        "rank": 62
+        "rank": 61
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 50.3,
+        "source": "livebench",
+        "rank": 62
+      },
+      {
+        "model": "claude-haiku-4-5",
+        "score": 48.9,
         "source": "livebench",
         "rank": 63
       },
@@ -1465,56 +1465,56 @@
         "rank": 22
       },
       {
-        "model": "gpt-5.3-codex",
+        "model": "nemotron-3-ultra-free",
         "score": 74.0,
         "source": "livebench",
         "rank": 23
       },
       {
-        "model": "nemotron-3-ultra-free",
-        "score": 74.0,
-        "source": "livebench",
-        "rank": 24
-      },
-      {
-        "model": "gpt-5.1",
-        "score": 73.9,
-        "source": "livebench",
-        "rank": 25
-      },
-      {
         "model": "grok-4.5",
         "score": 73.9,
         "source": "livebench",
-        "rank": 26
+        "rank": 24
       },
       {
         "model": "glm-5.3",
         "score": 72.3,
         "source": "livebench",
-        "rank": 27
+        "rank": 25
       },
       {
         "model": "gpt-5.6-terra",
         "score": 72.2,
         "source": "livebench",
-        "rank": 28
+        "rank": 26
       },
       {
         "model": "claude-opus-5",
         "score": 71.9,
         "source": "livebench",
-        "rank": 29
+        "rank": 27
       },
       {
         "model": "claude-opus-4-7",
         "score": 71.1,
         "source": "livebench",
-        "rank": 30
+        "rank": 28
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 71.1,
+        "source": "livebench",
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
         "score": 71.1,
+        "source": "livebench",
+        "rank": 30
+      },
+      {
+        "model": "gpt-5.3-codex",
+        "score": 70.8,
         "source": "livebench",
         "rank": 31
       },
@@ -1669,27 +1669,27 @@
         "rank": 56
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 64.2,
+        "source": "livebench",
+        "rank": 57
+      },
+      {
         "model": "gpt-5.1-codex-mini",
         "score": 63.1,
         "source": "livebench",
-        "rank": 57
+        "rank": 58
       },
       {
         "model": "minimax-m2.5",
         "score": 62.2,
         "source": "livebench",
-        "rank": 58
+        "rank": 59
       },
       {
         "model": "mimo-v2.5-free",
         "score": 62.0,
         "source": "fallback",
-        "rank": 59
-      },
-      {
-        "model": "claude-haiku-4-5",
-        "score": 60.7,
-        "source": "livebench",
         "rank": 60
       },
       {
@@ -1717,8 +1717,8 @@
         "rank": 64
       },
       {
-        "model": "claude-sonnet-4-5",
-        "score": 49.9,
+        "model": "claude-haiku-4-5",
+        "score": 41.1,
         "source": "livebench",
         "rank": 65
       },
@@ -1755,45 +1755,45 @@
         "rank": 3
       },
       {
-        "model": "gpt-5.3-codex",
-        "score": 71.0,
-        "source": "livebench",
-        "rank": 4
-      },
-      {
         "model": "muse-spark-1.3",
         "score": 70.9,
         "source": "livebench",
-        "rank": 5
+        "rank": 4
       },
       {
         "model": "kimi-k3",
         "score": 69.9,
         "source": "livebench",
-        "rank": 6
+        "rank": 5
       },
       {
         "model": "glm-5.3",
         "score": 68.1,
         "source": "livebench",
-        "rank": 7
+        "rank": 6
       },
       {
         "model": "claude-sonnet-5",
         "score": 67.9,
         "source": "livebench",
-        "rank": 8
+        "rank": 7
       },
       {
         "model": "gpt-5.6-sol",
         "score": 67.3,
         "source": "livebench",
-        "rank": 9
+        "rank": 8
       },
       {
         "model": "big-pickle",
         "score": 67.0,
         "source": "fallback",
+        "rank": 9
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 66.6,
+        "source": "livebench",
         "rank": 10
       },
       {
@@ -1851,128 +1851,128 @@
         "rank": 19
       },
       {
-        "model": "gpt-5.1",
+        "model": "gpt-5.3-codex",
         "score": 64.3,
         "source": "livebench",
         "rank": 20
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 64.1,
+        "source": "livebench",
+        "rank": 21
+      },
+      {
         "model": "claude-opus-4-7",
         "score": 63.2,
         "source": "livebench",
-        "rank": 21
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
         "score": 63.1,
         "source": "livebench",
-        "rank": 22
+        "rank": 23
       },
       {
         "model": "glm-5.1",
         "score": 63.1,
         "source": "livebench",
-        "rank": 23
+        "rank": 24
       },
       {
         "model": "claude-opus-4-8",
         "score": 63.0,
         "source": "livebench",
-        "rank": 24
+        "rank": 25
       },
       {
         "model": "glm-5.2",
         "score": 62.9,
         "source": "livebench",
-        "rank": 25
+        "rank": 26
       },
       {
         "model": "glm-5",
         "score": 62.5,
         "source": "livebench",
-        "rank": 26
+        "rank": 27
       },
       {
         "model": "gpt-5.6-luna",
         "score": 62.2,
         "source": "livebench",
-        "rank": 27
+        "rank": 28
       },
       {
         "model": "gemini-3.8-flash",
         "score": 61.5,
         "source": "livebench",
-        "rank": 28
+        "rank": 29
       },
       {
         "model": "grok-4.5",
         "score": 61.3,
         "source": "livebench",
-        "rank": 29
+        "rank": 30
       },
       {
         "model": "claude-opus-4-6",
         "score": 60.7,
         "source": "livebench",
-        "rank": 30
+        "rank": 31
       },
       {
         "model": "gemini-3.5-flash",
         "score": 60.7,
         "source": "livebench",
-        "rank": 31
+        "rank": 32
       },
       {
         "model": "gpt-5.1-codex",
         "score": 60.7,
         "source": "livebench",
-        "rank": 32
+        "rank": 33
       },
       {
         "model": "gpt-5.2",
         "score": 60.6,
         "source": "livebench",
-        "rank": 33
+        "rank": 34
       },
       {
         "model": "kimi-k2.5",
         "score": 60.1,
         "source": "livebench",
-        "rank": 34
+        "rank": 35
       },
       {
         "model": "gpt-5.5-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 35
+        "rank": 36
       },
       {
         "model": "gpt-5.4-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 36
+        "rank": 37
       },
       {
         "model": "gpt-5.3-codex-spark",
         "score": 60.0,
         "source": "livebench",
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "gpt-5",
         "score": 60.0,
         "source": "livebench",
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "kimi-k2.6",
         "score": 59.6,
-        "source": "livebench",
-        "rank": 39
-      },
-      {
-        "model": "claude-sonnet-4-5",
-        "score": 59.4,
         "source": "livebench",
         "rank": 40
       },
@@ -2043,74 +2043,74 @@
         "rank": 51
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 54.1,
-        "source": "livebench",
-        "rank": 52
-      },
-      {
         "model": "gemini-3-flash",
         "score": 53.6,
         "source": "livebench",
-        "rank": 53
+        "rank": 52
       },
       {
         "model": "gpt-5.4",
         "score": 53.6,
         "source": "livebench",
-        "rank": 54
+        "rank": 53
       },
       {
         "model": "grok-build-0.1",
         "score": 53.6,
         "source": "livebench",
-        "rank": 55
+        "rank": 54
       },
       {
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "rank": 56
+        "rank": 55
       },
       {
         "model": "gpt-5.1-codex-mini",
         "score": 52.0,
         "source": "livebench",
-        "rank": 57
+        "rank": 56
       },
       {
         "model": "minimax-m2.7",
         "score": 52.0,
         "source": "livebench",
-        "rank": 58
+        "rank": 57
       },
       {
         "model": "qwen3.5-plus",
         "score": 52.0,
         "source": "fallback",
-        "rank": 59
+        "rank": 58
       },
       {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
-        "rank": 60
+        "rank": 59
       },
       {
         "model": "nemotron-3-ultra-free",
         "score": 51.5,
         "source": "livebench",
-        "rank": 61
+        "rank": 60
       },
       {
         "model": "deepseek-v4-flash",
         "score": 50.3,
         "source": "livebench",
-        "rank": 62
+        "rank": 61
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 50.3,
+        "source": "livebench",
+        "rank": 62
+      },
+      {
+        "model": "claude-haiku-4-5",
+        "score": 48.9,
         "source": "livebench",
         "rank": 63
       },
@@ -2357,14 +2357,14 @@
         "rank": 36
       },
       {
-        "model": "gpt-5.1",
-        "score": 80.7,
+        "model": "gemini-3-flash",
+        "score": 80.0,
         "source": "livebench",
         "rank": 37
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
+        "model": "gpt-5.3-codex",
+        "score": 79.3,
         "source": "livebench",
         "rank": 38
       },
@@ -2387,80 +2387,80 @@
         "rank": 41
       },
       {
-        "model": "gpt-5.1-codex-max",
+        "model": "gpt-5.1",
         "score": 77.0,
         "source": "livebench",
         "rank": 42
       },
       {
-        "model": "qwen3.6-plus",
+        "model": "gpt-5.1-codex-max",
         "score": 77.0,
         "source": "livebench",
         "rank": 43
       },
       {
+        "model": "qwen3.6-plus",
+        "score": 77.0,
+        "source": "livebench",
+        "rank": 44
+      },
+      {
         "model": "kimi-k2.7-code",
         "score": 76.9,
         "source": "livebench",
-        "rank": 44
+        "rank": 45
       },
       {
         "model": "minimax-m3",
         "score": 76.7,
         "source": "livebench",
-        "rank": 45
+        "rank": 46
       },
       {
         "model": "kimi-k2.5",
         "score": 76.7,
         "source": "livebench",
-        "rank": 46
+        "rank": 47
       },
       {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
-        "rank": 47
+        "rank": 48
       },
       {
         "model": "glm-5.1",
         "score": 75.6,
         "source": "livebench",
-        "rank": 48
+        "rank": 49
       },
       {
         "model": "nemotron-3-ultra-free",
         "score": 75.6,
         "source": "livebench",
-        "rank": 49
+        "rank": 50
       },
       {
         "model": "gpt-5.4",
         "score": 74.1,
         "source": "livebench",
-        "rank": 50
+        "rank": 51
       },
       {
         "model": "glm-5",
         "score": 74.0,
         "source": "livebench",
-        "rank": 51
+        "rank": 52
       },
       {
         "model": "deepseek-v4-flash",
         "score": 73.1,
         "source": "livebench",
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 73.1,
-        "source": "livebench",
-        "rank": 53
-      },
-      {
-        "model": "gpt-5.3-codex",
-        "score": 72.6,
         "source": "livebench",
         "rank": 54
       },
@@ -2471,14 +2471,14 @@
         "rank": 55
       },
       {
-        "model": "gpt-5.1-codex-mini",
-        "score": 66.3,
+        "model": "claude-sonnet-4-5",
+        "score": 72.2,
         "source": "livebench",
         "rank": 56
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 66.0,
+        "model": "gpt-5.1-codex-mini",
+        "score": 66.3,
         "source": "livebench",
         "rank": 57
       },
@@ -2525,8 +2525,8 @@
         "rank": 64
       },
       {
-        "model": "claude-sonnet-4-5",
-        "score": 47.8,
+        "model": "claude-haiku-4-5",
+        "score": 41.9,
         "source": "livebench",
         "rank": 65
       },
@@ -2563,45 +2563,45 @@
         "rank": 3
       },
       {
-        "model": "gpt-5.3-codex",
-        "score": 71.0,
-        "source": "livebench",
-        "rank": 4
-      },
-      {
         "model": "muse-spark-1.3",
         "score": 70.9,
         "source": "livebench",
-        "rank": 5
+        "rank": 4
       },
       {
         "model": "kimi-k3",
         "score": 69.9,
         "source": "livebench",
-        "rank": 6
+        "rank": 5
       },
       {
         "model": "glm-5.3",
         "score": 68.1,
         "source": "livebench",
-        "rank": 7
+        "rank": 6
       },
       {
         "model": "claude-sonnet-5",
         "score": 67.9,
         "source": "livebench",
-        "rank": 8
+        "rank": 7
       },
       {
         "model": "gpt-5.6-sol",
         "score": 67.3,
         "source": "livebench",
-        "rank": 9
+        "rank": 8
       },
       {
         "model": "big-pickle",
         "score": 67.0,
         "source": "fallback",
+        "rank": 9
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 66.6,
+        "source": "livebench",
         "rank": 10
       },
       {
@@ -2659,128 +2659,128 @@
         "rank": 19
       },
       {
-        "model": "gpt-5.1",
+        "model": "gpt-5.3-codex",
         "score": 64.3,
         "source": "livebench",
         "rank": 20
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 64.1,
+        "source": "livebench",
+        "rank": 21
+      },
+      {
         "model": "claude-opus-4-7",
         "score": 63.2,
         "source": "livebench",
-        "rank": 21
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
         "score": 63.1,
         "source": "livebench",
-        "rank": 22
+        "rank": 23
       },
       {
         "model": "glm-5.1",
         "score": 63.1,
         "source": "livebench",
-        "rank": 23
+        "rank": 24
       },
       {
         "model": "claude-opus-4-8",
         "score": 63.0,
         "source": "livebench",
-        "rank": 24
+        "rank": 25
       },
       {
         "model": "glm-5.2",
         "score": 62.9,
         "source": "livebench",
-        "rank": 25
+        "rank": 26
       },
       {
         "model": "glm-5",
         "score": 62.5,
         "source": "livebench",
-        "rank": 26
+        "rank": 27
       },
       {
         "model": "gpt-5.6-luna",
         "score": 62.2,
         "source": "livebench",
-        "rank": 27
+        "rank": 28
       },
       {
         "model": "gemini-3.8-flash",
         "score": 61.5,
         "source": "livebench",
-        "rank": 28
+        "rank": 29
       },
       {
         "model": "grok-4.5",
         "score": 61.3,
         "source": "livebench",
-        "rank": 29
+        "rank": 30
       },
       {
         "model": "claude-opus-4-6",
         "score": 60.7,
         "source": "livebench",
-        "rank": 30
+        "rank": 31
       },
       {
         "model": "gemini-3.5-flash",
         "score": 60.7,
         "source": "livebench",
-        "rank": 31
+        "rank": 32
       },
       {
         "model": "gpt-5.1-codex",
         "score": 60.7,
         "source": "livebench",
-        "rank": 32
+        "rank": 33
       },
       {
         "model": "gpt-5.2",
         "score": 60.6,
         "source": "livebench",
-        "rank": 33
+        "rank": 34
       },
       {
         "model": "kimi-k2.5",
         "score": 60.1,
         "source": "livebench",
-        "rank": 34
+        "rank": 35
       },
       {
         "model": "gpt-5.5-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 35
+        "rank": 36
       },
       {
         "model": "gpt-5.4-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 36
+        "rank": 37
       },
       {
         "model": "gpt-5.3-codex-spark",
         "score": 60.0,
         "source": "livebench",
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "gpt-5",
         "score": 60.0,
         "source": "livebench",
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "kimi-k2.6",
         "score": 59.6,
-        "source": "livebench",
-        "rank": 39
-      },
-      {
-        "model": "claude-sonnet-4-5",
-        "score": 59.4,
         "source": "livebench",
         "rank": 40
       },
@@ -2851,74 +2851,74 @@
         "rank": 51
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 54.1,
-        "source": "livebench",
-        "rank": 52
-      },
-      {
         "model": "gemini-3-flash",
         "score": 53.6,
         "source": "livebench",
-        "rank": 53
+        "rank": 52
       },
       {
         "model": "gpt-5.4",
         "score": 53.6,
         "source": "livebench",
-        "rank": 54
+        "rank": 53
       },
       {
         "model": "grok-build-0.1",
         "score": 53.6,
         "source": "livebench",
-        "rank": 55
+        "rank": 54
       },
       {
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "rank": 56
+        "rank": 55
       },
       {
         "model": "gpt-5.1-codex-mini",
         "score": 52.0,
         "source": "livebench",
-        "rank": 57
+        "rank": 56
       },
       {
         "model": "minimax-m2.7",
         "score": 52.0,
         "source": "livebench",
-        "rank": 58
+        "rank": 57
       },
       {
         "model": "qwen3.5-plus",
         "score": 52.0,
         "source": "fallback",
-        "rank": 59
+        "rank": 58
       },
       {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
-        "rank": 60
+        "rank": 59
       },
       {
         "model": "nemotron-3-ultra-free",
         "score": 51.5,
         "source": "livebench",
-        "rank": 61
+        "rank": 60
       },
       {
         "model": "deepseek-v4-flash",
         "score": 50.3,
         "source": "livebench",
-        "rank": 62
+        "rank": 61
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 50.3,
+        "source": "livebench",
+        "rank": 62
+      },
+      {
+        "model": "claude-haiku-4-5",
+        "score": 48.9,
         "source": "livebench",
         "rank": 63
       },
@@ -3057,98 +3057,98 @@
         "rank": 18
       },
       {
+        "model": "gpt-5.3-codex",
+        "score": 64.3,
+        "source": "livebench",
+        "rank": 19
+      },
+      {
         "model": "gemini-3.6-flash",
         "score": 63.7,
         "source": "livebench",
-        "rank": 19
+        "rank": 20
       },
       {
         "model": "glm-5",
         "score": 63.6,
         "source": "livebench",
-        "rank": 20
+        "rank": 21
+      },
+      {
+        "model": "claude-sonnet-4-5",
+        "score": 62.0,
+        "source": "livebench",
+        "rank": 22
       },
       {
         "model": "muse-spark-1.2",
         "score": 61.7,
         "source": "livebench",
-        "rank": 21
+        "rank": 23
       },
       {
         "model": "claude-opus-4-8",
         "score": 61.6,
         "source": "livebench",
-        "rank": 22
+        "rank": 24
       },
       {
         "model": "claude-opus-4-7",
         "score": 61.4,
         "source": "livebench",
-        "rank": 23
+        "rank": 25
       },
       {
         "model": "glm-5.2",
         "score": 60.7,
         "source": "livebench",
-        "rank": 24
+        "rank": 26
       },
       {
         "model": "glm-5.3-flash",
         "score": 60.3,
         "source": "livebench",
-        "rank": 25
+        "rank": 27
       },
       {
         "model": "glm-5.1",
         "score": 60.3,
         "source": "livebench",
-        "rank": 26
+        "rank": 28
       },
       {
         "model": "glm-5.3",
         "score": 60.2,
         "source": "livebench",
-        "rank": 27
+        "rank": 29
       },
       {
         "model": "gpt-5.2",
         "score": 58.4,
         "source": "livebench",
-        "rank": 28
+        "rank": 30
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 58.2,
+        "source": "livebench",
+        "rank": 31
       },
       {
         "model": "gpt-5.1-codex-max",
         "score": 58.2,
         "source": "livebench",
-        "rank": 29
+        "rank": 32
       },
       {
         "model": "kimi-k2.6",
         "score": 58.1,
         "source": "livebench",
-        "rank": 30
+        "rank": 33
       },
       {
         "model": "deepseek-v4-flash-vision-exp",
         "score": 57.7,
-        "source": "livebench",
-        "rank": 31
-      },
-      {
-        "model": "gpt-5.3-codex",
-        "score": 57.5,
-        "source": "livebench",
-        "rank": 32
-      },
-      {
-        "model": "gpt-5.1",
-        "score": 57.4,
-        "source": "livebench",
-        "rank": 33
-      },
-      {
-        "model": "claude-sonnet-4-5",
-        "score": 57.3,
         "source": "livebench",
         "rank": 34
       },
@@ -3285,27 +3285,27 @@
         "rank": 56
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 42.5,
-        "source": "livebench",
-        "rank": 57
-      },
-      {
         "model": "qwen3.5-plus",
         "score": 42.0,
         "source": "fallback",
-        "rank": 58
+        "rank": 57
       },
       {
         "model": "gpt-5.1-codex",
         "score": 41.9,
         "source": "livebench",
-        "rank": 59
+        "rank": 58
       },
       {
         "model": "ling-3.0-flash-fin-free",
         "score": 40.0,
         "source": "fallback",
+        "rank": 59
+      },
+      {
+        "model": "claude-haiku-4-5",
+        "score": 37.8,
+        "source": "livebench",
         "rank": 60
       },
       {
@@ -3371,45 +3371,45 @@
         "rank": 3
       },
       {
-        "model": "gpt-5.3-codex",
-        "score": 71.0,
-        "source": "livebench",
-        "rank": 4
-      },
-      {
         "model": "muse-spark-1.3",
         "score": 70.9,
         "source": "livebench",
-        "rank": 5
+        "rank": 4
       },
       {
         "model": "kimi-k3",
         "score": 69.9,
         "source": "livebench",
-        "rank": 6
+        "rank": 5
       },
       {
         "model": "glm-5.3",
         "score": 68.1,
         "source": "livebench",
-        "rank": 7
+        "rank": 6
       },
       {
         "model": "claude-sonnet-5",
         "score": 67.9,
         "source": "livebench",
-        "rank": 8
+        "rank": 7
       },
       {
         "model": "gpt-5.6-sol",
         "score": 67.3,
         "source": "livebench",
-        "rank": 9
+        "rank": 8
       },
       {
         "model": "big-pickle",
         "score": 67.0,
         "source": "fallback",
+        "rank": 9
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 66.6,
+        "source": "livebench",
         "rank": 10
       },
       {
@@ -3467,128 +3467,128 @@
         "rank": 19
       },
       {
-        "model": "gpt-5.1",
+        "model": "gpt-5.3-codex",
         "score": 64.3,
         "source": "livebench",
         "rank": 20
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 64.1,
+        "source": "livebench",
+        "rank": 21
+      },
+      {
         "model": "claude-opus-4-7",
         "score": 63.2,
         "source": "livebench",
-        "rank": 21
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
         "score": 63.1,
         "source": "livebench",
-        "rank": 22
+        "rank": 23
       },
       {
         "model": "glm-5.1",
         "score": 63.1,
         "source": "livebench",
-        "rank": 23
+        "rank": 24
       },
       {
         "model": "claude-opus-4-8",
         "score": 63.0,
         "source": "livebench",
-        "rank": 24
+        "rank": 25
       },
       {
         "model": "glm-5.2",
         "score": 62.9,
         "source": "livebench",
-        "rank": 25
+        "rank": 26
       },
       {
         "model": "glm-5",
         "score": 62.5,
         "source": "livebench",
-        "rank": 26
+        "rank": 27
       },
       {
         "model": "gpt-5.6-luna",
         "score": 62.2,
         "source": "livebench",
-        "rank": 27
+        "rank": 28
       },
       {
         "model": "gemini-3.8-flash",
         "score": 61.5,
         "source": "livebench",
-        "rank": 28
+        "rank": 29
       },
       {
         "model": "grok-4.5",
         "score": 61.3,
         "source": "livebench",
-        "rank": 29
+        "rank": 30
       },
       {
         "model": "claude-opus-4-6",
         "score": 60.7,
         "source": "livebench",
-        "rank": 30
+        "rank": 31
       },
       {
         "model": "gemini-3.5-flash",
         "score": 60.7,
         "source": "livebench",
-        "rank": 31
+        "rank": 32
       },
       {
         "model": "gpt-5.1-codex",
         "score": 60.7,
         "source": "livebench",
-        "rank": 32
+        "rank": 33
       },
       {
         "model": "gpt-5.2",
         "score": 60.6,
         "source": "livebench",
-        "rank": 33
+        "rank": 34
       },
       {
         "model": "kimi-k2.5",
         "score": 60.1,
         "source": "livebench",
-        "rank": 34
+        "rank": 35
       },
       {
         "model": "gpt-5.5-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 35
+        "rank": 36
       },
       {
         "model": "gpt-5.4-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 36
+        "rank": 37
       },
       {
         "model": "gpt-5.3-codex-spark",
         "score": 60.0,
         "source": "livebench",
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "gpt-5",
         "score": 60.0,
         "source": "livebench",
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "kimi-k2.6",
         "score": 59.6,
-        "source": "livebench",
-        "rank": 39
-      },
-      {
-        "model": "claude-sonnet-4-5",
-        "score": 59.4,
         "source": "livebench",
         "rank": 40
       },
@@ -3659,74 +3659,74 @@
         "rank": 51
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 54.1,
-        "source": "livebench",
-        "rank": 52
-      },
-      {
         "model": "gemini-3-flash",
         "score": 53.6,
         "source": "livebench",
-        "rank": 53
+        "rank": 52
       },
       {
         "model": "gpt-5.4",
         "score": 53.6,
         "source": "livebench",
-        "rank": 54
+        "rank": 53
       },
       {
         "model": "grok-build-0.1",
         "score": 53.6,
         "source": "livebench",
-        "rank": 55
+        "rank": 54
       },
       {
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "rank": 56
+        "rank": 55
       },
       {
         "model": "gpt-5.1-codex-mini",
         "score": 52.0,
         "source": "livebench",
-        "rank": 57
+        "rank": 56
       },
       {
         "model": "minimax-m2.7",
         "score": 52.0,
         "source": "livebench",
-        "rank": 58
+        "rank": 57
       },
       {
         "model": "qwen3.5-plus",
         "score": 52.0,
         "source": "fallback",
-        "rank": 59
+        "rank": 58
       },
       {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
-        "rank": 60
+        "rank": 59
       },
       {
         "model": "nemotron-3-ultra-free",
         "score": 51.5,
         "source": "livebench",
-        "rank": 61
+        "rank": 60
       },
       {
         "model": "deepseek-v4-flash",
         "score": 50.3,
         "source": "livebench",
-        "rank": 62
+        "rank": 61
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 50.3,
+        "source": "livebench",
+        "rank": 62
+      },
+      {
+        "model": "claude-haiku-4-5",
+        "score": 48.9,
         "source": "livebench",
         "rank": 63
       },
@@ -3775,45 +3775,45 @@
         "rank": 3
       },
       {
-        "model": "gpt-5.3-codex",
-        "score": 71.0,
-        "source": "livebench",
-        "rank": 4
-      },
-      {
         "model": "muse-spark-1.3",
         "score": 70.9,
         "source": "livebench",
-        "rank": 5
+        "rank": 4
       },
       {
         "model": "kimi-k3",
         "score": 69.9,
         "source": "livebench",
-        "rank": 6
+        "rank": 5
       },
       {
         "model": "glm-5.3",
         "score": 68.1,
         "source": "livebench",
-        "rank": 7
+        "rank": 6
       },
       {
         "model": "claude-sonnet-5",
         "score": 67.9,
         "source": "livebench",
-        "rank": 8
+        "rank": 7
       },
       {
         "model": "gpt-5.6-sol",
         "score": 67.3,
         "source": "livebench",
-        "rank": 9
+        "rank": 8
       },
       {
         "model": "big-pickle",
         "score": 67.0,
         "source": "fallback",
+        "rank": 9
+      },
+      {
+        "model": "gpt-5.1",
+        "score": 66.6,
+        "source": "livebench",
         "rank": 10
       },
       {
@@ -3871,128 +3871,128 @@
         "rank": 19
       },
       {
-        "model": "gpt-5.1",
+        "model": "gpt-5.3-codex",
         "score": 64.3,
         "source": "livebench",
         "rank": 20
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 64.1,
+        "source": "livebench",
+        "rank": 21
+      },
+      {
         "model": "claude-opus-4-7",
         "score": 63.2,
         "source": "livebench",
-        "rank": 21
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
         "score": 63.1,
         "source": "livebench",
-        "rank": 22
+        "rank": 23
       },
       {
         "model": "glm-5.1",
         "score": 63.1,
         "source": "livebench",
-        "rank": 23
+        "rank": 24
       },
       {
         "model": "claude-opus-4-8",
         "score": 63.0,
         "source": "livebench",
-        "rank": 24
+        "rank": 25
       },
       {
         "model": "glm-5.2",
         "score": 62.9,
         "source": "livebench",
-        "rank": 25
+        "rank": 26
       },
       {
         "model": "glm-5",
         "score": 62.5,
         "source": "livebench",
-        "rank": 26
+        "rank": 27
       },
       {
         "model": "gpt-5.6-luna",
         "score": 62.2,
         "source": "livebench",
-        "rank": 27
+        "rank": 28
       },
       {
         "model": "gemini-3.8-flash",
         "score": 61.5,
         "source": "livebench",
-        "rank": 28
+        "rank": 29
       },
       {
         "model": "grok-4.5",
         "score": 61.3,
         "source": "livebench",
-        "rank": 29
+        "rank": 30
       },
       {
         "model": "claude-opus-4-6",
         "score": 60.7,
         "source": "livebench",
-        "rank": 30
+        "rank": 31
       },
       {
         "model": "gemini-3.5-flash",
         "score": 60.7,
         "source": "livebench",
-        "rank": 31
+        "rank": 32
       },
       {
         "model": "gpt-5.1-codex",
         "score": 60.7,
         "source": "livebench",
-        "rank": 32
+        "rank": 33
       },
       {
         "model": "gpt-5.2",
         "score": 60.6,
         "source": "livebench",
-        "rank": 33
+        "rank": 34
       },
       {
         "model": "kimi-k2.5",
         "score": 60.1,
         "source": "livebench",
-        "rank": 34
+        "rank": 35
       },
       {
         "model": "gpt-5.5-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 35
+        "rank": 36
       },
       {
         "model": "gpt-5.4-pro",
         "score": 60.0,
         "source": "livebench",
-        "rank": 36
+        "rank": 37
       },
       {
         "model": "gpt-5.3-codex-spark",
         "score": 60.0,
         "source": "livebench",
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "gpt-5",
         "score": 60.0,
         "source": "livebench",
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "kimi-k2.6",
         "score": 59.6,
-        "source": "livebench",
-        "rank": 39
-      },
-      {
-        "model": "claude-sonnet-4-5",
-        "score": 59.4,
         "source": "livebench",
         "rank": 40
       },
@@ -4063,74 +4063,74 @@
         "rank": 51
       },
       {
-        "model": "claude-haiku-4-5",
-        "score": 54.1,
-        "source": "livebench",
-        "rank": 52
-      },
-      {
         "model": "gemini-3-flash",
         "score": 53.6,
         "source": "livebench",
-        "rank": 53
+        "rank": 52
       },
       {
         "model": "gpt-5.4",
         "score": 53.6,
         "source": "livebench",
-        "rank": 54
+        "rank": 53
       },
       {
         "model": "grok-build-0.1",
         "score": 53.6,
         "source": "livebench",
-        "rank": 55
+        "rank": 54
       },
       {
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "rank": 56
+        "rank": 55
       },
       {
         "model": "gpt-5.1-codex-mini",
         "score": 52.0,
         "source": "livebench",
-        "rank": 57
+        "rank": 56
       },
       {
         "model": "minimax-m2.7",
         "score": 52.0,
         "source": "livebench",
-        "rank": 58
+        "rank": 57
       },
       {
         "model": "qwen3.5-plus",
         "score": 52.0,
         "source": "fallback",
-        "rank": 59
+        "rank": 58
       },
       {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
-        "rank": 60
+        "rank": 59
       },
       {
         "model": "nemotron-3-ultra-free",
         "score": 51.5,
         "source": "livebench",
-        "rank": 61
+        "rank": 60
       },
       {
         "model": "deepseek-v4-flash",
         "score": 50.3,
         "source": "livebench",
-        "rank": 62
+        "rank": 61
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 50.3,
+        "source": "livebench",
+        "rank": 62
+      },
+      {
+        "model": "claude-haiku-4-5",
+        "score": 48.9,
         "source": "livebench",
         "rank": 63
       },
@@ -4335,38 +4335,38 @@
         "rank": 29
       },
       {
-        "model": "gpt-5.1",
-        "score": 74.4,
-        "source": "livebench",
-        "rank": 30
-      },
-      {
         "model": "gpt-5.2-codex",
         "score": 74.0,
         "source": "livebench",
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "gpt-5.6-luna",
         "score": 73.7,
         "source": "livebench",
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "claude-sonnet-4-6",
         "score": 73.4,
         "source": "livebench",
-        "rank": 33
+        "rank": 32
       },
       {
         "model": "claude-sonnet-4",
         "score": 73.4,
         "source": "livebench",
-        "rank": 34
+        "rank": 33
       },
       {
         "model": "glm-5.2",
         "score": 73.4,
+        "source": "livebench",
+        "rank": 34
+      },
+      {
+        "model": "gpt-5.3-codex",
+        "score": 73.2,
         "source": "livebench",
         "rank": 35
       },
@@ -4389,14 +4389,14 @@
         "rank": 38
       },
       {
-        "model": "gpt-5.1-codex-max",
+        "model": "gpt-5.1",
         "score": 72.4,
         "source": "livebench",
         "rank": 39
       },
       {
-        "model": "gpt-5.3-codex",
-        "score": 72.0,
+        "model": "gpt-5.1-codex-max",
+        "score": 72.4,
         "source": "livebench",
         "rank": 40
       },
@@ -4461,51 +4461,51 @@
         "rank": 50
       },
       {
+        "model": "claude-sonnet-4-5",
+        "score": 67.9,
+        "source": "livebench",
+        "rank": 51
+      },
+      {
         "model": "minimax-m3",
         "score": 67.5,
         "source": "livebench",
-        "rank": 51
+        "rank": 52
       },
       {
         "model": "gpt-5.4",
         "score": 66.6,
         "source": "livebench",
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "deepseek-v4-flash",
         "score": 66.1,
         "source": "livebench",
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "deepseek-v4-flash-free",
         "score": 66.1,
         "source": "livebench",
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "minimax-m2.7",
         "score": 65.0,
         "source": "livebench",
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "gemini-3.5-flash-lite",
         "score": 63.8,
         "source": "livebench",
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "big-pickle",
         "score": 61.5,
         "source": "fallback",
-        "rank": 57
-      },
-      {
-        "model": "claude-haiku-4-5",
-        "score": 61.0,
-        "source": "livebench",
         "rank": 58
       },
       {
@@ -4533,21 +4533,21 @@
         "rank": 62
       },
       {
-        "model": "claude-sonnet-4-5",
-        "score": 51.3,
-        "source": "livebench",
-        "rank": 63
-      },
-      {
         "model": "gpt-5-nano",
         "score": 48.0,
         "source": "livebench",
-        "rank": 64
+        "rank": 63
       },
       {
         "model": "ling-3.0-flash-fin-free",
         "score": 45.0,
         "source": "fallback",
+        "rank": 64
+      },
+      {
+        "model": "claude-haiku-4-5",
+        "score": 43.0,
+        "source": "livebench",
         "rank": 65
       },
       {

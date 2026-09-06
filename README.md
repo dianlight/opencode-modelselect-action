@@ -36,7 +36,7 @@ step fails hard). Outputs: `model`, `model-go`, `model-free`,
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-06 06:25 UTC**.
+> Last updated: **2026-09-06 07:42 UTC**.
 > LiveBench data: **341 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -106,7 +106,7 @@ step fails hard). Outputs: `model`, `model-go`, `model-free`,
 
 ## Workflow Model Audit
 
-> Audited: **2026-09-06 06:25 UTC**
+> Audited: **2026-09-06 07:42 UTC**
 > Workflows checked: **4**
 > OpenCode steps found: **7**
 
