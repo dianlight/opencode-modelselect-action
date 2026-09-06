@@ -36,6 +36,12 @@
   costs) in `data/model-config.json`; the step fails when nothing fits unless
   `fallback-model` is given. New `model-cost` output reports the resolved
   model's blended $/1M
+- New select-model `tier: auto` mode: probes live quota with `opencode-token`
+  (or `OPENCODE_API_KEY`) via a tiny free-model request plus `GET
+  /zen/go/v1/usage` for the Go plan windows. `auto-preference`
+  (`free-first`/`go-first`) sets the order, `max-wait-seconds` /
+  `poll-interval-seconds` poll until quota frees up instead of failing fast.
+  New `tier-selected` output reports the tier actually used
 
 ### Removed
 - Delete the 6-process pipeline workflows (`opencode-pr-review.yml`,

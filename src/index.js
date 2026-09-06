@@ -6,7 +6,21 @@
  * Inputs (via INPUT_* env vars):
  *   task-type       Task class, matched case-insensitively against the
  *                   `task-types` keys of the central model config.
- *   tier            `go` (paid) or `free`. Defaults to `go`.
+ *   tier            `go` (paid), `free` or `auto`. Defaults to `go`.
+ *                   `auto` prefers free when reachable and falls back to
+ *                   Go (or vice versa with `auto-preference`), polling the
+ *                   live usage endpoints until `max-wait-seconds` expires.
+ *   opencode-token  Token used only by tier=`auto` to query live usage.
+ *                   Also read from OPENCODE_API_KEY when the input is empty.
+ *                   Never logged.
+ *   auto-preference `free-first` (default) or `go-first`.
+ *   max-wait-seconds Max seconds tier=`auto` waits for quota before failing
+ *                   (default 0 = fail fast). Polls every `poll-interval-seconds`.
+ *   poll-interval-seconds Seconds between usage re-checks (default 60).
+ *   usage-url       Go usage endpoint (default
+ *                   https://opencode.ai/zen/go/v1/usage).
+ *   probe-url       Zen chat endpoint used for the free availability probe
+ *                   (default https://opencode.ai/zen/v1/chat/completions).
  *   config-url      Remote URL of the central model config.
  *   config-path     Local path (relative to GITHUB_WORKSPACE) preferred
  *                   over the remote URL when present.
@@ -15,7 +29,8 @@
  *                   is replaced by the best-scoring ranked model within budget.
  *
  * Outputs (via GITHUB_OUTPUT):
- *   model, model-go, model-free, model-cost, config-source, task-type
+ *   model, model-go, model-free, model-cost, config-source, task-type,
+ *   tier-selected
  *
  * Fail-closed: exits non-zero when no model can be resolved and no
  * fallback-model was given. No default models exist.
@@ -25,6 +40,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const FETCH_TIMEOUT_MS = 15000;
+const DEFAULT_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
+const DEFAULT_PROBE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 
 function getInput(name, { required = false, fallback = '' } = {}) {
   const key = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
@@ -145,6 +162,225 @@ function selectWithinBudget(entry, taskKey, tier, recommended, maxCost) {
   };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function authHeaders(token) {
+  return {
+    Authorization: `Bearer ${token}`,
+    'User-Agent': 'opencode-modelselect-action/1.0',
+  };
+}
+
+function pickKey(obj, names) {
+  for (const n of names) {
+    if (obj && obj[n] !== undefined && obj[n] !== null) return obj[n];
+  }
+  return undefined;
+}
+
+function secondsUntil(iso) {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, Math.round((t - Date.now()) / 1000));
+}
+
+// Normalize the several wire shapes seen for GET /zen/go/v1/usage into
+// [{ name, percent, resetSec, status }]. Shapes handled:
+//   { usage: { rolling, weekly, monthly: { status, percent|usagePercent, resetsAt|resetInSec } } }
+//   { useBalance, rollingUsage, weeklyUsage, monthlyUsage: { status, usagePercent, resetInSec } }
+//   { rolling, weekly, monthly } / { windows: { rolling, weekly, monthly } }
+function parseGoUsageWindows(data) {
+  if (!data || typeof data !== 'object') return null;
+  const root = data.usage && typeof data.usage === 'object' ? data.usage : data;
+  const bag =
+    (root.windows && typeof root.windows === 'object' ? root.windows : null) || root;
+  const candidates = [
+    ['rolling', bag.rolling ?? bag.rollingUsage],
+    ['weekly', bag.weekly ?? bag.weeklyUsage],
+    ['monthly', bag.monthly ?? bag.monthlyUsage],
+  ];
+  const windows = [];
+  for (const [name, w] of candidates) {
+    if (!w || typeof w !== 'object') continue;
+    const rawPercent = pickKey(w, ['usagePercent', 'percent', 'usage_percent', 'usagePct']);
+    const percent =
+      typeof rawPercent === 'number' && Number.isFinite(rawPercent) ? rawPercent : null;
+    const rawReset = pickKey(w, [
+      'resetInSec',
+      'resetsInSec',
+      'reset_in_sec',
+      'resets_in_seconds',
+      'resetsInSeconds',
+    ]);
+    const rawAt = pickKey(w, ['resetsAt', 'resetAt', 'reset_at', 'resets_at']);
+    const resetSec =
+      typeof rawReset === 'number' && Number.isFinite(rawReset)
+        ? rawReset
+        : typeof rawAt === 'string'
+          ? secondsUntil(rawAt)
+          : null;
+    const status =
+      typeof w.status === 'string' ? w.status.toLowerCase() : null;
+    windows.push({ name, percent, resetSec, status });
+  }
+  return windows.length ? windows : null;
+}
+
+function goWindowsExhausted(windows) {
+  const blocked = new Set(['limited', 'exhausted', 'blocked', 'rate_limited', 'denied']);
+  return windows.some(
+    (w) =>
+      (w.percent !== null && w.percent >= 100) ||
+      (w.status !== null && blocked.has(w.status)),
+  );
+}
+
+async function checkGoAvailability(token, usageUrl) {
+  let res;
+  try {
+    res = await fetchWithTimeout(usageUrl, { headers: authHeaders(token) });
+  } catch (err) {
+    return { available: null, reason: `go usage unreachable (${err?.message ?? err})` };
+  }
+  if (res.status === 401) {
+    fail('Input/token for tier=\'auto\' rejected (401): invalid opencode-token.');
+  }
+  if (res.status === 403) {
+    return { available: false, reason: 'go 403 (no active Go subscription)' };
+  }
+  if (res.status === 404) {
+    return { available: false, reason: 'go usage endpoint not found (no Go plan?)' };
+  }
+  if (res.status === 429) {
+    return { available: false, reason: 'go rate-limited (429)' };
+  }
+  if (!res.ok) {
+    return { available: null, reason: `go usage HTTP ${res.status}` };
+  }
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    return { available: null, reason: 'go usage returned invalid JSON' };
+  }
+  const windows = parseGoUsageWindows(data);
+  if (!windows) {
+    return { available: null, reason: 'go usage returned an unknown payload shape' };
+  }
+  if (goWindowsExhausted(windows)) {
+    const summary = windows
+      .map((w) => `${w.name}=${w.percent === null ? '?' : `${w.percent}%`}`)
+      .join(',');
+    return { available: false, reason: `go quota exhausted (${summary})` };
+  }
+  return { available: true, reason: 'go quota available' };
+}
+
+async function checkFreeAvailability(token, probeUrl, freeModel) {
+  let res;
+  try {
+    res = await fetchWithTimeout(
+      probeUrl,
+      {
+        method: 'POST',
+        headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: freeModel,
+          messages: [{ role: 'user', content: 'ping' }],
+          max_tokens: 1,
+          stream: false,
+        }),
+      },
+    );
+  } catch (err) {
+    return { available: null, reason: `free probe unreachable (${err?.message ?? err})` };
+  }
+  if (res.status === 401) {
+    fail('Input/token for tier=\'auto\' rejected (401): invalid opencode-token.');
+  }
+  if (res.status === 404) {
+    return { available: false, reason: `free model '${freeModel}' not found (404)` };
+  }
+  if (res.status === 403) {
+    return { available: false, reason: 'free probe forbidden (403)' };
+  }
+  if (res.status === 402 || res.status === 429 || res.status === 503 || res.status === 529) {
+    return { available: false, reason: `free exhausted (HTTP ${res.status})` };
+  }
+  if (!res.ok) {
+    // Consume the body so the socket can be reused, then treat as transient.
+    try {
+      await res.text();
+    } catch {
+      // ignore
+    }
+    return { available: null, reason: `free probe HTTP ${res.status}` };
+  }
+  try {
+    await res.text();
+  } catch {
+    // ignore
+  }
+  return { available: true, reason: 'free probe succeeded' };
+}
+
+async function resolveAutoTier({
+  goModel,
+  freeModel,
+  token,
+  usageUrl,
+  probeUrl,
+  preference,
+  maxWaitSec,
+  pollIntervalSec,
+}) {
+  const order = preference === 'go-first' ? ['go', 'free'] : ['free', 'go'];
+  const deadline = Date.now() + maxWaitSec * 1000;
+  const reasons = { go: '', free: '' };
+  for (;;) {
+    for (const t of order) {
+      if (t === 'go') {
+        if (!goModel) {
+          reasons.go = 'not configured';
+          continue;
+        }
+        const r = await checkGoAvailability(token, usageUrl);
+        reasons.go = r.reason;
+        if (r.available) return { tier: 'go', model: goModel };
+      } else {
+        if (!freeModel) {
+          reasons.free = 'not configured';
+          continue;
+        }
+        const r = await checkFreeAvailability(token, probeUrl, freeModel);
+        reasons.free = r.reason;
+        if (r.available) return { tier: 'free', model: freeModel };
+      }
+    }
+    if (Date.now() >= deadline) break;
+    const waitMs = Math.min(pollIntervalSec * 1000, Math.max(0, deadline - Date.now()));
+    notice(
+      `tier='auto': free[${reasons.free || '?'}] go[${reasons.go || '?'}]; ` +
+        `retrying in ${Math.round(waitMs / 1000)}s.`,
+    );
+    if (waitMs > 0) await sleep(waitMs);
+    else break;
+  }
+  return { tier: null, model: null, reasons };
+}
+
 async function main() {
   const taskTypeInput = getInput('task-type', { required: true });
   const tier = (getInput('tier', { fallback: 'go' }) || 'go').toLowerCase();
@@ -152,9 +388,43 @@ async function main() {
   const configPath = getInput('config-path', { fallback: 'data/model-config.json' });
   const fallbackModel = getInput('fallback-model');
   const maxCostInput = getInput('max-cost');
+  const tokenInput = getInput('opencode-token');
+  const token = tokenInput || (process.env.OPENCODE_API_KEY ?? '').trim();
+  const preference = (
+    getInput('auto-preference', { fallback: 'free-first' }) || 'free-first'
+  ).toLowerCase();
+  const usageUrl =
+    getInput('usage-url', { fallback: DEFAULT_USAGE_URL }) || DEFAULT_USAGE_URL;
+  const probeUrl =
+    getInput('probe-url', { fallback: DEFAULT_PROBE_URL }) || DEFAULT_PROBE_URL;
+  const maxWaitInput = getInput('max-wait-seconds');
+  const pollIntervalInput = getInput('poll-interval-seconds');
 
-  if (tier !== 'go' && tier !== 'free') {
-    fail(`Input 'tier' must be 'go' or 'free', got '${tier}'.`);
+  if (tier !== 'go' && tier !== 'free' && tier !== 'auto') {
+    fail(`Input 'tier' must be 'go', 'free' or 'auto', got '${tier}'.`);
+  }
+  if (preference !== 'free-first' && preference !== 'go-first') {
+    fail(`Input 'auto-preference' must be 'free-first' or 'go-first', got '${preference}'.`);
+  }
+  let maxWaitSec = 0;
+  if (maxWaitInput) {
+    maxWaitSec = Number(maxWaitInput);
+    if (!Number.isFinite(maxWaitSec) || maxWaitSec < 0) {
+      fail(`Input 'max-wait-seconds' must be a non-negative number of seconds, got '${maxWaitInput}'.`);
+    }
+  }
+  let pollIntervalSec = 60;
+  if (pollIntervalInput) {
+    pollIntervalSec = Number(pollIntervalInput);
+    if (!Number.isFinite(pollIntervalSec) || pollIntervalSec <= 0) {
+      fail(`Input 'poll-interval-seconds' must be a positive number of seconds, got '${pollIntervalInput}'.`);
+    }
+  }
+  if (tier === 'auto' && !token) {
+    fail(
+      "Input 'tier' is 'auto' but no token was given: pass 'opencode-token' " +
+        'or set OPENCODE_API_KEY.',
+    );
   }
 
   let maxCost = null;
@@ -220,9 +490,77 @@ async function main() {
     freeModel = entry.free || '';
   }
 
-  let model = tier === 'free' ? freeModel : goModel;
+  let tierSelected = tier;
+  let model = tier === 'auto' ? '' : tier === 'free' ? freeModel : goModel;
   let modelCost = '';
   let fromFallback = false;
+  if (tier === 'auto') {
+    if (!key) {
+      if (fallbackModel) {
+        warn(
+          `No model configured for task-type='${taskTypeInput}'; using fallback-model.`,
+        );
+        model = fallbackModel;
+        source = `${source}+fallback`;
+        fromFallback = true;
+      } else {
+        fail(
+          `No model resolved for task-type='${taskTypeInput}' tier='auto' ` +
+            `(source: ${source}); add a '${taskTypeInput}' entry to data/model-config.json.`,
+        );
+      }
+    } else if (!goModel && !freeModel) {
+      if (fallbackModel) {
+        warn(
+          `No model configured for task-type='${key}'; using fallback-model.`,
+        );
+        model = fallbackModel;
+        source = `${source}+fallback`;
+        fromFallback = true;
+      } else {
+        fail(
+          `No model resolved for task-type='${key}' tier='auto' ` +
+            `(source: ${source}); add go/free entries to data/model-config.json.`,
+        );
+      }
+    } else {
+      const picked = await resolveAutoTier({
+        goModel,
+        freeModel,
+        token,
+        usageUrl,
+        probeUrl,
+        preference,
+        maxWaitSec,
+        pollIntervalSec,
+      });
+      if (!picked.model) {
+        if (fallbackModel) {
+          warn(
+            `tier='auto' found no available model for task-type='${key}' ` +
+              `(free[${picked.reasons.free || '?'}] go[${picked.reasons.go || '?'}], ` +
+              `preference=${preference}, waited ${maxWaitSec}s); using fallback-model.`,
+          );
+          model = fallbackModel;
+          source = `${source}+fallback`;
+          fromFallback = true;
+        } else {
+          fail(
+            `No model available for task-type='${key}' tier='auto' ` +
+              `(free[${picked.reasons.free || '?'}] go[${picked.reasons.go || '?'}], ` +
+              `preference=${preference}, waited ${maxWaitSec}s); ` +
+              'retry later, raise max-wait-seconds, or pass fallback-model.',
+          );
+        }
+      } else {
+        model = picked.model;
+        tierSelected = picked.tier;
+        notice(
+          `tier='auto' selected '${tierSelected}' model '${model}' (preference=${preference}).`,
+        );
+      }
+    }
+  }
   if (!model && fallbackModel) {
     warn(
       `No model configured for task-type='${taskTypeInput}' tier='${tier}'; ` +
@@ -240,18 +578,18 @@ async function main() {
   }
 
   if (maxCost !== null && !fromFallback) {
-    const budgeted = selectWithinBudget(entry, key, tier, model, maxCost);
+    const budgeted = selectWithinBudget(entry, key, tierSelected, model, maxCost);
     if (!budgeted.model) {
       if (fallbackModel) {
         warn(
-          `No '${tier}' model for task-type='${key}' fits max-cost=${maxCost} ` +
+          `No '${tierSelected}' model for task-type='${key}' fits max-cost=${maxCost} ` +
             `(${budgeted.hint}); using fallback-model.`,
         );
         model = fallbackModel;
         source = `${source}+fallback`;
       } else {
         fail(
-          `No '${tier}' model for task-type='${key}' fits max-cost=${maxCost} ` +
+          `No '${tierSelected}' model for task-type='${key}' fits max-cost=${maxCost} ` +
             `(${budgeted.hint}); raise max-cost or pass fallback-model.`,
         );
       }
@@ -274,9 +612,11 @@ async function main() {
     'model-cost': modelCost,
     'config-source': source,
     'task-type': key ?? taskTypeInput,
+    'tier-selected': tierSelected,
   });
   notice(
     `Selected model '${model}' for task-type='${key ?? taskTypeInput}' tier='${tier}'` +
+      (tier === 'auto' ? ` (selected: ${tierSelected})` : '') +
       (modelCost ? ` (blended $${modelCost}/1M)` : '') +
       '.',
   );

@@ -196,3 +196,226 @@ describe('select-model max-cost', () => {
     assert.match(stderr, /max-cost/);
   });
 });
+
+describe('select-model auto tier', () => {
+  const http = require('node:http');
+  const { execFile } = require('node:child_process');
+
+  function startServer(handler) {
+    const server = http.createServer(handler);
+    return new Promise((resolve) => {
+      server.listen(0, '127.0.0.1', () => {
+        const { port } = server.address();
+        resolve({ server, url: `http://127.0.0.1:${port}` });
+      });
+    });
+  }
+
+  function json(res, status, body) {
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(body));
+  }
+
+  // Async variant of run(): must not block the event loop, otherwise the
+  // in-process mock usage/probe servers cannot answer the child.
+  function runAsync(inputs, { config = FIXTURE } = {}) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-model-'));
+    const configPath = path.join(dir, 'model-config.json');
+    fs.writeFileSync(configPath, JSON.stringify(config));
+    const outPath = path.join(dir, 'github-output.txt');
+    const env = { ...process.env, GITHUB_OUTPUT: outPath };
+    for (const [k, v] of Object.entries(inputs)) {
+      env[`INPUT_${k.replace(/ /g, '_').toUpperCase()}`] = v;
+    }
+    return new Promise((resolve) => {
+      execFile('node', [ACTION], { env }, (err, _stdout, stderr) => {
+        const outputs = {};
+        if (fs.existsSync(outPath)) {
+          for (const line of fs.readFileSync(outPath, 'utf8').split('\n')) {
+            const i = line.indexOf('=');
+            if (i > 0) outputs[line.slice(0, i)] = line.slice(i + 1);
+          }
+        }
+        fs.rmSync(dir, { recursive: true, force: true });
+        resolve({ exit: err ? (err.code ?? 1) : 0, stderr: String(stderr ?? ''), outputs });
+      });
+    });
+  }
+
+  const goAvailable = {
+    rollingUsage: { status: 'ok', usagePercent: 10, resetInSec: 100 },
+    weeklyUsage: { status: 'ok', usagePercent: 20, resetInSec: 200 },
+    monthlyUsage: { status: 'ok', usagePercent: 30, resetInSec: 300 },
+  };
+  const goExhausted = {
+    usage: {
+      rolling: { status: 'ok', percent: 100, resetsAt: new Date(Date.now() + 60000).toISOString() },
+      weekly: { status: 'ok', percent: 20, resetsAt: new Date(Date.now() + 60000).toISOString() },
+      monthly: { status: 'ok', percent: 30, resetsAt: new Date(Date.now() + 60000).toISOString() },
+    },
+  };
+
+  async function withMocks({ usageBody = goAvailable, usageStatus = 200, probeStatus = 200 } = {}, fn) {
+    const usage = await startServer((req, res) => json(res, usageStatus, usageBody));
+    const probe = await startServer((req, res) => {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        if (probeStatus === 200) json(res, 200, { choices: [{ message: { content: 'pong' } }] });
+        else json(res, probeStatus, { error: { message: `probe http ${probeStatus}` } });
+      });
+    });
+    try {
+      return await fn({ usageUrl: usage.url, probeUrl: probe.url });
+    } finally {
+      usage.server.close();
+      probe.server.close();
+    }
+  }
+
+  function autoInputs(configPath, urls, extra = {}) {
+    return localInputs(configPath, {
+      TIER: 'auto',
+      'OPENCODE-TOKEN': 'test-token',
+      'USAGE-URL': urls.usageUrl,
+      'PROBE-URL': urls.probeUrl,
+      ...extra,
+    });
+  }
+
+  function writeConfig() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-model-'));
+    const configPath = path.join(dir, 'model-config.json');
+    fs.writeFileSync(configPath, JSON.stringify(FIXTURE));
+    return { dir, configPath };
+  }
+
+  it('fails when auto has no token', () => {
+    const { dir, configPath } = writeConfig();
+    const saved = process.env.OPENCODE_API_KEY;
+    delete process.env.OPENCODE_API_KEY;
+    const { exit, stderr } = run(localInputs(configPath, { TIER: 'auto', 'CONFIG-URL': '' }));
+    if (saved === undefined) delete process.env.OPENCODE_API_KEY;
+    else process.env.OPENCODE_API_KEY = saved;
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(exit, 1);
+    assert.match(stderr, /opencode-token/);
+  });
+
+  it('prefers free when the free probe succeeds', async () => {
+    const { dir, configPath } = writeConfig();
+    const result = await withMocks({}, async (urls) => runAsync(autoInputs(configPath, urls)));
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.exit, 0);
+    assert.equal(result.outputs.model, 'opencode/model-b-free');
+    assert.equal(result.outputs['tier-selected'], 'free');
+  });
+
+  it('falls back to go when free is rate-limited and go has quota', async () => {
+    const { dir, configPath } = writeConfig();
+    const result = await withMocks({ probeStatus: 429 }, async (urls) => runAsync(autoInputs(configPath, urls)));
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.exit, 0);
+    assert.equal(result.outputs.model, 'opencode-go/model-a');
+    assert.equal(result.outputs['tier-selected'], 'go');
+  });
+
+  it('uses go-first order when requested', async () => {
+    const { dir, configPath } = writeConfig();
+    const result = await withMocks({}, async (urls) =>
+      runAsync(autoInputs(configPath, urls, { 'AUTO-PREFERENCE': 'go-first' })),
+    );
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.exit, 0);
+    assert.equal(result.outputs.model, 'opencode-go/model-a');
+    assert.equal(result.outputs['tier-selected'], 'go');
+  });
+
+  it('fails fast when both tiers are exhausted', async () => {
+    const { dir, configPath } = writeConfig();
+    const result = await withMocks(
+      { usageBody: goExhausted, probeStatus: 429 },
+      async (urls) => runAsync(autoInputs(configPath, urls)),
+    );
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.exit, 1);
+    assert.match(result.stderr, /No model available/);
+  });
+
+  it('waits for quota and then succeeds', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-model-'));
+    const configPath = path.join(dir, 'model-config.json');
+    fs.writeFileSync(configPath, JSON.stringify(FIXTURE));
+    const outPath = path.join(dir, 'github-output.txt');
+    let calls = 0;
+    const usage = await startServer((req, res) => {
+      calls += 1;
+      if (calls === 1) json(res, 200, goExhausted);
+      else json(res, 200, goAvailable);
+    });
+    const probe = await startServer((req, res) => {
+      req.resume();
+      req.on('end', () => json(res, 429, { error: { message: 'limited' } }));
+    });
+    let result;
+    const childEnv = { ...process.env, GITHUB_OUTPUT: outPath };
+    for (const [k, v] of Object.entries(localInputs(configPath, {
+      TIER: 'auto',
+      'OPENCODE-TOKEN': 'test-token',
+      'USAGE-URL': usage.url,
+      'PROBE-URL': probe.url,
+      'MAX-WAIT-SECONDS': '5',
+      'POLL-INTERVAL-SECONDS': '1',
+    }))) {
+      childEnv[`INPUT_${k.replace(/ /g, '_').toUpperCase()}`] = v;
+    }
+    try {
+      result = await new Promise((resolve) => {
+        execFile('node', [ACTION], { env: childEnv }, (err, _stdout, stderr) => {
+          const outputs = {};
+          if (fs.existsSync(outPath)) {
+            for (const line of fs.readFileSync(outPath, 'utf8').split('\n')) {
+              const i = line.indexOf('=');
+              if (i > 0) outputs[line.slice(0, i)] = line.slice(i + 1);
+            }
+          }
+          resolve({ exit: err ? (err.code ?? 1) : 0, stderr: String(stderr ?? ''), outputs });
+        });
+      });
+    } finally {
+      usage.server.close();
+      probe.server.close();
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.exit, 0);
+    assert.equal(result.outputs['tier-selected'], 'go');
+  });
+
+  it('reads the token from OPENCODE_API_KEY', async () => {
+    const { dir, configPath } = writeConfig();
+    const saved = process.env.OPENCODE_API_KEY;
+    process.env.OPENCODE_API_KEY = 'env-token';
+    const result = await withMocks({}, async (urls) =>
+      runAsync(localInputs(configPath, {
+        TIER: 'auto',
+        'USAGE-URL': urls.usageUrl,
+        'PROBE-URL': urls.probeUrl,
+      })),
+    );
+    if (saved === undefined) delete process.env.OPENCODE_API_KEY;
+    else process.env.OPENCODE_API_KEY = saved;
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.exit, 0);
+    assert.equal(result.outputs['tier-selected'], 'free');
+  });
+
+  it('rejects an invalid auto-preference', () => {
+    const { dir, configPath } = writeConfig();
+    const { exit, stderr } = run(
+      localInputs(configPath, { TIER: 'auto', 'AUTO-PREFERENCE': 'cheapest' }),
+    );
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(exit, 1);
+    assert.match(stderr, /auto-preference/);
+  });
+});

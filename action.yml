@@ -1,9 +1,9 @@
 name: Opencode Modelselect
 description: >-
-  Preselect the OpenCode model for a task class (task-type) and tier (go/free)
-  from the central model config, before running the OpenCode action.
-  Fails hard when no model can be resolved — a missing config is an error,
-  never a silent fallback.
+  Preselect the OpenCode model for a task class (task-type) and tier
+  (go/free/auto) from the central model config, before running the OpenCode
+  action. Fails hard when no model can be resolved — a missing config is an
+  error, never a silent fallback.
 
 inputs:
   task-type:
@@ -14,9 +14,41 @@ inputs:
       Matched case-insensitively.
     required: true
   tier:
-    description: "Model tier to select: go (paid) or free (/ocf)."
+    description: >-
+      Model tier to select: go (paid), free or auto (probe live usage
+      with opencode-token: free-first by default, Go when free is exhausted;
+      waits up to max-wait-seconds when both are exhausted).
     required: false
     default: go
+  opencode-token:
+    description: >-
+      Token for live usage checks, required only by tier auto (falls back to
+      OPENCODE_API_KEY). Used for GET usage-url (Go quota) and POST probe-url
+      (tiny free-model probe). Never logged.
+    required: false
+    default: ""
+  auto-preference:
+    description: "tier auto order: free-first (default) or go-first."
+    required: false
+    default: free-first
+  max-wait-seconds:
+    description: >-
+      How long tier auto polls the usage endpoints before failing (0 = fail
+      fast). Polls every poll-interval-seconds.
+    required: false
+    default: "0"
+  poll-interval-seconds:
+    description: Seconds between usage re-checks for tier auto.
+    required: false
+    default: "60"
+  usage-url:
+    description: Go plan usage endpoint queried by tier auto.
+    required: false
+    default: https://opencode.ai/zen/go/v1/usage
+  probe-url:
+    description: Zen chat endpoint used by tier auto for the free-model probe.
+    required: false
+    default: https://opencode.ai/zen/v1/chat/completions
   config-url:
     description: Remote URL of the central model config (live source of truth).
     required: false
@@ -57,6 +89,8 @@ outputs:
     description: "Where the config was loaded from: local, remote, local+fallback or remote+fallback."
   task-type:
     description: Canonical task-type key as found in the config.
+  tier-selected:
+    description: "Tier actually used (go or free; equals tier unless tier is auto)."
 
 runs:
   using: node24

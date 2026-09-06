@@ -15,11 +15,31 @@ repo, so downstream workflows pick up model updates with no sync and no edits.
     task-type: pr-review # Plan, Ask, Code, issue-triage, issue-implementation,
       # pr-review, code-implementation, frontend-design, frontend-testing,
       # api-testing, other (matched case-insensitively)
-    tier: go # or free (/ocf)
+    tier: go # or free, or auto (probe live usage)
 
 - uses: anomalyco/opencode/github@<sha>
   with:
     model: ${{ steps.resolve.outputs.model }}
+```
+
+With `tier: auto` the action checks live quota using the Opencode token
+(requires `opencode-token` or the `OPENCODE_API_KEY` env var): it sends a tiny
+probe request to the free model and queries `GET /zen/go/v1/usage` for the Go
+plan windows. `auto-preference: free-first` (default) picks free when the
+probe succeeds and falls back to Go; `go-first` reverses the order. When both
+tiers are exhausted the step fails unless `max-wait-seconds` is set, in which
+case it polls every `poll-interval-seconds` (default 60) until quota frees up.
+The resolved tier is exposed as the `tier-selected` output (`go` or `free`).
+
+```yaml
+- name: Select model
+  id: resolve
+  uses: dianlight/opencode-modelselect-action@v1
+  with:
+    task-type: pr-review
+    tier: auto
+    opencode-token: ${{ secrets.OPENCODE_API_KEY }}
+    max-wait-seconds: "300"
 ```
 
 Optional inputs: `config-url` (override the live config source), `config-path`
@@ -27,9 +47,12 @@ Optional inputs: `config-url` (override the live config source), `config-path`
 `fallback-model` (escape hatch when the task-type has no entry — otherwise the
 step fails hard), `max-cost` (budget cap as blended in/out $/1M: an
 over-budget pick is replaced by the best-scoring ranked model within budget,
-else the step fails). Outputs: `model`, `model-go`, `model-free`,
-`model-cost` (blended $/1M of the resolved model, empty when unknown),
-`config-source`, `task-type`.
+else the step fails), `opencode-token` (required only by `tier: auto`, falls
+back to `OPENCODE_API_KEY`), `auto-preference` (`free-first`/`go-first`),
+`max-wait-seconds` / `poll-interval-seconds` (quota polling for `tier: auto`),
+`usage-url` / `probe-url` (endpoint overrides). Outputs: `model`, `model-go`,
+`model-free`, `model-cost` (blended $/1M of the resolved model, empty when unknown),
+`config-source`, `task-type`, `tier-selected`.
 
 ## Model Recommendations by Task Type
 
