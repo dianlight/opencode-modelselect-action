@@ -253,7 +253,7 @@ class ClassifyTaskTypeTest(unittest.TestCase):
             "pr-review",
         )
         self.assertEqual(
-            m.classify_task_type("wf", "job", "step", "nothing here", tts), "other"
+            m.classify_task_type("wf", "job", "step", "nothing here", tts), "generic"
         )
 
 
@@ -326,8 +326,8 @@ class BestModelsTest(unittest.TestCase):
         )
 
     def test_no_scores_returns_defaults(self):
-        tts = [{"name": "pr-review", "priority": "overall"}]
-        best = m.get_best_models_for_task("pr-review", [{"id": "x"}], [{"id": "y"}], {"models": {}}, tts)
+        tts = [{"name": "review", "priority": "overall"}]
+        best = m.get_best_models_for_task("review", [{"id": "x"}], [{"id": "y"}], {"models": {}}, tts)
         self.assertEqual(best, ("nemotron-3-ultra-free", "deepseek-v4-pro"))
 
     def test_blended_selector_picks_cheaper_within_threshold(self):
@@ -471,9 +471,9 @@ class ZenPricingParseTest(unittest.TestCase):
 
 class ResolveAutoModelsTest(unittest.TestCase):
     def test_case_insensitive(self):
-        m._MODEL_CONFIG_CACHE = {"task-types": {"PR-Review": {"go": "g", "free": "f"}}}
+        m._MODEL_CONFIG_CACHE = {"task-types": {"Review": {"go": "g", "free": "f"}}}
         try:
-            self.assertEqual(m.resolve_auto_models("pr-review"), ("g", "f"))
+            self.assertEqual(m.resolve_auto_models("review"), ("g", "f"))
             self.assertEqual(m.resolve_auto_models("missing"), (None, None))
         finally:
             m._MODEL_CONFIG_CACHE = None

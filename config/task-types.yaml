@@ -1,14 +1,17 @@
 # Task type definitions with signals for classification
 # Maps workflow/job/step patterns to task types
+#
+# `name` is the kebab-case key used in data/model-config.json and the
+# select-model action (`task-type` input, matched case-insensitively).
+# `label` is the human-readable display name used in README tables.
 
 task_types:
-  # Standard OpenCode task types
-  - name: "Plan"
+  - name: "plan"
+    label: "Plan"
     description: "Planning, architecture decisions, task decomposition"
     signals:
       - "plan"
       - "architecture"
-      - "design"
       - "breakdown"
       - "decompose"
       - "strategy"
@@ -16,35 +19,8 @@ task_types:
     relevant_subscores: ["reasoning", "instruction_following"]
     priority: "reasoning"
 
-  - name: "Ask"
-    description: "General Q&A, explanations, analysis"
-    signals:
-      - "ask"
-      - "question"
-      - "explain"
-      - "how to"
-      - "what is"
-      - "why"
-      - "help"
-      - "clarify"
-    relevant_subscores: ["instruction_following", "reasoning"]
-    priority: "instruction_following"
-
-  - name: "Code"
-    description: "Code generation, implementation, refactoring"
-    signals:
-      - "code"
-      - "implement"
-      - "write code"
-      - "generate code"
-      - "refactor"
-      - "bug fix"
-      - "feature"
-    relevant_subscores: ["coding"]
-    priority: "coding"
-
-  # GitHub workflow-specific task types
   - name: "issue-triage"
+    label: "Issue Triage"
     description: "Triage, label, categorize, route issues"
     signals:
       - "triage"
@@ -55,40 +31,20 @@ task_types:
     relevant_subscores: ["instruction_following", "speed"]
     priority: "instruction_following"
 
-  - name: "issue-implementation"
-    description: "Implement, fix, resolve issues"
-    signals:
-      - "implement"
-      - "fix issue"
-      - "resolve issue"
-      - "fix bug"
-      - "resolve bug"
-    relevant_subscores: ["coding"]
-    priority: "coding"
-
-  - name: "pr-review"
+  - name: "review"
+    label: "Review"
     description: "Review PRs, pull requests, diffs"
     signals:
       - "review"
-      - "pr"
       - "pull request"
+      - "pr review"
       - "diff"
       - "code review"
     relevant_subscores: ["reasoning"]
     priority: "reasoning"
 
-  - name: "code-implementation"
-    description: "Generate code, refactor, implement features"
-    signals:
-      - "generate code"
-      - "refactor"
-      - "implement feature"
-      - "write code"
-      - "code generation"
-    relevant_subscores: ["coding"]
-    priority: "coding"
-
-  - name: "frontend-design"
+  - name: "ui-design"
+    label: "UI Design"
     description: "UI design, components, layouts, mockups"
     signals:
       - "ui"
@@ -103,7 +59,8 @@ task_types:
     priority: "vision"
     requires_vision: true
 
-  - name: "frontend-testing"
+  - name: "ui-testing"
+    label: "UI Testing"
     description: "Playwright, Cypress, E2E, frontend tests"
     signals:
       - "playwright"
@@ -115,6 +72,7 @@ task_types:
     priority: "coding"
 
   - name: "api-testing"
+    label: "API Testing"
     description: "API testing, integration tests, OpenAPI, Postman"
     signals:
       - "api test"
@@ -125,11 +83,95 @@ task_types:
     relevant_subscores: ["coding", "reasoning"]
     priority: "coding"
 
-  - name: "other"
-    description: "Everything else"
-    signals: []
-    relevant_subscores: ["overall"]
-    priority: "overall"
+  - name: "docs"
+    label: "Docs"
+    description: "Documentation, READMEs, changelogs, docstrings"
+    signals:
+      - "docs"
+      - "documentation"
+      - "readme"
+      - "changelog"
+      - "docstring"
+      - "jsdoc"
+      - "write docs"
+      - "update docs"
+    relevant_subscores: ["instruction_following"]
+    priority: "instruction_following"
+
+  - name: "debug"
+    label: "Debug"
+    description: "Debugging, reproductions, crash and exception triage"
+    signals:
+      - "debug"
+      - "debugging"
+      - "traceback"
+      - "stack trace"
+      - "reproduce"
+      - "root cause"
+      - "crash"
+      - "exception"
+      - "flaky test"
+      - "bisect"
+      - "fix bug"
+    relevant_subscores: ["reasoning", "coding"]
+    priority: "reasoning"
+
+  - name: "refactor"
+    label: "Refactor"
+    description: "Refactoring, cleanup, tech-debt reduction"
+    signals:
+      - "refactor"
+      - "refactoring"
+      - "clean up"
+      - "cleanup"
+      - "tech debt"
+      - "deduplicate"
+      - "extract function"
+    relevant_subscores: ["coding"]
+    priority: "coding"
+
+  - name: "security"
+    label: "Security"
+    description: "Security review, vulnerabilities, hardening"
+    signals:
+      - "security"
+      - "vulnerability"
+      - "cve"
+      - "xss"
+      - "sql injection"
+      - "hardening"
+      - "owasp"
+      - "threat model"
+      - "auth bypass"
+    relevant_subscores: ["reasoning", "coding"]
+    priority: "reasoning"
+
+  - name: "code"
+    label: "Code"
+    description: "Code generation, implementation, features"
+    signals:
+      - "code"
+      - "implement"
+      - "write code"
+      - "generate code"
+      - "feature"
+    relevant_subscores: ["coding"]
+    priority: "coding"
+
+  - name: "generic"
+    label: "Generic"
+    description: "General Q&A, explanations, analysis, everything else"
+    signals:
+      - "ask"
+      - "question"
+      - "explain"
+      - "how to"
+      - "what is"
+      - "why"
+      - "help"
+      - "clarify"
+    relevant_subscores: ["instruction_following", "reasoning"]
+    priority: "instruction_following"
 
 # Free-first policy: if free model scores within this % of best paid, prefer free
 free_first_threshold_pct: 5
@@ -138,7 +180,7 @@ free_first_threshold_pct: 5
 # $/1M figure used by the blended cost selector. The default 3:1 split reflects
 # input-heavy review/triage workloads (large diffs in, short comments out).
 # Weights are normalised to sum to 1. A task type may override the global mix
-# with its own `cost_blend` mapping (e.g. code-implementation with heavy output
+# with its own `cost_blend` mapping (e.g. code with heavy output
 # could use `{input_weight: 0.5, output_weight: 0.5}`).
 cost_blend:
   input_weight: 0.75

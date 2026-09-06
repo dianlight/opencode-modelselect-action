@@ -12,9 +12,9 @@ repo, so downstream workflows pick up model updates with no sync and no edits.
   id: resolve
   uses: dianlight/opencode-modelselect-action@v1
   with:
-    task-type: pr-review # Plan, Ask, Code, issue-triage, issue-implementation,
-      # pr-review, code-implementation, frontend-design, frontend-testing,
-      # api-testing, other (matched case-insensitively)
+    task-type: review # plan, generic, code, issue-triage, review,
+      # ui-design, ui-testing, api-testing, docs, debug, refactor, security
+      # (matched case-insensitively)
     tier: go # or free, or auto (probe live usage)
 
 - uses: anomalyco/opencode/github@<sha>

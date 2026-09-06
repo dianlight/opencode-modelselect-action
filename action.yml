@@ -9,9 +9,9 @@ inputs:
   task-type:
     description: >-
       Task class to select the model for. Must match a key of `task-types`
-      in the central model config (e.g. pr-review, issue-triage,
-      issue-implementation, code-implementation, Plan, Ask, Code, ...).
-      Matched case-insensitively.
+      in the central model config (e.g. plan, generic, code, issue-triage,
+      review, ui-design, ui-testing, api-testing, docs, debug, refactor,
+      security). Matched case-insensitively.
     required: true
   tier:
     description: >-

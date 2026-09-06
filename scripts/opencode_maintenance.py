@@ -755,7 +755,7 @@ def scan_workflows() -> list[dict[str, Any]]:
                     "file": str(wf_file.relative_to(ROOT)),
                     "workflow_name": wf_file.name,
                     "error": str(e),
-                    "task_type": "other",
+                    "task_type": "generic",
                 }
             )
 
@@ -936,7 +936,7 @@ def classify_task_type(
             if signal.lower() in text:
                 return tt["name"]
 
-    return "other"
+    return "generic"
 
 
 # --- Scoring & Recommendations ---
@@ -1214,18 +1214,18 @@ def get_best_models_for_task(
 
     # Fallback to config defaults if no scores
     defaults = {
-        # Standard OpenCode task types
-        "Plan": ("mimo-v2.5-free", "mimo-v2.5-pro"),
-        "Ask": ("hy3-free", "hy3-preview"),
-        "Code": ("north-mini-code-free", "kimi-k2.7-code"),
-        # GitHub workflow-specific task types
+        "plan": ("mimo-v2.5-free", "mimo-v2.5-pro"),
+        "generic": ("hy3-free", "hy3-preview"),
+        "code": ("north-mini-code-free", "kimi-k2.7-code"),
         "issue-triage": ("deepseek-v4-flash-free", "deepseek-v4-flash"),
-        "issue-implementation": ("north-mini-code-free", "kimi-k2.7-code"),
-        "pr-review": ("nemotron-3-ultra-free", "deepseek-v4-pro"),
-        "code-implementation": ("north-mini-code-free", "kimi-k2.7-code"),
-        "frontend-design": ("mimo-v2.5-free", "mimo-v2-omni"),
-        "frontend-testing": ("north-mini-code-free", "kimi-k2.7-code"),
+        "review": ("nemotron-3-ultra-free", "deepseek-v4-pro"),
+        "ui-design": ("mimo-v2.5-free", "mimo-v2-omni"),
+        "ui-testing": ("north-mini-code-free", "kimi-k2.7-code"),
         "api-testing": ("deepseek-v4-flash-free", "deepseek-v4-flash"),
+        "docs": ("deepseek-v4-flash-free", "deepseek-v4-flash"),
+        "debug": ("north-mini-code-free", "kimi-k2.7-code"),
+        "refactor": ("north-mini-code-free", "kimi-k2.7-code"),
+        "security": ("nemotron-3-ultra-free", "deepseek-v4-pro"),
     }
 
     if not scored:
@@ -1649,6 +1649,7 @@ def generate_model_recommendation_table(
 
     for tt in task_types:
         name = tt["name"]
+        label = tt.get("label", name)
         desc = tt.get("description", "")
         priority = tt.get("priority", "overall")
 
@@ -1712,7 +1713,7 @@ def generate_model_recommendation_table(
         )
 
         lines.append(
-            f"| `{name}` | {desc} | {zen_display} | {free_display} | {go_display} |"
+            f"| `{name}` ({label}) | {desc} | {zen_display} | {free_display} | {go_display} |"
         )
 
     return "\n".join(lines)
@@ -1760,14 +1761,18 @@ def generate_score_reference_table(
 
     # Short labels for task types in badges
     TASK_BADGES = {
+        "plan": "Plan",
+        "generic": "Generic",
+        "code": "Code",
         "issue-triage": "Triage",
-        "issue-implementation": "Impl",
-        "pr-review": "Review",
-        "code-implementation": "Code",
-        "frontend-design": "Design",
-        "frontend-testing": "FTest",
-        "api-testing": "ATest",
-        "other": "Other",
+        "review": "Review",
+        "ui-design": "Design",
+        "ui-testing": "UITest",
+        "api-testing": "APITest",
+        "docs": "Docs",
+        "debug": "Debug",
+        "refactor": "Refactor",
+        "security": "Security",
     }
 
     lines = [
@@ -1880,7 +1885,7 @@ def generate_workflow_audit_table(
             )
             continue
 
-        task_type = r.get("task_type", "other")
+        task_type = r.get("task_type", "generic")
         current = r.get("model", "NOT_SET")
 
         best_free, best_go = get_best_models_for_task(
@@ -2162,7 +2167,7 @@ def main() -> None:
             )
             continue
 
-        task_type = r.get("task_type", "other")
+        task_type = r.get("task_type", "generic")
         current = r.get("model", "NOT_SET")
 
         best_free, best_go = get_best_models_for_task(

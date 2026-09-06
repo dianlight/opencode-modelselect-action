@@ -498,7 +498,7 @@ jobs:
         if: steps.detect.outputs.tasks != ''
         uses: dianlight/opencode-modelselect-action@v1
         with:
-          task-type: code-implementation
+          task-type: code
           tier: go
 
       - name: Run OpenCode for checked tasks

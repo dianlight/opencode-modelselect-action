@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-08-04T12:36:43.178315+00:00",
+  "timestamp": "2026-09-06T00:00:00+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
-    "Plan": {
+    "plan": {
       "go": "opencode-go/qwen3.8-max",
       "free": "opencode/deepseek-v4-flash-free"
     },
-    "Ask": {
+    "generic": {
       "go": "opencode-go/qwen3.8-max",
       "free": "opencode/deepseek-v4-flash-free"
     },
-    "Code": {
+    "code": {
       "go": "opencode/big-pickle",
       "free": "opencode/big-pickle"
     },
@@ -18,23 +18,15 @@
       "go": "opencode-go/qwen3.8-max",
       "free": "opencode/deepseek-v4-flash-free"
     },
-    "issue-implementation": {
-      "go": "opencode/big-pickle",
-      "free": "opencode/big-pickle"
-    },
-    "pr-review": {
+    "review": {
       "go": "opencode-go/qwen3.8-max",
       "free": "opencode/deepseek-v4-flash-free"
     },
-    "code-implementation": {
-      "go": "opencode/big-pickle",
-      "free": "opencode/big-pickle"
-    },
-    "frontend-design": {
+    "ui-design": {
       "go": "opencode-go/kimi-k3",
       "free": "opencode/mimo-v2.5-free"
     },
-    "frontend-testing": {
+    "ui-testing": {
       "go": "opencode/big-pickle",
       "free": "opencode/big-pickle"
     },
@@ -42,8 +34,20 @@
       "go": "opencode/big-pickle",
       "free": "opencode/big-pickle"
     },
-    "other": {
-      "go": "opencode-go/kimi-k3",
+    "docs": {
+      "go": "opencode-go/qwen3.8-max",
+      "free": "opencode/deepseek-v4-flash-free"
+    },
+    "debug": {
+      "go": "opencode/big-pickle",
+      "free": "opencode/big-pickle"
+    },
+    "refactor": {
+      "go": "opencode/big-pickle",
+      "free": "opencode/big-pickle"
+    },
+    "security": {
+      "go": "opencode-go/qwen3.8-max",
       "free": "opencode/deepseek-v4-flash-free"
     }
   }
