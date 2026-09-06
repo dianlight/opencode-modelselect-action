@@ -1,5 +1,8 @@
 ## [Unreleased]
 ### Added
+- Model Audit issue: new "Correct the model coverage issues" checkbox that opens
+  a PR scoped to `config/model-scores.yaml` only (removes stale fallback entries
+  now on LiveBench, adds scores for models missing data)
 - Test coverage: new `test/coverage-extra.test.js` (36 tests, JS at 99% lines
   via `npm run coverage`) and `tests/test_maintenance.py` (52 offline unit
   tests for the maintenance script via `mise run test-python`); CI lints
