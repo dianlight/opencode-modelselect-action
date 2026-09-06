@@ -47,9 +47,9 @@ The select-model action (`action.yml` + `src/index.js`, Node 24, zero dependenci
 
 `data/model-config.json` is the **actual configuration**, keyed by task-type only (`task-types.<name>.{go,free}`), consumed by every OpenCode step at startup via the select-model action (`model: ${{ steps.resolve.outputs.model }}`) — the audit marks these steps with ⚙️.
 
-The maintenance script computes a **proposed** config each run but never writes over the committed one. If the proposal differs, it saves `data/model-config.proposed.json` (gitignored) and the workflow opens/updates a maintenance issue with the diff. The config changes only through an issue + PR review: check the issue's "Apply the proposed model config update" box and OpenCode opens a PR — merging it is the human gate. The `Commit changes` step excludes `data/model-config.json` from the auto-commit.
+The maintenance script recomputes the config each run and the workflow commits `data/model-config.json` directly, so the new models immediately become the selection target. The maintenance issue checkboxes are only for model ranking adjustments (`config/model-scores.yaml` PRs): checking a box makes OpenCode open a PR (assigned to the repo owner, superseding any existing one), and each audit run closes any open maintenance issue and opens a fresh one.
 
-To change a model: never edit workflow files. Run `mise run maintenance`, review the proposed config in the resulting issue, and merge a PR that updates `data/model-config.json` — downstream workflows pick it up automatically at their next run.
+To change a model: never edit workflow files. Run `mise run maintenance`, review the committed `data/model-config.json` diff — downstream workflows pick it up automatically at their next run.
 
 ### Sync system
 
@@ -57,7 +57,7 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 
 ### Maintenance
 
-`scripts/opencode_maintenance.py` fetches model catalogs (OpenCode Zen/Go + LiveBench), classifies workflows by task type, scores models, updates `README.md` tables, saves results to `data/*.json`, and proposes model config updates (`data/model-config.proposed.json`) — it never applies them: the config changes only via issue + PR review. Each run also fetches Zen model prices from the Zen docs pricing page (`https://opencode.ai/docs/it/zen#pricing`) and stores them per model in `data/zen_models.json` (`pricing` field + `pricing_source`). The usable free list (`free`) is the union of `-free`-suffixed models and any model the pricing page publishes as "Free" — some free models (e.g. `big-pickle`) do not carry the `-free` suffix. Runs on a schedule and on pushes to `opencode-maintenance.yaml`.
+`scripts/opencode_maintenance.py` fetches model catalogs (OpenCode Zen/Go + LiveBench), classifies workflows by task type, scores models, updates `README.md` tables, saves results to `data/*.json`, and rewrites `data/model-config.json` directly (committed by the workflow). Each run also fetches Zen model prices from the Zen docs pricing page (`https://opencode.ai/docs/it/zen#pricing`) and stores them per model in `data/zen_models.json` (`pricing` field + `pricing_source`). The usable free list (`free`) is the union of `-free`-suffixed models and any model the pricing page publishes as "Free" — some free models (e.g. `big-pickle`) do not carry the `-free` suffix. Runs on a schedule and on pushes to `opencode-maintenance.yaml`.
 
 ## Config files
 

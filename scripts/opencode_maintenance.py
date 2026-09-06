@@ -44,11 +44,10 @@ WORKFLOW_SCAN_PATH = DATA_DIR / "workflow_scan.json"
 AUDIT_RESULTS_PATH = DATA_DIR / "audit_results.json"
 COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # Central model config consumed by downstream workflows at startup
-# (see action.yml / src/index.js). This is real configuration: the
-# maintenance run never overwrites it — changes go through issue + PR review.
+# (see action.yml / src/index.js). This IS the actual configuration: each
+# maintenance run recomputes it and the workflow commits it directly, so the
+# newly computed models immediately become the selection target.
 MODEL_CONFIG_PATH = DATA_DIR / "model-config.json"
-# Proposed config written when the run recommends a change (gitignored).
-MODEL_CONFIG_PROPOSED_PATH = DATA_DIR / "model-config.proposed.json"
 
 # --- Constants ---
 ZEN_URL = "https://opencode.ai/zen/v1/models"
@@ -924,18 +923,18 @@ def generate_model_config(
     price_lookup: dict[str, dict[str, Any]] | None = None,
     cost_blend: tuple[float, float] | None = None,
 ) -> bool:
-    """Compute the proposed central model config — without applying it.
+    """Compute the central model config and write it directly.
 
-    The committed data/model-config.json is the actual configuration and is
-    only changed through an issue + PR review, never automatically. It is
-    keyed by task-type only, so any downstream workflow can preselect a model
-    with the select-model action. Each entry uses the best free/paid models
-    for the task type (prefixed, e.g. `opencode-go/kimi-k3`) after the
-    blended cost selector and the free-first policy.
+    The committed data/model-config.json is the actual configuration and the
+    maintenance run owns it: the freshly computed models are written in place
+    and committed by the workflow, immediately becoming the new selection
+    target. It is keyed by task-type only, so any downstream workflow can
+    preselect a model with the select-model action. Each entry uses the best
+    free/paid models for the task type (prefixed, e.g. `opencode-go/kimi-k3`)
+    after the blended cost selector and the free-first policy.
 
-    Returns True when the proposal differs from the committed config (the
-    proposal is saved to data/model-config.proposed.json so the workflow can
-    open a review issue, and the committed file is left untouched).
+    Returns True when the written config differs from the previous commit
+    (i.e. the models actually changed).
     """
     task_map: dict[str, Any] = {}
     blend = cost_blend or DEFAULT_COST_BLEND
@@ -975,10 +974,10 @@ def generate_model_config(
     }
 
     if not MODEL_CONFIG_PATH.exists():
-        # No committed config yet: the action fails closed without one, so
-        # the proposal must land via PR too — never write it in place.
-        save_json(MODEL_CONFIG_PROPOSED_PATH, proposed)
-        print(f"  ! No committed config found — proposal saved to {MODEL_CONFIG_PROPOSED_PATH} (add via issue + PR review)")
+        # No committed config yet: write the computed one so the action has
+        # a target to resolve from.
+        save_json(MODEL_CONFIG_PATH, proposed)
+        print(f"  ! No committed config found — wrote initial config to {MODEL_CONFIG_PATH}")
         return True
 
     current = _load_model_config()
@@ -987,9 +986,8 @@ def generate_model_config(
         print("  v Central model config unchanged")
         return False
 
-    save_json(MODEL_CONFIG_PROPOSED_PATH, proposed)
-    print(f"  ! Model config drift detected — NOT applied; proposal saved to {MODEL_CONFIG_PROPOSED_PATH}")
-    print("  ! Committed data/model-config.json changes only via issue + PR review")
+    save_json(MODEL_CONFIG_PATH, proposed)
+    print(f"  ! Central model config updated — wrote {MODEL_CONFIG_PATH} (committed by the workflow)")
     return True
 
 
@@ -2450,8 +2448,9 @@ def main() -> None:
             }
         )
 
-    # 7b. Compute the proposed central model config — never applied to the
-    # committed file; drift is reported (not applied) and flows into the issue.
+    # 7b. Recompute the central model config and write it directly — the
+    # workflow commits it, so the new models immediately become the target.
+    # `config_drift` reports whether the models actually changed this run.
     config_drift = generate_model_config(
         free_models, go_models, livebench, task_types, threshold_pct, go_ids,
         price_lookup, cost_blend,
@@ -2523,7 +2522,7 @@ def main() -> None:
     print(f"  Audit data: {AUDIT_RESULTS_PATH}")
     print(f"  Model config: {MODEL_CONFIG_PATH}")
     if config_drift:
-        print(f"  ! Config drift — proposal at {MODEL_CONFIG_PROPOSED_PATH} (requires PR)")
+        print(f"  ! Model config changed — {MODEL_CONFIG_PATH} updated (committed by the workflow)")
     print("=" * 60)
 
     # Exit with error code if any \u274c (Error), \u2757 (Alert), or \U0001f480 (Fatal) found (for CI) or coverage issues
