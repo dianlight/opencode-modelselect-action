@@ -6,7 +6,8 @@
  * Inputs (via INPUT_* env vars):
  *   task-type       Task class, matched case-insensitively against the
  *                   `task-types` keys of the central model config.
- *   tier            `go` (paid), `free` or `auto`. Defaults to `go`.
+ *   tier            `go` (paid), `free` or `auto`. Defaults to `auto`
+ *                   when a token is available, else `free`.
  *                   `auto` prefers free when reachable and falls back to
  *                   Go (or vice versa with `auto-preference`), polling the
  *                   live usage endpoints until `max-wait-seconds` expires.
@@ -383,13 +384,15 @@ async function resolveAutoTier({
 
 async function main() {
   const taskTypeInput = getInput('task-type', { required: true });
-  const tier = (getInput('tier', { fallback: 'go' }) || 'go').toLowerCase();
+  const tierInput = getInput('tier');
   const configUrl = getInput('config-url');
   const configPath = getInput('config-path', { fallback: 'data/model-config.json' });
   const fallbackModel = getInput('fallback-model');
   const maxCostInput = getInput('max-cost');
   const tokenInput = getInput('opencode-token');
   const token = tokenInput || (process.env.OPENCODE_API_KEY ?? '').trim();
+  // Default tier: probe live quota when a token is available, else free.
+  const tier = (tierInput || (token ? 'auto' : 'free')).toLowerCase();
   const preference = (
     getInput('auto-preference', { fallback: 'free-first' }) || 'free-first'
   ).toLowerCase();

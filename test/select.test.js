@@ -54,7 +54,7 @@ function localInputs(configPath, extra = {}) {
 }
 
 describe('select-model action', () => {
-  it('resolves the go model by default', () => {
+  it('resolves the go model when requested', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-model-'));
     const configPath = path.join(dir, 'model-config.json');
     fs.writeFileSync(configPath, JSON.stringify(FIXTURE));
@@ -77,6 +77,21 @@ describe('select-model action', () => {
     assert.equal(exit, 0);
     assert.equal(outputs.model, 'opencode/model-b-free');
     assert.equal(outputs['task-type'], 'pr-review');
+  });
+
+  it('defaults to free when tier is omitted and no token is set', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'select-model-'));
+    const configPath = path.join(dir, 'model-config.json');
+    fs.writeFileSync(configPath, JSON.stringify(FIXTURE));
+    const saved = process.env.OPENCODE_API_KEY;
+    delete process.env.OPENCODE_API_KEY;
+    const { exit, outputs } = run(localInputs(configPath, { 'CONFIG-URL': '' }));
+    if (saved === undefined) delete process.env.OPENCODE_API_KEY;
+    else process.env.OPENCODE_API_KEY = saved;
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(exit, 0);
+    assert.equal(outputs.model, 'opencode/model-b-free');
+    assert.equal(outputs['tier-selected'], 'free');
   });
 
   it('fails closed on a missing task-type without fallback', () => {
@@ -305,6 +320,22 @@ describe('select-model auto tier', () => {
   it('prefers free when the free probe succeeds', async () => {
     const { dir, configPath } = writeConfig();
     const result = await withMocks({}, async (urls) => runAsync(autoInputs(configPath, urls)));
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.equal(result.exit, 0);
+    assert.equal(result.outputs.model, 'opencode/model-b-free');
+    assert.equal(result.outputs['tier-selected'], 'free');
+  });
+
+  it('defaults to auto probing when tier is omitted but a token is set', async () => {
+    const { dir, configPath } = writeConfig();
+    const result = await withMocks({}, async (urls) =>
+      runAsync(localInputs(configPath, {
+        'OPENCODE-TOKEN': 'test-token',
+        'USAGE-URL': urls.usageUrl,
+        'PROBE-URL': urls.probeUrl,
+        'CONFIG-URL': '',
+      })),
+    );
     fs.rmSync(dir, { recursive: true, force: true });
     assert.equal(result.exit, 0);
     assert.equal(result.outputs.model, 'opencode/model-b-free');

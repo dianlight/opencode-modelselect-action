@@ -1,4 +1,17 @@
 ## [Unreleased]
+### Changed
+- `tier` input is now dynamic when omitted (was `go`): `auto` when a token
+  (`opencode-token` or `OPENCODE_API_KEY`) is available, else `free`
+- README Inputs table now lists Description before Default
+
+### Added
+- README badges (release, last commit, issues, pull requests, license),
+  Sponsor section (copied from `dianlight/srat`, incl. OpenCode Go referral),
+  and License section
+- README Task types cross-links from the `task-type` input, requirements, and
+  How it works; LiveBench Score Reference now explains the Value column
+  (Overall ÷ Blended $/1M) and what a missing `—` means (Free $0 cost or
+  unknown pricing)
 
 ## [0.2.0]
 ### Removed

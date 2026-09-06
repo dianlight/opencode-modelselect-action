@@ -17,9 +17,11 @@ inputs:
     description: >-
       Model tier to select: go (paid), free or auto (probe live usage
       with opencode-token: free-first by default, Go when free is exhausted;
-      waits up to max-wait-seconds when both are exhausted).
+      waits up to max-wait-seconds when both are exhausted). Omitted means
+      auto when a token (opencode-token or OPENCODE_API_KEY) is available,
+      otherwise free.
     required: false
-    default: go
+    default: ""
   opencode-token:
     description: >-
       Token for live usage checks, required only by tier auto (falls back to

@@ -1,4 +1,11 @@
 # Opencode Modelselect
+
+[![GitHub release](https://img.shields.io/github/v/release/dianlight/opencode-modelselect-action)](https://github.com/dianlight/opencode-modelselect-action/releases)
+[![GitHub last commit](https://img.shields.io/github/last-commit/dianlight/opencode-modelselect-action)](https://github.com/dianlight/opencode-modelselect-action/commits/main)
+[![GitHub issues](https://img.shields.io/github/issues-raw/dianlight/opencode-modelselect-action)](https://github.com/dianlight/opencode-modelselect-action/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/dianlight/opencode-modelselect-action)](https://github.com/dianlight/opencode-modelselect-action/pulls)
+[![GitHub license](https://img.shields.io/github/license/dianlight/opencode-modelselect-action)](https://github.com/dianlight/opencode-modelselect-action/blob/main/LICENSE)
+
 Main repository for my Opencode Modelselect Github Action, shared to multiple repositories and kept in sync
 
 ## Select Model Action
@@ -31,37 +38,39 @@ Runs on Node 24 with zero dependencies (`src/index.js`).
    `GITHUB_WORKSPACE`, absolute paths also accepted) wins when present,
    otherwise fetches `config-url` (15s timeout). Fails when neither works.
 2. Matches `task-type` case-insensitively against the top-level `task-types`
-   keys of the config.
+   keys of the config (see [Task types](#task-types)).
 3. Resolves the model for the requested `tier` (`go`, `free`, or `auto` with
-   live quota probing). Applies the `max-cost` budget swap when set.
+   live quota probing; omitted means `auto` when a token is available, else
+   `free`). Applies the `max-cost` budget swap when set.
 4. Writes the outputs and logs a `::notice::` with the selection. Any
    unresolvable state exits non-zero (`::error::`). Nothing is ever logged
    with the token value.
 
 ### Requirements
 
-- `task-type` is always required.
-- `tier: auto` requires a token: pass `opencode-token` or set the
-  `OPENCODE_API_KEY` env var. Other tiers ignore the token.
+- `task-type` is always required (see [Task types](#task-types)).
+- `tier` defaults to `auto` when a token is available (`opencode-token` input or
+  `OPENCODE_API_KEY` env var), otherwise to `free`. Explicit `tier: auto`
+  requires a token; other tiers ignore it.
 - All inputs are trimmed; `tier` and `auto-preference` are case-insensitive
   (`Go`, `FREE-FIRST`, … all work).
 
 ### Inputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `task-type` | yes | — | Task class to select the model for. Must match a key of `task-types` in the central config (see Task types below). Matched case-insensitively; the canonical key is echoed in the `task-type` output. |
-| `tier` | no | `go` | Model tier: `go` (paid), `free`, or `auto` (probe live usage, see Tier `auto`). Anything else fails the step. |
-| `opencode-token` | only for `tier: auto` | `""` | Token for live usage checks. Falls back to the `OPENCODE_API_KEY` env var. Used for `GET usage-url` (Go quota) and `POST probe-url` (tiny free-model probe). Never logged. |
-| `auto-preference` | no | `free-first` | Probe order for `tier: auto`: `free-first` (try free, fall back to Go) or `go-first` (reverse). Only meaningful with `tier: auto`. |
-| `max-wait-seconds` | no | `"0"` | How long `tier: auto` polls the usage endpoints before failing. `0` = fail fast. Non-negative number (string or number). Polls every `poll-interval-seconds`. |
-| `poll-interval-seconds` | no | `"60"` | Seconds between usage re-checks for `tier: auto`. Must be a positive number. |
-| `usage-url` | no | `https://opencode.ai/zen/go/v1/usage` | Go plan usage endpoint queried by `tier: auto`. Override for tests or mirrors. |
-| `probe-url` | no | `https://opencode.ai/zen/v1/chat/completions` | Zen chat endpoint used by `tier: auto` for the free availability probe (`model` = resolved free model, `messages: [{role:user, content:ping}]`, `max_tokens: 1`, `stream: false`). Override for tests or mirrors. |
-| `config-url` | no | `https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json` | Remote URL of the central model config (live source of truth). Only fetched when the local file is absent. Empty disables the remote fallback. |
-| `config-path` | no | `data/model-config.json` | Local path (relative to `GITHUB_WORKSPACE`, absolute also works) preferred over the remote URL when the file exists and parses as JSON. |
-| `fallback-model` | no | `""` | Escape hatch used whenever no model can be resolved: unknown task-type, empty go/free entry, both tiers exhausted/unreachable under `tier: auto`, or no ranked model fits `max-cost`. Emits a `::warning::` and appends `+fallback` to `config-source`. Prefer adding the entry to `data/model-config.json` instead. |
-| `max-cost` | no | `""` | Budget cap as blended in/out token cost in $/1M (same 75% in / 25% out blend as the maintenance evaluation). When the resolved pick costs more, it is replaced by the best-scoring ranked model within budget (score desc, then cheapest). Needs a `<tier>_ranked` best-to-worst ranking for the task-type in the config — otherwise the step fails with a hint to regenerate via maintenance. When nothing fits, the step fails (or uses `fallback-model` when given); `model-cost` then holds the replacement cost. Skipped for fallback models. Must be a non-negative number. |
+| Input | Required | Description | Default |
+|-------|----------|-------------|---------|
+| `task-type` | yes | Task class to select the model for. Must match a key of `task-types` in the central config (see [Task types](#task-types)). Matched case-insensitively; the canonical key is echoed in the `task-type` output. | — |
+| `tier` | no | Model tier: `go` (paid), `free`, or `auto` (probe live usage, see [Tier `auto`](#tier-auto-live-quota-probing)). Omitted = `auto` with a token (`opencode-token` or `OPENCODE_API_KEY`), else `free`. Anything else fails the step. | `auto` with token, else `free` |
+| `opencode-token` | only for `tier: auto` | Token for live usage checks. Falls back to the `OPENCODE_API_KEY` env var. Used for `GET usage-url` (Go quota) and `POST probe-url` (tiny free-model probe). Never logged. | `""` |
+| `auto-preference` | no | Probe order for `tier: auto`: `free-first` (try free, fall back to Go) or `go-first` (reverse). Only meaningful with `tier: auto`. | `free-first` |
+| `max-wait-seconds` | no | How long `tier: auto` polls the usage endpoints before failing. `0` = fail fast. Non-negative number (string or number). Polls every `poll-interval-seconds`. | `"0"` |
+| `poll-interval-seconds` | no | Seconds between usage re-checks for `tier: auto`. Must be a positive number. | `"60"` |
+| `usage-url` | no | Go plan usage endpoint queried by `tier: auto`. Override for tests or mirrors. | `https://opencode.ai/zen/go/v1/usage` |
+| `probe-url` | no | Zen chat endpoint used by `tier: auto` for the free availability probe (`model` = resolved free model, `messages: [{role:user, content:ping}]`, `max_tokens: 1`, `stream: false`). Override for tests or mirrors. | `https://opencode.ai/zen/v1/chat/completions` |
+| `config-url` | no | Remote URL of the central model config (live source of truth). Only fetched when the local file is absent. Empty disables the remote fallback. | `https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json` |
+| `config-path` | no | Local path (relative to `GITHUB_WORKSPACE`, absolute also works) preferred over the remote URL when the file exists and parses as JSON. | `data/model-config.json` |
+| `fallback-model` | no | Escape hatch used whenever no model can be resolved: unknown task-type, empty go/free entry, both tiers exhausted/unreachable under `tier: auto`, or no ranked model fits `max-cost`. Emits a `::warning::` and appends `+fallback` to `config-source`. Prefer adding the entry to `data/model-config.json` instead. | `""` |
+| `max-cost` | no | Budget cap as blended in/out token cost in $/1M (same 75% in / 25% out blend as the maintenance evaluation). When the resolved pick costs more, it is replaced by the best-scoring ranked model within budget (score desc, then cheapest). Needs a `<tier>_ranked` best-to-worst ranking for the task-type in the config — otherwise the step fails with a hint to regenerate via maintenance. When nothing fits, the step fails (or uses `fallback-model` when given); `model-cost` then holds the replacement cost. Skipped for fallback models. Must be a non-negative number. | `""` |
 
 ### Outputs
 
@@ -238,7 +247,10 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 
 ### LiveBench Score Reference
 
-> Token costs ($/1M, blended 75% in / 25% out). Value = overall score per blended $.
+> Token costs ($/1M, blended 75% in / 25% out). Value = Overall ÷ Blended $/1M (higher = better value).
+> Value shows `—` when it cannot be computed: Free models cost $0
+> (value would be infinite), and paid models with unknown pricing
+> (`—` in the cost columns) have no divisor.
 
 | Model | Tier | Source | Best For | Overall | Coding | Reasoning | Vision | Instruction Following | In $/1M | Out $/1M | Blended $/1M | Value |
 |-------|------|--------|----------|---------|--------|-----------|--------|----------------------|---------|----------|--------------|-------|
@@ -285,3 +297,16 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
 | `qwen3.8-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.3 | 66.0 | 84.4 | 55.8 | 77.2 | $0.15 | $0.47 | $0.23 | 336.1 |
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 67.9 | 87.9 | 58.6 | 77.2 | $2 | $6 | $3 | 26.5 |
+
+## Sponsor
+
+<a href="https://github.com/sponsors/dianlight"><img src="https://img.shields.io/github/sponsors/dianlight?style=flat-square&logo=githubsponsors&logoColor=%23EA4AAA" alt="Github Sponsor"></a>
+<a href="https://www.buymeacoffee.com/ypKZ2I0"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=ypKZ2I0" alt="Buy Me a Coffee"/></a>
+
+### Referral
+
+If you're interested in subscribing to an OpenCode Go plan, [click this referral link](https://opencode.ai/go?ref=HKKSCM481M) — you'll get a $5 credit, and $5 will be donated to support this project.
+
+## License
+
+[MIT License](./LICENSE)
