@@ -52,7 +52,7 @@
     "workflow_name": "opencode-pr-comment",
     "job_id": "process-2",
     "job_name": "process-2",
-    "step_index": 3,
+    "step_index": 4,
     "step_name": "Run opencode (Process 2 \u2014 Bot thread reply)",
     "action_ref": "anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a",
     "model": "opencode-go/qwen3.8-max",

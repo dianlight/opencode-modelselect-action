@@ -39,8 +39,20 @@
       "tier": "Free"
     },
     {
+      "model": "muse-spark-1.3-contributor",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "muse-spark-1.3-contributor-free",
+      "tier": "Free"
+    },
+    {
       "model": "nemotron-3.5-lightning-free",
       "tier": "Free"
+    },
+    {
+      "model": "omen-alpha",
+      "tier": "Go (Paid)"
     }
   ]
 }
