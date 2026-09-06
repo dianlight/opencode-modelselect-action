@@ -380,320 +380,12 @@
       "instruction_following": 78.7,
       "overall": 83.0
     },
-    "gpt-5.4-mini": {
-      "coding": 40.1,
-      "reasoning": 28.8,
-      "vision": 30.6,
-      "instruction_following": 38.6,
-      "overall": 33.9
-    },
-    "gpt-5-nano": {
-      "coding": 44.0,
-      "reasoning": 48.4,
-      "vision": 16.5,
-      "instruction_following": 56.0,
-      "overall": 48.0
-    },
-    "deepseek-v3.2": {
-      "coding": 58.3,
-      "reasoning": 49.1,
-      "vision": 44.9,
-      "instruction_following": 44.6,
-      "overall": 49.8
-    },
-    "gpt-5-mini": {
-      "coding": 51.4,
-      "reasoning": 62.7,
-      "vision": 37.4,
-      "instruction_following": 69.7,
-      "overall": 61.0
-    },
-    "gpt-5.4-nano": {
-      "coding": 41.0,
-      "reasoning": 23.4,
-      "vision": 14.4,
-      "instruction_following": 35.2,
-      "overall": 29.9
-    },
-    "claude-opus-4-5-20251101-high-effort": {
-      "coding": 68.1,
-      "reasoning": 54.9,
-      "vision": 62.3,
-      "instruction_following": 49.0,
-      "overall": 56.5
-    },
-    "gpt-5.4-mini-medium": {
-      "coding": 44.8,
-      "reasoning": 65.0,
-      "vision": 36.9,
-      "instruction_following": 60.1,
-      "overall": 58.1
-    },
-    "gpt-5.3-codex-high": {
-      "coding": 64.3,
-      "reasoning": 79.3,
-      "vision": 64.3,
-      "instruction_following": 70.8,
-      "overall": 73.2
-    },
-    "grok-4.20-beta-0309-reasoning": {
-      "coding": 52.4,
-      "reasoning": 78.3,
-      "vision": 51.2,
-      "instruction_following": 68.8,
-      "overall": 69.0
-    },
-    "gpt-5.3-codex-xhigh": {
-      "coding": 71.0,
-      "reasoning": 72.6,
-      "vision": 57.5,
-      "instruction_following": 74.0,
-      "overall": 72.0
-    },
-    "glm-5": {
-      "coding": 62.5,
-      "reasoning": 74.0,
-      "vision": 63.6,
-      "instruction_following": 65.0,
-      "overall": 68.7
-    },
-    "glm-4.6v": {
-      "coding": 27.7,
-      "reasoning": 43.4,
-      "vision": 29.7,
-      "instruction_following": 41.4,
-      "overall": 38.9
-    },
-    "kimi-k2-instruct": {
-      "coding": 48.7,
-      "reasoning": 45.7,
-      "vision": 45.9,
-      "instruction_following": 44.0,
-      "overall": 45.9
-    },
-    "gemini-2.5-pro-06-05-highthinking": {
-      "coding": 50.3,
-      "reasoning": 62.8,
-      "vision": 63.0,
-      "instruction_following": 52.8,
-      "overall": 57.5
-    },
-    "grok-4-0709": {
-      "coding": 47.3,
-      "reasoning": 74.9,
-      "vision": 60.5,
-      "instruction_following": 49.9,
-      "overall": 61.8
-    },
-    "claude-4-sonnet-20250514-base": {
-      "coding": 55.3,
-      "reasoning": 45.5,
-      "vision": 54.2,
-      "instruction_following": 47.0,
-      "overall": 48.4
-    },
-    "gemini-3-pro-preview-11-2025-low": {
-      "coding": 61.3,
-      "reasoning": 70.8,
-      "vision": 61.5,
-      "instruction_following": 50.1,
-      "overall": 62.9
-    },
-    "gemma-4-31b-it": {
-      "coding": 48.1,
-      "reasoning": 65.2,
-      "vision": 47.5,
-      "instruction_following": 71.6,
-      "overall": 62.4
-    },
-    "kimi-k2.5-thinking": {
-      "coding": 60.1,
-      "reasoning": 76.7,
-      "vision": 55.0,
-      "instruction_following": 65.3,
-      "overall": 69.2
-    },
-    "claude-sonnet-4-6-thinking-auto-low-effort": {
-      "coding": 67.7,
-      "reasoning": 78.5,
-      "vision": 53.3,
-      "instruction_following": 59.9,
-      "overall": 70.2
-    },
-    "gpt-5.1-codex-max": {
-      "coding": 66.6,
-      "reasoning": 77.0,
-      "vision": 58.2,
-      "instruction_following": 71.1,
-      "overall": 72.4
-    },
-    "deepseek-v3.2-thinking": {
-      "coding": 49.8,
-      "reasoning": 72.6,
-      "vision": 45.7,
-      "instruction_following": 59.7,
-      "overall": 63.1
-    },
-    "claude-opus-4-8-xhigh-effort": {
-      "coding": 67.7,
-      "reasoning": 86.0,
-      "vision": 70.4,
-      "instruction_following": 71.5,
-      "overall": 77.6
-    },
-    "claude-opus-4-8-low-effort": {
-      "coding": 53.6,
-      "reasoning": 81.0,
-      "vision": 63.0,
-      "instruction_following": 66.5,
-      "overall": 70.5
-    },
-    "gpt-5.1-2025-11-13-high": {
-      "coding": 61.0,
-      "reasoning": 80.4,
-      "vision": 60.4,
-      "instruction_following": 69.9,
-      "overall": 72.6
-    },
-    "qwen3.6-flash": {
-      "coding": 54.0,
-      "reasoning": 65.8,
-      "vision": 43.1,
-      "instruction_following": 59.1,
-      "overall": 60.5
-    },
-    "claude-4-sonnet-20250514-thinking-64k": {
-      "coding": 55.0,
-      "reasoning": 64.6,
-      "vision": 55.9,
-      "instruction_following": 58.5,
-      "overall": 60.6
-    },
-    "deepseek-v3.2-exp": {
-      "coding": 51.3,
-      "reasoning": 49.3,
-      "vision": 45.5,
-      "instruction_following": 43.1,
-      "overall": 47.9
-    },
-    "claude-opus-4-7-medium-effort": {
-      "coding": 66.0,
-      "reasoning": 80.7,
-      "vision": 60.3,
-      "instruction_following": 63.0,
-      "overall": 72.0
-    },
-    "gemini-3-flash-preview-high": {
-      "coding": 53.6,
-      "reasoning": 80.0,
-      "vision": 65.7,
-      "instruction_following": 77.8,
-      "overall": 73.0
-    },
-    "gpt-5.1-codex-max-high": {
-      "coding": 64.3,
-      "reasoning": 80.7,
-      "vision": 57.4,
-      "instruction_following": 73.9,
-      "overall": 74.4
-    },
-    "glm-5v-turbo": {
-      "coding": 31.6,
-      "reasoning": 58.1,
-      "vision": 46.8,
-      "instruction_following": 46.4,
-      "overall": 48.8
-    },
-    "claude-sonnet-4-5-20250929": {
-      "coding": 59.4,
-      "reasoning": 47.8,
-      "vision": 57.3,
-      "instruction_following": 49.9,
-      "overall": 51.3
-    },
-    "gpt-5.1-2025-11-13-low": {
-      "coding": 56.1,
-      "reasoning": 59.7,
-      "vision": 53.6,
-      "instruction_following": 60.6,
-      "overall": 58.9
-    },
-    "gpt-5.3-instant": {
-      "coding": 48.5,
-      "reasoning": 62.9,
-      "vision": 53.0,
-      "instruction_following": 64.8,
-      "overall": 59.8
-    },
-    "qwen3-32b-thinking": {
-      "coding": 28.4,
-      "reasoning": 49.7,
-      "vision": 37.6,
-      "instruction_following": 42.6,
-      "overall": 42.7
-    },
-    "claude-opus-4-7-low-effort": {
-      "coding": 66.6,
-      "reasoning": 75.1,
-      "vision": 59.8,
-      "instruction_following": 58.9,
-      "overall": 68.4
-    },
-    "elephant-alpha": {
-      "coding": 23.7,
-      "reasoning": 41.4,
-      "vision": 13.7,
-      "instruction_following": 39.8,
-      "overall": 35.9
-    },
-    "gpt-5.1-codex": {
-      "coding": 60.7,
-      "reasoning": 77.1,
-      "vision": 41.9,
-      "instruction_following": 66.8,
-      "overall": 69.3
-    },
-    "qwen3-next-80b-a3b-thinking": {
-      "coding": 29.3,
-      "reasoning": 59.4,
-      "vision": 40.8,
-      "instruction_following": 55.2,
-      "overall": 51.0
-    },
-    "glm-5.1": {
-      "coding": 63.1,
-      "reasoning": 75.6,
-      "vision": 60.3,
-      "instruction_following": 69.5,
-      "overall": 70.6
-    },
-    "minimax-m2.7": {
-      "coding": 52.0,
-      "reasoning": 72.4,
-      "vision": 34.0,
-      "instruction_following": 67.4,
-      "overall": 65.0
-    },
-    "arcee-trinity-large-preview": {
-      "coding": 28.3,
-      "reasoning": 28.6,
-      "vision": 31.6,
-      "instruction_following": 35.4,
-      "overall": 30.4
-    },
-    "claude-opus-4-5-20251101-low-effort": {
-      "coding": 61.3,
-      "reasoning": 51.5,
-      "vision": 61.5,
-      "instruction_following": 50.0,
-      "overall": 53.6
-    },
-    "claude-opus-4-5-20251101-thinking-64k-low-effort": {
-      "coding": 61.0,
-      "reasoning": 69.8,
-      "vision": 60.9,
-      "instruction_following": 60.7,
-      "overall": 65.1
+    "qwen3-next-80b-a3b-instruct": {
+      "coding": 33.3,
+      "reasoning": 56.3,
+      "vision": 40.0,
+      "instruction_following": 44.3,
+      "overall": 47.4
     },
     "gpt-5.4-mini-high": {
       "coding": 51.7,
@@ -702,278 +394,19 @@
       "instruction_following": 62.4,
       "overall": 63.7
     },
-    "grok-4-1-fast-non-reasoning": {
-      "coding": 27.7,
-      "reasoning": 28.7,
-      "vision": 41.9,
-      "instruction_following": 38.6,
-      "overall": 31.6
+    "gpt-5.4-mini-medium": {
+      "coding": 44.8,
+      "reasoning": 65.0,
+      "vision": 36.9,
+      "instruction_following": 60.1,
+      "overall": 58.1
     },
-    "gpt-5.4-nano-high": {
-      "coding": 56.8,
-      "reasoning": 73.4,
-      "vision": 34.8,
-      "instruction_following": 56.3,
-      "overall": 63.6
-    },
-    "claude-4-1-opus-20250805-base": {
-      "coding": 62.4,
-      "reasoning": 48.1,
-      "vision": 60.3,
-      "instruction_following": 49.3,
-      "overall": 52.0
-    },
-    "gemini-3-flash-preview-minimal": {
-      "coding": 57.4,
-      "reasoning": 54.8,
-      "vision": 59.4,
-      "instruction_following": 50.2,
-      "overall": 54.4
-    },
-    "nemotron-3-super-120b-a12b": {
-      "coding": 38.5,
-      "reasoning": 31.0,
-      "vision": 36.1,
-      "instruction_following": 28.1,
-      "overall": 32.0
-    },
-    "gemini-2.5-flash-lite-highthinking": {
-      "coding": 29.6,
-      "reasoning": 46.3,
-      "vision": 32.1,
-      "instruction_following": 44.2,
-      "overall": 41.5
-    },
-    "devstral-2512": {
-      "coding": 52.7,
-      "reasoning": 33.8,
-      "vision": 38.7,
-      "instruction_following": 36.4,
-      "overall": 38.8
-    },
-    "gpt-5.4-mini-low": {
-      "coding": 43.3,
-      "reasoning": 50.6,
-      "vision": 31.3,
-      "instruction_following": 50.7,
-      "overall": 48.2
-    },
-    "gpt-5-nano-high": {
-      "coding": 39.0,
-      "reasoning": 52.8,
-      "vision": 17.4,
-      "instruction_following": 55.1,
-      "overall": 48.8
-    },
-    "claude-4-1-opus-20250805-thinking-32k": {
-      "coding": 58.9,
-      "reasoning": 65.9,
-      "vision": 60.5,
-      "instruction_following": 55.3,
-      "overall": 61.4
-    },
-    "deepseek-v3.2-exp-thinking": {
-      "coding": 47.0,
-      "reasoning": 65.9,
-      "vision": 47.5,
-      "instruction_following": 57.9,
-      "overall": 58.9
-    },
-    "gemini-3.1-flash-lite-preview-high": {
-      "coding": 47.4,
-      "reasoning": 64.9,
-      "vision": 46.5,
-      "instruction_following": 71.9,
-      "overall": 62.1
-    },
-    "gpt-5-nano-low": {
-      "coding": 27.1,
-      "reasoning": 36.1,
-      "vision": 13.9,
-      "instruction_following": 38.0,
-      "overall": 33.7
-    },
-    "gpt-5.5-medium": {
-      "coding": 41.5,
-      "reasoning": 78.6,
-      "vision": 70.7,
-      "instruction_following": 73.8,
-      "overall": 69.0
-    },
-    "claude-opus-4-5-20251101-thinking-64k-medium-effort": {
-      "coding": 66.0,
-      "reasoning": 82.0,
-      "vision": 62.7,
-      "instruction_following": 67.5,
-      "overall": 73.9
-    },
-    "claude-opus-4-5-20251101-medium-effort": {
-      "coding": 69.4,
-      "reasoning": 54.3,
-      "vision": 62.3,
-      "instruction_following": 50.6,
-      "overall": 57.0
-    },
-    "gpt-5.1-2025-11-13-medium": {
-      "coding": 62.3,
-      "reasoning": 74.9,
-      "vision": 56.0,
-      "instruction_following": 66.4,
-      "overall": 69.1
-    },
-    "gpt-5.4-nano-medium": {
-      "coding": 52.5,
-      "reasoning": 66.5,
-      "vision": 29.7,
-      "instruction_following": 55.3,
-      "overall": 59.0
-    },
-    "claude-opus-4-7-high-effort": {
-      "coding": 70.3,
-      "reasoning": 83.6,
-      "vision": 58.1,
-      "instruction_following": 64.7,
-      "overall": 74.7
-    },
-    "gpt-5.5-high": {
-      "coding": 51.0,
-      "reasoning": 89.5,
-      "vision": 76.3,
-      "instruction_following": 76.0,
-      "overall": 77.1
-    },
-    "claude-sonnet-4-6-thinking-auto-high-effort": {
-      "coding": 66.0,
-      "reasoning": 84.8,
-      "vision": 59.7,
-      "instruction_following": 69.3,
-      "overall": 75.6
-    },
-    "gemini-2.5-flash-06-05-highthinking": {
-      "coding": 36.4,
-      "reasoning": 49.9,
-      "vision": 52.7,
-      "instruction_following": 49.1,
-      "overall": 46.9
-    },
-    "grok-code-fast-1-0825": {
-      "coding": 45.8,
-      "reasoning": 43.5,
-      "vision": 38.0,
-      "instruction_following": 43.2,
-      "overall": 43.6
-    },
-    "grok-4.20-beta-0309-non-reasoning": {
-      "coding": 46.4,
-      "reasoning": 29.9,
-      "vision": 37.3,
-      "instruction_following": 45.3,
-      "overall": 37.9
-    },
-    "gpt-5.4-high": {
-      "coding": 59.3,
-      "reasoning": 85.6,
-      "vision": 66.0,
-      "instruction_following": 72.4,
-      "overall": 75.6
-    },
-    "gpt-5.2-2025-12-11-nothinking": {
-      "coding": 54.6,
-      "reasoning": 44.0,
-      "vision": 45.1,
-      "instruction_following": 46.2,
-      "overall": 46.9
-    },
-    "claude-sonnet-4-5-20250929-thinking-64k": {
-      "coding": 64.1,
-      "reasoning": 72.2,
-      "vision": 62.0,
-      "instruction_following": 64.2,
-      "overall": 67.9
-    },
-    "gpt-5.2-2025-12-11-low": {
-      "coding": 59.6,
-      "reasoning": 72.5,
-      "vision": 47.0,
-      "instruction_following": 61.1,
-      "overall": 65.6
-    },
-    "qwen3-235b-a22b-thinking-2507": {
-      "coding": 31.6,
-      "reasoning": 60.0,
-      "vision": 47.6,
-      "instruction_following": 58.6,
-      "overall": 52.9
-    },
-    "gpt-5.1-2025-11-13-nothinking": {
-      "coding": 48.0,
-      "reasoning": 32.8,
-      "vision": 42.9,
-      "instruction_following": 44.9,
-      "overall": 39.7
-    },
-    "glm-4.6": {
-      "coding": 49.4,
-      "reasoning": 61.5,
-      "vision": 50.0,
-      "instruction_following": 47.2,
-      "overall": 54.7
-    },
-    "gpt-5-pro-2025-10-06": {
-      "coding": 59.8,
-      "reasoning": 78.0,
-      "vision": 64.1,
+    "gpt-5-mini": {
+      "coding": 51.4,
+      "reasoning": 62.7,
+      "vision": 37.4,
       "instruction_following": 69.7,
-      "overall": 71.3
-    },
-    "qwen3-30b-a3b-thinking": {
-      "coding": 20.6,
-      "reasoning": 45.3,
-      "vision": 31.2,
-      "instruction_following": 43.5,
-      "overall": 38.8
-    },
-    "qwen3-235b-a22b-instruct-2507": {
-      "coding": 35.8,
-      "reasoning": 56.6,
-      "vision": 39.2,
-      "instruction_following": 43.9,
-      "overall": 48.0
-    },
-    "mimo-v2-pro": {
-      "coding": 45.5,
-      "reasoning": 65.8,
-      "vision": 43.6,
-      "instruction_following": 57.8,
-      "overall": 58.4
-    },
-    "grok-4-1-fast-reasoning": {
-      "coding": 46.8,
-      "reasoning": 73.7,
-      "vision": 47.6,
-      "instruction_following": 48.3,
-      "overall": 60.1
-    },
-    "minimax-m2.5": {
-      "coding": 59.3,
-      "reasoning": 62.3,
-      "vision": 31.3,
-      "instruction_following": 62.2,
-      "overall": 60.3
-    },
-    "claude-haiku-4-5-20251001": {
-      "coding": 48.9,
-      "reasoning": 41.9,
-      "vision": 37.8,
-      "instruction_following": 41.1,
-      "overall": 43.0
-    },
-    "gemini-3-pro-preview-11-2025-high": {
-      "coding": 62.8,
-      "reasoning": 79.0,
-      "vision": 69.9,
-      "instruction_following": 73.2,
-      "overall": 73.5
+      "overall": 61.0
     },
     "gpt-5.2-2025-12-11-medium": {
       "coding": 59.8,
@@ -982,61 +415,26 @@
       "instruction_following": 66.3,
       "overall": 72.6
     },
-    "gpt-5-mini-low": {
-      "coding": 49.8,
-      "reasoning": 52.3,
-      "vision": 28.7,
-      "instruction_following": 58.6,
-      "overall": 52.4
+    "gpt-5.1-2025-11-13-nothinking": {
+      "coding": 48.0,
+      "reasoning": 32.8,
+      "vision": 42.9,
+      "instruction_following": 44.9,
+      "overall": 39.7
     },
-    "gpt-5.4-nano-low": {
-      "coding": 50.1,
-      "reasoning": 49.0,
-      "vision": 17.6,
-      "instruction_following": 48.4,
-      "overall": 47.7
+    "gpt-5.5-high": {
+      "coding": 51.0,
+      "reasoning": 89.5,
+      "vision": 76.3,
+      "instruction_following": 76.0,
+      "overall": 77.1
     },
-    "qwen3-next-80b-a3b-instruct": {
-      "coding": 33.3,
-      "reasoning": 56.3,
-      "vision": 40.0,
-      "instruction_following": 44.3,
-      "overall": 47.4
-    },
-    "glm-4.7": {
-      "coding": 54.3,
-      "reasoning": 60.8,
-      "vision": 53.2,
-      "instruction_following": 54.2,
-      "overall": 57.3
-    },
-    "kimi-k2-thinking": {
-      "coding": 50.0,
-      "reasoning": 66.6,
-      "vision": 43.4,
-      "instruction_following": 67.7,
-      "overall": 62.3
-    },
-    "gpt-5-mini-high": {
-      "coding": 55.3,
-      "reasoning": 71.2,
-      "vision": 41.9,
-      "instruction_following": 71.8,
-      "overall": 66.6
-    },
-    "gpt-5-mini-minimal": {
-      "coding": 41.3,
-      "reasoning": 35.6,
-      "vision": 25.9,
-      "instruction_following": 40.7,
-      "overall": 37.7
-    },
-    "claude-haiku-4-5-20251001-thinking-64k": {
-      "coding": 54.1,
-      "reasoning": 66.0,
-      "vision": 42.5,
-      "instruction_following": 60.7,
-      "overall": 61.0
+    "qwen3-235b-a22b-instruct-2507": {
+      "coding": 35.8,
+      "reasoning": 56.6,
+      "vision": 39.2,
+      "instruction_following": 43.9,
+      "overall": 48.0
     },
     "gemini-2.5-flash-preview-09-2025-highthinking": {
       "coding": 41.0,
@@ -1045,12 +443,194 @@
       "instruction_following": 49.2,
       "overall": 52.3
     },
-    "gpt-oss-120b": {
-      "coding": 34.1,
-      "reasoning": 51.8,
-      "vision": 18.6,
-      "instruction_following": 51.2,
-      "overall": 46.4
+    "qwen3-32b-thinking": {
+      "coding": 28.4,
+      "reasoning": 49.7,
+      "vision": 37.6,
+      "instruction_following": 42.6,
+      "overall": 42.7
+    },
+    "minimax-m2.5": {
+      "coding": 59.3,
+      "reasoning": 62.3,
+      "vision": 31.3,
+      "instruction_following": 62.2,
+      "overall": 60.3
+    },
+    "gpt-5.2-2025-12-11-nothinking": {
+      "coding": 54.6,
+      "reasoning": 44.0,
+      "vision": 45.1,
+      "instruction_following": 46.2,
+      "overall": 46.9
+    },
+    "nemotron-3-super-120b-a12b": {
+      "coding": 38.5,
+      "reasoning": 31.0,
+      "vision": 36.1,
+      "instruction_following": 28.1,
+      "overall": 32.0
+    },
+    "gpt-5.4-nano": {
+      "coding": 41.0,
+      "reasoning": 23.4,
+      "vision": 14.4,
+      "instruction_following": 35.2,
+      "overall": 29.9
+    },
+    "gpt-5-nano-high": {
+      "coding": 39.0,
+      "reasoning": 52.8,
+      "vision": 17.4,
+      "instruction_following": 55.1,
+      "overall": 48.8
+    },
+    "grok-4.20-beta-0309-reasoning": {
+      "coding": 52.4,
+      "reasoning": 78.3,
+      "vision": 51.2,
+      "instruction_following": 68.8,
+      "overall": 69.0
+    },
+    "gemini-3-flash-preview-high": {
+      "coding": 53.6,
+      "reasoning": 80.0,
+      "vision": 65.7,
+      "instruction_following": 77.8,
+      "overall": 73.0
+    },
+    "grok-code-fast-1-0825": {
+      "coding": 45.8,
+      "reasoning": 43.5,
+      "vision": 38.0,
+      "instruction_following": 43.2,
+      "overall": 43.6
+    },
+    "glm-5.1": {
+      "coding": 63.1,
+      "reasoning": 75.6,
+      "vision": 60.3,
+      "instruction_following": 69.5,
+      "overall": 70.6
+    },
+    "mimo-v2-pro": {
+      "coding": 45.5,
+      "reasoning": 65.8,
+      "vision": 43.6,
+      "instruction_following": 57.8,
+      "overall": 58.4
+    },
+    "claude-4-1-opus-20250805-base": {
+      "coding": 62.4,
+      "reasoning": 48.1,
+      "vision": 60.3,
+      "instruction_following": 49.3,
+      "overall": 52.0
+    },
+    "claude-opus-4-8-low-effort": {
+      "coding": 53.6,
+      "reasoning": 81.0,
+      "vision": 63.0,
+      "instruction_following": 66.5,
+      "overall": 70.5
+    },
+    "gemini-3-pro-preview-11-2025-high": {
+      "coding": 62.8,
+      "reasoning": 79.0,
+      "vision": 69.9,
+      "instruction_following": 73.2,
+      "overall": 73.5
+    },
+    "elephant-alpha": {
+      "coding": 23.7,
+      "reasoning": 41.4,
+      "vision": 13.7,
+      "instruction_following": 39.8,
+      "overall": 35.9
+    },
+    "claude-opus-4-8-high-effort": {
+      "coding": 66.6,
+      "reasoning": 85.0,
+      "vision": 64.9,
+      "instruction_following": 69.9,
+      "overall": 76.2
+    },
+    "deepseek-v3.2": {
+      "coding": 58.3,
+      "reasoning": 49.1,
+      "vision": 44.9,
+      "instruction_following": 44.6,
+      "overall": 49.8
+    },
+    "claude-opus-4-7-high-effort": {
+      "coding": 70.3,
+      "reasoning": 83.6,
+      "vision": 58.1,
+      "instruction_following": 64.7,
+      "overall": 74.7
+    },
+    "claude-opus-4-5-20251101-medium-effort": {
+      "coding": 69.4,
+      "reasoning": 54.3,
+      "vision": 62.3,
+      "instruction_following": 50.6,
+      "overall": 57.0
+    },
+    "gpt-5.1-codex-max": {
+      "coding": 66.6,
+      "reasoning": 77.0,
+      "vision": 58.2,
+      "instruction_following": 71.1,
+      "overall": 72.4
+    },
+    "gemini-3.1-flash-lite-preview-high": {
+      "coding": 47.4,
+      "reasoning": 64.9,
+      "vision": 46.5,
+      "instruction_following": 71.9,
+      "overall": 62.1
+    },
+    "grok-4-0709": {
+      "coding": 47.3,
+      "reasoning": 74.9,
+      "vision": 60.5,
+      "instruction_following": 49.9,
+      "overall": 61.8
+    },
+    "claude-haiku-4-5-20251001": {
+      "coding": 48.9,
+      "reasoning": 41.9,
+      "vision": 37.8,
+      "instruction_following": 41.1,
+      "overall": 43.0
+    },
+    "claude-opus-4-8-xhigh-effort": {
+      "coding": 67.7,
+      "reasoning": 86.0,
+      "vision": 70.4,
+      "instruction_following": 71.5,
+      "overall": 77.6
+    },
+    "gpt-5.3-codex-high": {
+      "coding": 64.3,
+      "reasoning": 79.3,
+      "vision": 64.3,
+      "instruction_following": 70.8,
+      "overall": 73.2
+    },
+    "glm-5": {
+      "coding": 62.5,
+      "reasoning": 74.0,
+      "vision": 63.6,
+      "instruction_following": 65.0,
+      "overall": 68.7
+    },
+    "gpt-5-mini-minimal": {
+      "coding": 41.3,
+      "reasoning": 35.6,
+      "vision": 25.9,
+      "instruction_following": 40.7,
+      "overall": 37.7
     },
     "gpt-5.1-codex-mini": {
       "coding": 52.0,
@@ -1059,12 +639,96 @@
       "instruction_following": 63.1,
       "overall": 60.8
     },
+    "gpt-5.4-mini": {
+      "coding": 40.1,
+      "reasoning": 28.8,
+      "vision": 30.6,
+      "instruction_following": 38.6,
+      "overall": 33.9
+    },
+    "claude-sonnet-4-6-thinking-auto-high-effort": {
+      "coding": 66.0,
+      "reasoning": 84.8,
+      "vision": 59.7,
+      "instruction_following": 69.3,
+      "overall": 75.6
+    },
     "claude-opus-4-8-medium-effort": {
       "coding": 66.6,
       "reasoning": 82.0,
       "vision": 61.3,
       "instruction_following": 67.7,
       "overall": 74.0
+    },
+    "devstral-2512": {
+      "coding": 52.7,
+      "reasoning": 33.8,
+      "vision": 38.7,
+      "instruction_following": 36.4,
+      "overall": 38.8
+    },
+    "gpt-5-nano-low": {
+      "coding": 27.1,
+      "reasoning": 36.1,
+      "vision": 13.9,
+      "instruction_following": 38.0,
+      "overall": 33.7
+    },
+    "claude-opus-4-5-20251101-low-effort": {
+      "coding": 61.3,
+      "reasoning": 51.5,
+      "vision": 61.5,
+      "instruction_following": 50.0,
+      "overall": 53.6
+    },
+    "grok-4-1-fast-reasoning": {
+      "coding": 46.8,
+      "reasoning": 73.7,
+      "vision": 47.6,
+      "instruction_following": 48.3,
+      "overall": 60.1
+    },
+    "gpt-5-mini-low": {
+      "coding": 49.8,
+      "reasoning": 52.3,
+      "vision": 28.7,
+      "instruction_following": 58.6,
+      "overall": 52.4
+    },
+    "kimi-k2-thinking": {
+      "coding": 50.0,
+      "reasoning": 66.6,
+      "vision": 43.4,
+      "instruction_following": 67.7,
+      "overall": 62.3
+    },
+    "qwen3-next-80b-a3b-thinking": {
+      "coding": 29.3,
+      "reasoning": 59.4,
+      "vision": 40.8,
+      "instruction_following": 55.2,
+      "overall": 51.0
+    },
+    "claude-opus-4-7-low-effort": {
+      "coding": 66.6,
+      "reasoning": 75.1,
+      "vision": 59.8,
+      "instruction_following": 58.9,
+      "overall": 68.4
+    },
+    "qwen3-30b-a3b-thinking": {
+      "coding": 20.6,
+      "reasoning": 45.3,
+      "vision": 31.2,
+      "instruction_following": 43.5,
+      "overall": 38.8
+    },
+    "deepseek-v3.2-exp-thinking": {
+      "coding": 47.0,
+      "reasoning": 65.9,
+      "vision": 47.5,
+      "instruction_following": 57.9,
+      "overall": 58.9
     },
     "gemini-2.5-flash-lite-preview-09-2025-highthinking": {
       "coding": 27.2,
@@ -1073,12 +737,348 @@
       "instruction_following": 47.6,
       "overall": 41.5
     },
-    "claude-opus-4-8-high-effort": {
-      "coding": 66.6,
-      "reasoning": 85.0,
-      "vision": 64.9,
+    "qwen3-235b-a22b-thinking-2507": {
+      "coding": 31.6,
+      "reasoning": 60.0,
+      "vision": 47.6,
+      "instruction_following": 58.6,
+      "overall": 52.9
+    },
+    "grok-4.20-beta-0309-non-reasoning": {
+      "coding": 46.4,
+      "reasoning": 29.9,
+      "vision": 37.3,
+      "instruction_following": 45.3,
+      "overall": 37.9
+    },
+    "deepseek-v3.2-thinking": {
+      "coding": 49.8,
+      "reasoning": 72.6,
+      "vision": 45.7,
+      "instruction_following": 59.7,
+      "overall": 63.1
+    },
+    "glm-4.7": {
+      "coding": 54.3,
+      "reasoning": 60.8,
+      "vision": 53.2,
+      "instruction_following": 54.2,
+      "overall": 57.3
+    },
+    "gpt-5.4-nano-high": {
+      "coding": 56.8,
+      "reasoning": 73.4,
+      "vision": 34.8,
+      "instruction_following": 56.3,
+      "overall": 63.6
+    },
+    "gpt-5.4-nano-medium": {
+      "coding": 52.5,
+      "reasoning": 66.5,
+      "vision": 29.7,
+      "instruction_following": 55.3,
+      "overall": 59.0
+    },
+    "claude-opus-4-5-20251101-thinking-64k-medium-effort": {
+      "coding": 66.0,
+      "reasoning": 82.0,
+      "vision": 62.7,
+      "instruction_following": 67.5,
+      "overall": 73.9
+    },
+    "gpt-5.1-2025-11-13-low": {
+      "coding": 56.1,
+      "reasoning": 59.7,
+      "vision": 53.6,
+      "instruction_following": 60.6,
+      "overall": 58.9
+    },
+    "glm-5v-turbo": {
+      "coding": 31.6,
+      "reasoning": 58.1,
+      "vision": 46.8,
+      "instruction_following": 46.4,
+      "overall": 48.8
+    },
+    "gpt-5.3-instant": {
+      "coding": 48.5,
+      "reasoning": 62.9,
+      "vision": 53.0,
+      "instruction_following": 64.8,
+      "overall": 59.8
+    },
+    "gemma-4-31b-it": {
+      "coding": 48.1,
+      "reasoning": 65.2,
+      "vision": 47.5,
+      "instruction_following": 71.6,
+      "overall": 62.4
+    },
+    "claude-haiku-4-5-20251001-thinking-64k": {
+      "coding": 54.1,
+      "reasoning": 66.0,
+      "vision": 42.5,
+      "instruction_following": 60.7,
+      "overall": 61.0
+    },
+    "gpt-5.4-nano-low": {
+      "coding": 50.1,
+      "reasoning": 49.0,
+      "vision": 17.6,
+      "instruction_following": 48.4,
+      "overall": 47.7
+    },
+    "gemini-3-pro-preview-11-2025-low": {
+      "coding": 61.3,
+      "reasoning": 70.8,
+      "vision": 61.5,
+      "instruction_following": 50.1,
+      "overall": 62.9
+    },
+    "gpt-5.4-mini-low": {
+      "coding": 43.3,
+      "reasoning": 50.6,
+      "vision": 31.3,
+      "instruction_following": 50.7,
+      "overall": 48.2
+    },
+    "deepseek-v3.2-exp": {
+      "coding": 51.3,
+      "reasoning": 49.3,
+      "vision": 45.5,
+      "instruction_following": 43.1,
+      "overall": 47.9
+    },
+    "gemini-2.5-pro-06-05-highthinking": {
+      "coding": 50.3,
+      "reasoning": 62.8,
+      "vision": 63.0,
+      "instruction_following": 52.8,
+      "overall": 57.5
+    },
+    "claude-opus-4-5-20251101-high-effort": {
+      "coding": 68.1,
+      "reasoning": 54.9,
+      "vision": 62.3,
+      "instruction_following": 49.0,
+      "overall": 56.5
+    },
+    "gpt-5-nano": {
+      "coding": 44.0,
+      "reasoning": 48.4,
+      "vision": 16.5,
+      "instruction_following": 56.0,
+      "overall": 48.0
+    },
+    "gpt-5.2-2025-12-11-low": {
+      "coding": 59.6,
+      "reasoning": 72.5,
+      "vision": 47.0,
+      "instruction_following": 61.1,
+      "overall": 65.6
+    },
+    "arcee-trinity-large-preview": {
+      "coding": 28.3,
+      "reasoning": 28.6,
+      "vision": 31.6,
+      "instruction_following": 35.4,
+      "overall": 30.4
+    },
+    "gemini-3-flash-preview-minimal": {
+      "coding": 57.4,
+      "reasoning": 54.8,
+      "vision": 59.4,
+      "instruction_following": 50.2,
+      "overall": 54.4
+    },
+    "gpt-5-mini-high": {
+      "coding": 55.3,
+      "reasoning": 71.2,
+      "vision": 41.9,
+      "instruction_following": 71.8,
+      "overall": 66.6
+    },
+    "gpt-5.1-2025-11-13-medium": {
+      "coding": 62.3,
+      "reasoning": 74.9,
+      "vision": 56.0,
+      "instruction_following": 66.4,
+      "overall": 69.1
+    },
+    "gpt-5.5-medium": {
+      "coding": 41.5,
+      "reasoning": 78.6,
+      "vision": 70.7,
+      "instruction_following": 73.8,
+      "overall": 69.0
+    },
+    "claude-sonnet-4-6-thinking-auto-low-effort": {
+      "coding": 67.7,
+      "reasoning": 78.5,
+      "vision": 53.3,
+      "instruction_following": 59.9,
+      "overall": 70.2
+    },
+    "claude-sonnet-4-5-20250929-thinking-64k": {
+      "coding": 64.1,
+      "reasoning": 72.2,
+      "vision": 62.0,
+      "instruction_following": 64.2,
+      "overall": 67.9
+    },
+    "gemini-2.5-flash-lite-highthinking": {
+      "coding": 29.6,
+      "reasoning": 46.3,
+      "vision": 32.1,
+      "instruction_following": 44.2,
+      "overall": 41.5
+    },
+    "glm-4.6": {
+      "coding": 49.4,
+      "reasoning": 61.5,
+      "vision": 50.0,
+      "instruction_following": 47.2,
+      "overall": 54.7
+    },
+    "minimax-m2.7": {
+      "coding": 52.0,
+      "reasoning": 72.4,
+      "vision": 34.0,
+      "instruction_following": 67.4,
+      "overall": 65.0
+    },
+    "glm-4.6v": {
+      "coding": 27.7,
+      "reasoning": 43.4,
+      "vision": 29.7,
+      "instruction_following": 41.4,
+      "overall": 38.9
+    },
+    "claude-4-sonnet-20250514-thinking-64k": {
+      "coding": 55.0,
+      "reasoning": 64.6,
+      "vision": 55.9,
+      "instruction_following": 58.5,
+      "overall": 60.6
+    },
+    "claude-opus-4-7-medium-effort": {
+      "coding": 66.0,
+      "reasoning": 80.7,
+      "vision": 60.3,
+      "instruction_following": 63.0,
+      "overall": 72.0
+    },
+    "qwen3.6-flash": {
+      "coding": 54.0,
+      "reasoning": 65.8,
+      "vision": 43.1,
+      "instruction_following": 59.1,
+      "overall": 60.5
+    },
+    "gpt-5.1-codex-max-high": {
+      "coding": 64.3,
+      "reasoning": 80.7,
+      "vision": 57.4,
+      "instruction_following": 73.9,
+      "overall": 74.4
+    },
+    "gpt-5.4-high": {
+      "coding": 59.3,
+      "reasoning": 85.6,
+      "vision": 66.0,
+      "instruction_following": 72.4,
+      "overall": 75.6
+    },
+    "kimi-k2-instruct": {
+      "coding": 48.7,
+      "reasoning": 45.7,
+      "vision": 45.9,
+      "instruction_following": 44.0,
+      "overall": 45.9
+    },
+    "claude-4-sonnet-20250514-base": {
+      "coding": 55.3,
+      "reasoning": 45.5,
+      "vision": 54.2,
+      "instruction_following": 47.0,
+      "overall": 48.4
+    },
+    "gpt-5.1-codex": {
+      "coding": 60.7,
+      "reasoning": 77.1,
+      "vision": 41.9,
+      "instruction_following": 66.8,
+      "overall": 69.3
+    },
+    "claude-opus-4-5-20251101-thinking-64k-low-effort": {
+      "coding": 61.0,
+      "reasoning": 69.8,
+      "vision": 60.9,
+      "instruction_following": 60.7,
+      "overall": 65.1
+    },
+    "gpt-5.1-2025-11-13-high": {
+      "coding": 61.0,
+      "reasoning": 80.4,
+      "vision": 60.4,
       "instruction_following": 69.9,
-      "overall": 76.2
+      "overall": 72.6
+    },
+    "kimi-k2.5-thinking": {
+      "coding": 60.1,
+      "reasoning": 76.7,
+      "vision": 55.0,
+      "instruction_following": 65.3,
+      "overall": 69.2
+    },
+    "gpt-5.3-codex-xhigh": {
+      "coding": 71.0,
+      "reasoning": 72.6,
+      "vision": 57.5,
+      "instruction_following": 74.0,
+      "overall": 72.0
+    },
+    "claude-sonnet-4-5-20250929": {
+      "coding": 59.4,
+      "reasoning": 47.8,
+      "vision": 57.3,
+      "instruction_following": 49.9,
+      "overall": 51.3
+    },
+    "gemini-2.5-flash-06-05-highthinking": {
+      "coding": 36.4,
+      "reasoning": 49.9,
+      "vision": 52.7,
+      "instruction_following": 49.1,
+      "overall": 46.9
+    },
+    "gpt-5-pro-2025-10-06": {
+      "coding": 59.8,
+      "reasoning": 78.0,
+      "vision": 64.1,
+      "instruction_following": 69.7,
+      "overall": 71.3
+    },
+    "grok-4-1-fast-non-reasoning": {
+      "coding": 27.7,
+      "reasoning": 28.7,
+      "vision": 41.9,
+      "instruction_following": 38.6,
+      "overall": 31.6
+    },
+    "claude-4-1-opus-20250805-thinking-32k": {
+      "coding": 58.9,
+      "reasoning": 65.9,
+      "vision": 60.5,
+      "instruction_following": 55.3,
+      "overall": 61.4
+    },
+    "gpt-oss-120b": {
+      "coding": 34.1,
+      "reasoning": 51.8,
+      "vision": 18.6,
+      "instruction_following": 51.2,
+      "overall": 46.4
     },
     "gpt-5.1-codex-max-xhigh": {
       "coding": 64.0,
@@ -1094,96 +1094,12 @@
       "instruction_following": 62.6,
       "overall": 62.7
     },
-    "qwen3-235b-a22b-thinking": {
-      "coding": 28.0,
-      "reasoning": 83.4,
-      "vision": 37.3,
-      "instruction_following": 75.7,
-      "overall": 64.0
-    },
-    "claude-opus-4-5-20251101-thinking-low-effort": {
-      "coding": 61.0,
-      "reasoning": 88.9,
-      "vision": 60.9,
-      "instruction_following": 75.5,
-      "overall": 75.8
-    },
-    "gpt-5-high": {
-      "coding": 58.8,
-      "reasoning": 94.9,
-      "vision": 59.5,
-      "instruction_following": 81.2,
-      "overall": 79.2
-    },
-    "glm-4.5-air": {
-      "coding": 34.1,
-      "reasoning": 75.1,
-      "vision": 33.2,
-      "instruction_following": 70.6,
-      "overall": 60.7
-    },
-    "gpt-5-codex": {
-      "coding": 56.8,
-      "reasoning": 96.1,
-      "vision": 54.0,
-      "instruction_following": 80.1,
-      "overall": 78.5
-    },
-    "claude-opus-4-5-20251101-thinking-medium-effort": {
-      "coding": 66.0,
-      "reasoning": 95.2,
-      "vision": 62.7,
-      "instruction_following": 76.5,
-      "overall": 79.9
-    },
-    "gpt-5-minimal": {
-      "coding": 45.0,
-      "reasoning": 59.8,
-      "vision": 42.0,
-      "instruction_following": 70.2,
-      "overall": 58.2
-    },
-    "qwen3-coder-480b-a35b-instruct": {
-      "coding": 49.0,
-      "reasoning": 66.7,
-      "vision": 41.1,
-      "instruction_following": 71.1,
-      "overall": 62.1
-    },
-    "claude-opus-4-5-20251101-thinking-high-effort": {
-      "coding": 64.9,
-      "reasoning": 94.2,
-      "vision": 66.5,
-      "instruction_following": 77.1,
-      "overall": 79.6
-    },
-    "mistral-medium-2505": {
-      "coding": 31.6,
-      "reasoning": 55.0,
-      "vision": 37.6,
-      "instruction_following": 64.4,
-      "overall": 50.9
-    },
-    "gpt-5-low": {
-      "coding": 50.7,
-      "reasoning": 89.3,
-      "vision": 52.7,
-      "instruction_following": 80.9,
-      "overall": 74.6
-    },
-    "gpt-5-chat": {
-      "coding": 38.4,
-      "reasoning": 71.8,
-      "vision": 44.2,
-      "instruction_following": 70.3,
-      "overall": 61.1
-    },
-    "claude-3-7-sonnet-20250219-base": {
-      "coding": 50.4,
-      "reasoning": 61.3,
-      "vision": 53.7,
-      "instruction_following": 71.7,
-      "overall": 61.3
+    "deepseek-r1-0528": {
+      "coding": 41.3,
+      "reasoning": 85.7,
+      "vision": 47.0,
+      "instruction_following": 73.9,
+      "overall": 68.3
     },
     "qwen3-max-2025-09-23": {
       "coding": 47.7,
@@ -1192,12 +1108,33 @@
       "instruction_following": 72.9,
       "overall": 69.7
     },
-    "deepseek-r1-0528": {
-      "coding": 41.3,
-      "reasoning": 85.7,
-      "vision": 47.0,
-      "instruction_following": 73.9,
-      "overall": 68.3
+    "grok-4-fast-non-reasoning-2511": {
+      "coding": 28.4,
+      "reasoning": 46.3,
+      "vision": 39.8,
+      "instruction_following": 63.8,
+      "overall": 46.8
+    },
+    "gpt-5-low": {
+      "coding": 50.7,
+      "reasoning": 89.3,
+      "vision": 52.7,
+      "instruction_following": 80.9,
+      "overall": 74.6
+    },
+    "claude-opus-4-5-20251101-thinking-high-effort": {
+      "coding": 64.9,
+      "reasoning": 94.2,
+      "vision": 66.5,
+      "instruction_following": 77.1,
+      "overall": 79.6
+    },
+    "gpt-5-minimal": {
+      "coding": 45.0,
+      "reasoning": 59.8,
+      "vision": 42.0,
+      "instruction_following": 70.2,
+      "overall": 58.2
     },
     "minimax-m2": {
       "coding": 36.1,
@@ -1206,12 +1143,47 @@
       "instruction_following": 71.5,
       "overall": 64.2
     },
-    "deepseek-v3.1-terminus": {
-      "coding": 42.8,
-      "reasoning": 77.8,
-      "vision": 47.1,
-      "instruction_following": 75.2,
-      "overall": 66.2
+    "claude-opus-4-5-20251101-thinking-low-effort": {
+      "coding": 61.0,
+      "reasoning": 88.9,
+      "vision": 60.9,
+      "instruction_following": 75.5,
+      "overall": 75.8
+    },
+    "gpt-5-chat": {
+      "coding": 38.4,
+      "reasoning": 71.8,
+      "vision": 44.2,
+      "instruction_following": 70.3,
+      "overall": 61.1
+    },
+    "glm-4.5-air": {
+      "coding": 34.1,
+      "reasoning": 75.1,
+      "vision": 33.2,
+      "instruction_following": 70.6,
+      "overall": 60.7
+    },
+    "mistral-medium-2505": {
+      "coding": 31.6,
+      "reasoning": 55.0,
+      "vision": 37.6,
+      "instruction_following": 64.4,
+      "overall": 50.9
+    },
+    "qwen3-coder-480b-a35b-instruct": {
+      "coding": 49.0,
+      "reasoning": 66.7,
+      "vision": 41.1,
+      "instruction_following": 71.1,
+      "overall": 62.1
+    },
+    "gpt-5": {
+      "coding": 60.0,
+      "reasoning": 93.0,
+      "vision": 57.0,
+      "instruction_following": 81.6,
+      "overall": 78.8
     },
     "grok-4-fast-reasoning-2511": {
       "coding": 40.6,
@@ -1234,12 +1206,12 @@
       "instruction_following": 66.4,
       "overall": 45.8
     },
-    "grok-4-fast-non-reasoning-2511": {
-      "coding": 28.4,
-      "reasoning": 46.3,
-      "vision": 39.8,
-      "instruction_following": 63.8,
-      "overall": 46.8
+    "claude-3-7-sonnet-20250219-base": {
+      "coding": 50.4,
+      "reasoning": 61.3,
+      "vision": 53.7,
+      "instruction_following": 71.7,
+      "overall": 61.3
     },
     "claude-3-7-sonnet-20250219-thinking-64k": {
       "coding": 49.0,
@@ -1248,12 +1220,26 @@
       "instruction_following": 76.9,
       "overall": 69.1
     },
-    "gpt-5": {
-      "coding": 60.0,
-      "reasoning": 93.0,
-      "vision": 57.0,
-      "instruction_following": 81.6,
-      "overall": 78.8
+    "qwen3-235b-a22b-thinking": {
+      "coding": 28.0,
+      "reasoning": 83.4,
+      "vision": 37.3,
+      "instruction_following": 75.7,
+      "overall": 64.0
+    },
+    "gpt-5-codex": {
+      "coding": 56.8,
+      "reasoning": 96.1,
+      "vision": 54.0,
+      "instruction_following": 80.1,
+      "overall": 78.5
+    },
+    "deepseek-v3.1-terminus": {
+      "coding": 42.8,
+      "reasoning": 77.8,
+      "vision": 47.1,
+      "instruction_following": 75.2,
+      "overall": 66.2
     },
     "deepseek-v3.1-terminus-thinking": {
       "coding": 46.6,
@@ -1262,194 +1248,19 @@
       "instruction_following": 76.4,
       "overall": 71.3
     },
-    "command-r-plus-08-2024": {
-      "coding": 27.1,
-      "reasoning": 28.0,
-      "vision": 22.6,
-      "instruction_following": 52.9,
-      "overall": 36.9
+    "claude-opus-4-5-20251101-thinking-medium-effort": {
+      "coding": 66.0,
+      "reasoning": 95.2,
+      "vision": 62.7,
+      "instruction_following": 76.5,
+      "overall": 79.9
     },
-    "gemini-2.0-flash-lite-001": {
-      "coding": 59.3,
-      "reasoning": 48.4,
-      "vision": 24.7,
-      "instruction_following": 68.8,
-      "overall": 56.0
-    },
-    "gpt-4.1-mini-2025-04-14": {
-      "coding": 72.1,
-      "reasoning": 55.6,
-      "vision": 27.7,
-      "instruction_following": 64.2,
-      "overall": 59.2
-    },
-    "amazon.nova-pro-v1:0": {
-      "coding": 49.6,
-      "reasoning": 36.9,
-      "vision": 29.0,
-      "instruction_following": 58.2,
-      "overall": 46.0
-    },
-    "o4-mini-2025-04-16-high": {
-      "coding": 80.0,
-      "reasoning": 89.1,
-      "vision": 34.7,
-      "instruction_following": 75.7,
-      "overall": 79.5
-    },
-    "o4-mini-2025-04-16-medium": {
-      "coding": 74.2,
-      "reasoning": 83.4,
-      "vision": 28.2,
-      "instruction_following": 75.0,
-      "overall": 75.7
-    },
-    "claude-4-opus-20250514-thinking-32k": {
-      "coding": 73.3,
-      "reasoning": 88.1,
-      "vision": 60.5,
-      "instruction_following": 75.1,
-      "overall": 79.7
-    },
-    "llama4-maverick-instruct-basic": {
-      "coding": 54.2,
-      "reasoning": 57.5,
-      "vision": 34.6,
-      "instruction_following": 63.7,
-      "overall": 58.0
-    },
-    "qwen3-14b-thinking": {
-      "coding": 58.2,
-      "reasoning": 74.6,
-      "vision": 33.4,
-      "instruction_following": 73.2,
-      "overall": 69.5
-    },
-    "amazon.nova-micro-v1:0": {
-      "coding": 28.9,
-      "reasoning": 30.1,
-      "vision": 13.6,
-      "instruction_following": 45.8,
-      "overall": 34.8
-    },
-    "hunyuan-turbos-20250313": {
-      "coding": 50.4,
-      "reasoning": 47.3,
-      "vision": 21.4,
-      "instruction_following": 65.7,
-      "overall": 52.9
-    },
-    "qwen2.5-7b-instruct-turbo": {
-      "coding": 34.3,
-      "reasoning": 33.0,
-      "vision": 13.6,
-      "instruction_following": 43.2,
-      "overall": 35.8
-    },
-    "mistral-small-2503": {
-      "coding": 49.6,
-      "reasoning": 40.3,
-      "vision": 26.8,
-      "instruction_following": 57.5,
-      "overall": 47.1
-    },
-    "step-2-16k-202411": {
-      "coding": 57.6,
-      "reasoning": 46.0,
-      "vision": 33.7,
-      "instruction_following": 68.9,
-      "overall": 55.3
-    },
-    "deepseek-r1-distill-llama-70b": {
-      "coding": 46.6,
-      "reasoning": 56.0,
-      "vision": 26.0,
-      "instruction_following": 63.2,
-      "overall": 55.7
-    },
-    "qwen2.5-72b-instruct-turbo": {
-      "coding": 57.3,
-      "reasoning": 45.4,
-      "vision": 31.6,
-      "instruction_following": 57.3,
-      "overall": 50.5
-    },
-    "grok-3-beta": {
-      "coding": 73.6,
-      "reasoning": 62.7,
-      "vision": 45.2,
-      "instruction_following": 71.0,
-      "overall": 66.1
-    },
-    "gpt-4.1-nano-2025-04-14": {
-      "coding": 63.2,
-      "reasoning": 40.6,
-      "vision": 12.7,
-      "instruction_following": 54.3,
-      "overall": 46.8
-    },
-    "o3-2025-04-16-high": {
-      "coding": 76.7,
-      "reasoning": 89.8,
-      "vision": 51.0,
-      "instruction_following": 78.2,
-      "overall": 81.4
-    },
-    "claude-4-opus-20250514-base": {
-      "coding": 72.9,
-      "reasoning": 74.9,
-      "vision": 59.2,
-      "instruction_following": 74.8,
-      "overall": 73.6
-    },
-    "gpt-4.1-2025-04-14": {
-      "coding": 73.2,
-      "reasoning": 58.7,
-      "vision": 42.8,
-      "instruction_following": 71.1,
-      "overall": 64.2
-    },
-    "mistral-large-2411": {
-      "coding": 62.9,
-      "reasoning": 41.4,
-      "vision": 36.5,
-      "instruction_following": 61.3,
-      "overall": 51.3
-    },
-    "gemma-3-27b-it": {
-      "coding": 48.9,
-      "reasoning": 46.7,
-      "vision": 28.6,
-      "instruction_following": 61.3,
-      "overall": 51.3
-    },
-    "qwen2.5-max": {
-      "coding": 66.8,
-      "reasoning": 54.2,
-      "vision": 45.9,
-      "instruction_following": 72.7,
-      "overall": 62.2
-    },
-    "amazon.nova-lite-v1:0": {
-      "coding": 45.0,
-      "reasoning": 33.2,
-      "vision": 19.9,
-      "instruction_following": 48.2,
-      "overall": 39.5
-    },
-    "gemini-2.5-pro-preview-05-06": {
-      "coding": 72.9,
-      "reasoning": 86.3,
-      "vision": 59.1,
-      "instruction_following": 77.3,
-      "overall": 79.5
-    },
-    "phi-4-reasoning-plus": {
-      "coding": 60.6,
-      "reasoning": 60.0,
-      "vision": 18.4,
-      "instruction_following": 61.1,
-      "overall": 57.9
+    "gpt-5-high": {
+      "coding": 58.8,
+      "reasoning": 94.9,
+      "vision": 59.5,
+      "instruction_following": 81.2,
+      "overall": 79.2
     },
     "gemini-2.5-flash-preview-05-20": {
       "coding": 62.8,
@@ -1458,54 +1269,26 @@
       "instruction_following": 73.9,
       "overall": 72.5
     },
-    "grok-3-mini-beta-high": {
-      "coding": 54.5,
-      "reasoning": 78.0,
-      "vision": 47.4,
-      "instruction_following": 71.4,
-      "overall": 70.7
+    "deepseek-r1-distill-llama-70b": {
+      "coding": 46.6,
+      "reasoning": 56.0,
+      "vision": 26.0,
+      "instruction_following": 63.2,
+      "overall": 55.7
     },
-    "claude-3-5-sonnet-20241022": {
-      "coding": 73.9,
-      "reasoning": 52.8,
-      "vision": 50.3,
-      "instruction_following": 64.5,
-      "overall": 59.7
+    "qwq-32b": {
+      "coding": 61.4,
+      "reasoning": 77.0,
+      "vision": 28.3,
+      "instruction_following": 73.7,
+      "overall": 70.8
     },
-    "chatgpt-4o-latest-2025-03-27": {
-      "coding": 77.5,
-      "reasoning": 55.1,
-      "vision": 41.0,
-      "instruction_following": 69.1,
-      "overall": 62.2
-    },
-    "gemini-2.5-flash-preview-04-17": {
-      "coding": 60.3,
-      "reasoning": 76.2,
-      "vision": 54.3,
-      "instruction_following": 71.7,
-      "overall": 71.1
-    },
-    "learnlm-2.0-flash-experimental": {
-      "coding": 64.3,
-      "reasoning": 53.7,
-      "vision": 34.9,
-      "instruction_following": 70.6,
-      "overall": 60.2
-    },
-    "learnlm-1.5-pro-experimental": {
-      "coding": 58.9,
-      "reasoning": 48.6,
-      "vision": 38.1,
-      "instruction_following": 53.8,
-      "overall": 51.2
-    },
-    "deepseek-r1-distill-qwen-32b": {
-      "coding": 47.0,
-      "reasoning": 50.5,
-      "vision": 16.9,
-      "instruction_following": 51.7,
-      "overall": 48.4
+    "phi-4-reasoning-plus": {
+      "coding": 60.6,
+      "reasoning": 60.0,
+      "vision": 18.4,
+      "instruction_following": 61.1,
+      "overall": 57.9
     },
     "deepseek-r1": {
       "coding": 76.1,
@@ -1514,6 +1297,27 @@
       "instruction_following": 72.7,
       "overall": 72.7
     },
+    "chatgpt-4o-latest-2025-03-27": {
+      "coding": 77.5,
+      "reasoning": 55.1,
+      "vision": 41.0,
+      "instruction_following": 69.1,
+      "overall": 62.2
+    },
+    "grok-3-mini-beta-high": {
+      "coding": 54.5,
+      "reasoning": 78.0,
+      "vision": 47.4,
+      "instruction_following": 71.4,
+      "overall": 70.7
+    },
+    "gpt-4.1-2025-04-14": {
+      "coding": 73.2,
+      "reasoning": 58.7,
+      "vision": 42.8,
+      "instruction_following": 71.1,
+      "overall": 64.2
+    },
     "llama-3.3-70b-instruct-turbo": {
       "coding": 51.8,
       "reasoning": 44.8,
@@ -1521,12 +1325,89 @@
       "instruction_following": 65.0,
       "overall": 52.6
     },
-    "command-r-08-2024": {
-      "coding": 26.1,
-      "reasoning": 24.8,
-      "vision": 17.8,
-      "instruction_following": 49.5,
-      "overall": 33.8
+    "gemma-3-27b-it": {
+      "coding": 48.9,
+      "reasoning": 46.7,
+      "vision": 28.6,
+      "instruction_following": 61.3,
+      "overall": 51.3
+    },
+    "amazon.nova-pro-v1:0": {
+      "coding": 49.6,
+      "reasoning": 36.9,
+      "vision": 29.0,
+      "instruction_following": 58.2,
+      "overall": 46.0
+    },
+    "learnlm-2.0-flash-experimental": {
+      "coding": 64.3,
+      "reasoning": 53.7,
+      "vision": 34.9,
+      "instruction_following": 70.6,
+      "overall": 60.2
+    },
+    "mistral-large-2411": {
+      "coding": 62.9,
+      "reasoning": 41.4,
+      "vision": 36.5,
+      "instruction_following": 61.3,
+      "overall": 51.3
+    },
+    "gpt-4.1-nano-2025-04-14": {
+      "coding": 63.2,
+      "reasoning": 40.6,
+      "vision": 12.7,
+      "instruction_following": 54.3,
+      "overall": 46.8
+    },
+    "llama4-maverick-instruct-basic": {
+      "coding": 54.2,
+      "reasoning": 57.5,
+      "vision": 34.6,
+      "instruction_following": 63.7,
+      "overall": 58.0
+    },
+    "command-r-plus-08-2024": {
+      "coding": 27.1,
+      "reasoning": 28.0,
+      "vision": 22.6,
+      "instruction_following": 52.9,
+      "overall": 36.9
+    },
+    "mistral-small-2503": {
+      "coding": 49.6,
+      "reasoning": 40.3,
+      "vision": 26.8,
+      "instruction_following": 57.5,
+      "overall": 47.1
+    },
+    "qwen2.5-72b-instruct-turbo": {
+      "coding": 57.3,
+      "reasoning": 45.4,
+      "vision": 31.6,
+      "instruction_following": 57.3,
+      "overall": 50.5
+    },
+    "o4-mini-2025-04-16-high": {
+      "coding": 80.0,
+      "reasoning": 89.1,
+      "vision": 34.7,
+      "instruction_following": 75.7,
+      "overall": 79.5
+    },
+    "deepseek-r1-distill-qwen-32b": {
+      "coding": 47.0,
+      "reasoning": 50.5,
+      "vision": 16.9,
+      "instruction_following": 51.7,
+      "overall": 48.4
+    },
+    "dracarys2-72b-instruct": {
+      "coding": 58.7,
+      "reasoning": 47.0,
+      "vision": 29.3,
+      "instruction_following": 55.6,
+      "overall": 50.6
     },
     "gpt-4o-mini-2024-07-18": {
       "coding": 55.0,
@@ -1542,12 +1423,61 @@
       "instruction_following": 68.6,
       "overall": 67.4
     },
-    "claude-3-5-haiku-20241022": {
-      "coding": 53.2,
-      "reasoning": 37.7,
-      "vision": 25.0,
-      "instruction_following": 58.9,
-      "overall": 46.7
+    "command-r-08-2024": {
+      "coding": 26.1,
+      "reasoning": 24.8,
+      "vision": 17.8,
+      "instruction_following": 49.5,
+      "overall": 33.8
+    },
+    "gemini-2.5-flash-preview-04-17": {
+      "coding": 60.3,
+      "reasoning": 76.2,
+      "vision": 54.3,
+      "instruction_following": 71.7,
+      "overall": 71.1
+    },
+    "grok-3-beta": {
+      "coding": 73.6,
+      "reasoning": 62.7,
+      "vision": 45.2,
+      "instruction_following": 71.0,
+      "overall": 66.1
+    },
+    "gemini-2.0-flash-lite-001": {
+      "coding": 59.3,
+      "reasoning": 48.4,
+      "vision": 24.7,
+      "instruction_following": 68.8,
+      "overall": 56.0
+    },
+    "qwen3-14b-thinking": {
+      "coding": 58.2,
+      "reasoning": 74.6,
+      "vision": 33.4,
+      "instruction_following": 73.2,
+      "overall": 69.5
+    },
+    "gemini-2.5-pro-preview-05-06": {
+      "coding": 72.9,
+      "reasoning": 86.3,
+      "vision": 59.1,
+      "instruction_following": 77.3,
+      "overall": 79.5
+    },
+    "o4-mini-2025-04-16-medium": {
+      "coding": 74.2,
+      "reasoning": 83.4,
+      "vision": 28.2,
+      "instruction_following": 75.0,
+      "overall": 75.7
+    },
+    "gpt-4.1-mini-2025-04-14": {
+      "coding": 72.1,
+      "reasoning": 55.6,
+      "vision": 27.7,
+      "instruction_following": 64.2,
+      "overall": 59.2
     },
     "dracarys2-llama-3.1-70b-instruct": {
       "coding": 41.1,
@@ -1556,6 +1486,13 @@
       "instruction_following": 59.6,
       "overall": 47.7
     },
+    "amazon.nova-lite-v1:0": {
+      "coding": 45.0,
+      "reasoning": 33.2,
+      "vision": 19.9,
+      "instruction_following": 48.2,
+      "overall": 39.5
+    },
     "deepseek-v3-0324": {
       "coding": 68.9,
       "reasoning": 61.9,
@@ -1563,33 +1500,26 @@
       "instruction_following": 71.7,
       "overall": 65.3
     },
-    "dracarys2-72b-instruct": {
-      "coding": 58.7,
-      "reasoning": 47.0,
-      "vision": 29.3,
-      "instruction_following": 55.6,
-      "overall": 50.6
+    "claude-3-5-sonnet-20241022": {
+      "coding": 73.9,
+      "reasoning": 52.8,
+      "vision": 50.3,
+      "instruction_following": 64.5,
+      "overall": 59.7
     },
-    "gpt-4o-2024-11-20": {
-      "coding": 69.3,
-      "reasoning": 46.3,
-      "vision": 35.4,
-      "instruction_following": 63.5,
-      "overall": 54.9
+    "claude-3-5-haiku-20241022": {
+      "coding": 53.2,
+      "reasoning": 37.7,
+      "vision": 25.0,
+      "instruction_following": 58.9,
+      "overall": 46.7
     },
-    "qwq-32b": {
-      "coding": 61.4,
-      "reasoning": 77.0,
-      "vision": 28.3,
-      "instruction_following": 73.7,
-      "overall": 70.8
-    },
-    "gemini-2.5-pro-preview-03-25": {
-      "coding": 71.1,
-      "reasoning": 86.0,
-      "vision": 60.1,
-      "instruction_following": 72.0,
-      "overall": 77.3
+    "hunyuan-turbos-20250313": {
+      "coding": 50.4,
+      "reasoning": 47.3,
+      "vision": 21.4,
+      "instruction_following": 65.7,
+      "overall": 52.9
     },
     "o3-2025-04-16-medium": {
       "coding": 77.9,
@@ -1598,17 +1528,75 @@
       "instruction_following": 77.4,
       "overall": 80.0
     },
-    "meta-llama-3.1-8b-instruct-turbo": {
-      "reasoning": 19.9,
-      "vision": 12.8,
-      "instruction_following": 43.4,
-      "overall": 29.5
+    "claude-4-opus-20250514-thinking-32k": {
+      "coding": 73.3,
+      "reasoning": 88.1,
+      "vision": 60.5,
+      "instruction_following": 75.1,
+      "overall": 79.7
     },
-    "meta-llama-3.1-70b-instruct-turbo": {
-      "reasoning": 35.3,
-      "vision": 36.2,
-      "instruction_following": 61.6,
-      "overall": 46.6
+    "o3-2025-04-16-high": {
+      "coding": 76.7,
+      "reasoning": 89.8,
+      "vision": 51.0,
+      "instruction_following": 78.2,
+      "overall": 81.4
+    },
+    "claude-4-opus-20250514-base": {
+      "coding": 72.9,
+      "reasoning": 74.9,
+      "vision": 59.2,
+      "instruction_following": 74.8,
+      "overall": 73.6
+    },
+    "amazon.nova-micro-v1:0": {
+      "coding": 28.9,
+      "reasoning": 30.1,
+      "vision": 13.6,
+      "instruction_following": 45.8,
+      "overall": 34.8
+    },
+    "qwen2.5-7b-instruct-turbo": {
+      "coding": 34.3,
+      "reasoning": 33.0,
+      "vision": 13.6,
+      "instruction_following": 43.2,
+      "overall": 35.8
+    },
+    "learnlm-1.5-pro-experimental": {
+      "coding": 58.9,
+      "reasoning": 48.6,
+      "vision": 38.1,
+      "instruction_following": 53.8,
+      "overall": 51.2
+    },
+    "gemini-2.5-pro-preview-03-25": {
+      "coding": 71.1,
+      "reasoning": 86.0,
+      "vision": 60.1,
+      "instruction_following": 72.0,
+      "overall": 77.3
+    },
+    "gpt-4o-2024-11-20": {
+      "coding": 69.3,
+      "reasoning": 46.3,
+      "vision": 35.4,
+      "instruction_following": 63.5,
+      "overall": 54.9
+    },
+    "step-2-16k-202411": {
+      "coding": 57.6,
+      "reasoning": 46.0,
+      "vision": 33.7,
+      "instruction_following": 68.9,
+      "overall": 55.3
+    },
+    "qwen2.5-max": {
+      "coding": 66.8,
+      "reasoning": 54.2,
+      "vision": 45.9,
+      "instruction_following": 72.7,
+      "overall": 62.2
     },
     "phi-4": {
       "reasoning": 42.0,
@@ -1616,11 +1604,35 @@
       "instruction_following": 50.6,
       "overall": 44.1
     },
-    "claude-3-opus-20240229": {
-      "reasoning": 43.5,
-      "vision": 45.7,
-      "instruction_following": 63.7,
-      "overall": 52.3
+    "gemini-2.0-pro-exp-02-05": {
+      "reasoning": 59.7,
+      "vision": 47.7,
+      "instruction_following": 78.2,
+      "overall": 66.8
+    },
+    "gpt-4o-2024-08-06": {
+      "reasoning": 48.8,
+      "vision": 37.2,
+      "instruction_following": 65.0,
+      "overall": 54.9
+    },
+    "meta-llama-3.1-70b-instruct-turbo": {
+      "reasoning": 35.3,
+      "vision": 36.2,
+      "instruction_following": 61.6,
+      "overall": 46.6
+    },
+    "meta-llama-3.1-8b-instruct-turbo": {
+      "reasoning": 19.9,
+      "vision": 12.8,
+      "instruction_following": 43.4,
+      "overall": 29.5
+    },
+    "llama-4-maverick-17b-128e-instruct": {
+      "reasoning": 57.5,
+      "vision": 34.6,
+      "instruction_following": 68.5,
+      "overall": 60.6
     },
     "gemma-3-12b-it": {
       "reasoning": 42.0,
@@ -1628,11 +1640,29 @@
       "instruction_following": 58.0,
       "overall": 47.6
     },
-    "meta-llama-3.1-405b-instruct-turbo": {
-      "reasoning": 44.9,
-      "vision": 41.8,
-      "instruction_following": 64.5,
-      "overall": 53.1
+    "gemini-2.0-flash-001": {
+      "reasoning": 55.5,
+      "vision": 38.2,
+      "instruction_following": 78.6,
+      "overall": 64.2
+    },
+    "o3-mini-2025-01-31-low": {
+      "reasoning": 65.4,
+      "vision": 15.4,
+      "instruction_following": 72.0,
+      "overall": 64.7
+    },
+    "gemini-1.5-flash-8b-001": {
+      "reasoning": 31.1,
+      "vision": 18.8,
+      "instruction_following": 55.6,
+      "overall": 40.8
+    },
+    "gemini-2.5-pro-exp-03-25": {
+      "reasoning": 86.0,
+      "vision": 60.1,
+      "instruction_following": 78.4,
+      "overall": 80.9
     },
     "o3-mini-2025-01-31-medium": {
       "reasoning": 77.1,
@@ -1646,11 +1676,11 @@
       "instruction_following": 76.7,
       "overall": 70.7
     },
-    "o3-mini-2025-01-31-low": {
-      "reasoning": 65.4,
-      "vision": 15.4,
-      "instruction_following": 72.0,
-      "overall": 64.7
+    "claude-3-opus-20240229": {
+      "reasoning": 43.5,
+      "vision": 45.7,
+      "instruction_following": 63.7,
+      "overall": 52.3
     },
     "azerogpt": {
       "reasoning": 33.0,
@@ -1658,35 +1688,17 @@
       "instruction_following": 45.2,
       "overall": 37.7
     },
-    "gemini-2.0-flash-001": {
-      "reasoning": 55.5,
-      "vision": 38.2,
-      "instruction_following": 78.6,
-      "overall": 64.2
+    "o3-mini-2025-01-31-high": {
+      "reasoning": 80.4,
+      "vision": 23.1,
+      "instruction_following": 77.4,
+      "overall": 75.0
     },
-    "gemma-3-4b-it": {
-      "reasoning": 29.6,
-      "vision": 11.0,
-      "instruction_following": 47.0,
-      "overall": 35.7
-    },
-    "o1-mini-2024-09-12": {
-      "reasoning": 61.4,
-      "vision": 18.7,
-      "instruction_following": 59.1,
-      "overall": 57.4
-    },
-    "gemini-2.0-pro-exp-02-05": {
-      "reasoning": 59.7,
-      "vision": 47.7,
-      "instruction_following": 78.2,
-      "overall": 66.8
-    },
-    "gemini-1.5-flash-8b-001": {
-      "reasoning": 31.1,
-      "vision": 18.8,
-      "instruction_following": 55.6,
-      "overall": 40.8
+    "meta-llama-3.1-405b-instruct-turbo": {
+      "reasoning": 44.9,
+      "vision": 41.8,
+      "instruction_following": 64.5,
+      "overall": 53.1
     },
     "grok-2-1212": {
       "reasoning": 50.5,
@@ -1694,11 +1706,17 @@
       "instruction_following": 63.3,
       "overall": 55.0
     },
-    "gpt-4o-2024-08-06": {
-      "reasoning": 48.8,
-      "vision": 37.2,
-      "instruction_following": 65.0,
-      "overall": 54.9
+    "o1-mini-2024-09-12": {
+      "reasoning": 61.4,
+      "vision": 18.7,
+      "instruction_following": 59.1,
+      "overall": 57.4
+    },
+    "gemma-3-4b-it": {
+      "reasoning": 29.6,
+      "vision": 11.0,
+      "instruction_following": 47.0,
+      "overall": 35.7
     },
     "o1-2024-12-17-high": {
       "reasoning": 84.4,
@@ -1706,59 +1724,11 @@
       "instruction_following": 73.9,
       "overall": 77.3
     },
-    "llama-4-maverick-17b-128e-instruct": {
-      "reasoning": 57.5,
-      "vision": 34.6,
-      "instruction_following": 68.5,
-      "overall": 60.6
-    },
-    "gemini-2.5-pro-exp-03-25": {
-      "reasoning": 86.0,
-      "vision": 60.1,
-      "instruction_following": 78.4,
-      "overall": 80.9
-    },
-    "o3-mini-2025-01-31-high": {
-      "reasoning": 80.4,
-      "vision": 23.1,
-      "instruction_following": 77.4,
-      "overall": 75.0
-    },
-    "gemma-2-27b-it": {
-      "reasoning": 31.0,
-      "vision": 30.0,
-      "instruction_following": 49.7,
-      "overall": 39.0
-    },
-    "olmo-2-1124-13b-instruct": {
-      "reasoning": 21.4,
-      "vision": 14.8,
-      "instruction_following": 35.1,
-      "overall": 26.8
-    },
-    "gemini-2.0-flash-exp": {
-      "reasoning": 53.8,
-      "vision": 45.0,
-      "instruction_following": 71.3,
-      "overall": 60.7
-    },
-    "grok-beta": {
-      "reasoning": 43.6,
-      "vision": 40.0,
-      "instruction_following": 61.7,
-      "overall": 51.1
-    },
-    "mistral-small-2501": {
-      "reasoning": 36.3,
-      "vision": 31.9,
-      "instruction_following": 54.9,
-      "overall": 44.0
-    },
-    "perplexity-sonar-pro": {
-      "reasoning": 52.9,
-      "vision": 73.5,
-      "instruction_following": 65.2,
-      "overall": 59.6
+    "gemini-exp-1206": {
+      "reasoning": 60.7,
+      "vision": 58.2,
+      "instruction_following": 69.2,
+      "overall": 64.2
     },
     "phi-3-mini-128k-instruct": {
       "reasoning": 19.4,
@@ -1766,59 +1736,17 @@
       "instruction_following": 29.5,
       "overall": 23.2
     },
-    "perplexity-sonar": {
-      "reasoning": 45.5,
-      "vision": 44.7,
-      "instruction_following": 55.9,
-      "overall": 49.9
-    },
-    "qwen2.5-coder-32b-instruct": {
-      "reasoning": 39.2,
-      "vision": 26.2,
-      "instruction_following": 49.6,
-      "overall": 42.7
-    },
-    "chatgpt-4o-latest-2025-01-29": {
-      "reasoning": 50.4,
-      "vision": 47.3,
-      "instruction_following": 63.2,
-      "overall": 55.7
-    },
     "gemini-2.0-flash-lite": {
       "reasoning": 49.8,
       "vision": 33.6,
       "instruction_following": 67.4,
       "overall": 56.2
     },
-    "gemini-2.0-flash-lite-preview-02-05": {
-      "reasoning": 49.8,
-      "vision": 33.5,
-      "instruction_following": 65.9,
-      "overall": 55.5
-    },
-    "phi-3-mini-4k-instruct": {
-      "reasoning": 20.1,
-      "vision": 13.2,
-      "instruction_following": 26.3,
-      "overall": 22.2
-    },
-    "deepseek-v3": {
-      "reasoning": 53.6,
-      "vision": 47.6,
-      "instruction_following": 68.6,
-      "overall": 59.6
-    },
-    "qwq-32b-preview": {
-      "reasoning": 44.5,
-      "vision": 23.7,
-      "instruction_following": 29.7,
-      "overall": 36.7
-    },
-    "gemini-2.0-flash": {
-      "reasoning": 56.6,
-      "vision": 47.1,
-      "instruction_following": 76.2,
-      "overall": 64.3
+    "gemma-2-27b-it": {
+      "reasoning": 31.0,
+      "vision": 30.0,
+      "instruction_following": 49.7,
+      "overall": 39.0
     },
     "claude-3-7-sonnet-thinking": {
       "reasoning": 78.8,
@@ -1832,11 +1760,59 @@
       "instruction_following": 31.9,
       "overall": 26.5
     },
-    "gpt-4.5-preview": {
-      "reasoning": 67.3,
-      "vision": 54.2,
-      "instruction_following": 68.4,
-      "overall": 66.8
+    "gemini-2.0-flash": {
+      "reasoning": 56.6,
+      "vision": 47.1,
+      "instruction_following": 76.2,
+      "overall": 64.3
+    },
+    "mistral-small-2501": {
+      "reasoning": 36.3,
+      "vision": 31.9,
+      "instruction_following": 54.9,
+      "overall": 44.0
+    },
+    "olmo-2-1124-13b-instruct": {
+      "reasoning": 21.4,
+      "vision": 14.8,
+      "instruction_following": 35.1,
+      "overall": 26.8
+    },
+    "deepseek-v3": {
+      "reasoning": 53.6,
+      "vision": 47.6,
+      "instruction_following": 68.6,
+      "overall": 59.6
+    },
+    "perplexity-sonar": {
+      "reasoning": 45.5,
+      "vision": 44.7,
+      "instruction_following": 55.9,
+      "overall": 49.9
+    },
+    "qwq-32b-preview": {
+      "reasoning": 44.5,
+      "vision": 23.7,
+      "instruction_following": 29.7,
+      "overall": 36.7
+    },
+    "perplexity-sonar-pro": {
+      "reasoning": 52.9,
+      "vision": 73.5,
+      "instruction_following": 65.2,
+      "overall": 59.6
+    },
+    "phi-3-mini-4k-instruct": {
+      "reasoning": 20.1,
+      "vision": 13.2,
+      "instruction_following": 26.3,
+      "overall": 22.2
+    },
+    "gemini-2.0-flash-exp": {
+      "reasoning": 53.8,
+      "vision": 45.0,
+      "instruction_following": 71.3,
+      "overall": 60.7
     },
     "gemma-2-9b-it": {
       "reasoning": 23.2,
@@ -1850,101 +1826,35 @@
       "instruction_following": 68.4,
       "overall": 63.9
     },
-    "gemini-exp-1206": {
-      "reasoning": 60.7,
-      "vision": 58.2,
-      "instruction_following": 69.2,
-      "overall": 64.2
-    },
-    "gemini-1.5-flash-8b-exp-0827": {
-      "reasoning": 33.4,
-      "vision": 17.1,
-      "instruction_following": 49.4,
-      "overall": 39.1
-    },
-    "command-r": {
-      "reasoning": 22.0,
-      "vision": 14.3,
-      "instruction_following": 40.6,
-      "overall": 29.4
-    },
-    "phi-3.5-moe-instruct": {
-      "reasoning": 31.8,
-      "vision": 14.2,
-      "instruction_following": 43.8,
-      "overall": 35.7
-    },
-    "gemini-1.5-flash-002": {
-      "reasoning": 48.4,
-      "vision": 31.9,
-      "instruction_following": 60.7,
-      "overall": 52.5
-    },
-    "deepseek-v2.5": {
-      "reasoning": 42.5,
-      "vision": 35.4,
-      "instruction_following": 56.9,
-      "overall": 48.2
-    },
-    "claude-3-haiku-20240307": {
-      "reasoning": 31.5,
-      "vision": 23.7,
-      "instruction_following": 52.3,
-      "overall": 39.8
-    },
-    "mixtral-8x22b-instruct-v0.1": {
-      "reasoning": 32.8,
-      "vision": 28.3,
-      "instruction_following": 43.8,
-      "overall": 37.2
-    },
-    "grok-2-mini": {
-      "reasoning": 43.8,
-      "vision": 40.7,
-      "instruction_following": 55.6,
-      "overall": 48.6
-    },
-    "gpt-4-turbo-2024-04-09": {
-      "reasoning": 47.2,
-      "vision": 39.6,
-      "instruction_following": 60.5,
-      "overall": 52.4
-    },
-    "mistral-small-2402": {
-      "reasoning": 26.4,
-      "vision": 26.5,
-      "instruction_following": 44.4,
-      "overall": 34.1
-    },
-    "grok-2": {
-      "reasoning": 46.3,
-      "vision": 32.5,
-      "instruction_following": 59.2,
-      "overall": 50.8
-    },
-    "phi-3-small-128k-instruct": {
-      "reasoning": 28.1,
-      "vision": 13.8,
-      "instruction_following": 37.8,
-      "overall": 31.2
-    },
-    "qwen2.5-72b-instruct": {
-      "reasoning": 49.2,
-      "vision": 35.8,
-      "instruction_following": 61.0,
-      "overall": 53.3
-    },
-    "chatgpt-4o-latest-0903": {
-      "reasoning": 49.7,
-      "vision": 43.2,
+    "grok-beta": {
+      "reasoning": 43.6,
+      "vision": 40.0,
       "instruction_following": 61.7,
-      "overall": 54.4
+      "overall": 51.1
     },
-    "command-r-plus": {
-      "reasoning": 30.5,
-      "vision": 25.4,
-      "instruction_following": 45.5,
-      "overall": 36.6
+    "qwen2.5-coder-32b-instruct": {
+      "reasoning": 39.2,
+      "vision": 26.2,
+      "instruction_following": 49.6,
+      "overall": 42.7
+    },
+    "gpt-4.5-preview": {
+      "reasoning": 67.3,
+      "vision": 54.2,
+      "instruction_following": 68.4,
+      "overall": 66.8
+    },
+    "gemini-2.0-flash-lite-preview-02-05": {
+      "reasoning": 49.8,
+      "vision": 33.5,
+      "instruction_following": 65.9,
+      "overall": 55.5
+    },
+    "chatgpt-4o-latest-2025-01-29": {
+      "reasoning": 50.4,
+      "vision": 47.3,
+      "instruction_following": 63.2,
+      "overall": 55.7
     },
     "gemini-1.5-pro-exp-0801": {
       "reasoning": 45.4,
@@ -1952,83 +1862,11 @@
       "instruction_following": 65.9,
       "overall": 53.9
     },
-    "gemini-exp-1114": {
-      "reasoning": 52.3,
-      "vision": 44.6,
-      "instruction_following": 65.2,
-      "overall": 57.3
-    },
-    "gpt-4-0613": {
-      "reasoning": 42.1,
-      "vision": 45.5,
-      "instruction_following": 59.7,
-      "overall": 49.9
-    },
-    "mistral-large-2407": {
-      "reasoning": 43.6,
-      "vision": 40.0,
-      "instruction_following": 58.3,
-      "overall": 49.7
-    },
-    "deepseek-coder-v2": {
-      "reasoning": 44.2,
-      "vision": 31.3,
-      "instruction_following": 52.8,
-      "overall": 47.0
-    },
     "phi-3-medium-128k-instruct": {
       "reasoning": 25.4,
       "vision": 14.8,
       "instruction_following": 39.2,
       "overall": 30.6
-    },
-    "gpt-4o-2024-05-13": {
-      "reasoning": 48.7,
-      "vision": 42.8,
-      "instruction_following": 63.1,
-      "overall": 54.4
-    },
-    "gemini-1.5-pro-exp-0827": {
-      "reasoning": 51.0,
-      "vision": 43.4,
-      "instruction_following": 64.4,
-      "overall": 56.2
-    },
-    "open-mistral-nemo": {
-      "reasoning": 23.8,
-      "vision": 16.6,
-      "instruction_following": 37.9,
-      "overall": 29.3
-    },
-    "gpt-3.5-turbo-0125": {
-      "reasoning": 27.0,
-      "vision": 17.3,
-      "instruction_following": 50.1,
-      "overall": 36.2
-    },
-    "claude-3-sonnet-20240229": {
-      "reasoning": 32.5,
-      "vision": 34.1,
-      "instruction_following": 54.5,
-      "overall": 42.0
-    },
-    "gpt-4-0125-preview": {
-      "reasoning": 42.1,
-      "vision": 43.5,
-      "instruction_following": 57.4,
-      "overall": 48.8
-    },
-    "phi-3.5-mini-instruct": {
-      "reasoning": 25.8,
-      "vision": 11.8,
-      "instruction_following": 38.5,
-      "overall": 30.3
-    },
-    "o1-preview-2024-09-12": {
-      "reasoning": 67.1,
-      "vision": 53.5,
-      "instruction_following": 71.0,
-      "overall": 67.8
     },
     "gemini-1.5-pro-002": {
       "reasoning": 52.6,
@@ -2036,11 +1874,71 @@
       "instruction_following": 64.9,
       "overall": 57.3
     },
-    "gemini-1.5-pro-api-0514": {
-      "reasoning": 37.8,
-      "vision": 39.9,
+    "deepseek-v2.5": {
+      "reasoning": 42.5,
+      "vision": 35.4,
+      "instruction_following": 56.9,
+      "overall": 48.2
+    },
+    "command-r-plus": {
+      "reasoning": 30.5,
+      "vision": 25.4,
+      "instruction_following": 45.5,
+      "overall": 36.6
+    },
+    "gpt-4-0125-preview": {
+      "reasoning": 42.1,
+      "vision": 43.5,
+      "instruction_following": 57.4,
+      "overall": 48.8
+    },
+    "o1-preview-2024-09-12": {
+      "reasoning": 67.1,
+      "vision": 53.5,
+      "instruction_following": 71.0,
+      "overall": 67.8
+    },
+    "command-r": {
+      "reasoning": 22.0,
+      "vision": 14.3,
+      "instruction_following": 40.6,
+      "overall": 29.4
+    },
+    "gpt-4o-2024-05-13": {
+      "reasoning": 48.7,
+      "vision": 42.8,
+      "instruction_following": 63.1,
+      "overall": 54.4
+    },
+    "open-mistral-nemo": {
+      "reasoning": 23.8,
+      "vision": 16.6,
+      "instruction_following": 37.9,
+      "overall": 29.3
+    },
+    "gemini-exp-1114": {
+      "reasoning": 52.3,
+      "vision": 44.6,
+      "instruction_following": 65.2,
+      "overall": 57.3
+    },
+    "qwen2.5-72b-instruct": {
+      "reasoning": 49.2,
+      "vision": 35.8,
+      "instruction_following": 61.0,
+      "overall": 53.3
+    },
+    "gpt-4-0613": {
+      "reasoning": 42.1,
+      "vision": 45.5,
       "instruction_following": 59.7,
-      "overall": 47.3
+      "overall": 49.9
+    },
+    "gpt-4-turbo-2024-04-09": {
+      "reasoning": 47.2,
+      "vision": 39.6,
+      "instruction_following": 60.5,
+      "overall": 52.4
     },
     "gemini-exp-1121": {
       "reasoning": 54.0,
@@ -2048,23 +1946,17 @@
       "instruction_following": 70.8,
       "overall": 60.4
     },
+    "gemini-1.5-flash-002": {
+      "reasoning": 48.4,
+      "vision": 31.9,
+      "instruction_following": 60.7,
+      "overall": 52.5
+    },
     "claude-3-5-sonnet-20240620": {
       "reasoning": 54.2,
       "vision": 55.1,
       "instruction_following": 64.9,
       "overall": 58.9
-    },
-    "phi-3-medium-4k-instruct": {
-      "reasoning": 28.4,
-      "vision": 15.7,
-      "instruction_following": 35.1,
-      "overall": 30.3
-    },
-    "llama-3.1-nemotron-70b-instruct": {
-      "reasoning": 43.2,
-      "vision": 38.7,
-      "instruction_following": 50.4,
-      "overall": 46.0
     },
     "gemini-1.5-flash-exp-0827": {
       "reasoning": 39.4,
@@ -2072,161 +1964,119 @@
       "instruction_following": 56.9,
       "overall": 46.6
     },
+    "gpt-3.5-turbo-0125": {
+      "reasoning": 27.0,
+      "vision": 17.3,
+      "instruction_following": 50.1,
+      "overall": 36.2
+    },
+    "deepseek-coder-v2": {
+      "reasoning": 44.2,
+      "vision": 31.3,
+      "instruction_following": 52.8,
+      "overall": 47.0
+    },
+    "phi-3.5-moe-instruct": {
+      "reasoning": 31.8,
+      "vision": 14.2,
+      "instruction_following": 43.8,
+      "overall": 35.7
+    },
+    "gemini-1.5-pro-exp-0827": {
+      "reasoning": 51.0,
+      "vision": 43.4,
+      "instruction_following": 64.4,
+      "overall": 56.2
+    },
+    "claude-3-sonnet-20240229": {
+      "reasoning": 32.5,
+      "vision": 34.1,
+      "instruction_following": 54.5,
+      "overall": 42.0
+    },
+    "phi-3.5-mini-instruct": {
+      "reasoning": 25.8,
+      "vision": 11.8,
+      "instruction_following": 38.5,
+      "overall": 30.3
+    },
+    "gemini-1.5-flash-8b-exp-0827": {
+      "reasoning": 33.4,
+      "vision": 17.1,
+      "instruction_following": 49.4,
+      "overall": 39.1
+    },
+    "mistral-small-2402": {
+      "reasoning": 26.4,
+      "vision": 26.5,
+      "instruction_following": 44.4,
+      "overall": 34.1
+    },
+    "chatgpt-4o-latest-0903": {
+      "reasoning": 49.7,
+      "vision": 43.2,
+      "instruction_following": 61.7,
+      "overall": 54.4
+    },
+    "gemini-1.5-pro-api-0514": {
+      "reasoning": 37.8,
+      "vision": 39.9,
+      "instruction_following": 59.7,
+      "overall": 47.3
+    },
+    "llama-3.1-nemotron-70b-instruct": {
+      "reasoning": 43.2,
+      "vision": 38.7,
+      "instruction_following": 50.4,
+      "overall": 46.0
+    },
+    "phi-3-medium-4k-instruct": {
+      "reasoning": 28.4,
+      "vision": 15.7,
+      "instruction_following": 35.1,
+      "overall": 30.3
+    },
+    "mistral-large-2407": {
+      "reasoning": 43.6,
+      "vision": 40.0,
+      "instruction_following": 58.3,
+      "overall": 49.7
+    },
+    "mixtral-8x22b-instruct-v0.1": {
+      "reasoning": 32.8,
+      "vision": 28.3,
+      "instruction_following": 43.8,
+      "overall": 37.2
+    },
     "gemini-1.5-flash-api-0514": {
       "reasoning": 35.2,
       "vision": 29.4,
       "instruction_following": 51.6,
       "overall": 41.8
     },
-    "openhermes-2.5-mistral-7b": {
-      "reasoning": 23.1,
-      "vision": 15.1,
-      "instruction_following": 36.1,
-      "overall": 28.1
+    "grok-2-mini": {
+      "reasoning": 43.8,
+      "vision": 40.7,
+      "instruction_following": 55.6,
+      "overall": 48.6
     },
-    "zephyr-7b-beta": {
-      "reasoning": 15.0,
-      "vision": 10.9,
-      "instruction_following": 26.8,
-      "overall": 19.8
+    "claude-3-haiku-20240307": {
+      "reasoning": 31.5,
+      "vision": 23.7,
+      "instruction_following": 52.3,
+      "overall": 39.8
     },
-    "gemma-1.1-7b-it": {
-      "reasoning": 19.8,
-      "vision": 12.8,
-      "instruction_following": 27.0,
-      "overall": 22.4
+    "phi-3-small-128k-instruct": {
+      "reasoning": 28.1,
+      "vision": 13.8,
+      "instruction_following": 37.8,
+      "overall": 31.2
     },
-    "chatgpt-4o-latest": {
-      "reasoning": 52.3,
-      "vision": 42.5,
-      "instruction_following": 63.2,
-      "overall": 56.3
-    },
-    "deepseek-v2-lite-chat": {
-      "reasoning": 16.7,
-      "vision": 9.6,
-      "instruction_following": 27.5,
-      "overall": 20.8
-    },
-    "mistral-7b-instruct-v0.2": {
-      "reasoning": 19.0,
-      "vision": 13.0,
-      "instruction_following": 30.8,
-      "overall": 23.6
-    },
-    "mistral-7b-instruct-v0.3": {
-      "reasoning": 20.3,
-      "vision": 15.4,
-      "instruction_following": 32.1,
-      "overall": 25.0
-    },
-    "yi-6b-chat": {
-      "reasoning": 10.7,
-      "vision": 10.1,
-      "instruction_following": 17.5,
-      "overall": 13.5
-    },
-    "llama-2-7b-chat-hf": {
-      "reasoning": 12.9,
-      "vision": 10.6,
-      "instruction_following": 24.9,
-      "overall": 17.9
-    },
-    "meta-llama-3-70b-instruct": {
-      "reasoning": 36.5,
-      "vision": 31.2,
-      "instruction_following": 50.7,
-      "overall": 42.2
-    },
-    "qwen1.5-1.8b-chat": {
-      "reasoning": 6.0,
-      "vision": 9.5,
-      "instruction_following": 12.3,
-      "overall": 9.0
-    },
-    "meta-llama-3-8b-instruct": {
-      "reasoning": 26.8,
-      "vision": 15.8,
-      "instruction_following": 37.7,
-      "overall": 30.7
-    },
-    "qwen2-1.5b-instruct": {
-      "reasoning": 9.7,
-      "vision": 9.1,
-      "instruction_following": 16.6,
-      "overall": 12.6
-    },
-    "qwen1.5-0.5b-chat": {
-      "reasoning": 4.9,
-      "vision": 8.6,
-      "instruction_following": 12.0,
-      "overall": 8.2
-    },
-    "hermes-3-llama-3.1-70b": {
-      "reasoning": 34.8,
-      "vision": 37.3,
-      "instruction_following": 52.9,
-      "overall": 42.7
-    },
-    "mistral-large-2402": {
-      "reasoning": 38.6,
-      "vision": 33.9,
-      "instruction_following": 51.5,
-      "overall": 43.8
-    },
-    "starling-lm-7b-beta": {
-      "reasoning": 17.3,
-      "vision": 13.3,
-      "instruction_following": 21.9,
-      "overall": 19.0
-    },
-    "mixtral-8x7b-instruct-v0.1": {
-      "reasoning": 22.3,
-      "vision": 16.3,
-      "instruction_following": 29.8,
-      "overall": 25.1
-    },
-    "qwen1.5-72b-chat": {
-      "reasoning": 29.0,
-      "vision": 17.9,
-      "instruction_following": 39.3,
-      "overall": 32.6
-    },
-    "qwen1.5-110b-chat": {
-      "reasoning": 30.6,
-      "vision": 15.3,
-      "instruction_following": 36.4,
-      "overall": 32.0
-    },
-    "qwen2-0.5b-instruct": {
-      "reasoning": 9.1,
-      "vision": 8.4,
-      "instruction_following": 13.9,
-      "overall": 11.1
-    },
-    "zephyr-7b-alpha": {
-      "reasoning": 14.8,
-      "vision": 11.6,
-      "instruction_following": 30.9,
-      "overall": 21.5
-    },
-    "mathstral-7b-v0.1": {
-      "reasoning": 22.0,
-      "vision": 14.8,
-      "instruction_following": 38.3,
-      "overall": 28.4
-    },
-    "vicuna-7b-v1.5-16k": {
-      "reasoning": 13.9,
-      "vision": 10.7,
-      "instruction_following": 26.2,
-      "overall": 18.9
-    },
-    "smaug-qwen2-72b-instruct": {
-      "reasoning": 40.8,
-      "vision": 30.1,
-      "instruction_following": 44.5,
-      "overall": 41.6
+    "grok-2": {
+      "reasoning": 46.3,
+      "vision": 32.5,
+      "instruction_following": 59.2,
+      "overall": 50.8
     },
     "dracarys-llama-3.1-70b-instruct": {
       "reasoning": 45.5,
@@ -2234,23 +2084,35 @@
       "instruction_following": 62.1,
       "overall": 52.3
     },
-    "vicuna-7b-v1.5": {
-      "reasoning": 12.9,
-      "vision": 11.0,
-      "instruction_following": 24.1,
-      "overall": 17.6
+    "gemma-1.1-7b-it": {
+      "reasoning": 19.8,
+      "vision": 12.8,
+      "instruction_following": 27.0,
+      "overall": 22.4
     },
-    "qwen1.5-4b-chat": {
-      "reasoning": 12.0,
-      "vision": 9.4,
-      "instruction_following": 17.6,
-      "overall": 14.2
+    "deepseek-v2-lite-chat": {
+      "reasoning": 16.7,
+      "vision": 9.6,
+      "instruction_following": 27.5,
+      "overall": 20.8
     },
-    "dracarys-72b-instruct": {
-      "reasoning": 41.7,
-      "vision": 32.5,
-      "instruction_following": 45.4,
-      "overall": 42.6
+    "yi-6b-chat": {
+      "reasoning": 10.7,
+      "vision": 10.1,
+      "instruction_following": 17.5,
+      "overall": 13.5
+    },
+    "openhermes-2.5-mistral-7b": {
+      "reasoning": 23.1,
+      "vision": 15.1,
+      "instruction_following": 36.1,
+      "overall": 28.1
+    },
+    "qwen2-0.5b-instruct": {
+      "reasoning": 9.1,
+      "vision": 8.4,
+      "instruction_following": 13.9,
+      "overall": 11.1
     },
     "qwen2-72b-instruct": {
       "reasoning": 43.8,
@@ -2258,11 +2120,143 @@
       "instruction_following": 43.9,
       "overall": 43.1
     },
+    "llama-2-7b-chat-hf": {
+      "reasoning": 12.9,
+      "vision": 10.6,
+      "instruction_following": 24.9,
+      "overall": 17.9
+    },
+    "vicuna-7b-v1.5-16k": {
+      "reasoning": 13.9,
+      "vision": 10.7,
+      "instruction_following": 26.2,
+      "overall": 18.9
+    },
+    "zephyr-7b-beta": {
+      "reasoning": 15.0,
+      "vision": 10.9,
+      "instruction_following": 26.8,
+      "overall": 19.8
+    },
+    "qwen1.5-110b-chat": {
+      "reasoning": 30.6,
+      "vision": 15.3,
+      "instruction_following": 36.4,
+      "overall": 32.0
+    },
+    "mistral-7b-instruct-v0.3": {
+      "reasoning": 20.3,
+      "vision": 15.4,
+      "instruction_following": 32.1,
+      "overall": 25.0
+    },
+    "qwen2-1.5b-instruct": {
+      "reasoning": 9.7,
+      "vision": 9.1,
+      "instruction_following": 16.6,
+      "overall": 12.6
+    },
+    "vicuna-7b-v1.5": {
+      "reasoning": 12.9,
+      "vision": 11.0,
+      "instruction_following": 24.1,
+      "overall": 17.6
+    },
     "qwen2-7b-instruct": {
       "reasoning": 24.9,
       "vision": 14.6,
       "instruction_following": 30.5,
       "overall": 26.6
+    },
+    "zephyr-7b-alpha": {
+      "reasoning": 14.8,
+      "vision": 11.6,
+      "instruction_following": 30.9,
+      "overall": 21.5
+    },
+    "meta-llama-3-8b-instruct": {
+      "reasoning": 26.8,
+      "vision": 15.8,
+      "instruction_following": 37.7,
+      "overall": 30.7
+    },
+    "starling-lm-7b-beta": {
+      "reasoning": 17.3,
+      "vision": 13.3,
+      "instruction_following": 21.9,
+      "overall": 19.0
+    },
+    "qwen1.5-7b-chat": {
+      "reasoning": 18.7,
+      "vision": 11.0,
+      "instruction_following": 25.3,
+      "overall": 21.0
+    },
+    "mistral-large-2402": {
+      "reasoning": 38.6,
+      "vision": 33.9,
+      "instruction_following": 51.5,
+      "overall": 43.8
+    },
+    "qwen1.5-4b-chat": {
+      "reasoning": 12.0,
+      "vision": 9.4,
+      "instruction_following": 17.6,
+      "overall": 14.2
+    },
+    "qwen1.5-0.5b-chat": {
+      "reasoning": 4.9,
+      "vision": 8.6,
+      "instruction_following": 12.0,
+      "overall": 8.2
+    },
+    "mathstral-7b-v0.1": {
+      "reasoning": 22.0,
+      "vision": 14.8,
+      "instruction_following": 38.3,
+      "overall": 28.4
+    },
+    "mixtral-8x7b-instruct-v0.1": {
+      "reasoning": 22.3,
+      "vision": 16.3,
+      "instruction_following": 29.8,
+      "overall": 25.1
+    },
+    "mistral-7b-instruct-v0.2": {
+      "reasoning": 19.0,
+      "vision": 13.0,
+      "instruction_following": 30.8,
+      "overall": 23.6
+    },
+    "meta-llama-3-70b-instruct": {
+      "reasoning": 36.5,
+      "vision": 31.2,
+      "instruction_following": 50.7,
+      "overall": 42.2
+    },
+    "hermes-3-llama-3.1-70b": {
+      "reasoning": 34.8,
+      "vision": 37.3,
+      "instruction_following": 52.9,
+      "overall": 42.7
+    },
+    "smaug-qwen2-72b-instruct": {
+      "reasoning": 40.8,
+      "vision": 30.1,
+      "instruction_following": 44.5,
+      "overall": 41.6
+    },
+    "chatgpt-4o-latest": {
+      "reasoning": 52.3,
+      "vision": 42.5,
+      "instruction_following": 63.2,
+      "overall": 56.3
+    },
+    "qwen1.5-72b-chat": {
+      "reasoning": 29.0,
+      "vision": 17.9,
+      "instruction_following": 39.3,
+      "overall": 32.6
     },
     "deepseek-coder-v2-lite-instruct": {
       "reasoning": 28.9,
@@ -2270,11 +2264,17 @@
       "instruction_following": 38.4,
       "overall": 31.7
     },
-    "qwen1.5-7b-chat": {
-      "reasoning": 18.7,
-      "vision": 11.0,
-      "instruction_following": 25.3,
-      "overall": 21.0
+    "dracarys-72b-instruct": {
+      "reasoning": 41.7,
+      "vision": 32.5,
+      "instruction_following": 45.4,
+      "overall": 42.6
+    },
+    "qwen1.5-1.8b-chat": {
+      "reasoning": 6.0,
+      "vision": 9.5,
+      "instruction_following": 12.3,
+      "overall": 9.0
     }
   }
 }
