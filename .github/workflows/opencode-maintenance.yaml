@@ -44,7 +44,11 @@ jobs:
 
       # ── Lint Python files ──────────────────────────────────────────────────
       - name: Lint Python files
-        run: ruff check scripts/
+        run: ruff check scripts/ tests/
+
+      # ── Python unit tests (offline, no network) ──────────────────────────
+      - name: Run Python unit tests
+        run: python -m unittest discover -s tests
 
       # ── Run maintenance script ───────────────────────────────────────────
       # The script:

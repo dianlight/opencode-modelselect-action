@@ -17,8 +17,12 @@ run = "yamllint .github .github/workflows config"
 description = "Lint all YAML files"
 
 [tasks.lint-python]
-run = "ruff check scripts/"
+run = "ruff check scripts/ tests/"
 description = "Lint all Python files with ruff"
+
+[tasks.test-python]
+run = "python -m unittest discover -s tests"
+description = "Run Python unit tests for the maintenance script"
 
 [tasks.lint-types]
 run = "basedpyright --level error scripts/"

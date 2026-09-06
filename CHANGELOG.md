@@ -1,4 +1,10 @@
 ## [Unreleased]
+### Added
+- Test coverage: new `test/coverage-extra.test.js` (36 tests, JS at 99% lines
+  via `npm run coverage`) and `tests/test_maintenance.py` (52 offline unit
+  tests for the maintenance script via `mise run test-python`); CI lints
+  `tests/` and runs the Python suite
+
 ### Changed
 - Model evaluation now uses a blended in/out token-cost selector: each tier
   picks the cheapest blended $/1M cost among models within the free-first
