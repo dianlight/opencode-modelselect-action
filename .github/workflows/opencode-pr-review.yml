@@ -68,7 +68,7 @@ jobs:
         id: resolve
         if: steps.pr-check.outputs.skip != 'true'
         continue-on-error: true
-        uses: dianlight/opencode-actions@v1
+        uses: dianlight/opencode-modelselect-action@v1
         with:
           task-type: pr-review
           tier: ${{ steps.parse.outputs.TIER }}

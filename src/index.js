@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Select OpenCode model — preselect step for downstream workflows.
+ * Opencode Modelselect — preselect step for downstream workflows.
  *
  * Inputs (via INPUT_* env vars):
  *   task-type       Task class, matched case-insensitively against the
@@ -76,7 +76,7 @@ async function fetchRemoteConfig(url) {
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
-      headers: { 'User-Agent': 'opencode-select-model/1.0' },
+      headers: { 'User-Agent': 'opencode-modelselect-action/1.0' },
     });
     if (!res.ok) return null;
     return await res.json();

@@ -82,7 +82,7 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 ## Workflow conventions
 
 - All OpenCode steps pin the action: `anomalyco/opencode/github@<sha>`
-- All OpenCode steps preselect their model via the select-model action (`uses: dianlight/opencode-actions@v1`, same ref here and downstream since workflows sync verbatim) with `task-type` + `tier` inputs; the `with: model:` input is always `${{ steps.resolve.outputs.model }}`
+- All OpenCode steps preselect their model via the select-model action (`uses: dianlight/opencode-modelselect-action@v1`, same ref here and downstream since workflows sync verbatim) with `task-type` + `tier` inputs; the `with: model:` input is always `${{ steps.resolve.outputs.model }}`
 - Concurrency groups are keyed by issue/PR number with `cancel-in-progress: false`
 - Every process step uses `continue-on-error: true` followed by reaction-on-success/failure steps
 - Issue titles are passed via `env:` (not inline substitution) to prevent shell injection

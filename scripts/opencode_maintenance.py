@@ -1670,7 +1670,7 @@ def update_readme(model_table: str, score_table: str, audit_table: str) -> bool:
     if README_PATH.exists():
         content = README_PATH.read_text(encoding="utf-8")
     else:
-        content = "# opencode-actions\n\n"
+        content = "# Opencode Modelselect\n\n"
 
     # Define markers for sections to replace
     sections = {

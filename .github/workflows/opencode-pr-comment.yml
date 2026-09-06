@@ -169,7 +169,7 @@ jobs:
         id: resolve
         if: steps.thread-check.outputs.is_bot_thread == 'true'
         continue-on-error: true
-        uses: dianlight/opencode-actions@v1
+        uses: dianlight/opencode-modelselect-action@v1
         with:
           task-type: pr-review
           tier: ${{ needs.route.outputs.tier }}
@@ -297,7 +297,7 @@ jobs:
       - name: Select model
         id: resolve
         continue-on-error: true
-        uses: dianlight/opencode-actions@v1
+        uses: dianlight/opencode-modelselect-action@v1
         with:
           task-type: pr-review
           tier: ${{ needs.route.outputs.tier }}
@@ -452,7 +452,7 @@ jobs:
       - name: Select model
         id: resolve
         continue-on-error: true
-        uses: dianlight/opencode-actions@v1
+        uses: dianlight/opencode-modelselect-action@v1
         with:
           task-type: code-implementation
           tier: ${{ steps.retry-parse.outputs.TIER || steps.parse.outputs.TIER }}

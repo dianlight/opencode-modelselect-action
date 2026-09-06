@@ -1,11 +1,16 @@
 ## [Unreleased]
+### Changed
+- Rename the project and repository to Opencode Modelselect
+  (`dianlight/opencode-modelselect-action`): update `action.yml` name,
+  `config-url` default, README, workflows, `package.json`, and User-Agent
+
 ### Added
 - New select-model GitHub Action (`action.yml` + `src/index.js`, Node 24, zero
   dependencies): preselect the OpenCode model for a `task-type` + `tier`
   (`go`/`free`) step before the OpenCode step, reading the live central
   `data/model-config.json`. Fails hard when the config is unreachable or the
   task-type has no entry (optional `fallback-model` escape hatch). Downstream
-  usage: `dianlight/opencode-actions@<tag>` with `task-type`/`tier` inputs,
+  usage: `dianlight/opencode-modelselect-action@<tag>` with `task-type`/`tier` inputs,
   then `model: ${{ steps.resolve.outputs.model }}` in the OpenCode step
 - Key the central `data/model-config.json` by task-type only
   (`task-types.<name>.{go,free}`) for all 11 task types, so any downstream
@@ -20,7 +25,7 @@
 ### Removed
 - Delete `.github/scripts/resolve-model.sh`; model resolution now lives in the
   select-model action. All active workflows use it (`uses: ./` here,
-  `dianlight/opencode-actions@<tag>` downstream) and it is dropped from
+  `dianlight/opencode-modelselect-action@<tag>` downstream) and it is dropped from
   `.github/sync.yml` since model selection needs no file sync
 - Drop the per-workflow `fix-suboptimal-configs` checkbox flow from maintenance
   issues: workflows no longer pin models, so `apply-model-config` is the only

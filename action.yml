@@ -1,4 +1,4 @@
-name: Select OpenCode model
+name: Opencode Modelselect
 description: >-
   Preselect the OpenCode model for a task class (task-type) and tier (go/free)
   from the central model config, before running the OpenCode action.
@@ -20,7 +20,7 @@ inputs:
   config-url:
     description: Remote URL of the central model config (live source of truth).
     required: false
-    default: https://raw.githubusercontent.com/dianlight/opencode-actions/main/data/model-config.json
+    default: https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json
   config-path:
     description: >-
       Local path (relative to GITHUB_WORKSPACE) of the central model config.

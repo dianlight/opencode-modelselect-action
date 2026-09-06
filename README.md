@@ -1,5 +1,5 @@
-# opencode-actions
-Main repository form my Opencode Github Actions to share to multiple repository and maintain in sync
+# Opencode Modelselect
+Main repository for my Opencode Modelselect Github Action, shared to multiple repositories and kept in sync
 
 ## Documentation
 
@@ -15,7 +15,7 @@ repo, so downstream workflows pick up model updates with no sync and no edits.
 ```yaml
 - name: Select model
   id: resolve
-  uses: dianlight/opencode-actions@v1
+  uses: dianlight/opencode-modelselect-action@v1
   with:
     task-type: pr-review # Plan, Ask, Code, issue-triage, issue-implementation,
       # pr-review, code-implementation, frontend-design, frontend-testing,
