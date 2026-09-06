@@ -118,6 +118,11 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
       - name: Check if this is a reply to an Opencode thread
         id: thread-check
         env:
@@ -160,15 +165,14 @@ jobs:
             echo "::warning::Not a bot thread — skipping Process 2"
           fi
 
-      - name: Resolve model
+      - name: Select model
         id: resolve
         if: steps.thread-check.outputs.is_bot_thread == 'true'
         continue-on-error: true
-        env:
-          TIER: ${{ needs.route.outputs.tier }}
-        run: |
-          chmod +x .github/scripts/resolve-model.sh 2>/dev/null || true
-          .github/scripts/resolve-model.sh opencode-pr-comment process-2 "${TIER}"
+        uses: dianlight/opencode-actions@v1
+        with:
+          task-type: pr-review
+          tier: ${{ needs.route.outputs.tier }}
 
       - name: Resolve model failure feedback
         if: steps.thread-check.outputs.is_bot_thread == 'true' && steps.resolve.outcome == 'failure'
@@ -203,7 +207,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENCODE_TRIGGER_BODY: ${{ github.event.comment.body }}
         with:
-          model: ${{ steps.resolve.outputs.MODEL }}
+          model: ${{ steps.resolve.outputs.model }}
           use_github_token: true
           prompt: |
             You are Process 2: PR Discussion (Bot Thread Reply).
@@ -290,14 +294,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Resolve model
+      - name: Select model
         id: resolve
         continue-on-error: true
-        env:
-          TIER: ${{ needs.route.outputs.tier }}
-        run: |
-          chmod +x .github/scripts/resolve-model.sh 2>/dev/null || true
-          .github/scripts/resolve-model.sh opencode-pr-comment process-3 "${TIER}"
+        uses: dianlight/opencode-actions@v1
+        with:
+          task-type: pr-review
+          tier: ${{ needs.route.outputs.tier }}
 
       - name: Resolve model failure feedback
         if: steps.resolve.outcome == 'failure'
@@ -331,7 +334,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENCODE_TRIGGER_BODY: ${{ github.event.comment.body }}
         with:
-          model: ${{ steps.resolve.outputs.MODEL }}
+          model: ${{ steps.resolve.outputs.model }}
           use_github_token: true
           prompt: |
             You are Process 3: PR Discussion (User Thread Takeover).
@@ -446,14 +449,13 @@ jobs:
           chmod +x .github/scripts/auth.sh 2>/dev/null || true
           .github/scripts/auth.sh "$PREV_BODY"
 
-      - name: Resolve model
+      - name: Select model
         id: resolve
         continue-on-error: true
-        env:
-          TIER: ${{ steps.retry-parse.outputs.TIER || steps.parse.outputs.TIER }}
-        run: |
-          chmod +x .github/scripts/resolve-model.sh 2>/dev/null || true
-          .github/scripts/resolve-model.sh opencode-pr-comment process-6 "${TIER}"
+        uses: dianlight/opencode-actions@v1
+        with:
+          task-type: code-implementation
+          tier: ${{ steps.retry-parse.outputs.TIER || steps.parse.outputs.TIER }}
 
       - name: Resolve model failure feedback
         if: steps.resolve.outcome == 'failure'
@@ -487,7 +489,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENCODE_TASK_ARGS: ${{ steps.retry-parse.outputs.TASK_ARGS || steps.parse.outputs.TASK_ARGS }}
         with:
-          model: ${{ steps.resolve.outputs.MODEL }}
+          model: ${{ steps.resolve.outputs.model }}
           use_github_token: true
           prompt: |
             You are Process 6: PR Task Execution.

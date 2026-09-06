@@ -13,7 +13,7 @@ group:
     - source: .github/workflows/opencode-issue-handler.yml
       dest: .github/workflows/opencode-issue-handler.yml
     # Shared scripts
+    # Only auth.sh is synced; model selection needs no sync — downstream
+    # workflows call the select-model action, which reads the live config here.
     - source: .github/scripts/auth.sh
       dest: .github/scripts/auth.sh
-    - source: .github/scripts/resolve-model.sh
-      dest: .github/scripts/resolve-model.sh

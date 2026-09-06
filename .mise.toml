@@ -22,7 +22,7 @@ run = "ruff check scripts/"
 description = "Lint all Python files with ruff"
 
 [tasks.lint-shell]
-run = "shellcheck .github/scripts/auth.sh .github/scripts/resolve-model.sh"
+  run = "shellcheck .github/scripts/auth.sh"
 description = "Lint all shell scripts with shellcheck"
 
 [tasks.lint-types]

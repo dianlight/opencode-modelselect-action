@@ -6,6 +6,33 @@ Main repository form my Opencode Github Actions to share to multiple repository 
 - [**Workflow Flows**](.github/workflows/WORKFLOWS.md) — End-to-end diagrams and
   descriptions of the six-process automation pipeline (review → discuss → work → task).
 
+## Select Model Action
+
+Preselect the OpenCode model for a task class and tier before running the
+OpenCode action. The config is keyed by task-type only and read live from this
+repo, so downstream workflows pick up model updates with no sync and no edits.
+
+```yaml
+- name: Select model
+  id: resolve
+  uses: dianlight/opencode-actions@v1
+  with:
+    task-type: pr-review # Plan, Ask, Code, issue-triage, issue-implementation,
+      # pr-review, code-implementation, frontend-design, frontend-testing,
+      # api-testing, other (matched case-insensitively)
+    tier: go # or free (/ocf)
+
+- uses: anomalyco/opencode/github@<sha>
+  with:
+    model: ${{ steps.resolve.outputs.model }}
+```
+
+Optional inputs: `config-url` (override the live config source), `config-path`
+(prefer a local checkout copy when present, default `data/model-config.json`),
+`fallback-model` (escape hatch when the task-type has no entry — otherwise the
+step fails hard). Outputs: `model`, `model-go`, `model-free`,
+`config-source`, `task-type`.
+
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.

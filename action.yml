@@ -1,0 +1,55 @@
+name: Select OpenCode model
+description: >-
+  Preselect the OpenCode model for a task class (task-type) and tier (go/free)
+  from the central model config, before running the OpenCode action.
+  Fails hard when no model can be resolved — a missing config is an error,
+  never a silent fallback.
+
+inputs:
+  task-type:
+    description: >-
+      Task class to select the model for. Must match a key of `task-types`
+      in the central model config (e.g. pr-review, issue-triage,
+      issue-implementation, code-implementation, Plan, Ask, Code, ...).
+      Matched case-insensitively.
+    required: true
+  tier:
+    description: "Model tier to select: go (paid) or free (/ocf)."
+    required: false
+    default: go
+  config-url:
+    description: Remote URL of the central model config (live source of truth).
+    required: false
+    default: https://raw.githubusercontent.com/dianlight/opencode-actions/main/data/model-config.json
+  config-path:
+    description: >-
+      Local path (relative to GITHUB_WORKSPACE) of the central model config.
+      When the file exists it wins over the remote URL.
+    required: false
+    default: data/model-config.json
+  fallback-model:
+    description: >-
+      Optional escape hatch used only when the task-type has no entry in the
+      config. Prefer adding the entry to data/model-config.json instead.
+    required: false
+    default: ""
+
+outputs:
+  model:
+    description: Resolved model for the requested tier (or the fallback).
+  model-go:
+    description: Resolved Go (paid) model for the task-type.
+  model-free:
+    description: Resolved free model for the task-type.
+  config-source:
+    description: "Where the config was loaded from: local, remote, local+fallback or remote+fallback."
+  task-type:
+    description: Canonical task-type key as found in the config.
+
+runs:
+  using: node24
+  main: src/index.js
+
+branding:
+  icon: cpu
+  color: blue

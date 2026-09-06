@@ -64,15 +64,14 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Resolve model
+      - name: Select model
         id: resolve
         if: steps.pr-check.outputs.skip != 'true'
         continue-on-error: true
-        env:
-          TIER: ${{ steps.parse.outputs.TIER }}
-        run: |
-          chmod +x .github/scripts/resolve-model.sh 2>/dev/null || true
-          .github/scripts/resolve-model.sh opencode-pr-review review "${TIER}"
+        uses: dianlight/opencode-actions@v1
+        with:
+          task-type: pr-review
+          tier: ${{ steps.parse.outputs.TIER }}
 
       - name: Resolve model failure feedback
         if: steps.pr-check.outputs.skip != 'true' && steps.resolve.outcome == 'failure'
@@ -106,7 +105,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: ${{ steps.resolve.outputs.MODEL }}
+          model: ${{ steps.resolve.outputs.model }}
           use_github_token: true
           share: ${{ github.event.repository.private == false }}
           prompt: |

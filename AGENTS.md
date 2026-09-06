@@ -2,7 +2,7 @@
 
 ## Repository purpose
 
-This repo distributes GitHub Actions workflows to multiple downstream repositories. It is **not** an application — it is a workflow distribution hub.
+This repo is a GitHub Action (`action.yml` at the root) that preselects the OpenCode model for a task class and tier, plus the workflow distribution hub that consumes it downstream.
 
 ## Active vs deprecated workflows
 
@@ -52,11 +52,11 @@ Authorization gate: all workflows require `author_association` in `OWNER/MEMBER/
 
 `.github/scripts/auth.sh` parses `/oc` (Go model) and `/ocf` (free model) commands and outputs `IS_OC_COMMAND`, `TIER`, `SUBCOMMAND`, and `TASK_ARGS` via `GITHUB_OUTPUT`.
 
-`.github/scripts/resolve-model.sh` resolves the model for a workflow step at startup from the central model config (`data/model-config.json`). There are **no default models**: if the config is unreachable or the entry is missing, the step fails hard and the workflow stops. Both scripts are synced to downstream repos via `.github/sync.yml`.
+The select-model action (`action.yml` + `src/index.js`, Node 24, zero dependencies) preselects the model for a `task-type` + `tier` (`go`/`free`) step before the OpenCode step, from the central model config (`data/model-config.json`). There are **no default models**: if the config is unreachable or the entry is missing, the step fails hard and the workflow stops (unless an explicit `fallback-model` input is given). Only `auth.sh` is synced to downstream repos via `.github/sync.yml`; model selection needs no sync since downstream workflows call this repo's action directly.
 
 ### Central model config
 
-`data/model-config.json` is the **actual configuration** consumed by every OpenCode step at startup via `resolve-model.sh` (`model: ${{ steps.resolve.outputs.MODEL }}`) — the audit marks these steps with ⚙️.
+`data/model-config.json` is the **actual configuration**, keyed by task-type only (`task-types.<name>.{go,free}`), consumed by every OpenCode step at startup via the select-model action (`model: ${{ steps.resolve.outputs.model }}`) — the audit marks these steps with ⚙️.
 
 The maintenance script computes a **proposed** config each run but never writes over the committed one. If the proposal differs, it saves `data/model-config.proposed.json` (gitignored) and the workflow opens/updates a maintenance issue with the diff. The config changes only through an issue + PR review: check the issue's "Apply the proposed model config update" box and OpenCode opens a PR — merging it is the human gate. The `Commit changes` step excludes `data/model-config.json` from the auto-commit.
 
@@ -82,7 +82,7 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 ## Workflow conventions
 
 - All OpenCode steps pin the action: `anomalyco/opencode/github@<sha>`
-- All OpenCode steps resolve their model at startup via `.github/scripts/resolve-model.sh`; the `with: model:` input is always `${{ steps.resolve.outputs.MODEL }}`
+- All OpenCode steps preselect their model via the select-model action (`uses: dianlight/opencode-actions@v1`, same ref here and downstream since workflows sync verbatim) with `task-type` + `tier` inputs; the `with: model:` input is always `${{ steps.resolve.outputs.model }}`
 - Concurrency groups are keyed by issue/PR number with `cancel-in-progress: false`
 - Every process step uses `continue-on-error: true` followed by reaction-on-success/failure steps
 - Issue titles are passed via `env:` (not inline substitution) to prevent shell injection
@@ -101,8 +101,8 @@ When updating `CHANGELOG.md`:
 
 - **Always run `mise run lint-yaml` after editing any YAML file** — the CI lints YAML and a `syntax error: could not find expected ':'` usually means a `|` block line broke out of the correct indent level
 - **Always run `mise run lint-python` after editing any Python file** — the CI checks Python with ruff
-- **Always run `mise run lint-shell` after editing any shell script** — the CI checks `.github/scripts/auth.sh` and `.github/scripts/resolve-model.sh` with shellcheck
-- Verify with `bash -n .github/scripts/auth.sh .github/scripts/resolve-model.sh` after changing the shared scripts
+- **Always run `mise run lint-shell` after editing any shell script** — the CI checks `.github/scripts/auth.sh` with shellcheck
+- Verify with `bash -n .github/scripts/auth.sh` after changing the shared script, and `node --check src/index.js` after changing the action
 
 ## Renovate
 

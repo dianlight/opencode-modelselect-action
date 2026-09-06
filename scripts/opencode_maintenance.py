@@ -44,7 +44,7 @@ WORKFLOW_SCAN_PATH = DATA_DIR / "workflow_scan.json"
 AUDIT_RESULTS_PATH = DATA_DIR / "audit_results.json"
 COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # Central model config consumed by downstream workflows at startup
-# (see .github/scripts/resolve-model.sh). This is real configuration: the
+# (see action.yml / src/index.js). This is real configuration: the
 # maintenance run never overwrites it — changes go through issue + PR review.
 MODEL_CONFIG_PATH = DATA_DIR / "model-config.json"
 # Proposed config written when the run recommends a change (gitignored).
@@ -634,9 +634,9 @@ def fetch_livebench() -> dict[str, Any]:
 MODEL_EXPR_RE = re.compile(
     r"\$\{\{[^}]*&&\s*'([^']+)'\s*\|\|\s*'([^']+)'\s*\}\}"
 )
-# Resolver reference: model: ${{ steps.<id>.outputs.<NAME> }} — the model is
-# resolved at workflow runtime from the central config (data/model-config.json)
-# via .github/scripts/resolve-model.sh.
+# Resolver reference: model: ${{ steps.<id>.outputs.model }} — the model is
+# preselected at workflow runtime from the central config
+# (data/model-config.json) via the select-model action (action.yml).
 AUTO_MODEL_RE = re.compile(r"\$\{\{\s*steps\.[^}]*\.outputs\.[^}]*\}\}")
 
 
@@ -648,9 +648,9 @@ def _parse_model_expression(model: str) -> tuple[str, str | None]:
     model (the primary, used for auditing) and the free model. Plain literal
     model pins are returned unchanged with free_model=None.
 
-    Steps that resolve the model at runtime from the central config
-    (`${{ steps.<id>.outputs.MODEL }}`) return ("__auto__", "__auto__");
-    the caller resolves them from data/model-config.json.
+    Steps that preselect the model at runtime from the central config
+    (`${{ steps.<id>.outputs.model }}`) return ("__auto__", "__auto__");
+    the caller resolves them from data/model-config.json by task type.
     """
     m = MODEL_EXPR_RE.search(model)
     if m:
@@ -701,21 +701,12 @@ def scan_workflows() -> list[dict[str, Any]]:
                     model, model_free = _parse_model_expression(
                         str(with_block.get("model") or "NOT_SET")
                     )
-                    # Resolver-based steps get their model from the central
-                    # config at runtime; resolve it here for auditing.
                     auto = model == "__auto__"
-                    if auto:
-                        resolved_go, resolved_free = resolve_auto_models(
-                            wf_file.stem, job_id
-                        )
-                        if resolved_go:
-                            model, model_free = resolved_go, resolved_free
-                        else:
-                            model_free = None
                     agent = str(with_block.get("agent") or "")
                     prompt = str(with_block.get("prompt") or "")[:500]
 
-                    # Auto-classify if not mapped
+                    # Task type first: action-preselected steps resolve
+                    # their model from the central config by task type.
                     # Check job-level override first
                     job_override_key = f"{stem}/{job_id}"
                     if job_override_key in job_task_overrides:
@@ -730,6 +721,15 @@ def scan_workflows() -> list[dict[str, Any]]:
                             prompt,
                             task_types,
                         )
+
+                    if auto:
+                        resolved_go, resolved_free = resolve_auto_models(
+                            task_type
+                        )
+                        if resolved_go:
+                            model, model_free = resolved_go, resolved_free
+                        else:
+                            model_free = None
 
                     results.append(
                         {
@@ -767,8 +767,8 @@ def scan_workflows() -> list[dict[str, Any]]:
 
 # Central Model Config ---
 # The maintenance run writes data/model-config.json — the single source of
-# truth for which model each workflow/job runs. Downstream workflows fetch it
-# at startup via .github/scripts/resolve-model.sh, which fails closed: no
+# truth for which model each task-type runs. Downstream workflows preselect it
+# at startup via the select-model action (action.yml), which fails closed: no
 # default models exist, so an unreachable or missing config aborts the step.
 _MODEL_CONFIG_CACHE: dict[str, Any] | None = None
 
@@ -787,16 +787,15 @@ def _load_model_config() -> dict[str, Any]:
     return _MODEL_CONFIG_CACHE
 
 
-def resolve_auto_models(
-    workflow_stem: str, job_id: str
-) -> tuple[str | None, str | None]:
-    """Resolve the (go, free) models for a resolver-based workflow step from
-    the central config. Returns (None, None) when no entry exists (e.g. on the
-    first run before the config has been generated)."""
-    entry = (
-        (_load_model_config().get("workflows") or {})
-        .get(workflow_stem, {})
-        .get(job_id)
+def resolve_auto_models(task_type: str) -> tuple[str | None, str | None]:
+    """Resolve the (go, free) models for an action-preselected workflow step
+    from the central config by task type (matched case-insensitively).
+    Returns (None, None) when no entry exists (e.g. on the first run before
+    the config has been generated)."""
+    table = _load_model_config().get("task-types") or {}
+    entry = next(
+        (v for k, v in table.items() if k.lower() == task_type.lower()),
+        None,
     )
     if not entry:
         return None, None
@@ -804,41 +803,39 @@ def resolve_auto_models(
 
 
 def generate_model_config(
-    scan_results: list[dict[str, Any]],
-    audit_results: list[dict[str, Any]],
-    go_ids: set[str],
+    free_models: list[dict[str, Any]],
+    go_models: list[dict[str, Any]],
     livebench: dict[str, Any],
+    task_types: list[dict[str, Any]],
+    threshold_pct: float,
+    go_ids: set[str],
 ) -> bool:
     """Compute the proposed central model config — without applying it.
 
     The committed data/model-config.json is the actual configuration and is
-    only changed through an issue + PR review, never automatically. Each entry
-    uses the audit recommendation for the step's task type (prefixed, e.g.
-    `opencode-go/kimi-k3`), falling back to the model currently pinned in the
-    workflow.
+    only changed through an issue + PR review, never automatically. It is
+    keyed by task-type only, so any downstream workflow can preselect a model
+    with the select-model action. Each entry uses the best free/paid models
+    for the task type (prefixed, e.g. `opencode-go/kimi-k3`) after the
+    free-first policy.
 
     Returns True when the proposal differs from the committed config (the
     proposal is saved to data/model-config.proposed.json so the workflow can
     open a review issue, and the committed file is left untouched).
     """
-    workflows: dict[str, Any] = {}
-    for r, entry in zip(scan_results, audit_results):
-        if "error" in r or "job_id" not in r:
-            continue
-        stem = Path(r["file"]).stem
-        go_model = None
-        free_model = None
-        if entry.get("recommended_go"):
-            go_model = _add_model_prefix(entry["recommended_go"], go_ids)
-        elif entry.get("current_model") and entry["current_model"] != "__auto__":
-            go_model = entry["current_model"]
-        if entry.get("recommended_free"):
-            free_model = _add_model_prefix(entry["recommended_free"], go_ids)
-        elif entry.get("current_model_free") and entry["current_model_free"] != "__auto__":
-            free_model = entry["current_model_free"]
-        workflows.setdefault(stem, {})[r["job_id"]] = {
-            "go": go_model,
-            "free": free_model,
+    task_map: dict[str, Any] = {}
+    for tt in task_types:
+        name = tt["name"]
+        priority = tt.get("priority", "overall")
+        best_free, best_go = get_best_models_for_task(
+            name, free_models, go_models, livebench, task_types
+        )
+        best_free, best_go = apply_free_first_rule(
+            best_free, best_go, livebench, priority, threshold_pct
+        )
+        task_map[name] = {
+            "go": _add_model_prefix(best_go, go_ids) if best_go else None,
+            "free": _add_model_prefix(best_free, go_ids) if best_free else None,
         }
 
     proposed = {
@@ -846,19 +843,19 @@ def generate_model_config(
         "livebench_snapshot": livebench.get("_snapshot_date")
         if isinstance(livebench, dict)
         else None,
-        "workflows": workflows,
+        "task-types": task_map,
     }
 
     if not MODEL_CONFIG_PATH.exists():
-        # No committed config yet: the resolver fails closed without one, so
+        # No committed config yet: the action fails closed without one, so
         # the proposal must land via PR too — never write it in place.
         save_json(MODEL_CONFIG_PROPOSED_PATH, proposed)
         print(f"  ! No committed config found — proposal saved to {MODEL_CONFIG_PROPOSED_PATH} (add via issue + PR review)")
         return True
 
     current = _load_model_config()
-    current_workflows = current.get("workflows") or {}
-    if current_workflows == proposed["workflows"]:
+    current_task_types = current.get("task-types") or {}
+    if current_task_types == proposed["task-types"]:
         print("  v Central model config unchanged")
         return False
 
@@ -1658,8 +1655,8 @@ def generate_workflow_audit_table(
         + "\u274c Error (wrong model) \u00b7 "
         + "\U0001f480 Fatal (model not set). "
         + "\U0001f3c6 marks the preferred model after free-first policy (free within 5% of best Go \u2192 prefer free). "
-        + "\u2699\ufe0f marks steps resolved at runtime from the central config "
-        + "(`data/model-config.json`). "
+        + "\u2699\ufe0f marks steps preselected at runtime from the central config "
+        + "(`data/model-config.json`) via the select-model action. "
         + "Recommended Zen shows best Zen model with score difference vs current model (e.g., `model (+15%)`)._"
     )
 
@@ -1805,15 +1802,13 @@ def main() -> None:
             (t["priority"] for t in task_types if t["name"] == task_type), "overall"
         )
 
-        # Resolver-based steps (model from central config) that could not be
-        # resolved from the committed config are treated as optimal.
-        if current == "__auto__":
-            status = "\u2705"
-        else:
-            status = classify_model_status(
-                current, best_free, best_go,
-                free_ids=free_ids,
-            )
+        # Action-preselected steps resolve their model from the central
+        # config by task type during the scan, so `current` is directly
+        # comparable — including "__auto__" leftovers, which score fatal.
+        status = classify_model_status(
+            current, best_free, best_go,
+            free_ids=free_ids,
+        )
 
         # Determine preferred tier and compute % diff
         if best_free and best_go and best_free == best_go:
@@ -1863,7 +1858,7 @@ def main() -> None:
     # 7b. Compute the proposed central model config — never applied to the
     # committed file; drift is reported (not applied) and flows into the issue.
     config_drift = generate_model_config(
-        scan_results, audit_results, go_ids, livebench
+        free_models, go_models, livebench, task_types, threshold_pct, go_ids
     )
 
     save_json(
@@ -1887,8 +1882,8 @@ def main() -> None:
                 "livebench_snapshot": livebench.get("_snapshot_date")
                 if isinstance(livebench, dict)
                 else None,
-                "current_workflows": (
-                    (_load_model_config().get("workflows") or {})
+                "current_task_types": (
+                    (_load_model_config().get("task-types") or {})
                     if config_drift
                     else {}
                 ),

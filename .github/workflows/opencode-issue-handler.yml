@@ -106,14 +106,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Resolve model
+      - name: Select model
         id: resolve
         continue-on-error: true
-        env:
-          TIER: ${{ needs.route.outputs.tier }}
-        run: |
-          chmod +x .github/scripts/resolve-model.sh 2>/dev/null || true
-          .github/scripts/resolve-model.sh opencode-issue-handler process-4 "${TIER}"
+        uses: dianlight/opencode-actions@v1
+        with:
+          task-type: issue-triage
+          tier: ${{ needs.route.outputs.tier }}
 
       - name: Resolve model failure feedback
         if: steps.resolve.outcome == 'failure'
@@ -146,7 +145,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           OPENCODE_TRIGGER_BODY: ${{ github.event.comment.body }}
         with:
-          model: ${{ steps.resolve.outputs.MODEL }}
+          model: ${{ steps.resolve.outputs.model }}
           prompt: |
             You are Process 4: Issue Review & Refinement. Read-only.
             Output is issue timeline comments only.
@@ -234,14 +233,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Resolve model
+      - name: Select model
         id: resolve
         continue-on-error: true
-        env:
-          TIER: ${{ needs.route.outputs.tier }}
-        run: |
-          chmod +x .github/scripts/resolve-model.sh 2>/dev/null || true
-          .github/scripts/resolve-model.sh opencode-issue-handler process-5 "${TIER}"
+        uses: dianlight/opencode-actions@v1
+        with:
+          task-type: issue-implementation
+          tier: ${{ needs.route.outputs.tier }}
 
       - name: Resolve model failure feedback
         if: steps.resolve.outcome == 'failure'
@@ -277,7 +275,7 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         with:
-          model: ${{ steps.resolve.outputs.MODEL }}
+          model: ${{ steps.resolve.outputs.model }}
           use_github_token: true
           prompt: |
             You are Process 5: Issue Work — Task Orchestration.

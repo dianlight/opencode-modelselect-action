@@ -48,7 +48,7 @@ jobs:
 
       # ── Lint Shell scripts ─────────────────────────────────────────────────
       - name: Lint Shell scripts
-        run: shellcheck .github/scripts/auth.sh .github/scripts/resolve-model.sh
+        run: shellcheck .github/scripts/auth.sh
 
       # ── Run maintenance script ───────────────────────────────────────────
       # The script:
@@ -142,7 +142,7 @@ jobs:
               "",
           ]
 
-          has_tasks = bool(missing or suboptimal or drift_detected)
+          has_tasks = bool(missing or drift_detected)
 
           if has_tasks:
               lines.append("## \u2705 Tasks")
@@ -170,59 +170,18 @@ jobs:
               )
               lines.append("")
 
-          if suboptimal:
+          if suboptimal and not drift_detected:
+              # Workflows no longer pin models (the select-model action
+              # preselects them by task-type), so a suboptimal step without
+              # config drift has no checkbox fix — it is listed in the
+              # summary table below for manual inspection.
               lines.append("### \u26a0\ufe0f Suboptimal Workflow Configurations")
               lines.append("")
               lines.append(
-                  "Each job below uses a non-optimal model. Check the ones you want fixed."
+                  "The steps in the table below resolve to a non-optimal "
+                  "model. Check **Apply the proposed model config update** "
+                  "if shown, otherwise inspect them manually."
               )
-              lines.append("")
-
-              def prefixed(mid, tier):
-                  """Prefix a raw model id for display (matches README style)."""
-                  if not mid or mid == '\u2014' or '/' in mid:
-                      return mid
-                  return f"opencode-go/{mid}" if tier == 'go' else f"opencode/{mid}"
-
-              def fmt_rec(mid, tier):
-                  """Recommendation cell (README rules)."""
-                  mid = prefixed(mid, tier)
-                  return f"`{mid}`"
-
-              def rec_line(wf, job, current, model, tier, suffix):
-                  """Checkbox targeting a specific model (machine-detectable)."""
-                  return (
-                      f"- [ ] **`{wf}` / `{job}`** \u2014 "
-                      f"Change from `{current}` to `{prefixed(model, tier)}` {suffix}"
-                  )
-
-              for r in suboptimal:
-                  wf = r['workflow']
-                  job = r['job']
-                  current = r['current_model']
-                  rec_free = r.get('recommended_free') or '\u2014'
-                  rec_go = r.get('recommended_go') or '\u2014'
-                  pref = r.get('preferred_tier')
-                  diff = r.get('preferred_diff')
-                  diff_str = f" (+{diff}%)" if diff and diff > 0 else ""
-                  if pref == 'go':
-                      rec, tier = rec_go, 'go'
-                      tier_label = f"Go tier{diff_str}"
-                  elif pref == 'free':
-                      rec, tier = rec_free, 'free'
-                      tier_label = "Free tier"
-                  else:
-                      rec_free_cell = fmt_rec(rec_free, 'free')
-                      rec_go_cell = fmt_rec(rec_go, 'go')
-                      recommendation = f"{rec_free_cell} or {rec_go_cell}"
-                      lines.append(
-                          f"- [ ] **`{wf}` / `{job}`** \u2014 "
-                          f"Change from `{current}` to {recommendation}"
-                      )
-                      continue
-                  lines.append(
-                      rec_line(wf, job, current, rec, tier, f"({tier_label})")
-                  )
               lines.append("")
 
           if drift_detected:
@@ -248,20 +207,19 @@ jobs:
               )
               lines.append("")
               rows = []
-              for stem, jobs in (proposed_cfg.get("workflows") or {}).items():
-                  for job_id, pair in (jobs or {}).items():
-                      cur_entry = (drift.get("current_workflows") or {}).get(stem, {}).get(job_id, {})
-                      for tier in ("go", "free"):
-                          cur_model = (cur_entry or {}).get(tier) or "\u2014"
-                          prop_model = (pair or {}).get(tier) or "\u2014"
-                          if cur_model != prop_model:
-                              rows.append((stem, job_id, tier, cur_model, prop_model))
+              for task_type, pair in (proposed_cfg.get("task-types") or {}).items():
+                  cur_entry = (drift.get("current_task_types") or {}).get(task_type, {})
+                  for tier in ("go", "free"):
+                      cur_model = (cur_entry or {}).get(tier) or "\u2014"
+                      prop_model = (pair or {}).get(tier) or "\u2014"
+                      if cur_model != prop_model:
+                          rows.append((task_type, tier, cur_model, prop_model))
               if rows:
-                  lines.append("| Workflow / Job | Tier | Current | Proposed |")
-                  lines.append("|----------------|------|---------|----------|")
-                  for stem, job_id, tier, cur_model, prop_model in rows:
+                  lines.append("| Task Type | Tier | Current | Proposed |")
+                  lines.append("|-----------|------|---------|----------|")
+                  for task_type, tier, cur_model, prop_model in rows:
                       lines.append(
-                          f"| `{stem}` / `{job_id}` | {tier} | `{cur_model}` | `{prop_model}` |"
+                          f"| `{task_type}` | {tier} | `{cur_model}` | `{prop_model}` |"
                       )
                   lines.append("")
               lines.append("Proposed `data/model-config.json`:")
@@ -459,30 +417,14 @@ jobs:
           fi
 
           TASKS=""
-          JOB_IDS=""
-          JOB_MODELS=""
 
           # Detect search-missing-scores checkbox
           if grep -qE '^\s*- \[x] \*\*Search the web for missing score data\*\*' /tmp/issue_body.txt; then
             TASKS="search-missing-scores"
           fi
 
-          # Detect fix-suboptimal-configs (any checked job checkbox)
-          if grep -qE '^\s*- \[x] \*\*`[^`]+` / `[^`]+`\*\*' /tmp/issue_body.txt; then
-            if [ -n "$TASKS" ]; then
-              TASKS="${TASKS},fix-suboptimal-configs"
-            else
-              TASKS="fix-suboptimal-configs"
-            fi
-            JOB_IDS=$(grep -oE '\- \[x] \*\*`[^`]+` / `[^`]+`\*\*' /tmp/issue_body.txt | \
-              sed 's/- \[x] \*\*`//;s/` \/ `/\//;s/`\*\*//' | paste -sd ',' -)
-            # Extract the checked target model per checkbox (" to `MODEL`"),
-            # positionally aligned with JOB_IDS.
-            JOB_MODELS=$(grep -oE '\- \[x] \*\*`[^`]+` / `[^`]+`\*\*.* to `[^`]+`' /tmp/issue_body.txt | \
-              sed 's/.* to `\([^`]*\)`.*/\1/' | paste -sd ',' -)
-          fi
-
-          # Detect apply-model-config checkbox (proposed config update)
+          # Detect apply-model-config checkbox (proposed config update).
+          # Workflows no longer pin models, so this is the only model fix path.
           if grep -qE '^\s*- \[x] \*\*Apply the proposed model config update\*\*' /tmp/issue_body.txt; then
             if [ -n "$TASKS" ]; then
               TASKS="${TASKS},apply-model-config"
@@ -492,8 +434,6 @@ jobs:
           fi
 
           echo "tasks=$TASKS" >> "$GITHUB_OUTPUT"
-          echo "job_ids=$JOB_IDS" >> "$GITHUB_OUTPUT"
-          echo "job_models=$JOB_MODELS" >> "$GITHUB_OUTPUT"
 
       - name: No tasks checked
         if: steps.detect.outputs.tasks == ''
@@ -505,12 +445,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Resolve model
+      - name: Select model
         id: resolve
         if: steps.detect.outputs.tasks != ''
-        run: |
-          chmod +x .github/scripts/resolve-model.sh 2>/dev/null || true
-          .github/scripts/resolve-model.sh opencode-maintenance handle-checkbox-task "go"
+        uses: dianlight/opencode-actions@v1
+        with:
+          task-type: code-implementation
+          tier: go
 
       - name: Run OpenCode for checked tasks
         if: steps.detect.outputs.tasks != ''
@@ -522,11 +463,9 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CHECKED_TASKS: ${{ steps.detect.outputs.tasks }}
-          CHECKED_JOB_IDS: ${{ steps.detect.outputs.job_ids }}
-          CHECKED_JOB_MODELS: ${{ steps.detect.outputs.job_models }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         with:
-          model: ${{ steps.resolve.outputs.MODEL }}
+          model: ${{ steps.resolve.outputs.model }}
           use_github_token: true
           prompt: |
             You are triggered by a user checking task checkboxes in a maintenance issue.
@@ -534,8 +473,6 @@ jobs:
             Repo: ${{ github.repository }}
             Issue: #${{ github.event.issue.number }}
             Tasks: env \`CHECKED_TASKS\` (comma-separated list)
-            Targeted jobs (for fix-suboptimal-configs): env \`CHECKED_JOB_IDS\`
-            Target model per targeted job (positionally aligned): env \`CHECKED_JOB_MODELS\`
 
             Read the issue body and its comments to find the checked tasks:
             \`gh issue view $ISSUE_NUMBER --json body,comments --jq .\`
@@ -545,14 +482,6 @@ jobs:
             1. Read the "Models Missing Score Data" section from the issue
             2. Search the web for benchmark scores for each listed model
             3. Update \`config/model-scores.yaml\` with the discovered scores
-            4. Run \`python scripts/opencode_maintenance.py\` to verify
-
-            If "fix-suboptimal-configs" is in CHECKED_TASKS:
-            1. Read the "Suboptimal Workflow Configurations" section from the issue
-            2. Pair each targeted job (from CHECKED_JOB_IDS) with its checked target
-               model (from CHECKED_JOB_MODELS, same order) and update the workflow
-               YAML file to use EXACTLY that checked model — do not substitute
-            3. Commit and push changes
             4. Run \`python scripts/opencode_maintenance.py\` to verify
 
             If "apply-model-config" is in CHECKED_TASKS:
