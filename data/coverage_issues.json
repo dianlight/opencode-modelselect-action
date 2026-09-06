@@ -1,42 +1,9 @@
 {
-  "stale_fallback": [
-    {
-      "model": "qwen3.8-max",
-      "livebench_scores": {
-        "coding": 67.9,
-        "reasoning": 87.9,
-        "vision": 58.6,
-        "instruction_following": 77.2,
-        "overall": 79.5
-      }
-    },
-    {
-      "model": "qwen3.8-max-free",
-      "livebench_scores": {
-        "coding": 67.9,
-        "reasoning": 87.9,
-        "vision": 58.6,
-        "instruction_following": 77.2,
-        "overall": 79.5
-      }
-    }
-  ],
+  "stale_fallback": [],
   "missing_scores": [],
   "missing_prices": [
     {
-      "model": "hy3",
-      "tier": "Go (Paid)"
-    },
-    {
       "model": "hy3-preview",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "hy4-preview",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "longcat-2.0",
       "tier": "Go (Paid)"
     },
     {
@@ -45,42 +12,6 @@
     },
     {
       "model": "mimo-v2-pro",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "mimo-v2.5",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "mimo-v2.5-pro",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "muse-spark-1.2-contributor",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "muse-spark-1.3-contributor",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "omen-alpha",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "qwen3.7-max",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "qwen3.7-plus",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "qwen3.8-flash",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "qwen3.8-max",
       "tier": "Go (Paid)"
     }
   ]

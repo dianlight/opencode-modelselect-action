@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-06T10:13:41.290527+00:00",
+  "timestamp": "2026-09-06T10:30:07.573180+00:00",
   "livebench_snapshot": "2026_06_25",
   "livebench_source": "https://livebench.ai/table_2026_06_25.csv",
   "livebench_models": 341,
@@ -14,18 +14,18 @@
   "steps_audited": 1,
   "model_config_drift": {
     "detected": true,
-    "timestamp": "2026-09-06T10:13:41.290538+00:00",
+    "timestamp": "2026-09-06T10:30:07.573187+00:00",
     "livebench_snapshot": "2026_06_25",
     "current_task_types": {
-      "Plan": {
+      "plan": {
         "go": "opencode-go/qwen3.8-max",
         "free": "opencode/deepseek-v4-flash-free"
       },
-      "Ask": {
+      "generic": {
         "go": "opencode-go/qwen3.8-max",
         "free": "opencode/deepseek-v4-flash-free"
       },
-      "Code": {
+      "code": {
         "go": "opencode/big-pickle",
         "free": "opencode/big-pickle"
       },
@@ -33,23 +33,15 @@
         "go": "opencode-go/qwen3.8-max",
         "free": "opencode/deepseek-v4-flash-free"
       },
-      "issue-implementation": {
-        "go": "opencode/big-pickle",
-        "free": "opencode/big-pickle"
-      },
-      "pr-review": {
+      "review": {
         "go": "opencode-go/qwen3.8-max",
         "free": "opencode/deepseek-v4-flash-free"
       },
-      "code-implementation": {
-        "go": "opencode/big-pickle",
-        "free": "opencode/big-pickle"
-      },
-      "frontend-design": {
+      "ui-design": {
         "go": "opencode-go/kimi-k3",
         "free": "opencode/mimo-v2.5-free"
       },
-      "frontend-testing": {
+      "ui-testing": {
         "go": "opencode/big-pickle",
         "free": "opencode/big-pickle"
       },
@@ -57,8 +49,20 @@
         "go": "opencode/big-pickle",
         "free": "opencode/big-pickle"
       },
-      "other": {
-        "go": "opencode-go/kimi-k3",
+      "docs": {
+        "go": "opencode-go/qwen3.8-max",
+        "free": "opencode/deepseek-v4-flash-free"
+      },
+      "debug": {
+        "go": "opencode/big-pickle",
+        "free": "opencode/big-pickle"
+      },
+      "refactor": {
+        "go": "opencode/big-pickle",
+        "free": "opencode/big-pickle"
+      },
+      "security": {
+        "go": "opencode-go/qwen3.8-max",
         "free": "opencode/deepseek-v4-flash-free"
       }
     }
@@ -69,7 +73,7 @@
       "workflow": "OpenCode Maintenance",
       "job": "Handle Checked Tasks",
       "step": "Run OpenCode for checked tasks",
-      "task_type": "code-implementation",
+      "task_type": "code",
       "current_model": "opencode/big-pickle",
       "current_model_free": "opencode/big-pickle",
       "auto": true,

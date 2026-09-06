@@ -3,212 +3,488 @@
     {
       "id": "minimax-m3",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.30",
+        "output": "$1.20",
+        "cached_read": "$0.06",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "minimax-m2.7",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.30",
+        "output": "$1.20",
+        "cached_read": "$0.06",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "minimax-m2.5",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.30",
+        "output": "$1.20",
+        "cached_read": "$0.06",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "kimi-k3",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$3.00",
+        "output": "$15.00",
+        "cached_read": "$0.30",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "kimi-k2.7-code",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.95",
+        "output": "$4.00",
+        "cached_read": "$0.19",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "kimi-k2.6",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.95",
+        "output": "$4.00",
+        "cached_read": "$0.16",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "longcat-2.0",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.30",
+        "output": "$1.20",
+        "cached_read": "$0.006",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "kimi-k2.5",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.60",
+        "output": "$3.00",
+        "cached_read": "$0.10",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "glm-5.2",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$1.40",
+        "output": "$4.40",
+        "cached_read": "$0.26",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "glm-5.3-flash",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.15",
+        "output": "$0.50",
+        "cached_read": "$0.03",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "glm-5.3",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$1.40",
+        "output": "$4.40",
+        "cached_read": "$0.26",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "glm-5.1",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$1.40",
+        "output": "$4.40",
+        "cached_read": "$0.26",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "glm-5",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$1.00",
+        "output": "$3.20",
+        "cached_read": "$0.20",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "deepseek-v4-pro",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$1.74",
+        "output": "$3.48",
+        "cached_read": "$0.145",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "deepseek-v4-flash",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.14",
+        "output": "$0.28",
+        "cached_read": "$0.028",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "deepseek-v4-flash-vision-exp",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.14",
+        "output": "$0.28",
+        "cached_read": "$0.028",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "qwen3.7-max",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$2.50",
+        "output": "$7.50",
+        "cached_read": "$0.50",
+        "cached_write": "$3.125",
+        "free": false
+      }
     },
     {
       "id": "qwen3.8-max",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$2.00",
+        "output": "$6.00",
+        "cached_read": "$0.25",
+        "cached_write": "$2.50",
+        "free": false
+      }
     },
     {
       "id": "qwen3.8-flash",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.15",
+        "output": "$0.47",
+        "cached_read": "$0.016",
+        "cached_write": "$0.20",
+        "free": false
+      }
     },
     {
       "id": "qwen3.7-plus",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.40",
+        "output": "$1.60",
+        "cached_read": "$0.04",
+        "cached_write": "$0.50",
+        "free": false
+      }
     },
     {
       "id": "qwen3.6-plus",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.50",
+        "output": "$3.00",
+        "cached_read": "$0.05",
+        "cached_write": "$0.625",
+        "free": false
+      }
     },
     {
       "id": "qwen3.5-plus",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.20",
+        "output": "$1.20",
+        "cached_read": "$0.02",
+        "cached_write": "$0.25",
+        "free": false
+      }
     },
     {
       "id": "mimo-v2-pro",
       "object": "model",
-      "created": 1788689620,
+      "created": 1788690604,
       "owned_by": "opencode"
     },
     {
       "id": "mimo-v2-omni",
       "object": "model",
-      "created": 1788689620,
+      "created": 1788690604,
       "owned_by": "opencode"
     },
     {
       "id": "mimo-v2.5-pro",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.435",
+        "output": "$0.87",
+        "cached_read": "$0.003625",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "mimo-v2.5",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.14",
+        "output": "$0.28",
+        "cached_read": "$0.0028",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "hy4-preview",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.834",
+        "output": "$2.501",
+        "cached_read": "$0.042",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "hy3",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.14",
+        "output": "$0.58",
+        "cached_read": "$0.035",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "hy3-preview",
       "object": "model",
-      "created": 1788689620,
+      "created": 1788690604,
       "owned_by": "opencode"
     },
     {
       "id": "gpt-5.6-luna",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.20",
+        "output": "$1.20",
+        "cached_read": "$0.02",
+        "cached_write": "$0.25",
+        "free": false,
+        "tiers": [
+          {
+            "range": "\u2264 272K tokens",
+            "input": "$0.20",
+            "output": "$1.20",
+            "cached_read": "$0.02",
+            "cached_write": "$0.25",
+            "free": false
+          },
+          {
+            "range": "> 272K tokens",
+            "input": "$0.40",
+            "output": "$1.80",
+            "cached_read": "$0.04",
+            "cached_write": "$0.50"
+          }
+        ]
+      }
     },
     {
       "id": "grok-4.5",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$2.00",
+        "output": "$6.00",
+        "cached_read": "$0.30",
+        "cached_write": null,
+        "free": false,
+        "tiers": [
+          {
+            "range": "\u2264 200K tokens",
+            "input": "$2.00",
+            "output": "$6.00",
+            "cached_read": "$0.30",
+            "cached_write": null,
+            "free": false
+          },
+          {
+            "range": "> 200K tokens",
+            "input": "$4.00",
+            "output": "$12.00",
+            "cached_read": "$0.60",
+            "cached_write": null
+          }
+        ]
+      }
     },
     {
       "id": "grok-4.6",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$2.00",
+        "output": "$6.00",
+        "cached_read": "$0.50",
+        "cached_write": null,
+        "free": false,
+        "tiers": [
+          {
+            "range": "\u2264 200K tokens",
+            "input": "$2.00",
+            "output": "$6.00",
+            "cached_read": "$0.50",
+            "cached_write": null,
+            "free": false
+          },
+          {
+            "range": "> 200K tokens",
+            "input": "$4.00",
+            "output": "$12.00",
+            "cached_read": "$1.00",
+            "cached_write": null
+          }
+        ]
+      }
     },
     {
       "id": "muse-spark-1.3-contributor",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.10",
+        "output": "$0.20",
+        "cached_read": "$0.002",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "muse-spark-1.2-contributor",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.10",
+        "output": "$0.20",
+        "cached_read": "$0.002",
+        "cached_write": null,
+        "free": false
+      }
     },
     {
       "id": "omen-alpha",
       "object": "model",
-      "created": 1788689620,
-      "owned_by": "opencode"
+      "created": 1788690604,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "$0.20",
+        "output": "$0.66",
+        "cached_read": "$0.04",
+        "cached_write": null,
+        "free": false
+      }
     }
-  ]
+  ],
+  "pricing_source": "https://opencode.ai/docs/go"
 }

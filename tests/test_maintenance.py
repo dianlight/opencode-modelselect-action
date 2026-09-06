@@ -547,5 +547,112 @@ class DetectCoverageTest(unittest.TestCase):
         self.assertEqual(issues["missing_prices"], [{"model": "paid-x", "tier": "Go (Paid)"}])
 
 
+class CanonicalBaseTest(unittest.TestCase):
+    def test_tier_variants(self):
+        self.assertEqual(m._canonical_model_base("muse-spark-1.3-contributor"), "muse-spark-1.3")
+        self.assertEqual(
+            m._canonical_model_base("opencode/muse-spark-1.3-contributor-free"),
+            "muse-spark-1.3",
+        )
+        self.assertEqual(m._canonical_model_base("foo-unlimited"), "foo")
+        self.assertEqual(m._canonical_model_base("deepseek-v4-flash-free"), "deepseek-v4-flash")
+
+    def test_effort_suffixes(self):
+        self.assertEqual(m._canonical_model_base("muse-spark-1.3-xhigh"), "muse-spark-1.3")
+        self.assertEqual(m._canonical_model_base("claude-opus-4-8-max-effort"), "claude-opus-4-8")
+        self.assertEqual(m._canonical_model_base("gpt-5-high"), "gpt-5")
+        # size tokens are kept: nano/mini are part of the base name
+        self.assertEqual(m._canonical_model_base("gpt-5.4-nano-xhigh"), "gpt-5.4-nano")
+
+    def test_nx_and_dates(self):
+        self.assertEqual(m._canonical_model_base("foo-2x"), "foo")
+        self.assertEqual(m._canonical_model_base("foo-10x"), "foo")
+        self.assertEqual(m._canonical_model_base("gpt-5.2-2025-12-11-high"), "gpt-5.2")
+        self.assertEqual(m._parse_nx_multiplier("foo-2x"), ("foo", 2))
+        self.assertIsNone(m._parse_nx_multiplier("foo"))
+        self.assertIsNone(m._parse_nx_multiplier("foo-0x"))
+
+    def test_canonical_score_match(self):
+        saved = m._FALLBACK_CACHE
+        m._FALLBACK_CACHE = {}
+        try:
+            lb = {"models": {"muse-spark-1.3-xhigh": {"overall": 82.4}}}
+            self.assertEqual(
+                m.get_model_score("muse-spark-1.3-contributor", lb, "overall"), 82.4
+            )
+            self.assertEqual(
+                m.get_model_score("opencode/muse-spark-1.3-contributor-free", lb, "overall"),
+                82.4,
+            )
+            self.assertEqual(
+                m.get_model_source("muse-spark-1.3-contributor", lb), "livebench"
+            )
+        finally:
+            m._FALLBACK_CACHE = saved
+
+    def test_canonical_prefers_best_row(self):
+        saved = m._FALLBACK_CACHE
+        m._FALLBACK_CACHE = {}
+        try:
+            lb = {
+                "models": {
+                    "muse-spark-1.3-high": {"overall": 70.0},
+                    "muse-spark-1.3-xhigh": {"overall": 82.4},
+                }
+            }
+            self.assertEqual(
+                m.get_model_score("muse-spark-1.3-contributor", lb, "overall"), 82.4
+            )
+        finally:
+            m._FALLBACK_CACHE = saved
+
+
+class CanonicalPriceTest(unittest.TestCase):
+    def test_variant_fallback(self):
+        lookup = {"foo": {"input": 1.0, "output": 2.0}}
+        self.assertEqual(m._lookup_price("foo-contributor", lookup), (1.0, 2.0))
+        self.assertEqual(m._lookup_price("foo-unlimited", lookup), (1.0, 2.0))
+        self.assertEqual(m._lookup_price("opencode/foo-free", lookup), (1.0, 2.0))
+
+    def test_nx_scales_base(self):
+        lookup = {"foo": {"input": 1.0, "output": 2.0}}
+        self.assertEqual(m._lookup_price("foo-2x", lookup), (2.0, 4.0))
+        self.assertEqual(m._lookup_price("foo-3x", lookup), (3.0, 6.0))
+
+    def test_go_models_merged(self):
+        zen = [{"id": "base-a", "pricing": {"input": "$1.00", "output": "$2.00"}}]
+        go = [{"id": "go-only", "pricing": {"input": "$0.10", "output": "$0.20"}}]
+        lookup = m._build_price_lookup(zen, go_models=go)
+        self.assertEqual(m._lookup_price("go-only", lookup), (0.1, 0.2))
+        self.assertEqual(m._lookup_price("opencode-go/go-only", lookup), (0.1, 0.2))
+
+
+class GoPricingParseTest(unittest.TestCase):
+    HTML = (
+        "<table><tr><th>Model</th><th>Model ID</th></tr>"
+        "<tr><td>Muse Spark 1.3 Contributor</td><td>muse-spark-1.3-contributor</td></tr></table>"
+        "<table><tr><th>Model</th><th>Input</th><th>Output</th>"
+        "<th>Cached Read</th><th>Cached Write</th><th>Usage</th></tr>"
+        "<tr><td>Muse Spark 1.3 Contributor</td><td>$0.10</td><td>$0.20</td>"
+        "<td>$0.002</td><td>-</td><td>$60</td></tr></table>"
+    )
+
+    def test_parse_go_table_with_usage_column(self):
+        pricing = m._parse_pricing_html(self.HTML)
+        self.assertEqual(pricing["muse-spark-1.3-contributor"]["input"], "$0.10")
+        self.assertEqual(pricing["muse-spark-1.3-contributor"]["output"], "$0.20")
+        self.assertIsNone(pricing["muse-spark-1.3-contributor"]["cached_write"])
+
+    def test_fetch_go_pricing_unreachable(self):
+        with patch.object(m, "fetch_text", return_value=None):
+            self.assertIsNone(m.fetch_go_pricing())
+
+    def test_fetch_go_pricing_parses(self):
+        with patch.object(m, "fetch_text", return_value=self.HTML):
+            pricing = m.fetch_go_pricing()
+        assert pricing is not None
+        self.assertIn("muse-spark-1.3-contributor", pricing)
+
+
 if __name__ == "__main__":
     unittest.main()

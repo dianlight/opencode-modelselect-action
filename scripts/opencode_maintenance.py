@@ -58,6 +58,10 @@ GO_URL = "https://opencode.ai/zen/go/v1/models"
 # list models published as "Free" that do NOT carry the `-free` suffix
 # (e.g. `big-pickle`); those must be treated as usable free models.
 ZEN_PRICING_URL = "https://opencode.ai/docs/it/zen#pricing"
+# Go docs page carries the paid Go-tier prices (e.g. `muse-spark-1.3-contributor`
+# at $0.10/$0.20) that have no row on the Zen pricing page. Same table shape
+# plus an extra trailing "Usage" column.
+GO_PRICING_URL = "https://opencode.ai/docs/go"
 LIVEBENCH_BASE = "https://livebench.ai"
 # LiveBench/LiveBench changelog is a secondary date hint (lags the live site)
 LIVEBENCH_CHANGELOG_URL = (
@@ -365,22 +369,8 @@ def _pricing_display_to_id(display: str, name_to_id: dict[str, str]) -> str | No
     return slug or None
 
 
-def fetch_zen_pricing() -> dict[str, dict[str, Any]] | None:
-    """Fetch Zen model prices from the docs pricing page.
-
-    Returns {model_id: {"input": ..., "output": ..., "cached_read": ...,
-    "cached_write": ..., "free": bool, "tiers": [...]}}.
-    Price cells keep the published string value ("Free" or "$0.30"); "-"/empty
-    cells become None. Models with per-context-range prices (e.g. GPT 5.6 Sol)
-    get the default (first) tier at the top level plus every tier under
-    "tiers". Returns None if the page could not be fetched.
-    """
-    page_url = ZEN_PRICING_URL.split("#", 1)[0]
-    html = fetch_text(page_url)
-    if not html:
-        print(f"  x Failed to fetch Zen pricing page {page_url}")
-        return None
-
+def _parse_pricing_html(html: str) -> dict[str, dict[str, Any]]:
+    """Parse endpoint + pricing tables from a docs page into {model_id: entry}."""
     parser = _HtmlTableParser()
     parser.feed(html)
     tables = parser.tables
@@ -401,6 +391,7 @@ def fetch_zen_pricing() -> dict[str, dict[str, Any]] | None:
 
     # Locate the pricing table via its price-ish header columns.
     pricing_table = None
+    pricing_header: list[str] = []
     for table in tables:
         if not table:
             continue
@@ -409,23 +400,39 @@ def fetch_zen_pricing() -> dict[str, dict[str, Any]] | None:
             "cached" in h for h in header
         ):
             pricing_table = table
+            pricing_header = header
             break
     if not pricing_table:
-        print("  x Zen pricing: pricing table not found on the docs page")
+        print("  x pricing: pricing table not found on the docs page")
         return {}
+
+    def _col(*names: str) -> int | None:
+        for n in names:
+            if n in pricing_header:
+                return pricing_header.index(n)
+        return None
+
+    idx_in, idx_out = _col("input"), _col("output")
+    idx_cr = _col("cached read", "cached")
+    idx_cw = _col("cached write")
+
+    def _cell(row: list[str], idx: int | None) -> str | None:
+        if idx is None or idx >= len(row):
+            return None
+        return _parse_price_cell(row[idx])
 
     pricing: dict[str, dict[str, Any]] = {}
     for row in pricing_table[1:]:
-        if len(row) < 3 or not row[0].strip():
+        if not row or not row[0].strip():
             continue
         model_id = _pricing_display_to_id(row[0], name_to_id)
         if not model_id:
             continue
         entry: dict[str, Any] = {
-            "input": _parse_price_cell(row[1]),
-            "output": _parse_price_cell(row[2]),
-            "cached_read": _parse_price_cell(row[3]) if len(row) > 3 else None,
-            "cached_write": _parse_price_cell(row[4]) if len(row) > 4 else None,
+            "input": _cell(row, idx_in if idx_in is not None else 1),
+            "output": _cell(row, idx_out if idx_out is not None else 2),
+            "cached_read": _cell(row, idx_cr),
+            "cached_write": _cell(row, idx_cw),
         }
         if model_id not in pricing:
             entry["free"] = entry["input"] == "Free" or entry["output"] == "Free"
@@ -438,14 +445,50 @@ def fetch_zen_pricing() -> dict[str, dict[str, Any]] | None:
     return pricing
 
 
+def fetch_zen_pricing() -> dict[str, dict[str, Any]] | None:
+    """Fetch Zen model prices from the docs pricing page.
+
+    Returns {model_id: {"input": ..., "output": ..., "cached_read": ...,
+    "cached_write": ..., "free": bool, "tiers": [...]}}.
+    Price cells keep the published string value ("Free" or "$0.30"); "-"/empty
+    cells become None. Models with per-context-range prices (e.g. GPT 5.6 Sol)
+    get the default (first) tier at the top level plus every tier under
+    "tiers". Returns None if the page could not be fetched.
+    """
+    page_url = ZEN_PRICING_URL.split("#", 1)[0]
+    html = fetch_text(page_url)
+    if not html:
+        print(f"  x Failed to fetch Zen pricing page {page_url}")
+        return None
+
+    return _parse_pricing_html(html)
+
+
+def fetch_go_pricing() -> dict[str, dict[str, Any]] | None:
+    """Fetch Go-tier model prices from the Go docs page.
+
+    Same shape as `fetch_zen_pricing`. Covers Go-only ids (e.g.
+    `muse-spark-1.3-contributor` at $0.10/$0.20) that have no Zen pricing
+    row. Returns None if the page could not be fetched.
+    """
+    page_url = GO_PRICING_URL.split("#", 1)[0]
+    html = fetch_text(page_url)
+    if not html:
+        print(f"  x Failed to fetch Go pricing page {page_url}")
+        return None
+
+    return _parse_pricing_html(html)
+
+
 # --- Model Fetching ---
 def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Fetch Zen (free) and Go (paid) model catalogs.
 
-    Prices are fetched from the Zen docs pricing page and attached to each
-    Zen model. The usable free list is the union of `-free`-suffixed models
-    and any model the pricing page publishes as "Free" (e.g. `big-pickle`,
-    which has no `-free` suffix).
+    Prices are fetched from the Zen docs pricing page and the Go docs pricing
+    page (which covers Go-only ids like `muse-spark-1.3-contributor`) and
+    attached to each model. The usable free list is the union of
+    `-free`-suffixed models and any model either pricing page publishes as
+    "Free" (e.g. `big-pickle`, which has no `-free` suffix).
     """
     print("-> Fetching OpenCode model catalogs...")
 
@@ -457,8 +500,10 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
 
     all_zen = zen_data.get("data", [])
 
-    # Fetch prices from the Zen docs pricing page and attach them to models.
+    # Fetch prices from the Zen + Go docs pricing pages and attach them.
+    # Go-only ids (e.g. `muse-spark-1.3-contributor`) have no Zen row.
     pricing = fetch_zen_pricing()
+    go_pricing: dict[str, dict[str, Any]] = {}
     if pricing is None:
         # Reuse prices from the last successful run so zen_models.json stays
         # populated even while the docs page is unreachable.
@@ -469,6 +514,22 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
             if m.get("pricing")
         }
         print("  w Zen pricing: reusing previously fetched prices")
+    else:
+        fetched_go = fetch_go_pricing()
+        if fetched_go is None:
+            prev_go = load_json(GO_MODELS_PATH) if GO_MODELS_PATH.exists() else {}
+            go_pricing = {
+                m["id"]: m["pricing"]
+                for m in prev_go.get("data", [])
+                if m.get("pricing")
+            }
+            if go_pricing:
+                print("  w Go pricing: reusing previously fetched prices")
+        else:
+            go_pricing = fetched_go
+        # Zen wins on conflicts; Go fills Go-only ids.
+        for gid, ginfo in go_pricing.items():
+            pricing.setdefault(gid, ginfo)
     free_by_pricing: set[str] = set()
     for m in all_zen:
         info = pricing.get(m["id"])
@@ -497,7 +558,14 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
         go_models = []
     else:
         go_models = go_data.get("data", [])
-        save_json(GO_MODELS_PATH, {"data": go_models})
+        for m in go_models:
+            info = pricing.get(m["id"]) or go_pricing.get(m["id"])
+            if info:
+                m["pricing"] = info
+        save_json(
+            GO_MODELS_PATH,
+            {"data": go_models, "pricing_source": GO_PRICING_URL},
+        )
         print(f"  v Go: {len(go_models)} paid models")
 
     return free_models, go_models
@@ -968,6 +1036,84 @@ def _normalise_model_for_lookup(model_name: str) -> str:
     return name
 
 
+# Variant suffixes that denote the same underlying model under a different
+# serving tier or config. `contributor` = heavily discounted data-collection
+# tier, `unlimited` = flat-rate tier, `free` = zero-charge tier.
+_CANONICAL_VARIANT_SUFFIXES = ("contributor", "unlimited", "free")
+# LiveBench effort/config suffixes (e.g. `muse-spark-1.3-xhigh`,
+# `claude-opus-4-8-max-effort`, `gpt-5-high`). Longest first so compound
+# forms (`max-effort`) strip before their tails (`max`).
+_CANONICAL_EFFORT_SUFFIXES = (
+    "max-effort",
+    "high-effort",
+    "medium-effort",
+    "low-effort",
+    "xhigh",
+    "high",
+    "medium",
+    "low",
+    "max",
+)
+_NX_SUFFIX_RE = re.compile(r"-(\d+)x$")
+_DATE_SUFFIX_RES = (
+    re.compile(r"-\d{4}-\d{2}-\d{2}$"),
+    re.compile(r"-\d{8}$"),
+)
+
+
+def _parse_nx_multiplier(name: str) -> tuple[str, int] | None:
+    """Split a `-<N>x` scale suffix: ("foo-2x") -> ("foo", 2). Else None."""
+    m = _NX_SUFFIX_RE.search(name)
+    if not m:
+        return None
+    try:
+        mult = int(m.group(1))
+    except ValueError:
+        return None
+    if mult <= 0:
+        return None
+    return name[: m.start()], mult
+
+
+def _canonical_model_base(model_name: str) -> str:
+    """Reduce a model id to its underlying base for score/price matching.
+
+    Strips provider prefix, lowercases, then iteratively strips (outermost
+    first): `-free`/`-contributor`/`-unlimited` tier variants, `-<N>x` scale
+    variants, LiveBench effort suffixes (`-xhigh`, `-high`, `-max-effort`,
+    ...), and trailing snapshot dates (`-YYYY-MM-DD`, `-YYYYMMDD`).
+    Examples:
+      `opencode/muse-spark-1.3-contributor-free` -> `muse-spark-1.3`
+      `muse-spark-1.3-xhigh` -> `muse-spark-1.3`
+      `claude-opus-4-8-max-effort` -> `claude-opus-4-8`
+    """
+    name = model_name.strip().lower()
+    if "/" in name and not name.startswith("http"):
+        name = name.rsplit("/", 1)[-1]
+    changed = True
+    while changed:
+        changed = False
+        for sfx in _CANONICAL_VARIANT_SUFFIXES + _CANONICAL_EFFORT_SUFFIXES:
+            token = f"-{sfx}"
+            if name.endswith(token) and len(name) > len(token):
+                name = name[: -len(token)]
+                changed = True
+                break
+        if changed:
+            continue
+        nx = _parse_nx_multiplier(name)
+        if nx and nx[0]:
+            name = nx[0]
+            changed = True
+            continue
+        for rx in _DATE_SUFFIX_RES:
+            if rx.search(name):
+                name = rx.sub("", name)
+                changed = True
+                break
+    return name
+
+
 def get_model_score(model_name: str, livebench: dict[str, Any], subscore: str) -> float | None:
     """Get a model's subscore from LiveBench data or static fallback (case-insensitive, suffix-stripped)."""
     s = _get_model_score_and_source(model_name, livebench, subscore)
@@ -980,11 +1126,26 @@ def _get_model_score_and_source(
     """Like get_model_score but returns (score, source) where source is 'livebench' or 'fallback'."""
     models = _lb_models(livebench)
     target = _normalise_model_for_lookup(model_name)
+    target_base = _canonical_model_base(model_name)
 
     # 1. Try LiveBench data
     for k, v in models.items():
         if _normalise_model_for_lookup(k) == target:
             return (v.get(subscore), "livebench")
+    # Canonical base match: `muse-spark-1.3-contributor` (catalog) and
+    # `muse-spark-1.3-xhigh` (LiveBench) both reduce to `muse-spark-1.3`.
+    # When several LiveBench rows share a base, prefer the highest subscore.
+    best: tuple[float | None, str] | None = None
+    for k, v in models.items():
+        if _canonical_model_base(k) == target_base and target_base:
+            score = v.get(subscore)
+            if best is None or (
+                score is not None
+                and (best[0] is None or score > best[0])
+            ):
+                best = (score, "livebench")
+    if best is not None:
+        return best
     for k, v in models.items():
         k_norm = _normalise_model_for_lookup(k)
         if target and (target in k_norm or k_norm in target):
@@ -1038,14 +1199,17 @@ def _parse_price_value(cell: Any) -> float | None:
 def _build_price_lookup(
     zen_models: list[dict[str, Any]],
     free_ids: set[str] | None = None,
+    go_models: list[dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Build a model-id -> {input, output} price lookup ($/1M) from Zen pricing.
+    """Build a model-id -> {input, output} price lookup ($/1M) from pricing.
 
     Keys are lowercased exact ids; `_lookup_price` also falls back to the
-    normalised (prefix/suffix-stripped) form so Go and `-free` variants match.
-    Free-tier models without published pricing (e.g. `*-free` ids missing from
-    the pricing page) are treated as Free (0.0/0.0); paid models without
-    pricing stay unknown (None/None).
+    normalised (prefix/suffix-stripped) and canonical-base forms so Go,
+    `-free`, `-contributor`, `-unlimited` and `-<N>x` variants match.
+    Go models carrying their own `pricing` (from the Go docs page) are merged
+    in — Zen wins on conflicts. Free-tier models without published pricing
+    (e.g. `*-free` ids missing from the pricing page) are treated as Free
+    (0.0/0.0); paid models without pricing stay unknown (None/None).
     """
     lookup: dict[str, dict[str, Any]] = {}
     for m in zen_models:
@@ -1057,6 +1221,22 @@ def _build_price_lookup(
             "input": _parse_price_value(pricing.get("input")),
             "output": _parse_price_value(pricing.get("output")),
         }
+    for m in go_models or ():
+        mid = str(m.get("id", ""))
+        if not mid:
+            continue
+        key = mid.strip().lower()
+        pricing = m.get("pricing") or {}
+        parsed = {
+            "input": _parse_price_value(pricing.get("input")),
+            "output": _parse_price_value(pricing.get("output")),
+        }
+        if key not in lookup or (
+            lookup[key].get("input") is None
+            and lookup[key].get("output") is None
+            and (parsed.get("input") is not None or parsed.get("output") is not None)
+        ):
+            lookup[key] = parsed
     for fid in free_ids or ():
         key = str(fid).strip().lower()
         if not key:
@@ -1076,7 +1256,13 @@ def _build_price_lookup(
 def _lookup_price(
     model_id: str, price_lookup: dict[str, dict[str, Any]] | None
 ) -> tuple[float | None, float | None]:
-    """Return (input $/1M, output $/1M) for a model id, or (None, None)."""
+    """Return (input $/1M, output $/1M) for a model id, or (None, None).
+
+    Fallback chain: exact id -> normalised (prefix/`-free` stripped) ->
+    canonical base (`-contributor`/`-unlimited`/effort/`-<N>x`/date stripped).
+    A `-<N>x` scale variant with no own row inherits the base price scaled by
+    N (e.g. `foo-2x` costs 2x `foo`).
+    """
     if not model_id or not price_lookup:
         return None, None
     key = model_id.strip().lower()
@@ -1086,6 +1272,23 @@ def _lookup_price(
     norm = _normalise_model_for_lookup(model_id)
     if norm in price_lookup:
         entry = price_lookup[norm]
+        return entry.get("input"), entry.get("output")
+    nx = _parse_nx_multiplier(norm) or _parse_nx_multiplier(
+        _canonical_model_base(model_id)
+    )
+    if nx:
+        stem, mult = nx
+        for cand in (stem, _canonical_model_base(stem)):
+            if cand in price_lookup:
+                entry = price_lookup[cand]
+                pin, pout = entry.get("input"), entry.get("output")
+                return (
+                    pin * mult if pin is not None else None,
+                    pout * mult if pout is not None else None,
+                )
+    base = _canonical_model_base(model_id)
+    if base in price_lookup:
+        entry = price_lookup[base]
         return entry.get("input"), entry.get("output")
     return None, None
 
@@ -1546,15 +1749,17 @@ def detect_coverage_issues(
     lb_models = _lb_models(livebench)
     fallback = _get_fallback_scores()
 
-    # Normalise LiveBench model names for quick lookup
+    # Normalise LiveBench model names for quick lookup (both legacy
+    # normal form and canonical base so variant spellings match).
     lb_set = set()
     for k in lb_models:
         lb_set.add(_normalise_model_for_lookup(k))
+        lb_set.add(_canonical_model_base(k))
 
     # Check fallback entries that are now in LiveBench
     for name in fallback:
         norm = _normalise_model_for_lookup(name)
-        if norm in lb_set:
+        if norm in lb_set or _canonical_model_base(name) in lb_set:
             lb_scores = {
                 k: v
                 for k, v in lb_models.items()
@@ -2097,9 +2302,9 @@ def main() -> None:
     go_ids = {m["id"] for m in go_models}
     free_ids = {m["id"] for m in free_models}
 
-    # In/out token costs ($/1M) from Zen pricing; Go-only ids without a Zen
-    # pricing row stay unknown and sort after priced models in the selector.
-    price_lookup = _build_price_lookup(all_zen_models, free_ids)
+    # In/out token costs ($/1M) from Zen + Go pricing; Go-only ids resolve
+    # via the Go docs page, canonical-base fallback, or Nx scaling.
+    price_lookup = _build_price_lookup(all_zen_models, free_ids, go_models)
     print(
         f"  v Pricing: {sum(1 for v in price_lookup.values() if v['input'] is not None)} "
         f"model(s) with costs, blend {cost_blend[0]:.0%} in / {cost_blend[1]:.0%} out"
