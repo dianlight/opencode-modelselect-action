@@ -53,7 +53,7 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 
 ### Sync system
 
-`.github/sync.yml` defines 4 downstream repos and an empty file list (nothing is synced). The `sync-actions.yml` workflow uses `BetaHuhn/repo-file-sync-action`. Requires a `GH_PAT` secret.
+`.github/sync.yml` defines 4 downstream repos and an empty file list (nothing is synced). The `sync-actions.yml` workflow only opens the cleanup PRs removing deprecated workflows. Requires a `GH_PAT` secret.
 
 ### Maintenance
 
