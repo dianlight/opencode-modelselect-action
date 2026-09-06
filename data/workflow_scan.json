@@ -12,7 +12,7 @@
     "auto": true,
     "agent": "",
     "prompt_preview": "You are triggered by a user checking task checkboxes in a maintenance issue.\n\nRepo: ${{ github.repository }}\nIssue: #${{ github.event.issue.number }}\nTasks: env \\`CHECKED_TASKS\\` (comma-separated list)\n\nRead the issue body and its comments to find the checked tasks:\n\\`gh issue view $ISSUE_NUMBER --json body,comments --jq .\\`\nThe checked boxes (\\`[x]\\`) and the section headers are the source of truth.\n\nIf \"search-missing-scores\" is in CHECKED_TASKS:\n1. Read the \"Models Missing Score Data\" section",
-    "task_type": "code-implementation",
+    "task_type": "code",
     "mapped": true
   }
 ]
