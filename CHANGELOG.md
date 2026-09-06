@@ -1,5 +1,9 @@
 ## [Unreleased]
 ### Changed
+- Model evaluation now uses a blended in/out token-cost selector: each tier
+  picks the cheapest blended $/1M cost among models within the free-first
+  threshold of the top LiveBench score (weights from `cost_blend` in
+  `config/task-types.yaml`, default 75% in / 25% out; unknown costs sort last)
 - Rename the project and repository to Opencode Modelselect
   (`dianlight/opencode-modelselect-action`): update `action.yml` name,
   `config-url` default, README, workflows, `package.json`, and User-Agent
@@ -21,8 +25,18 @@
 - Fetch Zen model prices from the Zen docs pricing page during maintenance and
   store them per model in `data/zen_models.json`; treat models published as
   "Free" (e.g. `big-pickle`, which has no `-free` suffix) as usable free models
+- Surface in/out token costs ($/1M) in the README recommendation/audit cells
+  and the score reference table (new In/Out/Blended/Value columns), include
+  `input_cost`/`output_cost`/`blended_cost` in `benchmark_results.json` and
+  `audit_results.json`, and report paid models with unknown pricing under
+  `coverage_issues.json` `missing_prices` (warn-only)
 
 ### Removed
+- Delete the 6-process pipeline workflows (`opencode-pr-review.yml`,
+  `opencode-pr-comment.yml`, `opencode-issue-handler.yml`; `opencode-implement.yaml`
+  was already gone): drop their entries from `.github/sync.yml` and
+  `config/workflow-task-map.yaml`, replace `WORKFLOWS.md` with a deprecation
+  pointer, and extend the sync-actions cleanup job to open downstream removal PRs
 - Delete `.github/scripts/resolve-model.sh`; model resolution now lives in the
   select-model action. All active workflows use it (`uses: ./` here,
   `dianlight/opencode-modelselect-action@<tag>` downstream) and it is dropped from

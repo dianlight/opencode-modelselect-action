@@ -1,5 +1,9 @@
 # RUNBOOK — OpenCode Actions Simulation Guide
 
+> **DEPRECATED:** the `/oc` pipeline workflows (`opencode-pr-review.yml`,
+> `opencode-pr-comment.yml`, `opencode-issue-handler.yml`) have been deleted.
+> This runbook is retained for historical reference only.
+
 This document describes every realistic user interaction with the OpenCode
 automation system. Each User Story (US) includes preconditions, step-by-step
 actions, and the expected system behavior.

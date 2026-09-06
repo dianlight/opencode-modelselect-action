@@ -6,8 +6,8 @@ This repo is a GitHub Action (`action.yml` at the root) that preselects the Open
 
 ## Active vs deprecated workflows
 
-- **Active (3 files):** `opencode-pr-review.yml`, `opencode-pr-comment.yml`, `opencode-issue-handler.yml`. These implement the 6-process automation pipeline.
-- **Deprecated (removed):** `opencode.yml`, `opencode-triage*.yaml`, `opencode-implement.yaml`, `opencode-review.yaml` were deleted; `sync-actions.yml` opens cleanup PRs removing them from downstream repos.
+- **Active:** none of the `/oc` pipeline workflows remain. The repo ships the select-model action plus `opencode-maintenance.yaml`, `sync-actions.yml`, and the shared `.github/scripts/auth.sh` (only file still synced downstream).
+- **Deprecated (removed):** `opencode.yml`, `opencode-triage*.yaml`, `opencode-implement.yaml`, `opencode-review.yaml` were deleted earlier; `opencode-pr-review.yml`, `opencode-pr-comment.yml`, `opencode-issue-handler.yml` (the 6-process automation pipeline) are now deleted as well. `sync-actions.yml` opens cleanup PRs removing them from downstream repos.
 - Do not add new workflow files without also adding them to `.github/sync.yml`.
 
 ## Commands
@@ -33,20 +33,13 @@ python scripts/opencode_maintenance.py
 
 ## Architecture
 
-### 6-process pipeline
+### 6-process pipeline (removed)
 
-| Process | Workflow | Trigger |
-|---------|----------|---------|
-| 1 — PR Review | `opencode-pr-review.yml` | `/oc` or `/ocf` on a PR (review) |
-| 2 — Bot thread reply | `opencode-pr-comment.yml` | Reply in a bot-owned review thread (no command needed; `/oc`/`/ocf` chooses tier) |
-| 3 — User thread takeover | `opencode-pr-comment.yml` | `/oc` or `/ocf` in a human-owned review thread |
-| 4 — Issue review | `opencode-issue-handler.yml` | `/oc` or `/ocf` on an issue (review) |
-| 5 — Issue implementation | `opencode-issue-handler.yml` | `/oc implement` or `/ocf implement` on an issue |
-| 6 — PR task execution | `opencode-pr-comment.yml` | `/oc task` or `/ocf task` on a PR |
-
-`/oc` runs the selected Go (paid) model; `/ocf` runs the free model. Both support the same subcommands (`review`, `implement`, `task`, `retry`).
-
-Authorization gate: all workflows require `author_association` in `OWNER/MEMBER/COLLABORATOR`. Unknown users are silently skipped.
+The `/oc` / `/ocf` pipeline (Processes 1–6 across `opencode-pr-review.yml`,
+`opencode-pr-comment.yml`, `opencode-issue-handler.yml`) has been deleted.
+`/oc` ran the selected Go (paid) model; `/ocf` ran the free model. The
+authorization gate (`author_association` in `OWNER/MEMBER/COLLABORATOR`) applied
+to those workflows while they existed.
 
 ### Shared script
 

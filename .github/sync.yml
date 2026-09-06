@@ -5,15 +5,11 @@ group:
     dianlight/srat
     dianlight/hassio-addons
   files:
-    # New workflows
-    - source: .github/workflows/opencode-pr-review.yml
-      dest: .github/workflows/opencode-pr-review.yml
-    - source: .github/workflows/opencode-pr-comment.yml
-      dest: .github/workflows/opencode-pr-comment.yml
-    - source: .github/workflows/opencode-issue-handler.yml
-      dest: .github/workflows/opencode-issue-handler.yml
     # Shared scripts
     # Only auth.sh is synced; model selection needs no sync — downstream
     # workflows call the select-model action, which reads the live config here.
+    # NOTE: opencode-pr-review.yml, opencode-pr-comment.yml and
+    # opencode-issue-handler.yml were deprecated and deleted; removal in
+    # target repos is handled by the sync-actions cleanup PR job.
     - source: .github/scripts/auth.sh
       dest: .github/scripts/auth.sh

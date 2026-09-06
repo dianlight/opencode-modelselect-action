@@ -38,15 +38,17 @@ jobs:
           REPOS="$(grep -E '^[[:space:]]+[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' .github/sync.yml | awk '{print $1}' || true)"
           BRANCH="repo-sync/cleanup-deprecated-opencode-workflows"
           TITLE="🔄 remove deprecated opencode workflows"
-          BODY="Deletes the deprecated no-op workflows (opencode.yml,"
+          BODY="Deletes the deprecated opencode workflows (opencode.yml,"
           BODY="${BODY} opencode-triage*.yaml, opencode-implement.yaml,"
-          BODY="${BODY} opencode-review.yaml), superseded by opencode-pr-review.yml,"
-          BODY="${BODY} opencode-pr-comment.yml and opencode-issue-handler.yml."
+          BODY="${BODY} opencode-review.yaml, opencode-pr-review.yml,"
+          BODY="${BODY} opencode-pr-comment.yml and opencode-issue-handler.yml)."
+          BODY="${BODY} The 6-process automation pipeline has been removed;"
+          BODY="${BODY} only the select-model action remains."
           BODY="${BODY} Opened automatically by sync-actions."
-          COMMIT_MSG="opencode.yml, opencode-triage*.yaml, opencode-implement.yaml"
-          COMMIT_MSG="${COMMIT_MSG} and opencode-review.yaml are deprecated no-ops"
-          COMMIT_MSG="${COMMIT_MSG} superseded by opencode-pr-review.yml,"
-          COMMIT_MSG="${COMMIT_MSG} opencode-pr-comment.yml and opencode-issue-handler.yml."
+          COMMIT_MSG="opencode.yml, opencode-triage*.yaml, opencode-implement.yaml,"
+          COMMIT_MSG="${COMMIT_MSG} opencode-review.yaml, opencode-pr-review.yml,"
+          COMMIT_MSG="${COMMIT_MSG} opencode-pr-comment.yml and opencode-issue-handler.yml"
+          COMMIT_MSG="${COMMIT_MSG} are deprecated and removed."
           for REPO in ${REPOS}; do
             echo "=== ${REPO} ==="
             WORKDIR="$(mktemp -d)"
@@ -64,7 +66,10 @@ jobs:
                 .github/workflows/opencode-triage-pr.yaml \
                 .github/workflows/opencode-triage-issue.yaml \
                 .github/workflows/opencode-implement.yaml \
-                .github/workflows/opencode-review.yaml
+                .github/workflows/opencode-review.yaml \
+                .github/workflows/opencode-pr-review.yml \
+                .github/workflows/opencode-pr-comment.yml \
+                .github/workflows/opencode-issue-handler.yml
               if git diff --cached --quiet; then
                 echo "No deprecated workflows in ${REPO}, nothing to do."
                 exit 0

@@ -3,8 +3,9 @@ Main repository for my Opencode Modelselect Github Action, shared to multiple re
 
 ## Documentation
 
-- [**Workflow Flows**](.github/workflows/WORKFLOWS.md) — End-to-end diagrams and
-  descriptions of the six-process automation pipeline (review → discuss → work → task).
+- [**Workflow Flows**](.github/workflows/WORKFLOWS.md) — Deprecated: the
+  six-process automation pipeline has been removed; the file is now a
+  deprecation pointer.
 
 ## Select Model Action
 
