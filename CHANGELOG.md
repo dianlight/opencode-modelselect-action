@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.2.0]
 ### Removed
 - Workflow Model Audit: models are resolved dynamically at runtime from the
   central `data/model-config.json` (committed directly each run), so the
