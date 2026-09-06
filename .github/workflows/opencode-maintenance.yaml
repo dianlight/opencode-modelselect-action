@@ -86,6 +86,18 @@ jobs:
             echo "✓ Changes committed and pushed"
           fi
 
+      # ── Upload proposed config as artifact ─────────────────────────────
+      # The full proposal (with go_ranked/free_ranked) is ~70k and cannot
+      # fit in the 64k GitHub issue body, so it travels as an artifact and
+      # the issue links to it instead of inlining the JSON.
+      - name: Upload proposed model config
+        if: hashFiles('data/model-config.proposed.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-config-proposed
+          path: data/model-config.proposed.json
+          retention-days: 90
+
       # ── Check coverage and workflow audit, create issue if needed ──────
       - name: Create issue for detected problems
         if: hashFiles('data/coverage_issues.json') != '' || hashFiles('data/audit_results.json') != ''
@@ -120,6 +132,7 @@ jobs:
           # Generate issue body with Python (handles newlines correctly)
           python3 << 'PYEOF' > /tmp/issue_body.md
           import json
+          import os
           from datetime import datetime, timezone
 
           with open("data/coverage_issues.json") as f:
@@ -155,7 +168,7 @@ jobs:
               lines.append("")
               lines.append(
                   "> Requires **OWNER / MEMBER / COLLABORATOR** permissions "
-                  "(same as `\/oc` commands)."
+                  "(same as `/oc` commands)."
               )
               lines.append("")
 
@@ -166,7 +179,7 @@ jobs:
                   "- [ ] **Search the web for missing score data** \u2014 "
                   "Research and add scores for the models listed below that have no data "
                   "on LiveBench or in the static fallback. "
-                  "Update `config\/model-scores.yaml` with the found scores."
+                  "Update `config/model-scores.yaml` with the found scores."
               )
               lines.append("")
 
@@ -222,11 +235,26 @@ jobs:
                           f"| `{task_type}` | {tier} | `{cur_model}` | `{prop_model}` |"
                       )
                   lines.append("")
-              lines.append("Proposed `data/model-config.json`:")
-              lines.append("")
-              lines.append("```json")
-              lines.append(json.dumps(proposed_cfg, indent=2))
-              lines.append("```")
+              # The full proposal (with go_ranked/free_ranked, ~70k) cannot
+              # fit in the 64k GitHub issue body — it travels as the
+              # `model-config-proposed` artifact on this run instead of
+              # inline JSON.
+              run_url = os.environ.get("RUN_URL", "")
+              snapshot = proposed_cfg.get("livebench_snapshot") or "?"
+              if run_url:
+                  lines.append(
+                      "Full proposal: download the `model-config-proposed` "
+                      f"artifact from [this workflow run]({run_url}) "
+                      f"(LiveBench snapshot `{snapshot}`). Use it exactly — "
+                      "do not retype or regenerate it."
+                  )
+              else:
+                  lines.append(
+                      "Full proposal: download the `model-config-proposed` "
+                      "artifact from the latest `opencode-maintenance` run "
+                      f"(LiveBench snapshot `{snapshot}`). Use it exactly — "
+                      "do not retype or regenerate it."
+                  )
               lines.append("")
 
           if has_tasks:
@@ -248,10 +276,12 @@ jobs:
               lines.append("")
               lines.append("| Model | LiveBench Score |")
               lines.append("|-------|-----------------|")
-              for m in stale:
+              for m in stale[:30]:
                   lb = m.get("livebench_scores", {})
                   ov = lb.get("overall", "?")
                   lines.append(f"| {m['model']} | overall={ov} |")
+              if len(stale) > 30:
+                  lines.append(f"| … and {len(stale) - 30} more | |")
               lines.append("")
 
           if missing:
@@ -265,8 +295,10 @@ jobs:
               lines.append("")
               lines.append("| Model | Tier |")
               lines.append("|-------|------|")
-              for m in missing:
+              for m in missing[:30]:
                   lines.append(f"| {m['model']} | {m['tier']} |")
+              if len(missing) > 30:
+                  lines.append(f"| … and {len(missing) - 30} more | |")
               lines.append("")
 
           if suboptimal:
@@ -276,7 +308,7 @@ jobs:
               lines.append("")
               lines.append("| Workflow | Job | Step | Current Model | Recommended Free | Recommended Go | Status |")
               lines.append("|----------|-----|------|---------------|------------------|----------------|--------|")
-              for r in suboptimal:
+              for r in suboptimal[:30]:
                   status = r.get("status", "")
                   rec_free = r.get("recommended_free") or "\u2014"
                   rec_go   = r.get("recommended_go")   or "\u2014"
@@ -296,12 +328,27 @@ jobs:
                       f"| {r['workflow']} | {r['job']} | {r['step']} "
                       f"| {r['current_model']} | {free_cell} | {go_cell} | {status} |"
                   )
+              if len(suboptimal) > 30:
+                  lines.append(f"| … and {len(suboptimal) - 30} more | | | | | | |")
               lines.append("")
 
           lines.append("---")
           lines.append("*Generated by `opencode-maintenance` workflow.*")
 
-          print("\n".join(lines))
+          body = "\n".join(lines)
+          # GitHub caps issue bodies at 65536 chars — guard with margin so
+          # `gh issue create/edit` never fails with "Body is too long".
+          MAX_BODY = 60000
+          if len(body.encode("utf-8")) > MAX_BODY:
+              truncated = body.encode("utf-8")[:MAX_BODY].decode("utf-8", "ignore")
+              # Avoid leaving a broken trailing line.
+              truncated = truncated.rsplit("\n", 1)[0]
+              body = (
+                  truncated
+                  + "\n\n---\n*⚠ Body truncated to fit GitHub limits — "
+                  + "see the workflow run for full details.*"
+              )
+          print(body)
           PYEOF
 
           # Check if an open issue with label already exists
@@ -321,6 +368,7 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       # ── Summary ──────────────────────────────────────────────────────────
       - name: Show summary
@@ -486,10 +534,14 @@ jobs:
 
             If "apply-model-config" is in CHECKED_TASKS:
             1. Read the "Model Config Update Proposed" section from the issue
-               body — the fenced \`\`\`json block is the exact proposed
-               \`data/model-config.json\`
+               body for the workflow run link, then download the exact
+               proposal: \`gh run download <RUN_ID> -n model-config-proposed\`
+               (extract RUN_ID from the run URL in the issue body). If the
+               artifact expired, re-run \`python scripts/opencode_maintenance.py\`
+               and use the regenerated \`data/model-config.proposed.json\`.
             2. Create a new branch (e.g. \`model-config-update\`) from main
-            3. Write \`data/model-config.json\` with EXACTLY that JSON content
+            3. Write \`data/model-config.json\` with EXACTLY the downloaded
+               JSON content (byte-for-byte, including go_ranked/free_ranked)
             4. Commit and push the branch — never push to main directly
             5. Open a PR titled "Update central model config" whose body
                references \`Closes #$ISSUE_NUMBER\`
