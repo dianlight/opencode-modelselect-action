@@ -17,3 +17,67 @@ jobs:
         uses: BetaHuhn/repo-file-sync-action@v1
         with:
           GH_PAT: ${{ secrets.GH_PAT }}
+
+  cleanup-deprecated:
+    runs-on: ubuntu-latest
+    needs: sync
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+      - name: Open cleanup PRs deleting deprecated workflows
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # Token via extraheader so it never appears in clone URLs or logs.
+          AUTH="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 | tr -d '\n')"
+          GIT_AUTH=(-c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH}")
+          # Repo list is parsed from sync.yml so targets stay defined in one place.
+          REPOS="$(grep -E '^[[:space:]]+[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' .github/sync.yml | awk '{print $1}' || true)"
+          BRANCH="repo-sync/cleanup-deprecated-opencode-workflows"
+          TITLE="🔄 remove deprecated opencode workflows"
+          BODY="Deletes the deprecated no-op workflows (opencode.yml,"
+          BODY="${BODY} opencode-triage*.yaml, opencode-implement.yaml,"
+          BODY="${BODY} opencode-review.yaml), superseded by opencode-pr-review.yml,"
+          BODY="${BODY} opencode-pr-comment.yml and opencode-issue-handler.yml."
+          BODY="${BODY} Opened automatically by sync-actions."
+          COMMIT_MSG="opencode.yml, opencode-triage*.yaml, opencode-implement.yaml"
+          COMMIT_MSG="${COMMIT_MSG} and opencode-review.yaml are deprecated no-ops"
+          COMMIT_MSG="${COMMIT_MSG} superseded by opencode-pr-review.yml,"
+          COMMIT_MSG="${COMMIT_MSG} opencode-pr-comment.yml and opencode-issue-handler.yml."
+          for REPO in ${REPOS}; do
+            echo "=== ${REPO} ==="
+            WORKDIR="$(mktemp -d)"
+            if ! git "${GIT_AUTH[@]}" clone --depth 1 "https://github.com/${REPO}.git" "${WORKDIR}"; then
+              echo "::warning::Clone failed for ${REPO}, skipping."
+              rm -rf "${WORKDIR}"
+              continue
+            fi
+            if ! (
+              cd "${WORKDIR}"
+              git checkout -B "${BRANCH}"
+              git rm --ignore-unmatch \
+                .github/workflows/opencode.yml \
+                .github/workflows/opencode-triage.yaml \
+                .github/workflows/opencode-triage-pr.yaml \
+                .github/workflows/opencode-triage-issue.yaml \
+                .github/workflows/opencode-implement.yaml \
+                .github/workflows/opencode-review.yaml
+              if git diff --cached --quiet; then
+                echo "No deprecated workflows in ${REPO}, nothing to do."
+                exit 0
+              fi
+              git commit -m "🔄 remove deprecated opencode workflows" -m "${COMMIT_MSG}"
+              git "${GIT_AUTH[@]}" push -f -u origin "${BRANCH}"
+              if gh pr view "${BRANCH}" --repo "${REPO}" >/dev/null 2>&1; then
+                echo "Cleanup PR already exists in ${REPO}, pushed updates."
+              elif ! gh pr create --repo "${REPO}" --head "${BRANCH}" --title "${TITLE}" --body "${BODY}" --label sync; then
+                gh pr create --repo "${REPO}" --head "${BRANCH}" --title "${TITLE}" --body "${BODY}"
+              fi
+            ); then
+              echo "::warning::Cleanup failed for ${REPO}."
+            fi
+            rm -rf "${WORKDIR}"
+          done

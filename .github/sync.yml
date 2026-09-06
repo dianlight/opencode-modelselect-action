@@ -17,19 +17,3 @@ group:
       dest: .github/scripts/auth.sh
     - source: .github/scripts/resolve-model.sh
       dest: .github/scripts/resolve-model.sh
-    # Old files — synced as empty no-ops so they are harmless,
-    # but also ensures they exist in the target (prevents issues
-    # with stale triggers). Remove these entries once all targets
-    # have been manually cleaned up.
-    - source: .github/workflows/opencode.yml
-      dest: .github/workflows/opencode.yml
-    - source: .github/workflows/opencode-triage.yaml
-      dest: .github/workflows/opencode-triage.yaml
-    - source: .github/workflows/opencode-triage-pr.yaml
-      dest: .github/workflows/opencode-triage-pr.yaml
-    - source: .github/workflows/opencode-triage-issue.yaml
-      dest: .github/workflows/opencode-triage-issue.yaml
-    - source: .github/workflows/opencode-implement.yaml
-      dest: .github/workflows/opencode-implement.yaml
-    - source: .github/workflows/opencode-review.yaml
-      dest: .github/workflows/opencode-review.yaml

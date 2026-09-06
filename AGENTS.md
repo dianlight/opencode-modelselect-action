@@ -7,7 +7,7 @@ This repo distributes GitHub Actions workflows to multiple downstream repositori
 ## Active vs deprecated workflows
 
 - **Active (3 files):** `opencode-pr-review.yml`, `opencode-pr-comment.yml`, `opencode-issue-handler.yml`. These implement the 6-process automation pipeline.
-- **Deprecated (6 files):** `opencode.yml`, `opencode-triage*.yaml`, `opencode-implement.yaml`, `opencode-review.yaml`. These are **no-op stubs** synced to downstream repos to prevent stale triggers. Do not add real logic to them.
+- **Deprecated (removed):** `opencode.yml`, `opencode-triage*.yaml`, `opencode-implement.yaml`, `opencode-review.yaml` were deleted; `sync-actions.yml` opens cleanup PRs removing them from downstream repos.
 - Do not add new workflow files without also adding them to `.github/sync.yml`.
 
 ## Commands

@@ -1,10 +1,15 @@
 ## [Unreleased]
 ### Added
+- sync-actions now opens (or updates) a `repo-sync/cleanup-deprecated-opencode-workflows`
+  PR in each target repo deleting the six deprecated no-op workflows (`opencode.yml`,
+  `opencode-triage*.yaml`, `opencode-implement.yaml`, `opencode-review.yaml`)
 - Fetch Zen model prices from the Zen docs pricing page during maintenance and
   store them per model in `data/zen_models.json`; treat models published as
   "Free" (e.g. `big-pickle`, which has no `-free` suffix) as usable free models
 
 ### Removed
+- Drop the six deprecated no-op workflow entries from `.github/sync.yml` and delete
+  the local stub files; deletion in target repos is now handled by the sync-actions cleanup PR job
 - Drop the **alt models** concept and its token-multiplier-driven second
   checkbox from maintenance issues, and remove `token_multipliers` from
   `config/model-scores.yaml`; the maintenance issue now offers only the single
