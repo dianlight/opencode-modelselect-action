@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-06T11:48:50.951379+00:00",
+  "timestamp": "2026-09-06T12:07:01.331883+00:00",
   "livebench_snapshot": "2026_06_25",
   "livebench_source": "https://livebench.ai/table_2026_06_25.csv",
   "livebench_models": 341,
@@ -14,7 +14,7 @@
   "steps_audited": 1,
   "model_config_drift": {
     "detected": true,
-    "timestamp": "2026-09-06T11:48:50.951393+00:00",
+    "timestamp": "2026-09-06T12:07:01.331893+00:00",
     "livebench_snapshot": "2026_06_25",
     "current_task_types": {
       "plan": {
