@@ -6,24 +6,21 @@ This repo is a GitHub Action (`action.yml` at the root) that preselects the Open
 
 ## Active vs deprecated workflows
 
-- **Active:** none of the `/oc` pipeline workflows remain. The repo ships the select-model action plus `opencode-maintenance.yaml`, `sync-actions.yml`, and the shared `.github/scripts/auth.sh` (only file still synced downstream).
-- **Deprecated (removed):** `opencode.yml`, `opencode-triage*.yaml`, `opencode-implement.yaml`, `opencode-review.yaml` were deleted earlier; `opencode-pr-review.yml`, `opencode-pr-comment.yml`, `opencode-issue-handler.yml` (the 6-process automation pipeline) are now deleted as well. `sync-actions.yml` opens cleanup PRs removing them from downstream repos.
+- **Active:** no pipeline workflows remain. The repo ships the select-model action plus `opencode-maintenance.yaml` and `sync-actions.yml`. Nothing is synced downstream anymore (`.github/sync.yml` carries an empty file list).
+- **Deprecated (removed):** `opencode.yml`, `opencode-triage*.yaml`, `opencode-implement.yaml`, `opencode-review.yaml` were deleted earlier; `opencode-pr-review.yml`, `opencode-pr-comment.yml`, `opencode-issue-handler.yml` (the 6-process automation pipeline) plus the shared `.github/scripts/auth.sh` (`/oc` command parser), `RUNBOOK.md`, and `.github/workflows/WORKFLOWS.md` are now deleted as well. `sync-actions.yml` opens cleanup PRs removing them from downstream repos.
 - Do not add new workflow files without also adding them to `.github/sync.yml`.
 
 ## Commands
 
 ```bash
 # Python env (uses mise)
-mise install                  # installs python 3.14 + ruff + shellcheck + yamllint, pip installs requirements.txt
+mise install                  # installs python 3.14 + ruff + yamllint, pip installs requirements.txt
 
 # Lint YAML (also runs in CI via opencode-maintenance)
 mise run lint-yaml
 
 # Lint Python with ruff (also runs in CI via opencode-maintenance)
 mise run lint-python
-
-# Lint shell scripts with shellcheck (also runs in CI via opencode-maintenance)
-mise run lint-shell
 
 # Run the maintenance script (fetches models, updates README)
 mise run maintenance
@@ -35,17 +32,16 @@ python scripts/opencode_maintenance.py
 
 ### 6-process pipeline (removed)
 
-The `/oc` / `/ocf` pipeline (Processes 1–6 across `opencode-pr-review.yml`,
-`opencode-pr-comment.yml`, `opencode-issue-handler.yml`) has been deleted.
-`/oc` ran the selected Go (paid) model; `/ocf` ran the free model. The
+The `/oc` / `/ocf` slash-command pipeline (Processes 1–6 across
+`opencode-pr-review.yml`, `opencode-pr-comment.yml`,
+`opencode-issue-handler.yml`) has been deleted, along with its command parser
+(`.github/scripts/auth.sh`), `RUNBOOK.md`, and `.github/workflows/WORKFLOWS.md`.
+`/oc` selected the Go (paid) model tier; `/ocf` selected the free tier. The
 authorization gate (`author_association` in `OWNER/MEMBER/COLLABORATOR`) applied
-to those workflows while they existed.
+to those workflows while they existed. The `go`/`free` tier inputs on the
+select-model action remain — only the slash-command trigger syntax is gone.
 
-### Shared script
-
-`.github/scripts/auth.sh` parses `/oc` (Go model) and `/ocf` (free model) commands and outputs `IS_OC_COMMAND`, `TIER`, `SUBCOMMAND`, and `TASK_ARGS` via `GITHUB_OUTPUT`.
-
-The select-model action (`action.yml` + `src/index.js`, Node 24, zero dependencies) preselects the model for a `task-type` + `tier` (`go`/`free`) step before the OpenCode step, from the central model config (`data/model-config.json`). There are **no default models**: if the config is unreachable or the entry is missing, the step fails hard and the workflow stops (unless an explicit `fallback-model` input is given). Only `auth.sh` is synced to downstream repos via `.github/sync.yml`; model selection needs no sync since downstream workflows call this repo's action directly.
+The select-model action (`action.yml` + `src/index.js`, Node 24, zero dependencies) preselects the model for a `task-type` + `tier` (`go`/`free`) step before the OpenCode step, from the central model config (`data/model-config.json`). There are **no default models**: if the config is unreachable or the entry is missing, the step fails hard and the workflow stops (unless an explicit `fallback-model` input is given). Model selection needs no sync since downstream workflows call this repo's action directly.
 
 ### Central model config
 
@@ -57,7 +53,7 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 
 ### Sync system
 
-`.github/sync.yml` defines 4 downstream repos and files to sync. The `sync-actions.yml` workflow uses `BetaHuhn/repo-file-sync-action`. Requires a `GH_PAT` secret.
+`.github/sync.yml` defines 4 downstream repos and an empty file list (nothing is synced). The `sync-actions.yml` workflow uses `BetaHuhn/repo-file-sync-action`. Requires a `GH_PAT` secret.
 
 ### Maintenance
 
@@ -76,10 +72,10 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 
 - All OpenCode steps pin the action: `anomalyco/opencode/github@<sha>`
 - All OpenCode steps preselect their model via the select-model action (`uses: dianlight/opencode-modelselect-action@v1`, same ref here and downstream since workflows sync verbatim) with `task-type` + `tier` inputs; the `with: model:` input is always `${{ steps.resolve.outputs.model }}`
-- Concurrency groups are keyed by issue/PR number with `cancel-in-progress: false`
-- Every process step uses `continue-on-error: true` followed by reaction-on-success/failure steps
+- Every OpenCode step uses `continue-on-error: true` followed by reaction-on-success/failure steps
 - Issue titles are passed via `env:` (not inline substitution) to prevent shell injection
 - Multi-line strings in `run: |` blocks must be consistently indented — all content lines must share the same indentation as the first content line; use temp-file patterns (`echo ... > /tmp/file`) instead of inline `--body "..."` for long comment bodies
+- Do not add new workflow files without also adding them to `.github/sync.yml` (see above) — even though the file list is currently empty, the repo list there still drives the cleanup PR job
 
 ## Changelog
 
@@ -94,8 +90,7 @@ When updating `CHANGELOG.md`:
 
 - **Always run `mise run lint-yaml` after editing any YAML file** — the CI lints YAML and a `syntax error: could not find expected ':'` usually means a `|` block line broke out of the correct indent level
 - **Always run `mise run lint-python` after editing any Python file** — the CI checks Python with ruff
-- **Always run `mise run lint-shell` after editing any shell script** — the CI checks `.github/scripts/auth.sh` with shellcheck
-- Verify with `bash -n .github/scripts/auth.sh` after changing the shared script, and `node --check src/index.js` after changing the action
+- Verify with `node --check src/index.js` after changing the action
 
 ## Renovate
 

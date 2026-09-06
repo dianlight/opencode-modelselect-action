@@ -46,10 +46,6 @@ jobs:
       - name: Lint Python files
         run: ruff check scripts/
 
-      # ── Lint Shell scripts ─────────────────────────────────────────────────
-      - name: Lint Shell scripts
-        run: shellcheck .github/scripts/auth.sh
-
       # ── Run maintenance script ───────────────────────────────────────────
       # The script:
       #   1. Fetches OpenCode Zen (free) and Go (paid) model catalogs
@@ -168,7 +164,7 @@ jobs:
               lines.append("")
               lines.append(
                   "> Requires **OWNER / MEMBER / COLLABORATOR** permissions "
-                  "(same as `/oc` commands)."
+                  "(verified via the collaborator permission API)."
               )
               lines.append("")
 
@@ -431,7 +427,7 @@ jobs:
         run: |
           ACTOR="${{ github.actor }}"
           # Webhook payloads don't expose the editor's author_association for
-          # `issues: edited`, so verify via API. Same gate as /oc
+          # `issues: edited`, so verify via API
           # (OWNER/MEMBER/COLLABORATOR ≈ admin/maintain/write).
           if [ "$ACTOR" = "${{ github.repository_owner }}" ]; then
             echo "✓ $ACTOR is the repository owner — authorized"

@@ -2,7 +2,6 @@
 "conda:basedpyright" = "latest"
 python = "3.14"
 ruff = "latest"
-shellcheck = "latest"
 yamllint = "1.38"
 
 
@@ -20,10 +19,6 @@ description = "Lint all YAML files"
 [tasks.lint-python]
 run = "ruff check scripts/"
 description = "Lint all Python files with ruff"
-
-[tasks.lint-shell]
-  run = "shellcheck .github/scripts/auth.sh"
-description = "Lint all shell scripts with shellcheck"
 
 [tasks.lint-types]
 run = "basedpyright --level error scripts/"

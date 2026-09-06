@@ -4,12 +4,10 @@ group:
     dianlight/hasos_more_modules
     dianlight/srat
     dianlight/hassio-addons
-  files:
-    # Shared scripts
-    # Only auth.sh is synced; model selection needs no sync — downstream
-    # workflows call the select-model action, which reads the live config here.
-    # NOTE: opencode-pr-review.yml, opencode-pr-comment.yml and
-    # opencode-issue-handler.yml were deprecated and deleted; removal in
-    # target repos is handled by the sync-actions cleanup PR job.
-    - source: .github/scripts/auth.sh
-      dest: .github/scripts/auth.sh
+  files: []
+  # No files are synced. Model selection needs no sync — downstream
+  # workflows call the select-model action, which reads the live config here.
+  # NOTE: opencode-pr-review.yml, opencode-pr-comment.yml,
+  # opencode-issue-handler.yml and .github/scripts/auth.sh were deprecated
+  # and deleted; removal in target repos is handled by the sync-actions
+  # cleanup PR job.

@@ -1,12 +1,6 @@
 # Opencode Modelselect
 Main repository for my Opencode Modelselect Github Action, shared to multiple repositories and kept in sync
 
-## Documentation
-
-- [**Workflow Flows**](.github/workflows/WORKFLOWS.md) — Deprecated: the
-  six-process automation pipeline has been removed; the file is now a
-  deprecation pointer.
-
 ## Select Model Action
 
 Preselect the OpenCode model for a task class and tier before running the
@@ -120,6 +114,6 @@ else the step fails). Outputs: `model`, `model-go`, `model-free`,
 
 | Workflow | Job | Step | Task Type | Current Model | Recommended Zen | Recommended Free | Recommended Go | Status |
 |----------|-----|------|-----------|---------------|-----------------|------------------|----------------|--------|
-| `OpenCode Maintenance` | `Handle Checked Tasks` | `Run OpenCode for checked tasks` | `code-implementation` | `opencode/big-pickle` (`/ocf`: `opencode/big-pickle`) ⚙️ | `opencode/claude-fable-5-1` (74.2 (+11%), $10/$50) | 🏆 `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | `opencode-go/muse-spark-1.3-contributor-free` (70.9, Free) | ⚠️ |
+| `OpenCode Maintenance` | `Handle Checked Tasks` | `Run OpenCode for checked tasks` | `code-implementation` | `opencode/big-pickle` (`free`: `opencode/big-pickle`) ⚙️ | `opencode/claude-fable-5-1` (74.2 (+11%), $10/$50) | 🏆 `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | `opencode-go/muse-spark-1.3-contributor-free` (70.9, Free) | ⚠️ |
 
 _Legend: ✅ Optimal · ⚠️ Warn (free, not best) · ❗ Alert (paid when free is preferred) · ❌ Error (wrong model) · 💀 Fatal (model not set). 🏆 marks the preferred model after free-first policy (free within 5% of best Go → prefer free). ⚙️ marks steps preselected at runtime from the central config (`data/model-config.json`) via the select-model action. Recommended Zen shows best Zen model with score difference vs current model (e.g., `model (+15%)`)._

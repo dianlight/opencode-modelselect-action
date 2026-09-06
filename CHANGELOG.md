@@ -56,6 +56,15 @@
   checkbox from maintenance issues, and remove `token_multipliers` from
   `config/model-scores.yaml`; the maintenance issue now offers only the single
   "Apply the proposed model config update" checkbox
+- Remove the last `/oc` / `/ocf` slash-command remains: delete
+  `.github/scripts/auth.sh` (command parser, the only file still synced
+  downstream — `.github/sync.yml` now carries an empty file list), `RUNBOOK.md`,
+  and `.github/workflows/WORKFLOWS.md`; drop the dead conditional-model
+  expression parser from `scripts/opencode_maintenance.py` (all steps resolve
+  via the select-model action now, audit shows the free model as `free` instead
+  of `/ocf`); reword `action.yml`, `README.md`, `AGENTS.md`, and the maintenance
+  workflow to `go`/`free` tiers with no slash-command references; extend the
+  sync-actions cleanup job to delete `auth.sh` downstream as well
 
 ### Fixed
 - Restore emoji icons (✅/📋/❌) in the README LiveBench Score Reference

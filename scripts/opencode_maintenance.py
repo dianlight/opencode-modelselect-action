@@ -639,12 +639,6 @@ def fetch_livebench() -> dict[str, Any]:
 
 
 # --- Workflow Scanning ---
-# Conditional `model:` inputs look like:
-#   ${{ <expr> == 'free' && 'FREE_MODEL' || 'GO_MODEL' }}
-# The Go model is the primary (fallback side); the free model is the /ocf tier.
-MODEL_EXPR_RE = re.compile(
-    r"\$\{\{[^}]*&&\s*'([^']+)'\s*\|\|\s*'([^']+)'\s*\}\}"
-)
 # Resolver reference: model: ${{ steps.<id>.outputs.model }} — the model is
 # preselected at workflow runtime from the central config
 # (data/model-config.json) via the select-model action (action.yml).
@@ -652,20 +646,14 @@ AUTO_MODEL_RE = re.compile(r"\$\{\{\s*steps\.[^}]*\.outputs\.[^}]*\}\}")
 
 
 def _parse_model_expression(model: str) -> tuple[str, str | None]:
-    """Split a conditional `model:` input into (go_model, free_model).
+    """Split a `model:` input into (go_model, free_model).
 
-    Workflows with the /oc (Go) and /ocf (free) split express the model as
-    `${{ <tier> == 'free' && '<FREE>' || '<GO>' }}`. This extracts the Go
-    model (the primary, used for auditing) and the free model. Plain literal
-    model pins are returned unchanged with free_model=None.
+    Plain literal model pins are returned unchanged with free_model=None.
 
     Steps that preselect the model at runtime from the central config
     (`${{ steps.<id>.outputs.model }}`) return ("__auto__", "__auto__");
     the caller resolves them from data/model-config.json by task type.
     """
-    m = MODEL_EXPR_RE.search(model)
-    if m:
-        return m.group(2), m.group(1)
     if AUTO_MODEL_RE.search(model):
         return "__auto__", "__auto__"
     return model, None
@@ -2005,13 +1993,14 @@ def generate_workflow_audit_table(
         job = r.get("job_name", r["job_id"])
         step = r.get("step_name", f"step-{r['step_index']}")
 
-        # Show both tiers for steps with the /oc (Go) + /ocf (free) split
+        # Show both tiers for action-preselected steps resolved from the
+        # central config (go model with the free model alongside)
         if current == "__auto__":
             current_cell = "`auto` (central config)"
         else:
             current_cell = f"`{current}`"
             if r.get("model_free"):
-                current_cell += f" (`/ocf`: `{r['model_free']}`)"
+                current_cell += f" (`free`: `{r['model_free']}`)"
             if r.get("auto"):
                 current_cell += " \u2699\ufe0f"
 
