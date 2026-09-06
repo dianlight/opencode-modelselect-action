@@ -92,7 +92,7 @@ jobs:
       # the issue links to it instead of inlining the JSON.
       - name: Upload proposed model config
         if: hashFiles('data/model-config.proposed.json') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: model-config-proposed
           path: data/model-config.proposed.json
