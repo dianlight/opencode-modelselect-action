@@ -57,7 +57,7 @@ back to `OPENCODE_API_KEY`), `auto-preference` (`free-first`/`go-first`),
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-06 11:47 UTC**.
+> Last updated: **2026-09-06 11:48 UTC**.
 > LiveBench data: **341 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -132,7 +132,7 @@ back to `OPENCODE_API_KEY`), `auto-preference` (`free-first`/`go-first`),
 
 ## Workflow Model Audit
 
-> Audited: **2026-09-06 11:47 UTC**
+> Audited: **2026-09-06 11:48 UTC**
 > Workflows checked: **1**
 > OpenCode steps found: **1**
 
