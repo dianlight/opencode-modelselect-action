@@ -26,7 +26,7 @@ jobs:
     if: >-
       github.event_name != 'issues' &&
       github.event_name != 'issue_comment'
-    name: Model Audit
+    name: Model Maintenance
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -54,12 +54,10 @@ jobs:
       # The script:
       #   1. Fetches OpenCode Zen (free) and Go (paid) model catalogs
       #   2. Fetches latest LiveBench leaderboard data (CSV first, JSON fallback)
-      #   3. Classifies workflows by task type (using config/task-types.yaml)
-      #   4. Scores and recommends optimal models per task type
-      #   5. Updates README.md with recommendation tables
-      #   6. Audits workflows for model optimality (with status icons)
-      #   7. Recomputes data/model-config.json directly (new selection target)
-      #   8. Saves all intermediate data to data/*.json
+      #   3. Scores and recommends optimal models per task type
+      #   4. Updates README.md with recommendation tables
+      #   5. Recomputes data/model-config.json directly (new selection target)
+      #   6. Saves all intermediate data to data/*.json
       - name: Run OpenCode maintenance
         id: maintenance
         continue-on-error: true
@@ -87,24 +85,15 @@ jobs:
             echo "✓ Changes committed and pushed"
           fi
 
-      # ── Check coverage and workflow audit, create issue if needed ──────
+      # ── Check coverage, create issue if needed ──────
       - name: Create issue for detected problems
-        if: hashFiles('data/coverage_issues.json') != '' || hashFiles('data/audit_results.json') != ''
+        if: hashFiles('data/coverage_issues.json') != ''
         run: |
           # Check coverage issues
           STALE=$(python3 -c "import json; d=json.load(open('data/coverage_issues.json')); print(len(d.get('stale_fallback',[])))" 2>/dev/null || echo "0")
           MISSING=$(python3 -c "import json; d=json.load(open('data/coverage_issues.json')); print(len(d.get('missing_scores',[])))" 2>/dev/null || echo "0")
 
-          # Check workflow audit suboptimal count
-          SUBOPTIMAL=$(python3 -c "
-          import json
-          with open('data/audit_results.json') as f:
-              d = json.load(f)
-          count = sum(1 for r in d.get('results', []) if r.get('status') in ('⚠️', '❌', '❗', '💀'))
-          print(count)
-          " 2>/dev/null || echo "0")
-
-          if [ "$STALE" = "0" ] && [ "$MISSING" = "0" ] && [ "$SUBOPTIMAL" = "0" ]; then
+          if [ "$STALE" = "0" ] && [ "$MISSING" = "0" ]; then
             echo "✓ No issues detected — skipping issue creation"
             exit 0
           fi
@@ -116,13 +105,9 @@ jobs:
 
           with open("data/coverage_issues.json") as f:
               coverage = json.load(f)
-          with open("data/audit_results.json") as f:
-              audit = json.load(f)
 
           stale = coverage.get("stale_fallback", [])
           missing = coverage.get("missing_scores", [])
-          results = audit.get("results", [])
-          suboptimal = [r for r in results if r.get("status") in ("⚠️", "❌", "❗", "💀")]
 
           lines = [
               "# OpenCode Maintenance Report",
@@ -171,17 +156,6 @@ jobs:
               )
               lines.append("")
 
-          if suboptimal:
-              lines.append("### ⚠️ Suboptimal Workflow Configurations")
-              lines.append("")
-              lines.append(
-                  "The steps in the table below resolve to a non-optimal "
-                  "model. They are listed for manual inspection — "
-                  "`data/model-config.json` is already updated automatically "
-                  "by every maintenance run."
-              )
-              lines.append("")
-
           if has_tasks:
               lines.append("---")
               lines.append("")
@@ -226,37 +200,6 @@ jobs:
                   lines.append(f"| … and {len(missing) - 30} more | |")
               lines.append("")
 
-          if suboptimal:
-              lines.append("## ⚠️ Suboptimal Workflow Configurations")
-              lines.append("")
-              lines.append("The following workflows use a model that is not optimal.")
-              lines.append("")
-              lines.append("| Workflow | Job | Step | Current Model | Recommended Free | Recommended Go | Status |")
-              lines.append("|----------|-----|------|---------------|------------------|----------------|--------|")
-              for r in suboptimal[:30]:
-                  status = r.get("status", "")
-                  rec_free = r.get("recommended_free") or "—"
-                  rec_go   = r.get("recommended_go")   or "—"
-                  pref     = r.get("preferred_tier")
-                  diff     = r.get("preferred_diff")
-                  diff_str = f" (+{diff}%)" if diff and diff > 0 else ""
-                  if pref == "free":
-                      free_cell = f"🏆 {rec_free}"
-                      go_cell   = rec_go
-                  elif pref == "go":
-                      free_cell = rec_free
-                      go_cell   = f"🏆 {rec_go}{diff_str}"
-                  else:
-                      free_cell = rec_free
-                      go_cell   = rec_go
-                  lines.append(
-                      f"| {r['workflow']} | {r['job']} | {r['step']} "
-                      f"| {r['current_model']} | {free_cell} | {go_cell} | {status} |"
-                  )
-              if len(suboptimal) > 30:
-                  lines.append(f"| … and {len(suboptimal) - 30} more | | | | | | |")
-              lines.append("")
-
           lines.append("---")
           lines.append("*Generated by `opencode-maintenance` workflow.*")
 
@@ -284,7 +227,7 @@ jobs:
             echo "✓ Closed superseded issue #$N"
           done
           gh issue create \
-            --title "[Model Audit] OpenCode maintenance issues detected" \
+            --title "[Maintenance] OpenCode maintenance issues detected" \
             --label "maintenance" \
             --body-file /tmp/issue_body.md
           echo "✓ Created new issue"
@@ -305,21 +248,12 @@ jobs:
           print(f'- LiveBench models scored: **{data[\"livebench_models\"]}**')
           print(f'- Free models available: **{data[\"free_models\"]}**')
           print(f'- Go (paid) models available: **{data[\"go_models\"]}**')
-          print(f'- Workflows audited: **{data[\"workflows_audited\"]}**')
-          print(f'- Steps checked: **{data[\"steps_audited\"]}**')
           print(f'- Timestamp: {data[\"timestamp\"]}')
-          print()
-          results = data.get('results', [])
-          for r in results:
-              if r.get('status') == 'parse_error':
-                  print(f'- ❌ Parse error in \`{r[\"file\"]}\`: {r[\"error\"]}')
-              else:
-                  icon = r.get('status', '❓')
-                  print(
-                      f'- {icon} \`{r[\"workflow\"]}\` / \`{r[\"job\"]}\` / \`{r[\"step\"]}\` '
-                      f'— current: \`{r[\"current_model\"]}\`, '
-                      f'suggested free: \`{r[\"recommended_free\"]}\`'
-                  )
+          cfg = data.get('model_config', {})
+          if cfg.get('updated'):
+              print(f'- Central model config: **updated** (snapshot {cfg.get(\"livebench_snapshot\")})')
+          else:
+              print('- Central model config: unchanged')
           " >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠ No audit results found" >> $GITHUB_STEP_SUMMARY

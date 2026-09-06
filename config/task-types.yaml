@@ -1,5 +1,4 @@
-# Task type definitions with signals for classification
-# Maps workflow/job/step patterns to task types
+# Task type definitions
 #
 # `name` is the kebab-case key used in data/model-config.json and the
 # select-model action (`task-type` input, matched case-insensitively).
@@ -9,52 +8,24 @@ task_types:
   - name: "plan"
     label: "Plan"
     description: "Planning, architecture decisions, task decomposition"
-    signals:
-      - "plan"
-      - "architecture"
-      - "breakdown"
-      - "decompose"
-      - "strategy"
-      - "roadmap"
     relevant_subscores: ["reasoning", "instruction_following"]
     priority: "reasoning"
 
   - name: "issue-triage"
     label: "Issue Triage"
     description: "Triage, label, categorize, route issues"
-    signals:
-      - "triage"
-      - "label"
-      - "categorize"
-      - "route"
-      - "classify"
     relevant_subscores: ["instruction_following", "speed"]
     priority: "instruction_following"
 
   - name: "review"
     label: "Review"
     description: "Review PRs, pull requests, diffs"
-    signals:
-      - "review"
-      - "pull request"
-      - "pr review"
-      - "diff"
-      - "code review"
     relevant_subscores: ["reasoning"]
     priority: "reasoning"
 
   - name: "ui-design"
     label: "UI Design"
     description: "UI design, components, layouts, mockups"
-    signals:
-      - "ui"
-      - "design"
-      - "component"
-      - "layout"
-      - "mockup"
-      - "frontend"
-      - "css"
-      - "styling"
     relevant_subscores: ["vision", "coding"]
     priority: "vision"
     requires_vision: true
@@ -62,114 +33,48 @@ task_types:
   - name: "ui-testing"
     label: "UI Testing"
     description: "Playwright, Cypress, E2E, frontend tests"
-    signals:
-      - "playwright"
-      - "cypress"
-      - "e2e"
-      - "frontend test"
-      - "browser test"
     relevant_subscores: ["coding"]
     priority: "coding"
 
   - name: "api-testing"
     label: "API Testing"
     description: "API testing, integration tests, OpenAPI, Postman"
-    signals:
-      - "api test"
-      - "integration test"
-      - "openapi"
-      - "postman"
-      - "rest api"
     relevant_subscores: ["coding", "reasoning"]
     priority: "coding"
 
   - name: "docs"
     label: "Docs"
     description: "Documentation, READMEs, changelogs, docstrings"
-    signals:
-      - "docs"
-      - "documentation"
-      - "readme"
-      - "changelog"
-      - "docstring"
-      - "jsdoc"
-      - "write docs"
-      - "update docs"
     relevant_subscores: ["instruction_following"]
     priority: "instruction_following"
 
   - name: "debug"
     label: "Debug"
     description: "Debugging, reproductions, crash and exception triage"
-    signals:
-      - "debug"
-      - "debugging"
-      - "traceback"
-      - "stack trace"
-      - "reproduce"
-      - "root cause"
-      - "crash"
-      - "exception"
-      - "flaky test"
-      - "bisect"
-      - "fix bug"
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
 
   - name: "refactor"
     label: "Refactor"
     description: "Refactoring, cleanup, tech-debt reduction"
-    signals:
-      - "refactor"
-      - "refactoring"
-      - "clean up"
-      - "cleanup"
-      - "tech debt"
-      - "deduplicate"
-      - "extract function"
     relevant_subscores: ["coding"]
     priority: "coding"
 
   - name: "security"
     label: "Security"
     description: "Security review, vulnerabilities, hardening"
-    signals:
-      - "security"
-      - "vulnerability"
-      - "cve"
-      - "xss"
-      - "sql injection"
-      - "hardening"
-      - "owasp"
-      - "threat model"
-      - "auth bypass"
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
 
   - name: "code"
     label: "Code"
     description: "Code generation, implementation, features"
-    signals:
-      - "code"
-      - "implement"
-      - "write code"
-      - "generate code"
-      - "feature"
     relevant_subscores: ["coding"]
     priority: "coding"
 
   - name: "generic"
     label: "Generic"
     description: "General Q&A, explanations, analysis, everything else"
-    signals:
-      - "ask"
-      - "question"
-      - "explain"
-      - "how to"
-      - "what is"
-      - "why"
-      - "help"
-      - "clarify"
     relevant_subscores: ["instruction_following", "reasoning"]
     priority: "instruction_following"
 

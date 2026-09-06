@@ -45,7 +45,7 @@ The select-model action (`action.yml` + `src/index.js`, Node 24, zero dependenci
 
 ### Central model config
 
-`data/model-config.json` is the **actual configuration**, keyed by task-type only (`task-types.<name>.{go,free}`), consumed by every OpenCode step at startup via the select-model action (`model: ${{ steps.resolve.outputs.model }}`) — the audit marks these steps with ⚙️.
+`data/model-config.json` is the **actual configuration**, keyed by task-type only (`task-types.<name>.{go,free}`), consumed by every OpenCode step at startup via the select-model action (`model: ${{ steps.resolve.outputs.model }}`).
 
 The maintenance script recomputes the config each run and the workflow commits `data/model-config.json` directly, so the new models immediately become the selection target. The maintenance issue checkboxes are only for model ranking adjustments (`config/model-scores.yaml` PRs): checking a box makes OpenCode open a PR (assigned to the repo owner, superseding any existing one), and each audit run closes any open maintenance issue and opens a fresh one.
 
@@ -57,14 +57,13 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 
 ### Maintenance
 
-`scripts/opencode_maintenance.py` fetches model catalogs (OpenCode Zen/Go + LiveBench), classifies workflows by task type, scores models, updates `README.md` tables, saves results to `data/*.json`, and rewrites `data/model-config.json` directly (committed by the workflow). Each run also fetches Zen model prices from the Zen docs pricing page (`https://opencode.ai/docs/it/zen#pricing`) and stores them per model in `data/zen_models.json` (`pricing` field + `pricing_source`). The usable free list (`free`) is the union of `-free`-suffixed models and any model the pricing page publishes as "Free" — some free models (e.g. `big-pickle`) do not carry the `-free` suffix. Runs on a schedule and on pushes to `opencode-maintenance.yaml`.
+`scripts/opencode_maintenance.py` fetches model catalogs (OpenCode Zen/Go + LiveBench), scores models per task type, updates `README.md` tables, saves results to `data/*.json`, and rewrites `data/model-config.json` directly (committed by the workflow). Each run also fetches Zen model prices from the Zen docs pricing page (`https://opencode.ai/docs/it/zen#pricing`) and stores them per model in `data/zen_models.json` (`pricing` field + `pricing_source`). The usable free list (`free`) is the union of `-free`-suffixed models and any model the pricing page publishes as "Free" — some free models (e.g. `big-pickle`) do not carry the `-free` suffix. Runs on a schedule and on pushes to `opencode-maintenance.yaml`.
 
 ## Config files
 
 - `.mise.toml` — tool versions (Python 3.14, yamllint 1.38) and task shortcuts
 - `.yamllint` — 180-char line limit for GitHub Actions expressions, 2-space indent, truthy rule relaxed
-- `config/task-types.yaml` — task type definitions with signal keywords and priority subscores
-- `config/workflow-task-map.yaml` — workflow→task type mapping with job-level overrides
+- `config/task-types.yaml` — task type definitions with priority subscores
 - `config/model-scores.yaml` — static fallback scores for models not on LiveBench
 - `ruff.toml` — ruff linter configuration (Python)
 

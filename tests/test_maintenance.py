@@ -231,32 +231,6 @@ class PickCheapestTest(unittest.TestCase):
         self.assertEqual(m._pick_cheapest_within_threshold(scored, 5), "b")
 
 
-class ModelExpressionTest(unittest.TestCase):
-    def test_auto_expression(self):
-        self.assertEqual(
-            m._parse_model_expression("${{ steps.resolve.outputs.model }}"),
-            ("__auto__", "__auto__"),
-        )
-
-    def test_literal(self):
-        self.assertEqual(m._parse_model_expression("opencode/x"), ("opencode/x", None))
-
-
-class ClassifyTaskTypeTest(unittest.TestCase):
-    def test_signal_match_and_fallback(self):
-        tts = [
-            {"name": "pr-review", "signals": ["review", "pull request"]},
-            {"name": "triage", "signals": ["triage"]},
-        ]
-        self.assertEqual(
-            m.classify_task_type("wf", "job", "Review step", "prompt", tts),
-            "pr-review",
-        )
-        self.assertEqual(
-            m.classify_task_type("wf", "job", "step", "nothing here", tts), "generic"
-        )
-
-
 class NormaliseAndScoreTest(unittest.TestCase):
     def setUp(self):
         self._saved = m._FALLBACK_CACHE
@@ -370,35 +344,6 @@ class FreeFirstRuleTest(unittest.TestCase):
         )
 
 
-class StripPrefixAndStatusTest(unittest.TestCase):
-    def test_strip(self):
-        self.assertEqual(m._strip_model_prefix("opencode/x"), "x")
-        self.assertEqual(m._strip_model_prefix("x"), "x")
-        self.assertEqual(m._strip_model_prefix(""), "")
-
-    def test_status_tiers(self):
-        self.assertEqual(m.classify_model_status("", "f", "g"), "💀")
-        self.assertEqual(m.classify_model_status("NOT_SET", "f", "g"), "💀")
-        self.assertEqual(m.classify_model_status("opencode/go-a", "f", "go-a"), "✅")
-        # free but not best -> warn
-        self.assertEqual(
-            m.classify_model_status("opencode/other-free", "best-free", "go-a"), "⚠️"
-        )
-        # paid while free won -> alert
-        self.assertEqual(m.classify_model_status("go-a", "f", "f"), "❗")
-        # paid and not best, free did not win -> error
-        self.assertEqual(
-            m.classify_model_status("go-b", "best-free", "go-a"), "❌"
-        )
-        # pricing-page free id without -free suffix counts as free
-        self.assertEqual(
-            m.classify_model_status(
-                "big-pickle", "best-free", "go-a", free_ids={"big-pickle"}
-            ),
-            "⚠️",
-        )
-
-
 class ChangelogAndTreeDatesTest(unittest.TestCase):
     def test_parse_changelog_dates(self):
         text = "## x\n### 2024-02-01\n### 2024-01-15\n"
@@ -467,16 +412,6 @@ class ZenPricingParseTest(unittest.TestCase):
     def test_no_pricing_table_returns_empty(self):
         with patch.object(m, "fetch_text", return_value="<table></table>"):
             self.assertEqual(m.fetch_zen_pricing(), {})
-
-
-class ResolveAutoModelsTest(unittest.TestCase):
-    def test_case_insensitive(self):
-        m._MODEL_CONFIG_CACHE = {"task-types": {"Review": {"go": "g", "free": "f"}}}
-        try:
-            self.assertEqual(m.resolve_auto_models("review"), ("g", "f"))
-            self.assertEqual(m.resolve_auto_models("missing"), (None, None))
-        finally:
-            m._MODEL_CONFIG_CACHE = None
 
 
 class RankModelsTest(unittest.TestCase):

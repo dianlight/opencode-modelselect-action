@@ -5,10 +5,11 @@ OpenCode Maintenance Script
 - Fetches LiveBench leaderboard data (newest snapshot from livebench.ai,
   merged with models from older snapshots; snapshot dates are discovered
   from the official LiveBench/livebench.github.io repo)
-- Classifies workflows by task type
 - Scores and recommends optimal models per task type
+- Rewrites the central data/model-config.json consumed by the select-model
+  action (models are resolved dynamically at workflow runtime, so no
+  per-workflow audit is needed)
 - Updates README.md with recommendation tables
-- Audits workflows for model optimality
 """
 
 import csv
@@ -29,18 +30,15 @@ import yaml
 ROOT = Path(__file__).parent.parent
 CONFIG_DIR = ROOT / "config"
 DATA_DIR = ROOT / "data"
-WORKFLOWS_DIR = ROOT / ".github" / "workflows"
 README_PATH = ROOT / "README.md"
 
 TASK_TYPES_PATH = CONFIG_DIR / "task-types.yaml"
-WORKFLOW_MAP_PATH = CONFIG_DIR / "workflow-task-map.yaml"
 MODEL_SCORES_PATH = CONFIG_DIR / "model-scores.yaml"
 
 # Data files
 ZEN_MODELS_PATH = DATA_DIR / "zen_models.json"
 GO_MODELS_PATH = DATA_DIR / "go_models.json"
 LIVEBENCH_PATH = DATA_DIR / "livebench.json"
-WORKFLOW_SCAN_PATH = DATA_DIR / "workflow_scan.json"
 AUDIT_RESULTS_PATH = DATA_DIR / "audit_results.json"
 COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # Central model config consumed by downstream workflows at startup
@@ -705,132 +703,6 @@ def fetch_livebench() -> dict[str, Any]:
     return result
 
 
-# --- Workflow Scanning ---
-# Resolver reference: model: ${{ steps.<id>.outputs.model }} — the model is
-# preselected at workflow runtime from the central config
-# (data/model-config.json) via the select-model action (action.yml).
-AUTO_MODEL_RE = re.compile(r"\$\{\{\s*steps\.[^}]*\.outputs\.[^}]*\}\}")
-
-
-def _parse_model_expression(model: str) -> tuple[str, str | None]:
-    """Split a `model:` input into (go_model, free_model).
-
-    Plain literal model pins are returned unchanged with free_model=None.
-
-    Steps that preselect the model at runtime from the central config
-    (`${{ steps.<id>.outputs.model }}`) return ("__auto__", "__auto__");
-    the caller resolves them from data/model-config.json by task type.
-    """
-    if AUTO_MODEL_RE.search(model):
-        return "__auto__", "__auto__"
-    return model, None
-
-
-def scan_workflows() -> list[dict[str, Any]]:
-    """Scan all workflows for anomalyco/opencode usage."""
-    print("-> Scanning workflows for OpenCode usage...")
-
-    results = []
-    if not WORKFLOWS_DIR.exists():
-        save_json(WORKFLOW_SCAN_PATH, [])
-        return []
-
-    workflow_config = load_yaml(WORKFLOW_MAP_PATH)
-    workflow_map = workflow_config.get("workflow_task_map") or {}
-    job_task_overrides = workflow_config.get("job_task_overrides") or {}
-    task_types = load_yaml(TASK_TYPES_PATH).get("task_types") or []
-
-    for wf_file in sorted(
-        list(WORKFLOWS_DIR.glob("*.yml")) + list(WORKFLOWS_DIR.glob("*.yaml"))
-    ):
-        stem = wf_file.stem
-
-        try:
-            content = wf_file.read_text(encoding="utf-8")
-            if "anomalyco/opencode" not in content:
-                continue
-
-            wf = yaml.safe_load(content) or {}
-            wf_name = wf.get("name", wf_file.name)
-
-            # Determine task type from workflow map or auto-classify
-            mapped_task = workflow_map.get(stem)
-
-            for job_id, job in (wf.get("jobs") or {}).items():
-                steps = job.get("steps") or []
-                for idx, step in enumerate(steps):
-                    uses = step.get("uses") or ""
-                    if "anomalyco/opencode" not in uses:
-                        continue
-
-                    with_block = step.get("with") or {}
-                    model, model_free = _parse_model_expression(
-                        str(with_block.get("model") or "NOT_SET")
-                    )
-                    auto = model == "__auto__"
-                    agent = str(with_block.get("agent") or "")
-                    prompt = str(with_block.get("prompt") or "")[:500]
-
-                    # Task type first: action-preselected steps resolve
-                    # their model from the central config by task type.
-                    # Check job-level override first
-                    job_override_key = f"{stem}/{job_id}"
-                    if job_override_key in job_task_overrides:
-                        task_type = job_task_overrides[job_override_key]
-                    elif mapped_task:
-                        task_type = mapped_task
-                    else:
-                        task_type = classify_task_type(
-                            wf_name,
-                            job.get("name") or job_id,
-                            step.get("name") or f"step-{idx}",
-                            prompt,
-                            task_types,
-                        )
-
-                    if auto:
-                        resolved_go, resolved_free = resolve_auto_models(
-                            task_type
-                        )
-                        if resolved_go:
-                            model, model_free = resolved_go, resolved_free
-                        else:
-                            model_free = None
-
-                    results.append(
-                        {
-                            "file": str(wf_file.relative_to(ROOT)),
-                            "workflow_name": wf_name,
-                            "job_id": job_id,
-                            "job_name": job.get("name") or job_id,
-                            "step_index": idx,
-                            "step_name": step.get("name") or f"step-{idx}",
-                            "action_ref": uses,
-                            "model": model,
-                            "model_free": model_free,
-                            "auto": auto,
-                            "agent": agent,
-                            "prompt_preview": prompt,
-                            "task_type": task_type,
-                            "mapped": bool(mapped_task),
-                        }
-                    )
-
-        except (yaml.YAMLError, KeyError, ValueError, OSError) as e:
-            results.append(
-                {
-                    "file": str(wf_file.relative_to(ROOT)),
-                    "workflow_name": wf_file.name,
-                    "error": str(e),
-                    "task_type": "generic",
-                }
-            )
-
-    save_json(WORKFLOW_SCAN_PATH, results)
-    print(f"  v Found {len(results)} OpenCode step(s) across workflows")
-    return results
-
-
 # Central Model Config ---
 # The maintenance run writes data/model-config.json — the single source of
 # truth for which model each task-type runs. Downstream workflows preselect it
@@ -851,21 +723,6 @@ def _load_model_config() -> dict[str, Any]:
                 print(f"  w Failed to read {MODEL_CONFIG_PATH}: {e}")
     assert _MODEL_CONFIG_CACHE is not None
     return _MODEL_CONFIG_CACHE
-
-
-def resolve_auto_models(task_type: str) -> tuple[str | None, str | None]:
-    """Resolve the (go, free) models for an action-preselected workflow step
-    from the central config by task type (matched case-insensitively).
-    Returns (None, None) when no entry exists (e.g. on the first run before
-    the config has been generated)."""
-    table = _load_model_config().get("task-types") or {}
-    entry = next(
-        (v for k, v in table.items() if k.lower() == task_type.lower()),
-        None,
-    )
-    if not entry:
-        return None, None
-    return entry.get("go"), entry.get("free")
 
 
 def _rank_models_for_config(
@@ -989,20 +846,6 @@ def generate_model_config(
     save_json(MODEL_CONFIG_PATH, proposed)
     print(f"  ! Central model config updated — wrote {MODEL_CONFIG_PATH} (committed by the workflow)")
     return True
-
-
-def classify_task_type(
-    wf_name: str, job_name: str, step_name: str, prompt: str, task_types: list[dict[str, Any]]
-) -> str:
-    """Classify workflow step into task type based on signals."""
-    text = f"{wf_name} {job_name} {step_name} {prompt}".lower()
-
-    for tt in task_types:
-        for signal in tt.get("signals", []):
-            if signal.lower() in text:
-                return tt["name"]
-
-    return "generic"
 
 
 # --- Scoring & Recommendations ---
@@ -1656,69 +1499,6 @@ def apply_free_first_rule(
     return best_free, best_go
 
 
-def _strip_model_prefix(model: str) -> str:
-    """Strip common prefixes like `opencode/` from model names for comparison."""
-    if not model:
-        return model
-    name = model.strip()
-    # Strip `opencode/` or any other provider prefix
-    if "/" in name and not name.startswith("http"):
-        name = name.rsplit("/", 1)[-1]
-    return name
-
-
-def classify_model_status(
-    current: str, recommended_free: str, recommended_go: str,
-    free_ids: set[str] | None = None,
-) -> str:
-    """Classify model status with a 5-tier system.
-
-    Rules:
-      \u2705 OK       - current matches best model (after free-first)
-      \u26a0\ufe0f Warn  - current is a free model but not the best
-      \u2757 Alert   - free-first chose free but current is a paid model
-      \u274c Error   - current exists but doesn't fit any other rule
-      \U0001f480 Fatal   - current is falsy or "NOT_SET"
-
-    Accepts an optional set of free model IDs (models with a `-free` suffix OR
-    published as "Free" on the Zen docs pricing page, e.g. `big-pickle`).
-    """
-    if not current or current == "NOT_SET":
-        return "\U0001f480"  # Fatal
-
-    # Normalize model names for comparison (strip opencode/ prefix, lowercase)
-    curr = _strip_model_prefix(current).lower().strip()
-    rec_free = (
-        _strip_model_prefix(recommended_free).lower().strip()
-        if recommended_free
-        else ""
-    )
-    rec_go = (
-        _strip_model_prefix(recommended_go).lower().strip() if recommended_go else ""
-    )
-
-    # Free tier: `-free` suffix OR listed as "Free" on the pricing page.
-    free_ids_norm = {_strip_model_prefix(f).lower().strip() for f in (free_ids or ())}
-
-    # Free-first rule: if rec_free == rec_go, free won
-    free_won = bool(rec_free and rec_go and rec_free == rec_go)
-    best = rec_free if free_won else rec_go
-
-    if curr == best:
-        return "\u2705"  # OK - matches best model
-
-    # Not the best model
-    is_free_model = curr.endswith("-free") or curr in free_ids_norm
-    if not is_free_model:
-        # Paid model
-        if free_won:
-            return "\u2757"  # Alert - paying when free is preferred
-        return "\u274c"  # Error - wrong model
-
-    # Free model, not the best
-    return "\u26a0\ufe0f"  # Warn - free but not optimal
-
-
 # --- README Generation ---
 
 
@@ -2035,204 +1815,7 @@ def generate_score_reference_table(
     return "\n".join(lines)
 
 
-def generate_workflow_audit_table(
-    scan_results: list[dict[str, Any]],
-    free_models: list[dict[str, Any]],
-    go_models: list[dict[str, Any]],
-    livebench: dict[str, Any],
-    task_types: list[dict[str, Any]],
-    threshold_pct: float,
-    zen_models: list[dict[str, Any]] | None = None,
-    price_lookup: dict[str, dict[str, Any]] | None = None,
-    cost_blend: tuple[float, float] | None = None,
-) -> str:
-    """Generate the workflow audit table with status icons.
-
-    Columns: Workflow | Job | Step | Task Type | Current Model |
-    Recommended Zen (+XX%) | Recommended Free | Recommended Go | Status
-    The "Recommended Zen" column shows the best Zen model with percentage
-    difference vs current model as suffix (e.g., `model (+15%)`).
-    """
-    if not scan_results:
-        return "\n## Workflow Model Audit\n\n> No OpenCode workflows found (excluding maintenance workflow).\n"
-
-    all_zen = zen_models or []
-    go_ids = {m["id"] for m in go_models}
-    free_ids = {m["id"] for m in free_models}
-    w_in, w_out = cost_blend or DEFAULT_COST_BLEND
-
-    def _audit_cost(model_id: str | None) -> str | None:
-        if not model_id or price_lookup is None:
-            return None
-        c = get_model_cost(model_id, price_lookup, w_in, w_out)
-        if c["input"] is None and c["output"] is None:
-            return None
-        return format_cost_pair(c["input"], c["output"])
-
-    lines = [
-        "",
-        "## Workflow Model Audit",
-        "",
-        f"> Audited: **{datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}**",
-        f"> Workflows checked: **{len({r['file'] for r in scan_results})}**",
-        f"> OpenCode steps found: **{len(scan_results)}**",
-        "",
-        "| Workflow | Job | Step | Task Type | Current Model | Recommended Zen | Recommended Free | Recommended Go | Status |",
-        "|----------|-----|------|-----------|---------------|-----------------|------------------|----------------|--------|",
-    ]
-
-    for r in scan_results:
-        if "error" in r:
-            lines.append(
-                f"| `{r['file']}` | \u2014 | \u2014 | `parse-error` | \u2014 | \u2014 | \u2014 | \u2014 | \u274c Parse Error |"
-            )
-            continue
-
-        task_type = r.get("task_type", "generic")
-        current = r.get("model", "NOT_SET")
-
-        best_free, best_go = get_best_models_for_task(
-            task_type, free_models, go_models, livebench, task_types,
-            price_lookup, (w_in, w_out), threshold_pct,
-        )
-        best_free, best_go = apply_free_first_rule(
-            best_free,
-            best_go,
-            livebench,
-            next(
-                (t["priority"] for t in task_types if t["name"] == task_type), "overall"
-            ),
-            threshold_pct,
-        )
-
-        # Best Zen model and % diff vs current
-        zen_id, zen_score, _ = get_best_zen_model_for_task(
-            task_type, all_zen, livebench, task_types, go_ids=go_ids
-        )
-        priority = next(
-            (t["priority"] for t in task_types if t["name"] == task_type), "overall"
-        )
-        current_score = get_model_score(
-            _strip_model_prefix(current), livebench, priority
-        )
-
-        zen_display = f"`{zen_id}`" if zen_id else "\u2014"
-        zen_suffix = ""
-        if zen_id and zen_score is not None and current_score is not None and current_score > 0:
-            zen_pct = ((zen_score - current_score) / current_score) * 100
-            if abs(zen_pct) >= 0.5:
-                zen_suffix = f" (+{zen_pct:.0f}%)" if zen_pct > 0 else f" ({zen_pct:.0f}%)"
-            else:
-                zen_suffix = " (0%)"
-
-        # Prefix model IDs for display
-        zen_id_disp = _add_model_prefix(zen_id, engine="opencode") if zen_id else None
-        best_free_disp = _add_model_prefix(best_free, engine="opencode") if best_free else None
-        best_go_disp = _add_model_prefix(best_go, engine="opencode-go") if best_go else None
-
-        # Format Zen cell
-        if zen_id_disp:
-            zen_display = format_model_with_score(
-                zen_id_disp, zen_score, score_suffix=zen_suffix,
-                cost=_audit_cost(zen_id),
-            )
-        else:
-            zen_display = "\u2014"
-
-        # Compute percentage diff and trophy display
-        free_score = (
-            get_model_score(best_free, livebench, priority) if best_free else None
-        )
-        go_score = (
-            get_model_score(best_go, livebench, priority) if best_go else None
-        )
-
-        diff_str = ""
-        if (
-            best_free
-            and best_go
-            and best_free != best_go
-            and free_score is not None
-            and go_score is not None
-            and free_score > 0
-        ):
-            pct = ((go_score - free_score) / free_score) * 100
-            if abs(pct) >= 1:
-                diff_str = f" (+{pct:.0f}%)" if pct > 0 else f" ({pct:.0f}%)"
-
-        status = classify_model_status(
-            current, best_free, best_go,
-            free_ids=free_ids,
-        )
-
-        # Add trophy icon to the recommended model that is preferred
-        if best_free and best_go and best_free == best_go:
-            # Same model - show in both columns with trophy on free (preferred)
-            free_display = "\U0001f3c6 " + format_model_with_score(
-                best_free_disp, free_score, cost=_audit_cost(best_free),
-            )
-            go_display = format_model_with_score(
-                best_go_disp, go_score, cost=_audit_cost(best_go)
-            )
-        elif best_go and best_free:
-            free_display = format_model_with_score(
-                best_free_disp, free_score, cost=_audit_cost(best_free),
-            )
-            go_display = "\U0001f3c6 " + format_model_with_score(
-                best_go_disp, go_score, score_suffix=diff_str,
-                cost=_audit_cost(best_go),
-            )
-        elif best_go:
-            free_display = "\u2014"
-            go_display = "\U0001f3c6 " + format_model_with_score(
-                best_go_disp, go_score, score_suffix=diff_str,
-                cost=_audit_cost(best_go),
-            )
-        elif best_free:
-            free_display = "\U0001f3c6 " + format_model_with_score(
-                best_free_disp, free_score, cost=_audit_cost(best_free),
-            )
-            go_display = "\u2014"
-        else:
-            free_display = "\u2014"
-            go_display = "\u2014"
-
-        workflow = r.get("workflow_name", r["file"])
-        job = r.get("job_name", r["job_id"])
-        step = r.get("step_name", f"step-{r['step_index']}")
-
-        # Show both tiers for action-preselected steps resolved from the
-        # central config (go model with the free model alongside)
-        if current == "__auto__":
-            current_cell = "`auto` (central config)"
-        else:
-            current_cell = f"`{current}`"
-            if r.get("model_free"):
-                current_cell += f" (`free`: `{r['model_free']}`)"
-            if r.get("auto"):
-                current_cell += " \u2699\ufe0f"
-
-        lines.append(
-            f"| `{workflow}` | `{job}` | `{step}` | `{task_type}` | "
-            + f"{current_cell} | {zen_display} | {free_display} | {go_display} | {status} |"
-        )
-
-    lines.append("")
-    lines.append(
-        "_Legend: \u2705 Optimal \u00b7 \u26a0\ufe0f Warn (free, not best) \u00b7 "
-        + "\u2757 Alert (paid when free is preferred) \u00b7 "
-        + "\u274c Error (wrong model) \u00b7 "
-        + "\U0001f480 Fatal (model not set). "
-        + "\U0001f3c6 marks the preferred model after free-first policy (free within 5% of best Go \u2192 prefer free). "
-        + "\u2699\ufe0f marks steps preselected at runtime from the central config "
-        + "(`data/model-config.json`) via the select-model action. "
-        + "Recommended Zen shows best Zen model with score difference vs current model (e.g., `model (+15%)`)._"
-    )
-
-    return "\n".join(lines)
-
-
-def update_readme(model_table: str, score_table: str, audit_table: str) -> bool:
+def update_readme(model_table: str, score_table: str) -> bool:
     """Update README.md with the new tables."""
     print("-> Updating README.md...")
 
@@ -2245,7 +1828,6 @@ def update_readme(model_table: str, score_table: str, audit_table: str) -> bool:
     sections = {
         "## Model Recommendations by Task Type": model_table,
         "### LiveBench Score Reference": score_table,
-        "## Workflow Model Audit": audit_table,
     }
 
     for marker, new_content in sections.items():
@@ -2273,7 +1855,7 @@ def update_readme(model_table: str, score_table: str, audit_table: str) -> bool:
 # --- Main ---
 def main() -> None:
     print("=" * 60)
-    print("OpenCode Maintenance - Model Audit & README Update")
+    print("OpenCode Maintenance - Model Recommendations & Config Update")
     print("=" * 60)
 
     # Load config
@@ -2288,10 +1870,7 @@ def main() -> None:
     # 2. Fetch LiveBench scores
     livebench = fetch_livebench()
 
-    # 3. Scan workflows
-    scan_results = scan_workflows()
-
-    # 4. Generate recommendations & audit
+    # 3. Generate recommendations
     print("-> Computing recommendations...")
 
     # All Zen models (free + paid) for benchmark scoring
@@ -2318,13 +1897,8 @@ def main() -> None:
         zen_models=all_zen_models, task_types=task_types,
         price_lookup=price_lookup, cost_blend=cost_blend,
     )
-    audit_table = generate_workflow_audit_table(
-        scan_results, free_models, go_models, livebench, task_types, threshold_pct,
-        zen_models=all_zen_models,
-        price_lookup=price_lookup, cost_blend=cost_blend,
-    )
 
-    # 5. Generate and save benchmark data
+    # 4. Generate and save benchmark data
     print("-> Generating benchmark data...")
     benchmark = get_benchmark_summary(
         all_zen_models, go_models, livebench, task_types,
@@ -2353,105 +1927,13 @@ def main() -> None:
     )
     print(f"  v Benchmark data saved to {benchmark_path}")
 
-    # 6. Update README
-    _ = update_readme(model_table, score_table, audit_table)
+    # 5. Update README
+    _ = update_readme(model_table, score_table)
 
-    # 7. Save audit results for CI
-    audit_results = []
-    for r in scan_results:
-        if "error" in r:
-            audit_results.append(
-                {
-                    "file": r["file"],
-                    "workflow": r["workflow_name"],
-                    "status": "parse_error",
-                    "error": r["error"],
-                }
-            )
-            continue
-
-        task_type = r.get("task_type", "generic")
-        current = r.get("model", "NOT_SET")
-
-        best_free, best_go = get_best_models_for_task(
-            task_type, free_models, go_models, livebench, task_types,
-            price_lookup, cost_blend, threshold_pct,
-        )
-        best_free, best_go = apply_free_first_rule(
-            best_free,
-            best_go,
-            livebench,
-            next(
-                (t["priority"] for t in task_types if t["name"] == task_type), "overall"
-            ),
-            threshold_pct,
-        )
-
-        priority = next(
-            (t["priority"] for t in task_types if t["name"] == task_type), "overall"
-        )
-        free_cost = get_model_cost(best_free, price_lookup, *cost_blend) if best_free else None
-        go_cost = get_model_cost(best_go, price_lookup, *cost_blend) if best_go else None
-
-        # Action-preselected steps resolve their model from the central
-        # config by task type during the scan, so `current` is directly
-        # comparable — including "__auto__" leftovers, which score fatal.
-        status = classify_model_status(
-            current, best_free, best_go,
-            free_ids=free_ids,
-        )
-
-        # Determine preferred tier and compute % diff
-        if best_free and best_go and best_free == best_go:
-            preferred_tier = "free"
-        elif best_go:
-            preferred_tier = "go"
-        elif best_free:
-            preferred_tier = "free"
-        else:
-            preferred_tier = None
-        free_score = (
-            get_model_score(best_free, livebench, priority) if best_free else None
-        )
-        go_score = get_model_score(best_go, livebench, priority) if best_go else None
-
-        preferred_diff = None
-        if (
-            best_free
-            and best_go
-            and best_free != best_go
-            and free_score is not None
-            and go_score is not None
-            and free_score > 0
-        ):
-            pct = ((go_score - free_score) / free_score) * 100
-            if abs(pct) >= 1:
-                preferred_diff = round(pct)
-
-        audit_results.append(
-            {
-                "file": r["file"],
-                "workflow": r["workflow_name"],
-                "job": r["job_name"],
-                "step": r["step_name"],
-                "task_type": task_type,
-                "current_model": current,
-                "current_model_free": r.get("model_free"),
-                "auto": r.get("auto", False),
-                "recommended_free": best_free,
-                "recommended_free_cost": free_cost,
-                "recommended_go": best_go,
-                "recommended_go_cost": go_cost,
-                "preferred_tier": preferred_tier,
-                "preferred_diff": preferred_diff,
-                "status": status,
-            }
-        )
-
-    # 7b. Recompute the central model config and write it directly — the
+    # 6. Recompute the central model config and write it directly — the
     # workflow commits it, so the new models immediately become the target.
-    # `config_drift` reports whether the models actually changed this run.
-    config_drift = generate_model_config(
+    # `config_updated` reports whether the models actually changed this run.
+    config_updated = generate_model_config(
         free_models, go_models, livebench, task_types, threshold_pct, go_ids,
         price_lookup, cost_blend,
     )
@@ -2474,25 +1956,17 @@ def main() -> None:
                 "output_weight": cost_blend[1],
             },
             "pricing_source": ZEN_PRICING_URL,
-            "workflows_audited": len({r["file"] for r in scan_results}),
-            "steps_audited": len(scan_results),
-            "model_config_drift": {
-                "detected": config_drift,
+            "model_config": {
+                "updated": config_updated,
                 "timestamp": datetime.now(UTC).isoformat(),
                 "livebench_snapshot": livebench.get("_snapshot_date")
                 if isinstance(livebench, dict)
                 else None,
-                "current_task_types": (
-                    (_load_model_config().get("task-types") or {})
-                    if config_drift
-                    else {}
-                ),
             },
-            "results": audit_results,
         },
     )
 
-    # 8. Detect coverage issues (stale fallback, missing scores/prices)
+    # 7. Detect coverage issues (stale fallback, missing scores/prices)
     print("-> Checking model coverage...")
     coverage = detect_coverage_issues(
         free_models, go_models, livebench, price_lookup
@@ -2513,24 +1987,21 @@ def main() -> None:
 
     print("=" * 60)
     print("Maintenance complete")
-    print(f"  Workflows audited: {len({r['file'] for r in scan_results})}")
-    print(f"  Steps checked: {len(scan_results)}")
     print(f"  LiveBench models: {len(_lb_models(livebench))}")
     if isinstance(livebench, dict) and livebench.get("_snapshot_date"):
         print(f"  LiveBench snapshot: {livebench['_snapshot_date']}")
     print(f"  README updated: {README_PATH}")
     print(f"  Audit data: {AUDIT_RESULTS_PATH}")
     print(f"  Model config: {MODEL_CONFIG_PATH}")
-    if config_drift:
+    if config_updated:
         print(f"  ! Model config changed — {MODEL_CONFIG_PATH} updated (committed by the workflow)")
     print("=" * 60)
 
-    # Exit with error code if any \u274c (Error), \u2757 (Alert), or \U0001f480 (Fatal) found (for CI) or coverage issues
-    has_errors = any(r.get("status") in ("\u274c", "\u2757", "\U0001f480") for r in audit_results)
+    # Exit with error code on coverage issues (for CI)
     has_coverage = bool(
         coverage.get("stale_fallback") or coverage.get("missing_scores")
     )
-    sys.exit(1 if (has_errors or has_coverage) else 0)
+    sys.exit(1 if has_coverage else 0)
 
 
 if __name__ == "__main__":

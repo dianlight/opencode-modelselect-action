@@ -1,4 +1,14 @@
 ## [Unreleased]
+### Removed
+- Workflow Model Audit: models are resolved dynamically at runtime from the
+  central `data/model-config.json` (committed directly each run), so the
+  per-workflow audit table, the issue's suboptimal-configurations section,
+  the workflow scanner (`scan_workflows`, `classify_task_type`,
+  `classify_model_status`), `data/workflow_scan.json`,
+  `config/workflow-task-map.yaml`, and the `signals` keys in
+  `config/task-types.yaml` are gone; the maintenance issue now only covers
+  model coverage (`config/model-scores.yaml` PRs)
+
 ### Added
 - Model Audit issue: new "Correct the model coverage issues" checkbox that opens
   a PR scoped to `config/model-scores.yaml` only (removes stale fallback entries
