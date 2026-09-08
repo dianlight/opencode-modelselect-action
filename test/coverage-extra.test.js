@@ -115,7 +115,7 @@ const goExhausted = {
   },
 };
 
-async function withMocks({ usageBody = goAvailable, usageStatus = 200, probeStatus = 200, rawUsage = null } = {}, fn) {
+async function withMocks({ usageBody = goAvailable, usageStatus = 200, probeStatus = 200, rawUsage = null, probeBody = null } = {}, fn) {
   const usage = await startServer((req, res) => {
     if (rawUsage !== null) {
       res.writeHead(usageStatus, { 'Content-Type': 'application/json' });
@@ -130,6 +130,7 @@ async function withMocks({ usageBody = goAvailable, usageStatus = 200, probeStat
     req.on('end', () => {
       void body;
       if (probeStatus === 200) json(res, 200, { choices: [{ message: { content: 'pong' } }] });
+      else if (probeBody !== null) json(res, probeStatus, probeBody);
       else json(res, probeStatus, { error: { message: `probe http ${probeStatus}` } });
     });
   });
@@ -362,11 +363,14 @@ describe('select-model go availability branches', () => {
     assert.match(r.stderr, /No model available/);
   });
 
-  it('fails on go 401 invalid token', async () => {
+  it('falls back to free on go 401 when the free probe succeeds', async () => {
+    // A 401 from one endpoint alone must not kill the run: live Zen keys
+    // are rejected per endpoint (e.g. valid Go keys on free probes), so
+    // tier auto tries the other tier and only fails when both reject auth.
     const r = await withMocks({ usageStatus: 401 }, (urls) =>
       runAsync(autoInputs(urls, { 'AUTO-PREFERENCE': 'go-first' })));
-    assert.equal(r.exit, 1);
-    assert.match(r.stderr, /401/);
+    assert.equal(r.exit, 0);
+    assert.equal(r.outputs['tier-selected'], 'free');
   });
 
   it('treats unreachable go usage as transient and picks free', async () => {
@@ -414,10 +418,39 @@ describe('select-model free probe branches', () => {
     assert.equal(r.outputs['tier-selected'], 'go');
   });
 
-  it('fails on free 401 invalid token', async () => {
+  it('falls back to go on free 401 when go has quota', async () => {
+    // Regression test for the incident where a valid Go key was rejected
+    // by the free probe (401) and the run failed without ever checking Go.
     const r = await withMocks({ probeStatus: 401 }, (urls) => runAsync(autoInputs(urls)));
+    assert.equal(r.exit, 0);
+    assert.equal(r.outputs['tier-selected'], 'go');
+  });
+
+  it('fails when both tiers reject with 401', async () => {
+    const r = await withMocks({ usageStatus: 401, probeStatus: 401 }, (urls) =>
+      runAsync(autoInputs(urls)));
     assert.equal(r.exit, 1);
     assert.match(r.stderr, /401/);
+  });
+
+  it('selects free on a session-gated probe while go has quota', async () => {
+    // Zen serves free models only to OpenCode clients, so a raw probe from
+    // a valid key answers 400 MissingSessionID. That means the key is
+    // accepted and the free route exists: free-first must select free even
+    // though Go quota remains.
+    const gated = { type: 'error', error: { type: 'MissingSessionID', message: "OpenCode's free tier can only be used in OpenCode" } };
+    const r = await withMocks({ probeStatus: 400, probeBody: gated }, (urls) =>
+      runAsync(autoInputs(urls)));
+    assert.equal(r.exit, 0);
+    assert.equal(r.outputs['tier-selected'], 'free');
+  });
+
+  it('go-first picks go while the free probe is session-gated', async () => {
+    const gated = { type: 'error', error: { type: 'MissingSessionID', message: "OpenCode's free tier can only be used in OpenCode" } };
+    const r = await withMocks({ probeStatus: 400, probeBody: gated }, (urls) =>
+      runAsync(autoInputs(urls, { 'AUTO-PREFERENCE': 'go-first' })));
+    assert.equal(r.exit, 0);
+    assert.equal(r.outputs['tier-selected'], 'go');
   });
 
   it('treats unreachable free probe as transient and picks go', async () => {

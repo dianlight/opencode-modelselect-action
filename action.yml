@@ -26,7 +26,7 @@ inputs:
     description: >-
       Token for live usage checks, required only by tier auto (falls back to
       OPENCODE_API_KEY). Used for GET usage-url (Go quota) and POST probe-url
-      (tiny free-model probe). Never logged.
+      / probe-responses-url (tiny free-model probes). Never logged.
     required: false
     default: ""
   auto-preference:
@@ -51,6 +51,13 @@ inputs:
     description: Zen chat endpoint used by tier auto for the free-model probe.
     required: false
     default: https://opencode.ai/zen/v1/chat/completions
+  probe-responses-url:
+    description: >-
+      Zen responses endpoint probed in parallel for free models served there
+      (e.g. muse-spark *-free, per the Zen docs endpoint table). Empty means
+      derive from probe-url by swapping /chat/completions for /responses.
+    required: false
+    default: ""
   config-url:
     description: Remote URL of the central model config (live source of truth).
     required: false

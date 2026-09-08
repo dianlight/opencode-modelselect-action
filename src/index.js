@@ -22,6 +22,10 @@
  *                   https://opencode.ai/zen/go/v1/usage).
  *   probe-url       Zen chat endpoint used for the free availability probe
  *                   (default https://opencode.ai/zen/v1/chat/completions).
+ *   probe-responses-url
+ *                   Zen responses endpoint probed in parallel for free models
+ *                   served there (e.g. muse-spark *-free). Defaults to
+ *                   probe-url with /chat/completions swapped for /responses.
  *   config-url      Remote URL of the central model config.
  *   config-path     Local path (relative to GITHUB_WORKSPACE) preferred
  *                   over the remote URL when present.
@@ -43,6 +47,7 @@ const path = require('node:path');
 const FETCH_TIMEOUT_MS = 15000;
 const DEFAULT_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
 const DEFAULT_PROBE_URL = 'https://opencode.ai/zen/v1/chat/completions';
+const DEFAULT_PROBE_RESPONSES_URL = 'https://opencode.ai/zen/v1/responses';
 
 function getInput(name, { required = false, fallback = '' } = {}) {
   const key = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
@@ -256,7 +261,14 @@ async function checkGoAvailability(token, usageUrl) {
     return { available: null, reason: `go usage unreachable (${err?.message ?? err})` };
   }
   if (res.status === 401) {
-    fail('Input/token for tier=\'auto\' rejected (401): invalid opencode-token.');
+    // Don't fail hard: the token may be valid for the other tier
+    // (e.g. a Go-only key probing the free endpoint). Let the caller
+    // try the next tier; it fails only when every tier rejects auth.
+    return {
+      available: false,
+      reason: 'go rejected (401): token invalid or wrong scope for Go usage',
+      authFailed: true,
+    };
   }
   if (res.status === 403) {
     return { available: false, reason: 'go 403 (no active Go subscription)' };
@@ -289,52 +301,101 @@ async function checkGoAvailability(token, usageUrl) {
   return { available: true, reason: 'go quota available' };
 }
 
-async function checkFreeAvailability(token, probeUrl, freeModel) {
+async function probeOnce(token, url, body) {
   let res;
   try {
-    res = await fetchWithTimeout(
-      probeUrl,
-      {
-        method: 'POST',
-        headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: freeModel,
-          messages: [{ role: 'user', content: 'ping' }],
-          max_tokens: 1,
-          stream: false,
-        }),
-      },
-    );
+    res = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
   } catch (err) {
-    return { available: null, reason: `free probe unreachable (${err?.message ?? err})` };
+    return { status: null, text: '', error: err?.message ?? String(err) };
   }
-  if (res.status === 401) {
-    fail('Input/token for tier=\'auto\' rejected (401): invalid opencode-token.');
-  }
-  if (res.status === 404) {
-    return { available: false, reason: `free model '${freeModel}' not found (404)` };
-  }
-  if (res.status === 403) {
-    return { available: false, reason: 'free probe forbidden (403)' };
-  }
-  if (res.status === 402 || res.status === 429 || res.status === 503 || res.status === 529) {
-    return { available: false, reason: `free exhausted (HTTP ${res.status})` };
-  }
-  if (!res.ok) {
-    // Consume the body so the socket can be reused, then treat as transient.
-    try {
-      await res.text();
-    } catch {
-      // ignore
-    }
-    return { available: null, reason: `free probe HTTP ${res.status}` };
-  }
+  let text = '';
   try {
-    await res.text();
+    text = await res.text();
   } catch {
     // ignore
   }
-  return { available: true, reason: 'free probe succeeded' };
+  return { status: res.status, ok: res.ok, text };
+}
+
+function isSessionGate(text) {
+  const t = String(text ?? '').toLowerCase();
+  return t.includes('missingsessionid') || t.includes('only be used in opencode');
+}
+
+// Classify one free-probe answer into a state:
+//   available  2xx: the model answered.
+//   selectable 400 + session gate: the key is accepted and the free route
+//              exists, but Zen only serves free models to OpenCode clients,
+//              so a raw probe can never get a completion. The model is still
+//              usable by the downstream OpenCode step.
+//   exhausted  402/429/503/529: free quota spent.
+//   unavailable 403/404: forbidden or removed.
+//   authFailed 401: the key is rejected here.
+//   unknown    anything else (500s, network errors, unexpected 400s).
+function classifyFreeProbe({ status, text, error }) {
+  if (status === null) return { state: 'unknown', reason: `free probe unreachable (${error})` };
+  if (status >= 200 && status < 300) return { state: 'available', reason: 'free probe succeeded' };
+  if (status === 401) {
+    return { state: 'authFailed', reason: 'free rejected (401): token invalid for free probe' };
+  }
+  if (status === 402 || status === 429 || status === 503 || status === 529) {
+    return { state: 'exhausted', reason: `free exhausted (HTTP ${status})` };
+  }
+  if (status === 403 || status === 404) {
+    return { state: 'unavailable', reason: `free unavailable (HTTP ${status})` };
+  }
+  if (status === 400 && isSessionGate(text)) {
+    return { state: 'selectable', reason: 'free usable via OpenCode (session-gated probe)' };
+  }
+  return { state: 'unknown', reason: `free probe HTTP ${status}` };
+}
+
+async function checkFreeAvailability(token, probeUrl, probeResponsesUrl, freeModel) {
+  // The central config stores engine-prefixed display names
+  // (e.g. `opencode/muse-spark-1.3-contributor-free`) for the OpenCode CLI,
+  // but the Zen API expects the bare model id. Sending the prefixed name
+  // gets a 401 "not supported" even for valid keys.
+  const probeModel = String(freeModel ?? '').trim().split('/').pop();
+  // Free models live on different Zen endpoints per model (chat/completions
+  // vs responses, see the Zen docs endpoint table), so probe both shapes and
+  // keep the best answer.
+  const [chat, responses] = await Promise.all([
+    probeOnce(token, probeUrl, {
+      model: probeModel,
+      messages: [{ role: 'user', content: 'ping' }],
+      max_tokens: 1,
+      stream: false,
+    }),
+    probeOnce(token, probeResponsesUrl, {
+      model: probeModel,
+      input: 'ping',
+      max_output_tokens: 1,
+    }),
+  ]);
+  const ranked = [classifyFreeProbe(chat), classifyFreeProbe(responses)];
+  const reason =
+    ranked[0].reason === ranked[1].reason
+      ? ranked[0].reason
+      : `${ranked[0].reason}; alt: ${ranked[1].reason}`;
+  if (ranked.some((r) => r.state === 'available')) {
+    return { available: true, selectable: false, authFailed: false, reason };
+  }
+  if (ranked.some((r) => r.state === 'selectable')) {
+    return { available: null, selectable: true, authFailed: false, reason };
+  }
+  if (ranked.some((r) => r.state === 'exhausted' || r.state === 'unavailable')) {
+    return { available: false, selectable: false, authFailed: false, reason };
+  }
+  if (ranked.every((r) => r.state === 'authFailed')) {
+    // Don't fail hard: the token may still be valid for Go. The caller
+    // fails only when every tier rejects auth.
+    return { available: false, selectable: false, authFailed: true, reason };
+  }
+  return { available: null, selectable: false, authFailed: false, reason };
 }
 
 async function resolveAutoTier({
@@ -343,6 +404,7 @@ async function resolveAutoTier({
   token,
   usageUrl,
   probeUrl,
+  probeResponsesUrl,
   preference,
   maxWaitSec,
   pollIntervalSec,
@@ -350,7 +412,15 @@ async function resolveAutoTier({
   const order = preference === 'go-first' ? ['go', 'free'] : ['free', 'go'];
   const deadline = Date.now() + maxWaitSec * 1000;
   const reasons = { go: '', free: '' };
+  // A tier is pickable when it is proven available (Go quota ok, free probe
+  // 2xx) or selectable (free session-gate: the key is accepted and the free
+  // route exists; free models serve the downstream OpenCode step even while
+  // Go quota remains). Preference order decides: the preferred pickable
+  // tier wins without consulting the other.
+  const pickable = (r) => r.available || r.selectable;
   for (;;) {
+    const authFailed = { go: false, free: false };
+    const seen = {};
     for (const t of order) {
       if (t === 'go') {
         if (!goModel) {
@@ -359,16 +429,25 @@ async function resolveAutoTier({
         }
         const r = await checkGoAvailability(token, usageUrl);
         reasons.go = r.reason;
-        if (r.available) return { tier: 'go', model: goModel };
+        if (r.authFailed) authFailed.go = true;
+        seen.go = r;
       } else {
         if (!freeModel) {
           reasons.free = 'not configured';
           continue;
         }
-        const r = await checkFreeAvailability(token, probeUrl, freeModel);
+        const r = await checkFreeAvailability(token, probeUrl, probeResponsesUrl, freeModel);
         reasons.free = r.reason;
-        if (r.available) return { tier: 'free', model: freeModel };
+        if (r.authFailed) authFailed.free = true;
+        seen.free = r;
       }
+      if (pickable(seen[t])) return { tier: t, model: t === 'go' ? goModel : freeModel };
+    }
+    // Every configured tier rejected the token: retrying won't help.
+    const goRejected = !goModel || authFailed.go;
+    const freeRejected = !freeModel || authFailed.free;
+    if ((goModel || freeModel) && goRejected && freeRejected) {
+      fail("Input/token for tier='auto' rejected (401): invalid opencode-token.");
     }
     if (Date.now() >= deadline) break;
     const waitMs = Math.min(pollIntervalSec * 1000, Math.max(0, deadline - Date.now()));
@@ -400,6 +479,15 @@ async function main() {
     getInput('usage-url', { fallback: DEFAULT_USAGE_URL }) || DEFAULT_USAGE_URL;
   const probeUrl =
     getInput('probe-url', { fallback: DEFAULT_PROBE_URL }) || DEFAULT_PROBE_URL;
+  // Responses-API probe for free models served there (e.g. muse-spark
+  // *-free). Empty means derive from probe-url, or reuse it when it is not
+  // a chat/completions URL (as in tests with mock servers).
+  let probeResponsesUrl = getInput('probe-responses-url');
+  if (!probeResponsesUrl) {
+    const derived = probeUrl.replace(/\/chat\/completions\/?$/, '/responses');
+    probeResponsesUrl = derived !== probeUrl ? derived : probeUrl;
+  }
+  if (!probeResponsesUrl) probeResponsesUrl = DEFAULT_PROBE_RESPONSES_URL;
   const maxWaitInput = getInput('max-wait-seconds');
   const pollIntervalInput = getInput('poll-interval-seconds');
 
@@ -533,6 +621,7 @@ async function main() {
         token,
         usageUrl,
         probeUrl,
+        probeResponsesUrl,
         preference,
         maxWaitSec,
         pollIntervalSec,

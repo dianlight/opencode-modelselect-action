@@ -61,12 +61,13 @@ Runs on Node 24 with zero dependencies (`src/index.js`).
 |-------|----------|-------------|---------|
 | `task-type` | yes | Task class to select the model for. Must match a key of `task-types` in the central config (see [Task types](#task-types)). Matched case-insensitively; the canonical key is echoed in the `task-type` output. | — |
 | `tier` | no | Model tier: `go` (paid), `free`, or `auto` (probe live usage, see [Tier `auto`](#tier-auto-live-quota-probing)). Omitted = `auto` with a token (`opencode-token` or `OPENCODE_API_KEY`), else `free`. Anything else fails the step. | `auto` with token, else `free` |
-| `opencode-token` | only for `tier: auto` | Token for live usage checks. Falls back to the `OPENCODE_API_KEY` env var. Used for `GET usage-url` (Go quota) and `POST probe-url` (tiny free-model probe). Never logged. | `""` |
+| `opencode-token` | only for `tier: auto` | Token for live usage checks. Falls back to the `OPENCODE_API_KEY` env var. Used for `GET usage-url` (Go quota) and `POST probe-url` / `POST probe-responses-url` (tiny free-model probes). Never logged. | `""` |
 | `auto-preference` | no | Probe order for `tier: auto`: `free-first` (try free, fall back to Go) or `go-first` (reverse). Only meaningful with `tier: auto`. | `free-first` |
 | `max-wait-seconds` | no | How long `tier: auto` polls the usage endpoints before failing. `0` = fail fast. Non-negative number (string or number). Polls every `poll-interval-seconds`. | `"0"` |
 | `poll-interval-seconds` | no | Seconds between usage re-checks for `tier: auto`. Must be a positive number. | `"60"` |
 | `usage-url` | no | Go plan usage endpoint queried by `tier: auto`. Override for tests or mirrors. | `https://opencode.ai/zen/go/v1/usage` |
-| `probe-url` | no | Zen chat endpoint used by `tier: auto` for the free availability probe (`model` = resolved free model, `messages: [{role:user, content:ping}]`, `max_tokens: 1`, `stream: false`). Override for tests or mirrors. | `https://opencode.ai/zen/v1/chat/completions` |
+| `probe-url` | no | Zen chat endpoint used by `tier: auto` for the free availability probe (bare model id, `messages: [{role:user, content:ping}]`, `max_tokens: 1`, `stream: false`). Override for tests or mirrors. | `https://opencode.ai/zen/v1/chat/completions` |
+| `probe-responses-url` | no | Zen responses endpoint probed in parallel for free models served there (e.g. `muse-spark` `*-free`, per the Zen docs endpoint table; `model` = bare id, `input: ping`, `max_output_tokens: 1`). Empty derives it from `probe-url` by swapping `/chat/completions` for `/responses`. | `""` (derived) |
 | `config-url` | no | Remote URL of the central model config (live source of truth). Only fetched when the local file is absent. Empty disables the remote fallback. | `https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json` |
 | `config-path` | no | Local path (relative to `GITHUB_WORKSPACE`, absolute also works) preferred over the remote URL when the file exists and parses as JSON. | `data/model-config.json` |
 | `fallback-model` | no | Escape hatch used whenever no model can be resolved: unknown task-type, empty go/free entry, both tiers exhausted/unreachable under `tier: auto`, or no ranked model fits `max-cost`. Emits a `::warning::` and appends `+fallback` to `config-source`. Prefer adding the entry to `data/model-config.json` instead. | `""` |
@@ -109,21 +110,31 @@ Keys of `task-types` in `data/model-config.json` (defined in
 Requires `opencode-token` or `OPENCODE_API_KEY`. Probe order follows
 `auto-preference` (`free-first` default, or `go-first`):
 
-- Free: `POST probe-url` with the resolved free model. Success = available.
-  HTTP 402/429/503/529, 403, or 404 = exhausted/unavailable. Other HTTP
-  errors or network failures = transient (`null`), so the other tier can
-  still win. HTTP 401 fails the step immediately (invalid token).
+- Free: `POST probe-url` (chat shape) and `POST probe-responses-url`
+  (responses shape) in parallel with the bare model id (the `opencode/`
+  engine prefix is stripped: the Zen API answers 401 "not supported" for
+  prefixed names even with valid keys). Best answer wins: success =
+  available; HTTP 400 carrying the session gate (`MissingSessionID` / "only
+  be used in OpenCode") = selectable — the key is accepted and the free
+  route exists, and free models serve the downstream OpenCode step even
+  while Go quota remains. HTTP 402/429/503/529, 403, or 404 =
+  exhausted/unavailable. HTTP 401 = the key is rejected here (falls back to
+  Go; the step fails as invalid token only when Go rejects it too). Other
+  HTTP errors or network failures = transient, so the other tier can win.
 - Go: `GET usage-url`. Parses the rolling/weekly/monthly windows
   (`percent`/`usagePercent` ≥ 100, or `status` in limited/exhausted/blocked/
   rate_limited/denied = exhausted). HTTP 403/404/429 = unavailable (no Go
   plan / rate-limited). Other HTTP errors, bad JSON, or unknown payload
-  shape = transient (`null`). HTTP 401 fails the step immediately.
+  shape = transient. HTTP 401 falls back to free; the step fails as invalid
+  token only when free rejects it too.
 
-The first available tier in preference order wins and is reported via
-`tier-selected`. When neither is available, the step retries every
-`poll-interval-seconds` until `max-wait-seconds` expires, then fails (or
-uses `fallback-model` when given). A `::notice::` is logged on each retry
-with the last `free[…]/go[…]` reasons.
+The first available-or-selectable tier in preference order wins and is
+reported via `tier-selected`, so `free-first` picks free whenever free is
+usable even with Go quota left, and `go-first` mirrors it. When neither is
+available, the step retries every `poll-interval-seconds` until
+`max-wait-seconds` expires, then fails (or uses `fallback-model` when
+given). A `::notice::` is logged on each retry with the last
+`free[…]/go[…]` reasons.
 
 ```yaml
 - name: Select model (auto, wait up to 5 min)
