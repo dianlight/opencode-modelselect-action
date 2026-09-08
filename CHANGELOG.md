@@ -1,4 +1,19 @@
 ## [Unreleased]
+
+## [0.3.0]
+### Fixed
+- `tier: auto` now honors `auto-preference`: the free probe strips the
+  `opencode/` engine prefix before calling Zen (prefixed names answer 401
+  "not supported" even for valid keys) and probes the chat and responses
+  endpoints in parallel (new `probe-responses-url` input, derived from
+  `probe-url` by default) since free models live on either per the Zen docs
+  endpoint table. A 400 session gate (`MissingSessionID` / "only be used in
+  OpenCode") counts as selectable — the key is accepted and free serves the
+  downstream OpenCode step — so `free-first` picks free even while Go quota
+  remains. A 401 from one tier falls back to the other; the step fails as
+  invalid token only when both tiers reject auth
+### Removed
+- No-op file-sync job, keep deprecated-workflow cleanup
 ### Changed
 - `tier` input is now dynamic when omitted (was `go`): `auto` when a token
   (`opencode-token` or `OPENCODE_API_KEY`) is available, else `free`
