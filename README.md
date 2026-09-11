@@ -104,6 +104,7 @@ Keys of `task-types` in `data/model-config.json` (defined in
 | `debug` | Debug | Debugging, reproductions, crash and exception triage |
 | `refactor` | Refactor | Refactoring, cleanup, tech-debt reduction |
 | `security` | Security | Security review, vulnerabilities, hardening |
+| `mechanical-engineer` | Mechanical Engineer | Mechanical engineering, calculations, CAD, thermodynamics, materials |
 
 ### Tier `auto` (live quota probing)
 

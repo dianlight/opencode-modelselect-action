@@ -1,4 +1,16 @@
 ## [Unreleased]
+### Added
+- New `mechanical-engineer` task type (Mechanical Engineer: calculations,
+  CAD, thermodynamics, materials; `reasoning` priority) in
+  `config/task-types.yaml`, with fallback defaults, score-reference badge,
+  README/action docs, and a seeded `data/model-config.json` entry (next
+  maintenance run recomputes it from LiveBench)
+### Changed
+- `opencode-maintenance` workflow now runs daily (`0 0 * * *`) instead of
+  every 7 days
+- Checkbox-handler Select model step now uses `tier: auto` (with
+  `opencode-token` for live quota probing) and `task-type: generic`, fitting
+  its research + small-config-edit workload instead of hardcoded `go`/`code`
 
 ## [0.3.0]
 ### Fixed

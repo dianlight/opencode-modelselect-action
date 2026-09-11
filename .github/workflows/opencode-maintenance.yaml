@@ -2,8 +2,8 @@ name: OpenCode Maintenance
 
 on:
   schedule:
-    # Runs every 7 days (at 00:00 on the 1st, 8th, 15th, 22nd, and 29th of the month)
-    - cron: "0 0 */7 * *"
+    # Runs every day at 00:00 UTC
+    - cron: "0 0 * * *"
   workflow_dispatch: # Allows manual triggering from the GitHub UI
   push:
     branches:
@@ -192,10 +192,10 @@ jobs:
                   "Consider adding them to `config/model-scores.yaml`."
               )
               lines.append("")
-              lines.append("| Model | Tier |")
+              lines.append("| Model |  |")
               lines.append("|-------|------|")
               for m in missing[:30]:
-                  lines.append(f"| {m['model']} | {m['tier']} |")
+                  lines.append(f"| {m['model']} | {m['']} |")
               if len(missing) > 30:
                   lines.append(f"| … and {len(missing) - 30} more | |")
               lines.append("")
@@ -369,8 +369,9 @@ jobs:
         if: steps.detect.outputs.tasks != ''
         uses: dianlight/opencode-modelselect-action@v1
         with:
-          task-type: code
-          tier: go
+          task-type: generic
+          tier: auto
+          opencode-token: ${{ secrets.OPENCODE_API_KEY }}
 
       - name: Run OpenCode for checked tasks
         if: steps.detect.outputs.tasks != ''

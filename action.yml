@@ -11,7 +11,7 @@ inputs:
       Task class to select the model for. Must match a key of `task-types`
       in the central model config (e.g. plan, generic, code, issue-triage,
       review, ui-design, ui-testing, api-testing, docs, debug, refactor,
-      security). Matched case-insensitively.
+      security, mechanical-engineer). Matched case-insensitively.
     required: true
   tier:
     description: >-

@@ -72,6 +72,12 @@ task_types:
     relevant_subscores: ["coding"]
     priority: "coding"
 
+  - name: "mechanical-engineer"
+    label: "Mechanical Engineer"
+    description: "Mechanical engineering, calculations, CAD, thermodynamics, materials"
+    relevant_subscores: ["reasoning", "coding"]
+    priority: "reasoning"
+
   - name: "generic"
     label: "Generic"
     description: "General Q&A, explanations, analysis, everything else"
