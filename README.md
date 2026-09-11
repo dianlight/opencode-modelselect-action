@@ -234,7 +234,7 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-11 20:42 UTC**.
+> Last updated: **2026-09-11 21:10 UTC**.
 > LiveBench data: **344 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -255,6 +255,7 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/claude-fable-5-1` (74.2, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.15/$0.6) |
 | `security` (Security) | Security review, vulnerabilities, hardening | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `code` (Code) | Code generation, implementation, features | `opencode/claude-fable-5-1` (74.2, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.15/$0.6) |
+| `mechanical-engineer` (Mechanical Engineer) | Mechanical engineering, calculations, CAD, thermodynamics, materials | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `generic` (Generic) | General Q&A, explanations, analysis, everything else | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (85.0, $0.3/$1.2) |
 
 ### LiveBench Score Reference

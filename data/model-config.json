@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-11T20:42:18.323325+00:00",
+  "timestamp": "2026-09-11T21:10:59.189413+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -3504,6 +3504,13 @@
           "blended_cost": 0.125
         },
         {
+          "model": "opencode-go/deepseek-v4.1-flash",
+          "score": 88.7,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625
+        },
+        {
           "model": "opencode-go/qwen3.8-max",
           "score": 87.9,
           "input_cost": 2.0,
@@ -3681,9 +3688,9 @@
         {
           "model": "opencode-go/omen-alpha",
           "score": 65.0,
-          "input_cost": 0.2,
-          "output_cost": 0.66,
-          "blended_cost": 0.315
+          "input_cost": null,
+          "output_cost": null,
+          "blended_cost": null
         },
         {
           "model": "opencode-go/mimo-v2.5",
