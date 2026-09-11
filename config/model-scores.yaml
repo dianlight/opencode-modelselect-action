@@ -1,4 +1,10 @@
 model_scores:
+  deepseek-flash:
+    coding: 50.3             # OpenCode Go id for DeepSeek V4 Flash; same checkpoint as LiveBench deepseek-v4-flash
+    instruction_following: 69.4  # LiveBench deepseek-v4-flash (IFEval-class tasks)
+    overall: 66.1             # LiveBench deepseek-v4-flash composite; AA Intelligence Index 47 (max), MMLU-Pro 86.2
+    reasoning: 73.1           # LiveBench deepseek-v4-flash; SWE-bench Verified 79.0, LiveCodeBench 91.6, SimpleQA-Verified 34.1
+    vision: 46.9              # text-only model card; mirrors LiveBench deepseek-v4-flash plot_unscrambling
   hy3-preview:
     coding: 55.0
     instruction_following: 58.0
