@@ -16,7 +16,6 @@ import csv
 import io
 import json
 import re
-import sys
 from html.parser import HTMLParser
 from datetime import datetime, timedelta, UTC
 from pathlib import Path
@@ -2002,11 +2001,9 @@ def main() -> None:
         print(f"  ! Model config changed — {MODEL_CONFIG_PATH} updated (committed by the workflow)")
     print("=" * 60)
 
-    # Exit with error code on coverage issues (for CI)
-    has_coverage = bool(
-        coverage.get("stale_fallback") or coverage.get("missing_scores")
-    )
-    sys.exit(1 if has_coverage else 0)
+    # Coverage gaps are expected data, not a failure: they are saved to
+    # data/coverage_issues.json and surfaced via the maintenance issue.
+    # Always exit 0 so the step stays green.
 
 
 if __name__ == "__main__":

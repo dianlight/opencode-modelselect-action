@@ -192,10 +192,10 @@ jobs:
                   "Consider adding them to `config/model-scores.yaml`."
               )
               lines.append("")
-              lines.append("| Model |  |")
+              lines.append("| Model | Tier |")
               lines.append("|-------|------|")
               for m in missing[:30]:
-                  lines.append(f"| {m['model']} | {m['']} |")
+                  lines.append(f"| {m['model']} | {m.get('tier', '')} |")
               if len(missing) > 30:
                   lines.append(f"| … and {len(missing) - 30} more | |")
               lines.append("")
