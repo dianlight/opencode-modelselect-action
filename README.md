@@ -234,8 +234,8 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-16 05:25 UTC**.
-> LiveBench data: **344 models scored**.
+> Last updated: **2026-09-17 02:05 UTC**.
+> LiveBench data: **345 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
 > Free-first threshold: **5%**.
@@ -247,7 +247,7 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | `plan` (Plan) | Planning, architecture decisions, task decomposition | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `issue-triage` (Issue Triage) | Triage, label, categorize, route issues | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (85.0, $0.3/$1.2) |
 | `review` (Review) | Review PRs, pull requests, diffs | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
-| `ui-design` (UI Design) | UI design, components, layouts, mockups | `opencode/gpt-6-astra` (86.3, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (68.4, Free) | 🏆 `opencode-go/hy4-preview` (84.0, $0.834/$2.501) |
+| `ui-design` (UI Design) | UI design, components, layouts, mockups | `opencode/gpt-6-astra` (86.3, $10/$50) | `opencode/union-alpha` (80.3, Free) | 🏆 `opencode-go/union-alpha` (80.3, Free) |
 | `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/claude-fable-5-1` (74.2, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.15/$0.6) |
 | `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/claude-fable-5-1` (74.2, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.15/$0.6) |
 | `docs` (Docs) | Documentation, READMEs, changelogs, docstrings | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (85.0, $0.3/$1.2) |
@@ -312,6 +312,8 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
 | `qwen3.8-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.3 | 66.0 | 84.4 | 55.8 | 77.2 | $0.15 | $0.47 | $0.23 | 336.1 |
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 67.9 | 87.9 | 58.6 | 77.2 | $2 | $6 | $3 | 26.5 |
+| `union-alpha` | Free | ✅ LiveBench | Plan, Review | 76.2 | 65.7 | 85.0 | 80.3 | 68.1 | Free | Free | Free | — |
+| `union-alpha` | Free | ✅ LiveBench | Plan, Review | 76.2 | 65.7 | 85.0 | 80.3 | 68.1 | Free | Free | Free | — |
 ## Sponsor
 
 <a href="https://github.com/sponsors/dianlight"><img src="https://img.shields.io/github/sponsors/dianlight?style=flat-square&logo=githubsponsors&logoColor=%23EA4AAA" alt="Github Sponsor"></a>
