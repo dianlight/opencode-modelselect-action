@@ -89,3 +89,9 @@ model_scores:
     overall: 61.5             # ORPT-Bench composite (correctness-weighted)
     reasoning: 61.5
     vision: 8.0               # text-only, no vision encoder
+  deepseek-flash:
+    coding: 69.2              # LiveBench Coding 26.1 69.2%; LiveCodeBench v6 91.6%; SWE-bench Verified 79.0; Terminal-Bench 2.0 56.9
+    instruction_following: 80.0  # estimated; strong IF performance (MMLU Pro 86.2)
+    overall: 62.8             # RankedAGI Overall 62.8
+    reasoning: 70.8           # RankedAGI Reasoning 70.8; GPQA Diamond 88.1
+    vision: 5.0               # text-only, no vision encoder
