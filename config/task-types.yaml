@@ -84,6 +84,12 @@ task_types:
     relevant_subscores: ["instruction_following", "reasoning"]
     priority: "instruction_following"
 
+  - name: "small-model"
+    label: "Small Model"
+    description: "Lightweight utility tasks: commit messages, session titles/renames, summaries"
+    relevant_subscores: ["instruction_following", "speed"]
+    priority: "instruction_following"
+
 # Free-first policy: if free model scores within this % of best paid, prefer free
 free_first_threshold_pct: 5
 

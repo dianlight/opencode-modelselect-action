@@ -589,5 +589,28 @@ class GoPricingParseTest(unittest.TestCase):
         self.assertIn("muse-spark-1.3-contributor", pricing)
 
 
+class SmallModelTaskTypeTest(unittest.TestCase):
+    def setUp(self):
+        self._saved = m._FALLBACK_CACHE
+        m._FALLBACK_CACHE = {}
+
+    def tearDown(self):
+        m._FALLBACK_CACHE = self._saved
+
+    def test_no_scores_returns_small_model_defaults(self):
+        tts = [{"name": "small-model", "priority": "instruction_following"}]
+        best = m.get_best_models_for_task(
+            "small-model", [{"id": "x"}], [{"id": "y"}], {"models": {}}, tts
+        )
+        self.assertEqual(best, ("deepseek-v4-flash-free", "deepseek-v4-flash"))
+
+    def test_task_types_yaml_defines_small_model(self):
+        cfg = m.load_yaml(ROOT / "config" / "task-types.yaml")
+        tts = {t["name"]: t for t in cfg.get("task_types", [])}
+        self.assertIn("small-model", tts)
+        self.assertEqual(tts["small-model"]["priority"], "instruction_following")
+        self.assertIn("instruction_following", tts["small-model"]["relevant_subscores"])
+
+
 if __name__ == "__main__":
     unittest.main()

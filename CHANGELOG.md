@@ -1,5 +1,10 @@
 ## [Unreleased]
 ### Added
+- New `small-model` task type (Small Model: lightweight utility tasks —
+  commit messages, session titles/renames, summaries; `instruction_following`
+  priority with `speed` as secondary signal) in `config/task-types.yaml`,
+  with fallback defaults, score-reference badge, README/action docs, and a
+  recomputed `data/model-config.json` entry (free-first cheap-Go policy)
 - New `mechanical-engineer` task type (Mechanical Engineer: calculations,
   CAD, thermodynamics, materials; `reasoning` priority) in
   `config/task-types.yaml`, with fallback defaults, score-reference badge,
