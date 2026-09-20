@@ -1,4 +1,16 @@
 model_scores:
+  deepseek-flash:
+    coding: 69.2              # LiveBench Coding 69.23 (#48 LiveBench 08-24)
+    instruction_following: 80.4  # IFEval 80.4% (AnotherWrapper/TrustedRouter)
+    overall: 67.3             # LiveBench Global 67.3 (SWEN.AI / LiveBench 08-24)
+    reasoning: 89.9           # GPQA Diamond 89.9 (Artificial Analysis, max effort)
+    vision: 5.0               # text-only, no vision encoder
+  jev-1.13-free:
+    coding: 30.0              # decision-only model (no text/code generation); workflow accuracy 67.8%
+    instruction_following: 50.0  # schema-guaranteed output (no open-ended IFEval-style tasks)
+    overall: 67.8             # TypeSafe 4-workflow eval 67.8% (matches GPT-5.6 Terra)
+    reasoning: 67.8           # TypeSafe structured decision accuracy (system-one reasoning)
+    vision: 5.0               # text-only, no vision encoder; structured JSON input only
   hy3-preview:
     coding: 55.0
     instruction_following: 58.0
