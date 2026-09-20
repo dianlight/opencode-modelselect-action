@@ -234,7 +234,7 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-20 02:00 UTC**.
+> Last updated: **2026-09-20 10:01 UTC**.
 > LiveBench data: **345 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -269,7 +269,7 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | Model | Tier | Source | Best For | Overall | Coding | Reasoning | Vision | Instruction Following | In $/1M | Out $/1M | Blended $/1M | Value |
 |-------|------|--------|----------|---------|--------|-----------|--------|----------------------|---------|----------|--------------|-------|
 | `big-pickle` | Free | 📋 Fallback | UITest, APITest | 61.5 | 67.0 | 61.5 | 8.0 | 60.0 | Free | Free | Free | — |
-| `deepseek-flash` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | — | — | — | — |
+| `deepseek-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 67.3 | 69.2 | 89.9 | 5.0 | 80.4 | — | — | — | — |
 | `deepseek-v4-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 66.1 | 50.3 | 73.1 | 46.9 | 69.4 | $0.14 | $0.28 | $0.175 | 377.7 |
 | `deepseek-v4-flash-free` | Free | ✅ LiveBench | Plan, Review | 66.1 | 50.3 | 73.1 | 46.9 | 69.4 | Free | Free | Free | — |
 | `deepseek-v4-flash-vision-exp` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.7 | 66.3 | 86.1 | 57.7 | 75.2 | $0.14 | $0.28 | $0.175 | 444.0 |
@@ -286,7 +286,7 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | `hy3` | Go (Paid) | 📋 Fallback | Plan, Review | 54.0 | 55.0 | 60.0 | 8.0 | 58.0 | $0.14 | $0.58 | $0.25 | 216.0 |
 | `hy3-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 54.0 | 55.0 | 60.0 | 8.0 | 58.0 | — | — | — | — |
 | `hy4-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 79.2 | 68.9 | 85.0 | 84.0 | 78.0 | $0.834 | $2.501 | $1.2508 | 63.3 |
-| `jev-1.13-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
+| `jev-1.13-free` | Free | 📋 Fallback | Plan, Review | 67.8 | 30.0 | 67.8 | 5.0 | 50.0 | Free | Free | Free | — |
 | `kimi-k2.5` | Go (Paid) | ✅ LiveBench | Plan, Review | 69.2 | 60.1 | 76.7 | 55.0 | 65.3 | $0.6 | $3 | $1.2 | 57.7 |
 | `kimi-k2.6` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.9 | 59.6 | 77.9 | 58.1 | 69.7 | $0.95 | $4 | $1.7125 | 41.4 |
 | `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |

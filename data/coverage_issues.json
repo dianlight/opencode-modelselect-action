@@ -1,15 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "deepseek-flash",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "jev-1.13-free",
-      "tier": "Free"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [
     {
       "model": "deepseek-flash",
