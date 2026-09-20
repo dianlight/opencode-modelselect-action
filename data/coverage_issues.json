@@ -4,6 +4,10 @@
     {
       "model": "deepseek-flash",
       "tier": "Go (Paid)"
+    },
+    {
+      "model": "jev-1.13-free",
+      "tier": "Free"
     }
   ],
   "missing_prices": [
