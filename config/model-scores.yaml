@@ -89,6 +89,24 @@ model_scores:
     overall: 45.0
     reasoning: 48.0
     vision: 40.0
+  mimo-v2.6-flash:
+    coding: 75.0             # Terminal-Bench 2.1 87.6, DeepSWE 67.9, CyberGym 95.1 (BenchLM / LLM Stats)
+    instruction_following: 76.0  # strong agentic IF-style performance; agentic index 76.5 (modelscale.dev)
+    overall: 64.0             # LLM Stats Score 45.7 (#29); MMLU-Pro 84.9, Arena-Hard v2 86.2
+    reasoning: 84.0           # GPQA Diamond 83.7, AIME 2025 94.1 (BenchLM / LLM Stats)
+    vision: 40.0              # multimodal: text, image, video, audio input (Xiaomi MiMo)
+  mimo-v2.6-flash-free:
+    coding: 71.0             # free tier of mimo-v2.6-flash; slightly lower than paid flash
+    instruction_following: 72.0  # free tier estimate
+    overall: 60.0             # free tier estimate
+    reasoning: 80.0           # free tier estimate
+    vision: 38.0              # free tier estimate
+  mimo-v2.6-pro:
+    coding: 80.0             # Terminal-Bench 2.1 89.9, DeepSWE 1.1 71.9, SWE-bench Verified 78.0 (BenchLM / Xiaomi)
+    instruction_following: 82.0  # Tau2 Telecom 95.0, strong agentic performance
+    overall: 70.0             # LLM Stats Score 49.8 (#19); AA Intelligence Index 46 (Artificial Analysis)
+    reasoning: 88.0           # GPQA Diamond 87.0 (Xiaomi MiMo V2-Pro benchmark)
+    vision: 50.0              # multimodal: text, image, speech, video input (Xiaomi MiMo)
   longcat-2.0:
     coding: 70.0             # Terminal-Bench 2.1 70.8, SWE-bench Pro 59.5, SWE-bench Multilingual 77.3
     instruction_following: 85.0  # IFEval 90.0, WritingBench 83.8
