@@ -12,6 +12,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { TASK_TYPES, normalizeAgentMap } = require('./detect');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
@@ -25,8 +26,17 @@ function normalizeOptions(raw = {}) {
   let refresh = raw.configRefreshMinutes ?? raw.refreshMinutes ?? 1440;
   refresh = Number(refresh);
   if (!Number.isFinite(refresh) || refresh < 0) throw new Error('configRefreshMinutes must be >= 0.');
+  let defaultTaskType = String(raw.defaultTaskType ?? raw['default-task-type'] ?? 'generic').toLowerCase();
+  if (defaultTaskType === 'auto') defaultTaskType = 'generic';
+  if (!TASK_TYPES.includes(defaultTaskType)) {
+    throw new Error(`Unknown defaultTaskType '${raw.defaultTaskType ?? raw['default-task-type']}'.`);
+  }
   return {
     taskType: String(raw.taskType ?? raw['task-type'] ?? 'auto'),
+    defaultTaskType,
+    agentTaskMap: normalizeAgentMap(
+      raw.agentTaskMap ?? raw['agent-task-map'] ?? raw.agentMap ?? raw['agent-map'] ?? {},
+    ),
     tier,
     autoPreference: preference === 'go-first' ? 'go-first' : 'free-first',
     configUrl: String(raw.configUrl ?? raw['config-url'] ?? DEFAULT_CONFIG_URL),
@@ -36,6 +46,7 @@ function normalizeOptions(raw = {}) {
     token: String(raw.token ?? raw['opencode-token'] ?? process.env.OPENCODE_API_KEY ?? '').trim(),
     usageUrl: String(raw.usageUrl ?? raw['usage-url'] ?? DEFAULT_USAGE_URL),
     verbose: Boolean(raw.verbose ?? false),
+    suggestOnly: Boolean(raw.suggestOnly ?? raw['suggest-only'] ?? raw.suggest_only ?? false),
   };
 }
 

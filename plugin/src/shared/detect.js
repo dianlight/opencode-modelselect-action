@@ -115,15 +115,59 @@ function scoreAgent(agent) {
 }
 
 /**
- * Combine votes with fixed weights. `fixedTaskType` (manual override)
- * wins outright. Returns { taskType, scores }.
+ * Normalize an agent -> task-type pin map (keys case-insensitive).
+ * Accepts a plain object or a JSON string. Values must be known
+ * task-type keys. Throws on anything else.
  */
-function inferTaskType({ prompt, files, repo, agent, fixedTaskType } = {}) {
+function normalizeAgentMap(map) {
+  if (!map) return {};
+  let src = map;
+  if (typeof src === 'string') {
+    try {
+      src = JSON.parse(src);
+    } catch {
+      throw new Error('agentTaskMap string must be JSON (object of agent -> task-type).');
+    }
+  }
+  if (!src || typeof src !== 'object' || Array.isArray(src)) {
+    throw new Error('agentTaskMap must be an object of agent -> task-type.');
+  }
+  const out = {};
+  for (const [k, v] of Object.entries(src)) {
+    const task = String(v ?? '').toLowerCase();
+    if (!TASK_TYPES.includes(task)) {
+      throw new Error(`Unknown task-type '${v}' in agentTaskMap for agent '${k}'.`);
+    }
+    out[String(k).toLowerCase().trim()] = task;
+  }
+  return out;
+}
+
+/**
+ * Combine votes with fixed weights. Resolution order:
+ *   1. `fixedTaskType` (absolute override, kept for backward compat)
+ *   2. `agentTaskMap` pin for the current agent tag (outright, beats
+ *      even the small-model fast-path: an explicit pin is user intent)
+ *   3. small-model fast-path on explicit triggers
+ *   4. weighted heuristics (prompt 50 + files 25 + repo 15 + agent 10)
+ *   5. `defaultTaskType` when nothing scores (default 'generic')
+ * Returns { taskType, scores }.
+ */
+function inferTaskType({ prompt, files, repo, agent, fixedTaskType, agentTaskMap, defaultTaskType } = {}) {
   if (fixedTaskType && fixedTaskType !== 'auto') {
     const t = String(fixedTaskType).toLowerCase();
     if (!TASK_TYPES.includes(t)) throw new Error(`Unknown task-type '${fixedTaskType}'.`);
     return { taskType: t, scores: { [t]: 100 }, override: true };
   }
+  const map = normalizeAgentMap(agentTaskMap);
+  const agentKey = String(agent ?? '').toLowerCase().trim();
+  if (agentKey && map[agentKey]) {
+    const t = map[agentKey];
+    return { taskType: t, scores: { [t]: 100 }, override: true, via: 'agent-map' };
+  }
+  const fallback =
+    defaultTaskType && defaultTaskType !== 'auto' ? String(defaultTaskType).toLowerCase() : 'generic';
+  if (!TASK_TYPES.includes(fallback)) throw new Error(`Unknown defaultTaskType '${defaultTaskType}'.`);
   const p = scorePrompt(prompt);
   // Small-model fast-path: explicit triggers win outright, never a tie-break.
   if (p['small-model'] >= 50) return { taskType: 'small-model', scores: p, fastPath: true };
@@ -141,13 +185,14 @@ function inferTaskType({ prompt, files, repo, agent, fixedTaskType } = {}) {
       best = t;
     }
   }
-  if (bestScore <= 0) return { taskType: 'generic', scores: total };
+  if (bestScore <= 0) return { taskType: fallback, scores: total };
   return { taskType: best, scores: total };
 }
 
 module.exports = {
   TASK_TYPES,
   inferTaskType,
+  normalizeAgentMap,
   scorePrompt,
   scoreFiles,
   scoreRepo,

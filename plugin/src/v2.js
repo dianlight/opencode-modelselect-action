@@ -88,16 +88,29 @@ async function setup(ctx) {
         repo,
         agent: event.agent,
         fixedTaskType: opts.taskType,
+        agentTaskMap: opts.agentTaskMap,
+        defaultTaskType: opts.defaultTaskType,
       });
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const ref = splitModelRef(picked.model);
+      const key = `${ref.providerID}/${ref.id}`;
+      if (opts.suggestOnly) {
+        // Trial mode: resolve everything but change nothing.
+        const current =
+          event.model && typeof event.model === 'object'
+            ? `${event.model.providerID}/${event.model.id}`
+            : '?';
+        console.log(
+          `[modelselect] (suggest-only) task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current}`,
+        );
+        return;
+      }
       // 1. In-flight turn: mutate Model.Ref fields in place.
       if (event.model && typeof event.model === 'object') {
         event.model.providerID = ref.providerID;
         event.model.id = ref.id;
       }
       // 2. Future turns: persist like the model picker does (best-effort).
-      const key = `${ref.providerID}/${ref.id}`;
       if (sessionID && applied.get(sessionID) !== key) {
         try {
           await ctx.session.switchModel({ sessionID, model: { providerID: ref.providerID, id: ref.id } });

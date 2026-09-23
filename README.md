@@ -289,7 +289,9 @@ shape, and local directory. Behavior and options are identical.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `taskType` | `auto` | `auto` infers from prompt/files/repo/agent; any task-type key pins it and skips inference. |
+| `taskType` | `auto` | `auto` infers from prompt/files/repo/agent; any task-type key pins it globally and skips inference (absolute override). |
+| `defaultTaskType` | `generic` | Fallback when heuristics score nothing. Must be a task-type key. |
+| `agentTaskMap` | `{}` | Per-agent pins, e.g. `{ "reviewer": "review" }` (keys case-insensitive). A pinned agent beats prompt signals and the `small-model` fast-path. |
 | `tier` | `auto` | `go`, `free`, or `auto` (token ? probe live quota : `free`). |
 | `autoPreference` | `free-first` | Probe order for `tier: auto`. |
 | `token` | `""` | Token for `tier: auto` probing; falls back to `OPENCODE_API_KEY`. Never logged. |
@@ -297,13 +299,15 @@ shape, and local directory. Behavior and options are identical.
 | `configRefreshMinutes` | `1440` | Cache validity in minutes (`0` = refetch every request, default 24h). Stale cache survives fetch failures. |
 | `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
 | `verbose` | `false` | Log each selection (`task/tier/model`). |
+| `suggestOnly` | `false` | Trial mode: resolve as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) … would-select=… current=…`. See `plugin/README.md` (Trial run, Develop). |
 
 ### How routing works
 
 Each task-type scores from prompt (50) + touched files (25) + repo
-structure (15) + agent tag (10); highest wins, ties go to `generic`, and
-`small-model` triggers (commit messages, titles, summaries) win outright via
-fast-path. Routing shapes are verified against the SDK types
+structure (15) + agent tag (10); highest wins, ties go to `generic` (or
+`defaultTaskType` when set), and `small-model` triggers (commit messages,
+titles, summaries) win outright via fast-path unless the agent is pinned
+in `agentTaskMap` (fixed `taskType` wins over everything). Routing shapes are verified against the SDK types
 (`@opencode-ai/plugin` 1.18.x, `@opencode/plugin` 2.0.x): v1 routes in
 `chat.message` by mutating `output.message.model` in place with per-session
 stickiness (`chat.params` output has no model field); v2 mutates the

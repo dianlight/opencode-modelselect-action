@@ -71,7 +71,15 @@ module.exports = {
     const sticky = new Map(); // sessionID -> { providerID, modelID }
 
     async function route(sessionID, prompt, files, agent) {
-      const { taskType } = inferTaskType({ prompt, files, repo, agent, fixedTaskType: options.taskType });
+      const { taskType } = inferTaskType({
+        prompt,
+        files,
+        repo,
+        agent,
+        fixedTaskType: options.taskType,
+        agentTaskMap: options.agentTaskMap,
+        defaultTaskType: options.defaultTaskType,
+      });
       const picked = await resolveModel({ taskType, opts: options, cacheDir });
       return { picked, ref: splitModelRef(picked.model) };
     }
@@ -84,7 +92,20 @@ module.exports = {
           const files = filesFromParts(output?.parts);
           let ref = sticky.get(sessionID) ?? null;
           if (prompt.trim() || options.taskType !== 'auto') {
-            const { ref: fresh } = await route(sessionID, prompt, files, msgInput?.agent);
+            const { picked, ref: fresh } = await route(sessionID, prompt, files, msgInput?.agent);
+            if (options.suggestOnly) {
+              // Trial mode: resolve everything but change nothing.
+              const key = `${fresh.providerID}/${fresh.id}`;
+              const currentTarget = output?.message?.model;
+              const current =
+                currentTarget && typeof currentTarget === 'object'
+                  ? `${currentTarget.providerID}/${currentTarget.modelID}`
+                  : '?';
+              console.log(
+                `[modelselect] (suggest-only) v1 session=${sessionID} task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current}`,
+              );
+              return;
+            }
             ref = fresh;
             sticky.set(sessionID, ref);
           }

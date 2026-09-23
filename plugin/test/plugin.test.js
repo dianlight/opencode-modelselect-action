@@ -48,6 +48,57 @@ describe('detect heuristics', () => {
     const { taskType } = inferTaskType({});
     assert.equal(taskType, 'generic');
   });
+
+  it('defaultTaskType replaces the generic fallback', () => {
+    const { taskType } = inferTaskType({ defaultTaskType: 'docs' });
+    assert.equal(taskType, 'docs');
+  });
+
+  it('rejects an unknown defaultTaskType', () => {
+    assert.throws(() => inferTaskType({ defaultTaskType: 'nope' }));
+  });
+
+  it('agentTaskMap pin beats a clear prompt', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'review this diff',
+      agent: 'writer',
+      agentTaskMap: { writer: 'docs' },
+    });
+    assert.equal(taskType, 'docs');
+  });
+
+  it('agentTaskMap keys are case-insensitive', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'hello',
+      agent: 'Reviewer',
+      agentTaskMap: { reviewer: 'review' },
+    });
+    assert.equal(taskType, 'review');
+  });
+
+  it('agentTaskMap pin beats the small-model fast-path', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'generate a commit message for this diff',
+      agent: 'reviewer',
+      agentTaskMap: { reviewer: 'review' },
+    });
+    assert.equal(taskType, 'review');
+  });
+
+  it('fixed taskType still beats the agent map', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'review this diff',
+      agent: 'writer',
+      fixedTaskType: 'plan',
+      agentTaskMap: { writer: 'docs' },
+    });
+    assert.equal(taskType, 'plan');
+  });
+
+  it('rejects unknown types in agentTaskMap', () => {
+    assert.throws(() => inferTaskType({ agent: 'x', agentTaskMap: { x: 'nope' } }));
+    assert.throws(() => normalizeOptions({ agentTaskMap: { x: 'nope' } }));
+  });
 });
 
 describe('select options + cache', () => {
@@ -61,6 +112,24 @@ describe('select options + cache', () => {
 
   it('rejects negative refresh', () => {
     assert.throws(() => normalizeOptions({ configRefreshMinutes: -1 }));
+  });
+
+  it('defaults suggestOnly to false and accepts aliases', () => {
+    assert.equal(normalizeOptions({}).suggestOnly, false);
+    assert.equal(normalizeOptions({ suggestOnly: true }).suggestOnly, true);
+    assert.equal(normalizeOptions({ 'suggest-only': true }).suggestOnly, true);
+    assert.equal(normalizeOptions({ suggest_only: true }).suggestOnly, true);
+  });
+
+  it('defaults defaultTaskType/agentTaskMap and validates them', () => {
+    const opts = normalizeOptions({});
+    assert.equal(opts.defaultTaskType, 'generic');
+    assert.deepEqual(opts.agentTaskMap, {});
+    assert.equal(normalizeOptions({ defaultTaskType: 'docs' }).defaultTaskType, 'docs');
+    assert.deepEqual(normalizeOptions({ agentTaskMap: { Writer: 'docs' } }).agentTaskMap, {
+      writer: 'docs',
+    });
+    assert.throws(() => normalizeOptions({ defaultTaskType: 'nope' }));
   });
 
   it('uses fresh cache without network', async () => {
@@ -105,6 +174,32 @@ describe('v1 routing hook', () => {
     assert.equal(target.modelID, 'b');
     fs.rmSync(dir, { recursive: true, force: true });
   });
+
+  it('suggestOnly logs the pick without touching the model', async () => {
+    const v1 = require('../src/v1.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-suggest-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    const hooks = await v1.server(
+      { directory: dir },
+      { tier: 'free', taskType: 'review', suggestOnly: true },
+    );
+    const target = { providerID: 'old', modelID: 'old' };
+    const lines = [];
+    const origLog = console.log;
+    console.log = (...args) => lines.push(args.join(' '));
+    try {
+      await hooks['chat.message'](
+        { sessionID: 's1' },
+        { parts: [{ type: 'text', text: 'review this diff' }], message: { model: target } },
+      );
+    } finally {
+      console.log = origLog;
+    }
+    assert.equal(target.providerID, 'old');
+    assert.equal(target.modelID, 'old');
+    assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b/);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
 });
 
 describe('v2 routing hooks', () => {
@@ -137,6 +232,72 @@ describe('v2 routing hooks', () => {
       sessionID: 's1',
       model: { providerID: 'f', id: 'b' },
     });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('agentTaskMap pin routes the pinned entry end to end', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-agentmap-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        docs: { go: 'g/doc', free: 'f/doc' },
+      },
+    });
+    const seen = {};
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'auto', agentTaskMap: { writer: 'docs' } },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
+    const event = { sessionID: 's1', agent: 'writer', model: { providerID: 'old', id: 'old' }, messages: [] };
+    await seen.context(event);
+    assert.equal(event.model.providerID, 'f');
+    assert.equal(event.model.id, 'doc');
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('suggestOnly logs the pick without mutating or persisting', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-suggest-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    const seen = {};
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review', suggestOnly: true },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
+    const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+    const lines = [];
+    const origLog = console.log;
+    console.log = (...args) => lines.push(args.join(' '));
+    try {
+      await seen.context(event);
+    } finally {
+      console.log = origLog;
+    }
+    assert.equal(event.model.providerID, 'old');
+    assert.equal(event.model.id, 'old');
+    assert.equal(seen.switched, undefined);
+    assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b.*current=old\/old/);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
