@@ -43,7 +43,7 @@ function normalizeOptions(raw = {}) {
     configRefreshMinutes: refresh,
     fallbackModel: String(raw.fallbackModel ?? raw['fallback-model'] ?? '').trim(),
     maxCost: raw.maxCost ?? raw['max-cost'] ?? '',
-    token: String(raw.token ?? raw['opencode-token'] ?? process.env.OPENCODE_API_KEY ?? '').trim(),
+    token: String(raw.token || raw['opencode-token'] || process.env.OPENCODE_API_KEY || '').trim(),
     usageUrl: String(raw.usageUrl ?? raw['usage-url'] ?? DEFAULT_USAGE_URL),
     verbose: Boolean(raw.verbose ?? false),
     suggestOnly: Boolean(raw.suggestOnly ?? raw['suggest-only'] ?? raw.suggest_only ?? false),
@@ -117,7 +117,10 @@ function entryFor(config, taskType) {
   return { key, entry: table[key] };
 }
 
-async function checkGoQuota(token, usageUrl) {
+const GO_QUOTA_TTL_MS = 5 * 60 * 1000;
+const goQuotaCache = new Map(); // token -> { ok, at }
+
+async function checkGoQuotaLive(token, usageUrl) {
   if (!token) return null; // unknown without a token: let preference decide
   try {
     const ctrl = new AbortController();
@@ -141,6 +144,20 @@ async function checkGoQuota(token, usageUrl) {
   }
 }
 
+/** Cached wrapper: one quota probe per token per 5 minutes. */
+async function checkGoQuota(token, usageUrl) {
+  if (!token) return null; // unknown without a token: let preference decide
+  const cached = goQuotaCache.get(token);
+  if (cached && Date.now() - cached.at < GO_QUOTA_TTL_MS) return cached.ok;
+  const ok = await checkGoQuotaLive(token, usageUrl);
+  goQuotaCache.set(token, { ok, at: Date.now() });
+  return ok;
+}
+
+function clearQuotaCache() {
+  goQuotaCache.clear();
+}
+
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir }) {
   const { config, source, stale } = await loadConfig(opts, cacheDir);
@@ -158,7 +175,7 @@ async function resolveModel({ taskType, opts, cacheDir }) {
       tier = 'free';
     } else {
       const goOk = await checkGoQuota(opts.token, opts.usageUrl);
-      if (order[0] === 'free') tier = goOk === false && go ? 'go' : 'free';
+      if (order[0] === 'free') tier = 'free';
       else tier = goOk === false ? 'free' : 'go';
       if (tier === 'go' && !go) tier = 'free';
       if (tier === 'free' && !free) tier = 'go';
@@ -185,5 +202,7 @@ module.exports = {
   loadConfig,
   resolveModel,
   splitModelRef,
+  checkGoQuota,
+  clearQuotaCache,
   DEFAULT_CONFIG_URL,
 };

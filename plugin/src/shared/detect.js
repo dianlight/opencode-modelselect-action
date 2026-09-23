@@ -150,7 +150,9 @@ function normalizeAgentMap(map) {
  *      even the small-model fast-path: an explicit pin is user intent)
  *   3. small-model fast-path on explicit triggers
  *   4. weighted heuristics (prompt 50 + files 25 + repo 15 + agent 10)
- *   5. `defaultTaskType` when nothing scores (default 'generic')
+ *   5. `defaultTaskType` when prompt/files/agent score nothing
+ *      (a repo-only baseline never decides alone) or on ties
+ *      (default 'generic')
  * Returns { taskType, scores }.
  */
 function inferTaskType({ prompt, files, repo, agent, fixedTaskType, agentTaskMap, defaultTaskType } = {}) {
@@ -178,14 +180,26 @@ function inferTaskType({ prompt, files, repo, agent, fixedTaskType, agentTaskMap
   for (const t of TASK_TYPES) total[t] = p[t] + f[t] + r[t] + a[t];
   let best = 'generic';
   let bestScore = -1;
+  let tied = false;
   for (const t of TASK_TYPES) {
     if (t === 'generic') continue;
     if (total[t] > bestScore) {
       bestScore = total[t];
       best = t;
+      tied = false;
+    } else if (total[t] === bestScore) {
+      tied = true;
     }
   }
-  if (bestScore <= 0) return { taskType: fallback, scores: total };
+  // Fallback when prompt/files/agent contribute nothing (a repo-only
+  // baseline like stackFiles +5 must not decide alone) or on ties.
+  let signalBest = 0;
+  for (const t of TASK_TYPES) {
+    if (t === 'generic') continue;
+    const s = p[t] + f[t] + a[t];
+    if (s > signalBest) signalBest = s;
+  }
+  if (bestScore <= 0 || tied || signalBest <= 0) return { taskType: fallback, scores: total };
   return { taskType: best, scores: total };
 }
 

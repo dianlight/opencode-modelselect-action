@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { inferTaskType } = require('../src/shared/detect');
-const { normalizeOptions, loadConfig, splitModelRef } = require('../src/shared/select');
+const { normalizeOptions, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
 
 function seedCache(dir, config) {
   const cache = path.join(dir, '.opencode', '.modelselect-cache');
@@ -95,6 +95,25 @@ describe('detect heuristics', () => {
     assert.equal(taskType, 'plan');
   });
 
+  it('ties fall back to generic', () => {
+    const { taskType } = inferTaskType({ prompt: 'plan the review of this diff' });
+    assert.equal(taskType, 'generic');
+  });
+
+  it('ties fall back to defaultTaskType when set', () => {
+    const { taskType } = inferTaskType({ prompt: 'plan the review of this diff', defaultTaskType: 'docs' });
+    assert.equal(taskType, 'docs');
+  });
+
+  it('a repo-only baseline never decides alone', () => {
+    const { taskType } = inferTaskType({
+      prompt: '',
+      files: [],
+      repo: { stackFiles: ['package.json'], hasUI: false, hasE2E: false, hasMech: false, fileCount: 120 },
+    });
+    assert.equal(taskType, 'generic');
+  });
+
   it('rejects unknown types in agentTaskMap', () => {
     assert.throws(() => inferTaskType({ agent: 'x', agentTaskMap: { x: 'nope' } }));
     assert.throws(() => normalizeOptions({ agentTaskMap: { x: 'nope' } }));
@@ -132,6 +151,57 @@ describe('select options + cache', () => {
     assert.throws(() => normalizeOptions({ defaultTaskType: 'nope' }));
   });
 
+  it('empty token falls back to OPENCODE_API_KEY', () => {
+    const prev = process.env.OPENCODE_API_KEY;
+    process.env.OPENCODE_API_KEY = 'env-key';
+    try {
+      assert.equal(normalizeOptions({ token: '' }).token, 'env-key');
+      assert.equal(normalizeOptions({}).token, 'env-key');
+      assert.equal(normalizeOptions({ token: 'explicit' }).token, 'explicit');
+    } finally {
+      if (prev === undefined) delete process.env.OPENCODE_API_KEY;
+      else process.env.OPENCODE_API_KEY = prev;
+    }
+  });
+
+  it('free-first stays on free when Go quota is unusable', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tier-'));
+    seedCache(dir, { 'task-types': { code: { go: 'g/a', free: 'f/b' } } });
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ status: 401, ok: false });
+    try {
+      clearQuotaCache();
+      const opts = normalizeOptions({ tier: 'auto', autoPreference: 'free-first', token: 'bad-token' });
+      const { model, tier } = await resolveModel({ taskType: 'code', opts, cacheDir: path.join(dir, '.opencode', '.modelselect-cache') });
+      assert.equal(tier, 'free');
+      assert.equal(model, 'f/b');
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('caches the Go quota probe per token', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-quota-'));
+    seedCache(dir, { 'task-types': { code: { go: 'g/a', free: 'f/b' } } });
+    let calls = 0;
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      calls += 1;
+      return { status: 401, ok: false };
+    };
+    try {
+      clearQuotaCache();
+      const cacheDir = path.join(dir, '.opencode', '.modelselect-cache');
+      const opts = normalizeOptions({ tier: 'auto', autoPreference: 'free-first', token: 'tok' });
+      await resolveModel({ taskType: 'code', opts, cacheDir });
+      await resolveModel({ taskType: 'code', opts, cacheDir });
+      assert.equal(calls, 1);
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
   it('uses fresh cache without network', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-'));
     const config = { 'task-types': { plan: { go: 'g', free: 'f' } } };
