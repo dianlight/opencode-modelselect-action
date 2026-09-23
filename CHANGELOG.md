@@ -1,5 +1,14 @@
 ## [Unreleased]
 ### Added
+- New `plugin/` dual-entry package auto-selecting the OpenCode model from
+  project signals, prompt text and agent tag (v1 `server()` via `chat.message`
+  in-place routing with per-session stickiness; v2 `{ id, setup }` via
+  `prompt` + `context` hooks with in-place `Model.Ref` mutation and
+  `switchModel` persistence). Shared heuristics (prompt 50 / files 25 / repo
+  15 / agent 10, `small-model` fast-path, manual `taskType` override) and
+  tier `go`/`free`/`auto` resolution reuse the central `model-config.json`,
+  cached locally with `configRefreshMinutes` (default 1440 = 24h, 0 = always
+  refetch). Zero dependencies, Node >= 20
 - New `small-model` task type (Small Model: lightweight utility tasks —
   commit messages, session titles/renames, summaries; `instruction_following`
   priority with `speed` as secondary signal) in `config/task-types.yaml`,
