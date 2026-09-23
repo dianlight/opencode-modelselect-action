@@ -9,6 +9,13 @@
   tier `go`/`free`/`auto` resolution reuse the central `model-config.json`,
   cached locally with `configRefreshMinutes` (default 1440 = 24h, 0 = always
   refetch). Zero dependencies, Node >= 20
+- New `release-plugin` workflow publishing `plugin/` to npm as
+  `opencode-modelselect-plugin` on `plugin-v*` tags (version must match
+  `plugin/package.json`; requires a `NPM_TOKEN` secret), with tarball
+  attached to the GitHub Release and dry-run on manual dispatch
+- Plugin install docs (npm + local, v1 `plugin` tuple form vs v2 `plugins`
+  object form) in the root README and `plugin/README.md`; fixed the stale
+  repo intro line
 - New `small-model` task type (Small Model: lightweight utility tasks —
   commit messages, session titles/renames, summaries; `instruction_following`
   priority with `speed` as secondary signal) in `config/task-types.yaml`,

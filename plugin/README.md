@@ -5,34 +5,74 @@ One package serves both hosts: v1 follows `package.json` `main` → `src/v1.js`
 (`server()`), v2 ignores `main` and loads the package root `/index.js` (the
 v2 `{ id, setup }` definition).
 
-Zero dependencies, Node >= 20.
+Zero dependencies, Node >= 20. Requires OpenCode v1 >= 1.18.29
+(object-form plugins) or OpenCode v2.
 
 ## Install
 
+Get the package from npm (published by the `release-plugin` workflow on
+`plugin-v*` tags) or point at a local checkout:
+
+```sh
+npm install opencode-modelselect-plugin
+```
+
 ```jsonc
-// opencode.json / opencode.jsonc (v2)
+// opencode.json / opencode.jsonc — OpenCode v2 (key is plural "plugins")
 {
   "plugins": [
-    {
-      "package": "./plugin",
-      "options": {
-        "taskType": "auto",       // auto = heuristics, or a fixed task-type
-        "tier": "auto",           // go | free | auto
-        "autoPreference": "free-first",
-        "configUrl": "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json",
-        "configRefreshMinutes": 1440, // 0 = refetch every request, default 24h
-        "fallbackModel": "",
-        "verbose": false
-      }
-    }
+    // from npm:
+    "opencode-modelselect-plugin",
+    // ...with options:
+    // { "package": "opencode-modelselect-plugin", "options": { "tier": "auto" } },
+    // ...or from a local checkout (v2 also loads .opencode/plugins/):
+    // { "package": "./plugin", "options": { "tier": "auto" } }
   ]
 }
 ```
 
 ```jsonc
-// v1 equivalent — key is singular "plugin"
-{ "plugin": [["./plugin", { "tier": "auto", "taskType": "auto" }]] }
+// opencode.json / opencode.jsonc — OpenCode v1 (key is singular "plugin")
+{
+  // from npm:
+  // "plugin": ["opencode-modelselect-plugin"]
+  // ...with options (tuple form):
+  // "plugin": [["opencode-modelselect-plugin", { "tier": "auto", "taskType": "auto" }]]
+  // ...or from a local checkout (v1 loads .opencode/plugin/):
+  "plugin": [["./plugin", { "tier": "auto", "taskType": "auto" }]]
+}
 ```
+
+Differences between v1 and v2 setup: only the config key (`plugin` vs
+`plugins`, tuple vs object entry) and the local directory (`.opencode/plugin/`
+vs `.opencode/plugins/`). The package itself serves both hosts with no code
+changes.
+
+## Options
+
+```jsonc
+{
+  "taskType": "auto",       // auto = heuristics, or a fixed task-type
+  "tier": "auto",           // go | free | auto
+  "autoPreference": "free-first", // or go-first (tier auto only)
+  "token": "",              // tier auto only; falls back to OPENCODE_API_KEY
+  "configUrl": "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json",
+  "configRefreshMinutes": 1440, // 0 = refetch every request, default 24h
+  "fallbackModel": "",      // escape hatch when nothing resolves
+  "verbose": false
+}
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `taskType` | `auto` | `auto` infers from prompt/files/repo/agent; any task-type key pins it and skips inference. |
+| `tier` | `auto` | `go`, `free`, or `auto` (token ? probe live quota : `free`). |
+| `autoPreference` | `free-first` | Probe order for `tier: auto`. |
+| `token` | `""` | Token for `tier: auto` probing; falls back to `OPENCODE_API_KEY`. Never logged. |
+| `configUrl` | (see above) | Remote central model config, cached locally. |
+| `configRefreshMinutes` | `1440` | Cache validity in minutes; `0` refetches every request. Stale cache survives fetch failures. |
+| `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
+| `verbose` | `false` | Log each selection (`task/tier/model`). |
 
 ## How it routes (verified against SDK types)
 
