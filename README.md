@@ -105,6 +105,7 @@ Keys of `task-types` in `data/model-config.json` (defined in
 | `refactor` | Refactor | Refactoring, cleanup, tech-debt reduction |
 | `security` | Security | Security review, vulnerabilities, hardening |
 | `mechanical-engineer` | Mechanical Engineer | Mechanical engineering, calculations, CAD, thermodynamics, materials |
+| `web-search` | Web Search | Ricerche approfondite sul web, sintesi multi-fonte |
 
 ### Tier `auto` (live quota probing)
 
@@ -234,7 +235,7 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-23 02:07 UTC**.
+> Last updated: **2026-09-23 09:18 UTC**.
 > LiveBench data: **350 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -248,14 +249,15 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | `issue-triage` (Issue Triage) | Triage, label, categorize, route issues | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (85.0, $0.3/$1.2) |
 | `review` (Review) | Review PRs, pull requests, diffs | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `ui-design` (UI Design) | UI design, components, layouts, mockups | `opencode/gpt-6-astra` (86.3, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (68.4, Free) | 🏆 `opencode-go/hy4-preview` (84.0, $0.834/$2.501) |
-| `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
-| `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
 | `docs` (Docs) | Documentation, READMEs, changelogs, docstrings | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (85.0, $0.3/$1.2) |
 | `debug` (Debug) | Debugging, reproductions, crash and exception triage | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
-| `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
 | `security` (Security) | Security review, vulnerabilities, hardening | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
-| `code` (Code) | Code generation, implementation, features | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/muse-spark-1.3-contributor-free` (70.9, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `code` (Code) | Code generation, implementation, features | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
 | `mechanical-engineer` (Mechanical Engineer) | Mechanical engineering, calculations, CAD, thermodynamics, materials | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
+| `web-search` (Web Search) | Ricerche approfondite sul web, sintesi multi-fonte | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `generic` (Generic) | General Q&A, explanations, analysis, everything else | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (85.0, $0.3/$1.2) |
 | `small-model` (Small Model) | Lightweight utility tasks: commit messages, session titles/renames, summaries | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (85.0, $0.3/$1.2) |
 
@@ -299,9 +301,9 @@ config entry, retry later, raise the budget/wait, or pass `fallback-model`).
 | `mimo-v2.5` | Go (Paid) | 📋 Fallback | Triage, Docs | 62.0 | 60.0 | 64.0 | 58.0 | 65.0 | $0.14 | $0.28 | $0.175 | 354.3 |
 | `mimo-v2.5-free` | Free | 📋 Fallback | Triage, Docs | 58.0 | 56.0 | 60.0 | 54.0 | 62.0 | Free | Free | Free | — |
 | `mimo-v2.5-pro` | Go (Paid) | 📋 Fallback | Triage, Docs | 68.0 | 66.0 | 70.0 | 55.0 | 74.0 | $0.435 | $0.87 | $0.5437 | 125.1 |
-| `mimo-v2.6-flash` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.14 | $0.28 | $0.175 | — |
-| `mimo-v2.6-flash-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
-| `mimo-v2.6-pro` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.435 | $0.87 | $0.5437 | — |
+| `mimo-v2.6-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 64.0 | 75.0 | 84.0 | 40.0 | 76.0 | $0.14 | $0.28 | $0.175 | 365.7 |
+| `mimo-v2.6-flash-free` | Free | 📋 Fallback | Plan, Review | 60.0 | 71.0 | 80.0 | 38.0 | 72.0 | Free | Free | Free | — |
+| `mimo-v2.6-pro` | Go (Paid) | 📋 Fallback | Plan, Review | 70.0 | 80.0 | 88.0 | 50.0 | 82.0 | $0.435 | $0.87 | $0.5437 | 128.7 |
 | `minimax-m2.5` | Go (Paid) | ✅ LiveBench | Plan, Review | 60.3 | 59.3 | 62.3 | 31.3 | 62.2 | $0.3 | $1.2 | $0.525 | 114.9 |
 | `minimax-m2.7` | Go (Paid) | ✅ LiveBench | Plan, Review | 65.0 | 52.0 | 72.4 | 34.0 | 67.4 | $0.3 | $1.2 | $0.525 | 123.8 |
 | `minimax-m3` | Go (Paid) | ✅ LiveBench | Plan, Review | 67.5 | 51.7 | 76.7 | 50.2 | 66.9 | $0.3 | $1.2 | $0.525 | 128.6 |

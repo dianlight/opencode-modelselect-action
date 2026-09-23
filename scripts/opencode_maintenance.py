@@ -1270,6 +1270,7 @@ def get_best_models_for_task(
         "mechanical-engineer": ("mimo-v2.5-free", "mimo-v2.5-pro"),
         "refactor": ("north-mini-code-free", "kimi-k2.7-code"),
         "security": ("nemotron-3-ultra-free", "deepseek-v4-pro"),
+        "web-search": ("deepseek-v4-flash-free", "deepseek-v4-flash"),
         "small-model": ("deepseek-v4-flash-free", "deepseek-v4-flash"),
     }
 

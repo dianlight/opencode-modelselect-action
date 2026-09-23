@@ -78,6 +78,12 @@ task_types:
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
 
+  - name: "web-search"
+    label: "Web Search"
+    description: "Ricerche approfondite sul web, sintesi multi-fonte"
+    relevant_subscores: ["reasoning", "instruction_following"]
+    priority: "reasoning"
+
   - name: "generic"
     label: "Generic"
     description: "General Q&A, explanations, analysis, everything else"

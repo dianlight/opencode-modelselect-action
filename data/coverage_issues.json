@@ -1,19 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "mimo-v2.6-flash",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "mimo-v2.6-flash-free",
-      "tier": "Free"
-    },
-    {
-      "model": "mimo-v2.6-pro",
-      "tier": "Go (Paid)"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [
     {
       "model": "deepseek-flash",
