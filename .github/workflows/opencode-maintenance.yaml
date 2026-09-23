@@ -134,26 +134,48 @@ jobs:
               )
               lines.append("")
 
-          if missing:
+          if missing and stale:
               lines.append("### 🔍 Models Missing Score Data")
               lines.append("")
               lines.append(
                   "- [ ] **Search the web for missing score data** — "
-                  "Research and add scores for the models listed below that have no data "
-                  "on LiveBench or in the static fallback. "
-                  "Update `config/model-scores.yaml` with the found scores."
+                  "research only: find benchmark scores on the web for each model "
+                  "listed under Models Missing Score Data below and keep them ready. "
+                  "No PR is opened by this task alone — the scores are applied by "
+                  "the coverage fix on the same branch (check both boxes for the "
+                  "full flow)."
               )
               lines.append("")
 
           if stale or missing:
-              lines.append(
-                  "- [ ] **Correct the model coverage issues** — "
-                  "fix the models listed under Model Coverage Issues below "
-                  "(remove stale fallback entries now on LiveBench, add scores "
-                  "for models missing data). "
-                  "Update only `config/model-scores.yaml` and open a PR "
-                  "containing only those coverage changes."
-              )
+              if missing and not stale:
+                  lines.append(
+                      "- [ ] **Correct the model coverage issues** — "
+                      "search the web for benchmark scores for the models listed "
+                      "under Model Coverage Issues below and add them to "
+                      "`config/model-scores.yaml`. "
+                      "Opens a PR titled \"Fix model coverage issues\" containing "
+                      "only those changes."
+                  )
+              elif stale and not missing:
+                  lines.append(
+                      "- [ ] **Correct the model coverage issues** — "
+                      "remove the stale fallback entries listed under Model Coverage "
+                      "Issues below (already scored on LiveBench) from "
+                      "`config/model-scores.yaml`. "
+                      "Opens a PR titled \"Fix model coverage issues\" containing "
+                      "only those changes."
+                  )
+              else:
+                  lines.append(
+                      "- [ ] **Correct the model coverage issues** — "
+                      "remove the stale fallback entries now on LiveBench from "
+                      "`config/model-scores.yaml`; if \"Search the web for missing "
+                      "score data\" is also checked, include that research in the "
+                      "same PR. "
+                      "Opens a PR titled \"Fix model coverage issues\" containing "
+                      "only `config/model-scores.yaml` changes."
+                  )
               lines.append("")
 
           if has_tasks:
@@ -404,12 +426,15 @@ jobs:
             `config/model-scores.yaml` (never touch `data/model-config.json` —
             it is auto-committed by the maintenance run itself).
 
-            If "search-missing-scores" is in CHECKED_TASKS:
-            1. Read the "Models Missing Score Data" section from the issue
-            2. Search the web for benchmark scores for each listed model
-            3. Keep the discovered scores ready for the coverage PR below
-               (if "fix-coverage-issues" is also checked, include that research
-               on the same branch; otherwise use the same branch/PR flow alone)
+            If "search-missing-scores" is in CHECKED_TASKS without
+            "fix-coverage-issues": treat it as a full coverage fix for the missing
+            models (single-box fallback): research the scores, branch off main as
+            `model-coverage-fix`, add them to `config/model-scores.yaml`, and open
+            the "Fix model coverage issues" PR per the flow below.
+
+            If both tasks are checked (split mode: missing + stale present):
+            research the missing-model scores first, then include them together
+            with the stale-entry removals in a single `model-coverage-fix` PR.
 
             If "fix-coverage-issues" is in CHECKED_TASKS (or either task is checked):
             1. Read the "Model Coverage Issues" section from the issue body
@@ -419,9 +444,9 @@ jobs:
                branch first so a fresh PR is opened
             3. Create a new branch (e.g. `model-coverage-fix`) from main FIRST
             4. On that branch only: remove stale entries now on LiveBench from
-               `config/model-scores.yaml`; search the web for benchmark scores
-               for missing models and add them (if "search-missing-scores" is
-               also checked, include that research here on the same branch)
+               `config/model-scores.yaml`; for missing models, search the web for
+               benchmark scores and add them (in split mode the research comes
+               from the "search-missing-scores" task — same branch, single PR)
             5. Run `python scripts/opencode_maintenance.py` to verify (it
                rewrites README.md and data/ — leave those uncommitted)
             6. Commit and push the branch with ONLY `config/model-scores.yaml`
