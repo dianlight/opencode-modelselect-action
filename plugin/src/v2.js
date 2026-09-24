@@ -17,11 +17,15 @@
  * - Only the `context` (agent loop) hook is routed. `title`/`compaction`/
  *   `generate` requests intentionally keep their own models so cheap
  *   auxiliary calls stay cheap.
+ * - The chat-visible announce line (`announce` option, default `switch`)
+ *   is appended to the prompt text in the `prompt` hook: v2 has no
+ *   zero-token visible channel (`context` edits never render), so the
+ *   terse line persists+renders (~15 tokens/turn).
  */
 
 const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
-const { normalizeOptions, resolveModel, splitModelRef } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce } = require('./shared/select');
 
 const ID = 'modelselect';
 
@@ -65,6 +69,32 @@ async function setup(ctx) {
   const repo = detectRepoSignals(scanRepo(directory));
   const prompts = new Map(); // sessionID -> last prompt text
   const applied = new Map(); // sessionID -> "provider/id" already persisted
+  const announced = new Map(); // sessionID -> last announced "provider/id" key
+
+  // Append the terse pick line to the prompt text. Handles the string form
+  // plus common object shapes; returns false when nothing could be edited.
+  function appendPromptLine(event, line) {
+    if (typeof event.prompt === 'string') {
+      event.prompt = `${event.prompt}\n${line}`;
+      return true;
+    }
+    const p = event.prompt;
+    if (p && typeof p === 'object') {
+      if (Array.isArray(p.parts)) {
+        p.parts.push({ type: 'text', text: line });
+        return true;
+      }
+      if (typeof p.text === 'string') {
+        p.text = `${p.text}\n${line}`;
+        return true;
+      }
+      if (typeof p.content === 'string') {
+        p.content = `${p.content}\n${line}`;
+        return true;
+      }
+    }
+    return false;
+  }
 
   await ctx.session.hook('prompt', async (event) => {
     try {
@@ -73,6 +103,45 @@ async function setup(ctx) {
           ? event.prompt
           : promptTextFromMessages(event.prompt?.parts ? [event.prompt] : []);
       if (text.trim() && event.sessionID) prompts.set(event.sessionID, text);
+      // Chat-visible pick line. v2 has no zero-token visible channel:
+      // context-hook edits never render, so the terse line is appended here
+      // in the prompt hook (it persists+renders, ~15 tokens/turn). The
+      // second resolve in the context hook is ~free (24h config cache +
+      // 5min quota cache). `switch` (default) emits only when the pick
+      // differs from the previously applied pick (applied) and the last
+      // announced pick (covers suggestOnly, where applied never moves);
+      // first turn counts as a switch. Never throws.
+      if (opts.announce === 'off' || !text.trim() || !event.sessionID) return;
+      try {
+        const { taskType } = inferTaskType({
+          prompt: text,
+          files: [],
+          repo,
+          agent: event.agent,
+          fixedTaskType: opts.taskType,
+          agentTaskMap: opts.agentTaskMap,
+          defaultTaskType: opts.defaultTaskType,
+        });
+        const picked = await resolveModel({ taskType, opts, cacheDir });
+        const key = picked.model;
+        if (
+          opts.announce === 'switch' &&
+          (key === applied.get(event.sessionID) || key === announced.get(event.sessionID))
+        ) {
+          announced.set(event.sessionID, key);
+          return;
+        }
+        const line = formatAnnounce({
+          taskType: picked.taskType,
+          tier: picked.tier,
+          model: picked.model,
+          suggestOnly: opts.suggestOnly,
+        });
+        appendPromptLine(event, line);
+        announced.set(event.sessionID, key);
+      } catch (err) {
+        console.error(`[modelselect] announce skipped: ${err?.message ?? err}`);
+      }
     } catch {
       // never break the session
     }

@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { inferTaskType } = require('../src/shared/detect');
-const { normalizeOptions, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
+const { normalizeOptions, formatAnnounce, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
 
 function seedCache(dir, config) {
   const cache = path.join(dir, '.opencode', '.modelselect-cache');
@@ -269,6 +269,264 @@ describe('v1 routing hook', () => {
     assert.equal(target.modelID, 'old');
     assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b/);
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('announce option', () => {
+  it('defaults to switch and accepts always/off', () => {
+    assert.equal(normalizeOptions({}).announce, 'switch');
+    assert.equal(normalizeOptions({ announce: 'always' }).announce, 'always');
+    assert.equal(normalizeOptions({ announce: 'OFF' }).announce, 'off');
+  });
+
+  it('rejects invalid values like tier does', () => {
+    assert.throws(() => normalizeOptions({ announce: 'sometimes' }));
+  });
+
+  it('formats the terse line, with would-use wording in suggestOnly', () => {
+    assert.equal(
+      formatAnnounce({ taskType: 'review', tier: 'free', model: 'f/b', suggestOnly: false }),
+      '[modelselect: task=review tier=free → f/b]',
+    );
+    assert.equal(
+      formatAnnounce({ taskType: 'review', tier: 'free', model: 'f/b', suggestOnly: true }),
+      '[modelselect: task=review tier=free would use f/b]',
+    );
+  });
+});
+
+describe('v1 announce', () => {
+  async function v1Hooks(dir, opts) {
+    const v1 = require('../src/v1.js');
+    return v1.server({ directory: dir }, { tier: 'free', taskType: 'review', ...opts });
+  }
+
+  function v1Turn(msgId) {
+    return {
+      input: { sessionID: 's1', messageID: msgId },
+      output: {
+        parts: [{ type: 'text', text: 'review this diff' }],
+        message: { model: { providerID: 'old', modelID: 'old' } },
+      },
+    };
+  }
+
+  it('switch mode announces the first turn and dedups the second', async () => {
+    const v1 = require('../src/v1.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
+      const t1 = v1Turn('m1');
+      await hooks['chat.message'](t1.input, t1.output);
+      assert.equal(t1.output.parts.length, 2);
+      const ann = t1.output.parts[1];
+      assert.equal(ann.type, 'text');
+      assert.equal(ann.ignored, true);
+      assert.equal(ann.sessionID, 's1');
+      assert.equal(ann.messageID, 'm1');
+      assert.ok(typeof ann.id === 'string' && ann.id.length > 0);
+      assert.equal(ann.text, '[modelselect: task=review tier=free → f/b]');
+      assert.equal(t1.output.message.model.providerID, 'f');
+      const t2 = v1Turn('m2');
+      await hooks['chat.message'](t2.input, t2.output);
+      assert.equal(t2.output.parts.length, 1, 'identical second turn emits nothing');
+      assert.equal(t2.output.message.model.providerID, 'f');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('always mode announces every identical turn', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-always-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, { announce: 'always' });
+      const t1 = v1Turn('m1');
+      await hooks['chat.message'](t1.input, t1.output);
+      const t2 = v1Turn('m2');
+      await hooks['chat.message'](t2.input, t2.output);
+      assert.equal(t1.output.parts.length, 2);
+      assert.equal(t2.output.parts.length, 2);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('off mode keeps console-only behavior with routing intact', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-off-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, { announce: 'off' });
+      const t1 = v1Turn('m1');
+      await hooks['chat.message'](t1.input, t1.output);
+      assert.equal(t1.output.parts.length, 1);
+      assert.equal(t1.output.message.model.providerID, 'f');
+      assert.equal(t1.output.message.model.modelID, 'b');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('suggestOnly announces with would-use wording without touching the model', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-suggest-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, { suggestOnly: true });
+      const lines = [];
+      const origLog = console.log;
+      console.log = (...args) => lines.push(args.join(' '));
+      const t1 = v1Turn('m1');
+      try {
+        await hooks['chat.message'](t1.input, t1.output);
+      } finally {
+        console.log = origLog;
+      }
+      assert.equal(t1.output.message.model.providerID, 'old');
+      assert.equal(t1.output.parts.length, 2);
+      assert.equal(t1.output.parts[1].text, '[modelselect: task=review tier=free would use f/b]');
+      assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('announce failure does not break routing', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-annfail-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, {});
+      const target = { providerID: 'old', modelID: 'old' };
+      const output = {
+        parts: Object.freeze([{ type: 'text', text: 'review this diff' }]),
+        message: { model: target },
+      };
+      const errs = [];
+      const origErr = console.error;
+      console.error = (...args) => errs.push(args.join(' '));
+      try {
+        await hooks['chat.message']({ sessionID: 's1', messageID: 'm1' }, output);
+      } finally {
+        console.error = origErr;
+      }
+      assert.equal(target.providerID, 'f');
+      assert.equal(target.modelID, 'b');
+      assert.match(errs.join('\n'), /announce skipped/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('v2 announce', () => {
+  async function v2Hooks(dir, opts) {
+    const v2 = require('../src/v2.js');
+    const seen = {};
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review', ...opts },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    return seen;
+  }
+
+  it('switch mode appends once and dedups the second identical turn', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, {});
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free → f/b]');
+      await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
+      const e2 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e2);
+      assert.equal(e2.prompt, 'review this diff', 'identical second turn emits nothing');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('always mode appends every identical turn', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-always-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, { announce: 'always' });
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
+      const e2 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e2);
+      assert.match(e1.prompt, /\[modelselect: task=review tier=free → f\/b\]/);
+      assert.match(e2.prompt, /\[modelselect: task=review tier=free → f\/b\]/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('off mode leaves the prompt untouched with routing intact', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-off-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, { announce: 'off' });
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff');
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'f');
+      assert.equal(event.model.id, 'b');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('suggestOnly appends with would-use wording without mutating', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-suggest-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, { suggestOnly: true });
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free would use f/b]');
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'old');
+      assert.equal(seen.switched, undefined);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('announce failure does not break routing', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-annfail-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, {});
+      const errs = [];
+      const origErr = console.error;
+      console.error = (...args) => errs.push(args.join(' '));
+      try {
+        await seen.prompt(Object.freeze({ sessionID: 's1', prompt: 'review this diff' }));
+      } finally {
+        console.error = origErr;
+      }
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'f');
+      assert.equal(event.model.id, 'b');
+      assert.match(errs.join('\n'), /announce skipped/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

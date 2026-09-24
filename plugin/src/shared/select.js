@@ -22,6 +22,8 @@ const FETCH_TIMEOUT_MS = 10000;
 function normalizeOptions(raw = {}) {
   const tier = String(raw.tier ?? 'auto').toLowerCase();
   if (!['go', 'free', 'auto'].includes(tier)) throw new Error(`Invalid tier '${raw.tier}'.`);
+  const announce = String(raw.announce ?? 'switch').toLowerCase();
+  if (!['switch', 'always', 'off'].includes(announce)) throw new Error(`Invalid announce '${raw.announce}'.`);
   const preference = String(raw.autoPreference ?? raw['auto-preference'] ?? 'free-first').toLowerCase();
   let refresh = raw.configRefreshMinutes ?? raw.refreshMinutes ?? 1440;
   refresh = Number(refresh);
@@ -47,7 +49,14 @@ function normalizeOptions(raw = {}) {
     usageUrl: String(raw.usageUrl ?? raw['usage-url'] ?? DEFAULT_USAGE_URL),
     verbose: Boolean(raw.verbose ?? false),
     suggestOnly: Boolean(raw.suggestOnly ?? raw['suggest-only'] ?? raw.suggest_only ?? false),
+    announce,
   };
+}
+
+/** Terse chat-visible pick line. suggestOnly turns `→` into `would use`. */
+function formatAnnounce({ taskType, tier, model, suggestOnly }) {
+  const verb = suggestOnly ? 'would use' : '→';
+  return `[modelselect: task=${taskType} tier=${tier} ${verb} ${model}]`;
 }
 
 function cacheFile(cacheDir) {
@@ -199,6 +208,7 @@ function splitModelRef(model) {
 
 module.exports = {
   normalizeOptions,
+  formatAnnounce,
   loadConfig,
   resolveModel,
   splitModelRef,

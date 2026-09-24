@@ -300,6 +300,7 @@ shape, and local directory. Behavior and options are identical.
 | `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
 | `verbose` | `false` | Log each selection (`task/tier/model`). |
 | `suggestOnly` | `false` | Trial mode: resolve as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) … would-select=… current=…`. See `plugin/README.md` (Trial run, Develop). |
+| `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model]`, `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. v1 is zero-token (`ignored:true` part); v2 appends a terse prompt line. |
 
 ### How routing works
 
