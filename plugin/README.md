@@ -79,6 +79,7 @@ changes.
 | `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
 | `verbose` | `false` | Log each selection (`task/tier/model`). |
 | `suggestOnly` | `false` | Trial mode: resolve task-type/tier/model as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) task=… tier=… would-select=… current=…`, even with `verbose: false`. Accepts `suggest-only` / `suggest_only` as aliases. |
+| `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model]`; `→` becomes `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. v1 pushes a zero-token `ignored:true` part; v2 appends a terse line to the prompt (~15 tokens/turn). |
 
 ## How it routes (verified against SDK types)
 
