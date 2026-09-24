@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-23T09:18:38.096053+00:00",
+  "timestamp": "2026-09-24T01:54:55.413591+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -131,6 +131,13 @@
           "input_cost": 1.74,
           "output_cost": 3.48,
           "blended_cost": 2.175
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 82.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/qwen3.7-max",
@@ -596,6 +603,13 @@
           "blended_cost": 0.2375
         },
         {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 63.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/minimax-m2.5",
           "score": 62.2,
           "input_cost": 0.3,
@@ -847,6 +861,13 @@
           "input_cost": 1.74,
           "output_cost": 3.48,
           "blended_cost": 2.175
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 82.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/qwen3.7-max",
@@ -1214,6 +1235,13 @@
           "blended_cost": 0.175
         },
         {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 57.5,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 56.4,
           "input_cost": 1.74,
@@ -1579,6 +1607,13 @@
           "blended_cost": 1.55
         },
         {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 62.3,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 62.2,
           "input_cost": 0.2,
@@ -1935,6 +1970,13 @@
           "input_cost": 1.0,
           "output_cost": 3.2,
           "blended_cost": 1.55
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 62.3,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/gpt-5.6-luna",
@@ -2386,6 +2428,13 @@
           "blended_cost": 0.2375
         },
         {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 63.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/minimax-m2.5",
           "score": 62.2,
           "input_cost": 0.3,
@@ -2637,6 +2686,13 @@
           "input_cost": 1.74,
           "output_cost": 3.48,
           "blended_cost": 2.175
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 82.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/qwen3.7-max",
@@ -3011,6 +3067,13 @@
           "blended_cost": 1.55
         },
         {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 62.3,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 62.2,
           "input_cost": 0.2,
@@ -3353,6 +3416,13 @@
           "input_cost": 1.74,
           "output_cost": 3.48,
           "blended_cost": 2.175
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 82.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/qwen3.7-max",
@@ -3727,6 +3797,13 @@
           "blended_cost": 1.55
         },
         {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 62.3,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 62.2,
           "input_cost": 0.2,
@@ -4069,6 +4146,13 @@
           "input_cost": 1.74,
           "output_cost": 3.48,
           "blended_cost": 2.175
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 82.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/qwen3.7-max",
@@ -4427,6 +4511,13 @@
           "input_cost": 1.74,
           "output_cost": 3.48,
           "blended_cost": 2.175
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 82.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/qwen3.7-max",
@@ -4892,6 +4983,13 @@
           "blended_cost": 0.2375
         },
         {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 63.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/minimax-m2.5",
           "score": 62.2,
           "input_cost": 0.3,
@@ -5248,6 +5346,13 @@
           "input_cost": 0.15,
           "output_cost": 0.5,
           "blended_cost": 0.2375
+        },
+        {
+          "model": "opencode-go/gpt-6-luna",
+          "score": 63.7,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/minimax-m2.5",
