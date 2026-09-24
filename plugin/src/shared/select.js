@@ -59,6 +59,17 @@ function formatAnnounce({ taskType, tier, model, suggestOnly }) {
   return `[modelselect: task=${taskType} tier=${tier} ${verb} ${model}]`;
 }
 
+/**
+ * Switch-mode dedup: emit on the first turn (no applied/announced key yet)
+ * and whenever the pick differs from both the applied pick (sticky/applied,
+ * which never moves in suggestOnly) and the last announced pick.
+ */
+function shouldAnnounce(mode, key, appliedKey, announcedKey) {
+  if (mode === 'off') return false;
+  if (mode === 'always') return true;
+  return key !== appliedKey && key !== announcedKey;
+}
+
 function cacheFile(cacheDir) {
   return path.join(cacheDir, 'model-config-cache.json');
 }
@@ -209,6 +220,7 @@ function splitModelRef(model) {
 module.exports = {
   normalizeOptions,
   formatAnnounce,
+  shouldAnnounce,
   loadConfig,
   resolveModel,
   splitModelRef,

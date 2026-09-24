@@ -25,7 +25,7 @@
 
 const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
-const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 const ID = 'modelselect';
 
@@ -96,6 +96,42 @@ async function setup(ctx) {
     return false;
   }
 
+  // Chat-visible pick line. v2 has no zero-token visible channel:
+  // context-hook edits never render, so the terse line is appended here in
+  // the prompt hook (it persists+renders, ~15 tokens/turn). The second
+  // resolve in the context hook is ~free (24h config cache + 5min quota
+  // cache). `switch` (default) emits only when the pick differs from the
+  // previously applied pick (applied) and the last announced pick (covers
+  // suggestOnly, where applied never moves); first turn counts as a switch.
+  // Never throws — failures only log.
+  async function maybeAnnounce(event, text) {
+    if (opts.announce === 'off' || !text.trim() || !event.sessionID) return;
+    try {
+      const { taskType } = inferTaskType({
+        prompt: text,
+        files: [],
+        repo,
+        agent: event.agent,
+        fixedTaskType: opts.taskType,
+        agentTaskMap: opts.agentTaskMap,
+        defaultTaskType: opts.defaultTaskType,
+      });
+      const picked = await resolveModel({ taskType, opts, cacheDir });
+      const key = picked.model;
+      if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return;
+      const line = formatAnnounce({
+        taskType: picked.taskType,
+        tier: picked.tier,
+        model: picked.model,
+        suggestOnly: opts.suggestOnly,
+      });
+      appendPromptLine(event, line);
+      announced.set(event.sessionID, key);
+    } catch (err) {
+      console.error(`[modelselect] announce skipped: ${err?.message ?? err}`);
+    }
+  }
+
   await ctx.session.hook('prompt', async (event) => {
     try {
       const text =
@@ -103,45 +139,7 @@ async function setup(ctx) {
           ? event.prompt
           : promptTextFromMessages(event.prompt?.parts ? [event.prompt] : []);
       if (text.trim() && event.sessionID) prompts.set(event.sessionID, text);
-      // Chat-visible pick line. v2 has no zero-token visible channel:
-      // context-hook edits never render, so the terse line is appended here
-      // in the prompt hook (it persists+renders, ~15 tokens/turn). The
-      // second resolve in the context hook is ~free (24h config cache +
-      // 5min quota cache). `switch` (default) emits only when the pick
-      // differs from the previously applied pick (applied) and the last
-      // announced pick (covers suggestOnly, where applied never moves);
-      // first turn counts as a switch. Never throws.
-      if (opts.announce === 'off' || !text.trim() || !event.sessionID) return;
-      try {
-        const { taskType } = inferTaskType({
-          prompt: text,
-          files: [],
-          repo,
-          agent: event.agent,
-          fixedTaskType: opts.taskType,
-          agentTaskMap: opts.agentTaskMap,
-          defaultTaskType: opts.defaultTaskType,
-        });
-        const picked = await resolveModel({ taskType, opts, cacheDir });
-        const key = picked.model;
-        if (
-          opts.announce === 'switch' &&
-          (key === applied.get(event.sessionID) || key === announced.get(event.sessionID))
-        ) {
-          announced.set(event.sessionID, key);
-          return;
-        }
-        const line = formatAnnounce({
-          taskType: picked.taskType,
-          tier: picked.tier,
-          model: picked.model,
-          suggestOnly: opts.suggestOnly,
-        });
-        appendPromptLine(event, line);
-        announced.set(event.sessionID, key);
-      } catch (err) {
-        console.error(`[modelselect] announce skipped: ${err?.message ?? err}`);
-      }
+      await maybeAnnounce(event, text);
     } catch {
       // never break the session
     }

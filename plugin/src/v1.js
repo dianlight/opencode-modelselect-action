@@ -20,7 +20,7 @@
 
 const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
-const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 function cacheDirFor(directory) {
   return path.join(String(directory || process.cwd()), '.opencode', '.modelselect-cache');
@@ -91,31 +91,25 @@ module.exports = {
     }
 
     // Chat-visible pick line. `switch` emits only when the resolved pick
-    // differs from the session's previously applied pick (sticky) and from
-    // the last announced pick (covers suggestOnly, where sticky never moves);
+    // differs from the previously applied pick (sticky) and the last
+    // announced pick (covers suggestOnly, where sticky never moves);
     // first turn counts as a switch. Never throws — failures only log.
     function maybeAnnounce(msgInput, output, picked) {
       try {
-        if (options.announce === 'off') return;
         const sessionID = msgInput?.sessionID ?? 'default';
         const key = picked.model;
         const prev = sticky.get(sessionID);
         const prevKey = prev ? `${prev.providerID}/${prev.id}` : null;
-        if (options.announce === 'switch' && (key === prevKey || key === announced.get(sessionID))) {
-          announced.set(sessionID, key);
-          return;
-        }
+        if (!shouldAnnounce(options.announce, key, prevKey, announced.get(sessionID))) return;
         const line = formatAnnounce({
           taskType: picked.taskType,
           tier: picked.tier,
           model: picked.model,
           suggestOnly: options.suggestOnly,
         });
-        const parts = Array.isArray(output?.parts)
-          ? output.parts
-          : Array.isArray(output?.message?.parts)
-            ? output.message.parts
-            : null;
+        let parts = null;
+        if (Array.isArray(output?.parts)) parts = output.parts;
+        else if (Array.isArray(output?.message?.parts)) parts = output.message.parts;
         if (!parts) return;
         announceSeq += 1;
         parts.push({
