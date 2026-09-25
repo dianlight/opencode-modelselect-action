@@ -119,3 +119,9 @@ model_scores:
     overall: 61.5             # ORPT-Bench composite (correctness-weighted)
     reasoning: 61.5
     vision: 8.0               # text-only, no vision encoder
+  space-bunny-free:
+    coding: 28.0             # anonymous stealth model (Sept 2026); no published benchmarks; conservative estimate
+    instruction_following: 35.0  # no IFEval data; free anonymous preview; estimated baseline
+    overall: 30.0             # no LiveBench/AA data; LM Market Cap bottom 1% (433/436) on 4 benchmarks
+    reasoning: 40.0           # mandatory reasoning with effort adjustment; no GPQA/AIME data; estimated
+    vision: 38.0              # multimodal: text+image input confirmed; no vision benchmark data
