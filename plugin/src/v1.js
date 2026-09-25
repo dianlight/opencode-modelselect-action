@@ -20,6 +20,7 @@
 
 const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
+const { refineTaskTypeWithJev } = require('./shared/jev');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 function cacheDirFor(directory) {
@@ -77,7 +78,7 @@ module.exports = {
     let announceSeq = 0;
 
     async function route(sessionID, prompt, files, agent) {
-      const { taskType } = inferTaskType({
+      const { taskType: heuristic } = inferTaskType({
         prompt,
         files,
         repo,
@@ -86,6 +87,20 @@ module.exports = {
         agentTaskMap: options.agentTaskMap,
         defaultTaskType: options.defaultTaskType,
       });
+      // Optional Jev refinement: only when jevModel is set; fails open to heuristics.
+      // cacheDir lets Jev load the remote task-type list (same cache cadence
+      // as the model config) for its choice criteria.
+      let taskType = heuristic;
+      if (!options.taskType || options.taskType === 'auto') {
+        ({ taskType } = await refineTaskTypeWithJev({
+          heuristic,
+          prompt,
+          files,
+          agent,
+          opts: options,
+          cacheDir,
+        }));
+      }
       const picked = await resolveModel({ taskType, opts: options, cacheDir });
       return { picked, ref: splitModelRef(picked.model) };
     }

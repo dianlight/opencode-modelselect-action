@@ -8,6 +8,8 @@ const path = require('node:path');
 
 const { inferTaskType } = require('../src/shared/detect');
 const { normalizeOptions, formatAnnounce, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
+const { parseJevAnswer, refineTaskTypeWithJev, buildJevQuestions, DEFAULT_JEV_ENDPOINT } = require('../src/shared/jev');
+const { loadTaskTypes, normalizeTaskTypes, taskTypesCacheFile, DEFAULT_TASK_TYPES_URL } = require('../src/shared/tasktypes');
 
 function seedCache(dir, config) {
   const cache = path.join(dir, '.opencode', '.modelselect-cache');
@@ -15,6 +17,15 @@ function seedCache(dir, config) {
   fs.writeFileSync(
     path.join(cache, 'model-config-cache.json'),
     JSON.stringify({ fetchedAt: Date.now(), config }),
+  );
+}
+
+function seedTaskTypes(dir, taskTypes) {
+  const cache = path.join(dir, '.opencode', '.modelselect-cache');
+  fs.mkdirSync(cache, { recursive: true });
+  fs.writeFileSync(
+    path.join(cache, 'task-types-cache.json'),
+    JSON.stringify({ fetchedAt: Date.now(), taskTypes }),
   );
 }
 
@@ -720,5 +731,266 @@ describe('v2 routing hooks', () => {
     assert.equal(seen.switched, undefined);
     assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b.*current=old\/old/);
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('jev optional refinement', () => {
+  it('defaults to disabled with threshold 0.6', () => {
+    const opts = normalizeOptions({});
+    assert.equal(opts.jevModel, '');
+    assert.equal(opts.jevThreshold, 0.6);
+    assert.equal(opts.jevEndpoint, DEFAULT_JEV_ENDPOINT);
+  });
+
+  it('accepts aliases and rejects bad thresholds', () => {
+    assert.equal(normalizeOptions({ 'jev-model': 'jev-1.13-free' }).jevModel, 'jev-1.13-free');
+    assert.equal(normalizeOptions({ typesafeModel: 'jev-1.13' }).jevModel, 'jev-1.13');
+    assert.equal(normalizeOptions({ jevThreshold: 0.8 }).jevThreshold, 0.8);
+    assert.throws(() => normalizeOptions({ jevThreshold: 2 }));
+    assert.throws(() => normalizeOptions({ jevThreshold: -0.1 }));
+  });
+
+  it('parses the Choice answer shape', () => {
+    assert.deepEqual(
+      parseJevAnswer({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.95 } } }),
+      { choice: 'review', confidence: 0.95 },
+    );
+    assert.equal(parseJevAnswer({ answers: {} }), null);
+    assert.equal(parseJevAnswer({}), null);
+  });
+
+  it('disabled jev never calls fetch', async () => {
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => { calls += 1; throw new Error('must not be called'); };
+    try {
+      const opts = normalizeOptions({});
+      const { taskType, jev } = await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hello', opts });
+      assert.equal(taskType, 'generic');
+      assert.equal(jev, null);
+      assert.equal(calls, 0);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('confident jev overrides the heuristic', async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.95 } } }),
+    });
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const { taskType, jev } = await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'review this diff', opts });
+      assert.equal(taskType, 'review');
+      assert.equal(jev.choice, 'review');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('low confidence keeps the heuristic', async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.2 } } }),
+    });
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const { taskType, jev } = await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'review this diff', opts });
+      assert.equal(taskType, 'generic');
+      assert.equal(jev, null);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('network errors and unknown choices fail open', async () => {
+    const realFetch = globalThis.fetch;
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      globalThis.fetch = async () => { throw new Error('down'); };
+      assert.equal((await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hi', opts })).taskType, 'generic');
+      globalThis.fetch = async () => ({
+        ok: true, status: 200,
+        json: async () => ({ answers: { task: { type: 'choice', choice: 'nope', confidence: 0.99 } } }),
+      });
+      assert.equal((await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hi', opts })).taskType, 'generic');
+      const noToken = normalizeOptions({ jevModel: 'jev-1.13-free' });
+      delete process.env.OPENCODE_API_KEY;
+      noToken.token = '';
+      noToken.jevToken = '';
+      let calls = 0;
+      globalThis.fetch = async () => { calls += 1; throw new Error('must not be called'); };
+      assert.equal((await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hi', opts: noToken })).taskType, 'generic');
+      assert.equal(calls, 0);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+});
+
+describe('remote task-types (option B)', () => {
+  it('normalizeOptions defaults taskTypesUrl', () => {
+    assert.equal(normalizeOptions({}).taskTypesUrl, DEFAULT_TASK_TYPES_URL);
+    assert.equal(
+      normalizeOptions({ 'task-types-url': 'https://example.com/tt.json' }).taskTypesUrl,
+      'https://example.com/tt.json',
+    );
+  });
+
+  it('normalizeTaskTypes accepts published and bare shapes', () => {
+    const got = normalizeTaskTypes({
+      timestamp: 'x',
+      'task-types': {
+        plan: { label: 'Plan', description: 'Planning things' },
+        bare: 'Just a description',
+        labelOnly: { label: 'Label Only' },
+        empty: {},
+      },
+    });
+    assert.deepEqual(got, {
+      plan: { label: 'Plan', description: 'Planning things' },
+      bare: { label: 'bare', description: 'Just a description' },
+      labelonly: { label: 'Label Only', description: 'Label Only' },
+    });
+    assert.deepEqual(
+      normalizeTaskTypes({ task_types: { docs: { label: 'Docs', description: 'Write docs' } } }),
+      { docs: { label: 'Docs', description: 'Write docs' } },
+    );
+    assert.equal(normalizeTaskTypes({}), null);
+    assert.equal(normalizeTaskTypes(null), null);
+    assert.equal(normalizeTaskTypes([]), null);
+  });
+
+  it('buildJevQuestions uses remote descriptions, incl. types missing from the fallback', () => {
+    const q = buildJevQuestions({
+      'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
+      review: { label: 'Review', description: 'Review a diff' },
+    });
+    assert.equal(q.task.type, 'choice');
+    assert.deepEqual(q.task.criteria, {
+      'web-search': 'Deep multi-source web research',
+      review: 'Review a diff',
+    });
+  });
+
+  it('buildJevQuestions falls back to the static list without remote data', () => {
+    const q = buildJevQuestions();
+    assert.ok(q.task.criteria.plan);
+    assert.ok(q.task.criteria.review);
+  });
+
+  it('loadTaskTypes uses fresh cache without network', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-'));
+    const taskTypes = { review: { label: 'Review', description: 'Review a diff' } };
+    seedTaskTypes(dir, taskTypes);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => { throw new Error('must not be called'); };
+    try {
+      const opts = normalizeOptions({});
+      const { taskTypes: got, source } = await loadTaskTypes(
+        opts, path.join(dir, '.opencode', '.modelselect-cache'),
+      );
+      assert.equal(source, 'cache');
+      assert.deepEqual(got, taskTypes);
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('loadTaskTypes serves stale cache on fetch failure and throws with neither', async () => {
+    const realFetch = globalThis.fetch;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-stale-'));
+    const taskTypes = { review: { label: 'Review', description: 'Review a diff' } };
+    seedTaskTypes(dir, taskTypes);
+    // age the cache past the default 24h window
+    const file = taskTypesCacheFile(path.join(dir, '.opencode', '.modelselect-cache'));
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    raw.fetchedAt -= 25 * 60 * 60 * 1000;
+    fs.writeFileSync(file, JSON.stringify(raw));
+    globalThis.fetch = async () => { throw new Error('down'); };
+    try {
+      const opts = normalizeOptions({});
+      const { taskTypes: got, source, stale } = await loadTaskTypes(
+        opts, path.join(dir, '.opencode', '.modelselect-cache'),
+      );
+      assert.equal(source, 'cache-stale');
+      assert.equal(stale, true);
+      assert.deepEqual(got, taskTypes);
+      const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-empty-'));
+      try {
+        await assert.rejects(loadTaskTypes(opts, empty), /unreachable/);
+      } finally {
+        fs.rmSync(empty, { recursive: true, force: true });
+      }
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('jev accepts a remote-only choice and sends remote criteria', async () => {
+    const realFetch = globalThis.fetch;
+    let body = null;
+    globalThis.fetch = async (url, init) => {
+      body = JSON.parse(init.body);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ answers: { task: { type: 'choice', choice: 'web-search', confidence: 0.9 } } }),
+      };
+    };
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const taskTypes = {
+        'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
+        generic: { label: 'Generic', description: 'Everything else' },
+      };
+      const { taskType, jev } = await refineTaskTypeWithJev({
+        heuristic: 'generic', prompt: 'research this topic online', opts, taskTypes,
+      });
+      assert.equal(taskType, 'web-search');
+      assert.equal(jev.choice, 'web-search');
+      assert.equal(body.questions.task.criteria['web-search'], 'Deep multi-source web research');
+      // without the remote map the same answer fails open (unknown choice)
+      const keep = await refineTaskTypeWithJev({
+        heuristic: 'generic', prompt: 'research this topic online', opts,
+      });
+      assert.equal(keep.taskType, 'generic');
+      assert.equal(keep.jev, null);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('jev loads the remote list from cacheDir best-effort', async () => {
+    const realFetch = globalThis.fetch;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-jev-'));
+    seedTaskTypes(dir, {
+      'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
+    });
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'web-search', confidence: 0.9 } } }),
+    });
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const { taskType } = await refineTaskTypeWithJev({
+        heuristic: 'generic',
+        prompt: 'research this topic online',
+        opts,
+        cacheDir: path.join(dir, '.opencode', '.modelselect-cache'),
+      });
+      assert.equal(taskType, 'web-search');
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

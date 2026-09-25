@@ -71,10 +71,15 @@ the chat-visible announce line (`announce: "always"` for testing).
   "autoPreference": "free-first", // or go-first (tier auto only)
   "token": "",              // tier auto only; falls back to OPENCODE_API_KEY
   "configUrl": "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json",
-  "configRefreshMinutes": 1440, // 0 = refetch every request, default 24h
+  "configRefreshMinutes": 1440, // 0 = refetch every request, default 24h (also governs the task-types cache below)
+  "taskTypesUrl": "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/task-types.json",
   "fallbackModel": "",      // escape hatch when nothing resolves
   "verbose": false,
-  "suggestOnly": false       // trial mode: log the pick, never switch models
+  "suggestOnly": false,      // trial mode: log the pick, never switch models
+  "jevModel": "",            // e.g. "jev-1.13-free": when set, Jev refines the task-type
+  "jevThreshold": 0.6,       // min Jev confidence to override heuristics
+  "jevEndpoint": "https://opencode.ai/zen/v1/systemone",
+  "jevToken": ""             // falls back to token / OPENCODE_API_KEY
 }
 ```
 
@@ -87,11 +92,16 @@ the chat-visible announce line (`announce: "always"` for testing).
 | `autoPreference` | `free-first` | Probe order for `tier: auto`. |
 | `token` | `""` | Token for `tier: auto` probing; falls back to `OPENCODE_API_KEY`. Never logged. |
 | `configUrl` | (see above) | Remote central model config, cached locally. |
-| `configRefreshMinutes` | `1440` | Cache validity in minutes; `0` refetches every request. Stale cache survives fetch failures. |
+| `configRefreshMinutes` | `1440` | Cache validity in minutes for both the model config and the task-type list; `0` refetches every request. Stale cache survives fetch failures. |
+| `taskTypesUrl` | (see above) | Remote task-type definitions (`data/task-types.json`, published from `config/task-types.yaml` by the maintenance run), cached locally as `task-types-cache.json`. Only fetched when Jev refinement is enabled (`jevModel` set): it supplies the Jev `choice` criteria and the accepted answer list. Accepts `task-types-url` as alias. |
 | `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
 | `verbose` | `false` | Log each selection (`task/tier/model`). |
 | `suggestOnly` | `false` | Trial mode: resolve task-type/tier/model as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) task=… tier=… would-select=… current=…`, even with `verbose: false`. Accepts `suggest-only` / `suggest_only` as aliases. |
 | `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model]`; `→` becomes `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. v1 pushes a zero-token `ignored:true` part; v2 appends a terse line to the prompt (~15 tokens/turn). |
+| `jevModel` | `""` | Optional Jev refinement (`jev-1.13` / `jev-1.13-free`, aliases `jev-model` / `typesafe-model`): when set, a `choice` question is POSTed to `jevEndpoint` with the prompt as state; a confident answer overrides the heuristic task-type. The choice criteria (and accepted answers) come from the remote task-type list (`taskTypesUrl`), never a hardcoded map — the static list is only an offline fallback. Empty (default) disables Jev entirely — no network call. |
+| `jevThreshold` | `0.6` | Minimum Jev `confidence` (0..1) to accept the answer; below it the heuristic wins. |
+| `jevEndpoint` | `https://opencode.ai/zen/v1/systemone` | SystemOne endpoint for the Jev call. |
+| `jevToken` | `""` | Auth for the Jev call; falls back to `token` / `OPENCODE_API_KEY`. Never logged. |
 
 ## How it routes (verified against SDK types)
 
@@ -120,7 +130,10 @@ Tier `auto` probes the Go usage endpoint when a token is available
 instead of failing the session; without a token it uses `free`.
 
 The remote model config is cached under
-`<project>/.opencode/.modelselect-cache/`; `configRefreshMinutes: 0`
+`<project>/.opencode/.modelselect-cache/` (`model-config-cache.json`; the
+Jev task-type list lives next to it as `task-types-cache.json` and follows
+the same `configRefreshMinutes` cadence, but is only fetched when Jev is
+enabled); `configRefreshMinutes: 0`
 refetches every request, otherwise the cache is reused until it expires.
 A failed refetch keeps serving stale cache; only a missing cache with an
 unreachable remote throws, and even then the session keeps its current
@@ -185,7 +198,9 @@ cache. Validate with `node --check` on touched files and
 `npm test` inside `plugin/` (runs `node --test test/`).
 
 To add a new part: a new task-type starts in `config/task-types.yaml`
-plus a regenerated `data/model-config.json`; a new detection signal goes
+plus regenerated `data/model-config.json` and `data/task-types.json`
+(the latter feeds the Jev `choice` criteria automatically — no plugin
+change needed); a new detection signal goes
 in `src/shared/detect.js` with a case in `plugin/test/plugin.test.js`; a
 new option goes through `normalizeOptions` in `src/shared/select.js`
 (including its aliases/defaults) plus docs in the Options table above and

@@ -27,6 +27,7 @@
 
 const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
+const { refineTaskTypeWithJev } = require('./shared/jev');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 const ID = 'modelselect';
@@ -155,7 +156,7 @@ async function setup(ctx) {
   async function maybeAnnounce(event, text, { files = [], agent = undefined } = {}) {
     if (opts.announce === 'off' || !text.trim() || !event.sessionID) return;
     try {
-      const { taskType } = inferTaskType({
+      const { taskType: heuristic } = inferTaskType({
         prompt: text,
         files,
         repo,
@@ -164,6 +165,10 @@ async function setup(ctx) {
         agentTaskMap: opts.agentTaskMap,
         defaultTaskType: opts.defaultTaskType,
       });
+      let taskType = heuristic;
+      if (!opts.taskType || opts.taskType === 'auto') {
+        ({ taskType } = await refineTaskTypeWithJev({ heuristic, prompt: text, files, agent, opts, cacheDir }));
+      }
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const key = picked.model;
       if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return;
@@ -206,7 +211,7 @@ async function setup(ctx) {
     try {
       const sessionID = event.sessionID;
       const prompt = prompts.get(sessionID) ?? promptTextFromMessages(event.messages);
-      const { taskType } = inferTaskType({
+      const { taskType: heuristic } = inferTaskType({
         prompt,
         files: [],
         repo,
@@ -215,6 +220,10 @@ async function setup(ctx) {
         agentTaskMap: opts.agentTaskMap,
         defaultTaskType: opts.defaultTaskType,
       });
+      let taskType = heuristic;
+      if (!opts.taskType || opts.taskType === 'auto') {
+        ({ taskType } = await refineTaskTypeWithJev({ heuristic, prompt, files: [], agent: event.agent, opts, cacheDir }));
+      }
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const ref = splitModelRef(picked.model);
       const key = `${ref.providerID}/${ref.id}`;

@@ -614,3 +614,49 @@ class SmallModelTaskTypeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TaskTypesJsonTest(unittest.TestCase):
+    def test_writes_labels_and_descriptions(self):
+        import json
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "task-types.json"
+            with patch.object(m, "TASK_TYPES_JSON_PATH", target):
+                changed = m.generate_task_types_json([
+                    {"name": "plan", "label": "Plan", "description": "Planning things"},
+                    {"name": "bare"},
+                    {"label": "No name skipped"},
+                    "not-a-dict-skipped",
+                ])
+                self.assertTrue(changed)
+                data = json.loads(target.read_text())
+                self.assertEqual(
+                    data["task-types"]["plan"],
+                    {"label": "Plan", "description": "Planning things"},
+                )
+                self.assertEqual(
+                    data["task-types"]["bare"], {"label": "bare", "description": ""}
+                )
+                self.assertNotIn("No name skipped", str(data["task-types"]))
+                # second run with identical input reports no change
+                self.assertFalse(
+                    m.generate_task_types_json([
+                        {"name": "plan", "label": "Plan", "description": "Planning things"},
+                        {"name": "bare"},
+                        {"label": "No name skipped"},
+                        "not-a-dict-skipped",
+                    ])
+                )
+
+    def test_matches_task_types_yaml(self):
+        cfg = m.load_yaml(ROOT / "config" / "task-types.yaml")
+        names = {t["name"] for t in cfg.get("task_types", [])}
+        with patch.object(m, "TASK_TYPES_JSON_PATH", ROOT / "data" / "task-types.json"):
+            import json
+
+            data = json.loads((ROOT / "data" / "task-types.json").read_text())
+            self.assertEqual(set(data["task-types"]), names)
+            for name, entry in data["task-types"].items():
+                self.assertTrue(entry["description"], f"{name} missing description")

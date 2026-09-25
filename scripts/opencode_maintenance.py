@@ -45,6 +45,10 @@ COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # maintenance run recomputes it and the workflow commits it directly, so the
 # newly computed models immediately become the selection target.
 MODEL_CONFIG_PATH = DATA_DIR / "model-config.json"
+# Remote task-type definitions consumed by the plugin's Jev refinement
+# (see plugin/src/shared/tasktypes.js, option B: standalone file with its
+# own parallel cache, generated from config/task-types.yaml).
+TASK_TYPES_JSON_PATH = DATA_DIR / "task-types.json"
 
 # --- Constants ---
 ZEN_URL = "https://opencode.ai/zen/v1/models"
@@ -844,6 +848,45 @@ def generate_model_config(
 
     save_json(MODEL_CONFIG_PATH, proposed)
     print(f"  ! Central model config updated — wrote {MODEL_CONFIG_PATH} (committed by the workflow)")
+    return True
+
+
+def generate_task_types_json(task_types: list[dict[str, Any]]) -> bool:
+    """Publish the task-type definitions for the plugin's Jev refinement.
+
+    Writes data/task-types.json from config/task-types.yaml: each entry
+    carries the label + description the Jev `choice` criteria are built
+    from, so adding a task type needs no plugin change (option B: the
+    plugin fetches this file with its own parallel cache, like the model
+    config). Entries without a name are skipped.
+
+    Returns True when the written file differs from the previous commit.
+    """
+    table = {
+        tt["name"]: {
+            "label": tt.get("label", tt["name"]),
+            "description": tt.get("description", ""),
+        }
+        for tt in task_types
+        if isinstance(tt, dict) and tt.get("name")
+    }
+    proposed = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "task-types": table,
+    }
+
+    if TASK_TYPES_JSON_PATH.exists():
+        try:
+            current = load_json(TASK_TYPES_JSON_PATH)
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"  w Failed to read {TASK_TYPES_JSON_PATH}: {e}")
+            current = {}
+        if (current.get("task-types") if isinstance(current, dict) else None) == table:
+            print("  v Task-types file unchanged")
+            return False
+
+    save_json(TASK_TYPES_JSON_PATH, proposed)
+    print(f"  ! Task types updated — wrote {TASK_TYPES_JSON_PATH} (committed by the workflow)")
     return True
 
 
@@ -1945,6 +1988,11 @@ def main() -> None:
         price_lookup, cost_blend,
     )
 
+    # 6b. Publish the task-type definitions for the plugin's Jev refinement
+    # (standalone data/task-types.json, committed by the workflow like the
+    # model config so the choice criteria stay in sync with task-types.yaml).
+    task_types_updated = generate_task_types_json(task_types)
+
     save_json(
         AUDIT_RESULTS_PATH,
         {
@@ -2000,6 +2048,7 @@ def main() -> None:
     print(f"  README updated: {README_PATH}")
     print(f"  Audit data: {AUDIT_RESULTS_PATH}")
     print(f"  Model config: {MODEL_CONFIG_PATH}")
+    print(f"  Task types: {TASK_TYPES_JSON_PATH}{' (updated)' if task_types_updated else ''}")
     if config_updated:
         print(f"  ! Model config changed — {MODEL_CONFIG_PATH} updated (committed by the workflow)")
     print("=" * 60)

@@ -13,6 +13,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { TASK_TYPES, normalizeAgentMap } = require('./detect');
+const { DEFAULT_TASK_TYPES_URL } = require('./tasktypes');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
@@ -43,6 +44,9 @@ function normalizeOptions(raw = {}) {
     autoPreference: preference === 'go-first' ? 'go-first' : 'free-first',
     configUrl: String(raw.configUrl ?? raw['config-url'] ?? DEFAULT_CONFIG_URL),
     configRefreshMinutes: refresh,
+    taskTypesUrl: String(
+      raw.taskTypesUrl ?? raw['task-types-url'] ?? raw.tasktypesUrl ?? DEFAULT_TASK_TYPES_URL,
+    ),
     fallbackModel: String(raw.fallbackModel ?? raw['fallback-model'] ?? '').trim(),
     maxCost: raw.maxCost ?? raw['max-cost'] ?? '',
     token: String(raw.token || raw['opencode-token'] || process.env.OPENCODE_API_KEY || '').trim(),
@@ -50,6 +54,7 @@ function normalizeOptions(raw = {}) {
     verbose: Boolean(raw.verbose ?? false),
     suggestOnly: Boolean(raw.suggestOnly ?? raw['suggest-only'] ?? raw.suggest_only ?? false),
     announce,
+    ...require('./jev').normalizeJevOptions(raw),
   };
 }
 

@@ -1,5 +1,12 @@
 ## [Unreleased]
 ### Added
+- Remote task-type list for the plugin's Jev refinement (option B): the
+  maintenance run publishes `config/task-types.yaml` to
+  `data/task-types.json`, and the plugin fetches it with its own parallel
+  cache (`task-types-cache.json`, same `configRefreshMinutes` cadence, new
+  `taskTypesUrl` option) to build the Jev `choice` criteria and validate
+  answers — no more hardcoded type map in the Jev path (static list kept
+  as offline fallback only). Only fetched when `jevModel` is set
 - New `plugin/` dual-entry package auto-selecting the OpenCode model from
   project signals, prompt text and agent tag (v1 `server()` via `chat.message`
   in-place routing with per-session stickiness; v2 `{ id, setup }` via
