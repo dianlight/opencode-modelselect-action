@@ -1,11 +1,11 @@
-# run: openchamber-extension   status: active
+# run: openchamber-extension   status: done
 request: OpenChamber extension (work status section) showing modelselect session stats + on/off/auto mode switch — acceptance: status section shows task/tier/model/jev/go-zen per session, error when plugin missing, mode switch honored by plugin v1+v2, tests pass
 base: feature/modelselect-plugin @ 12cfcd7
 | id | kind | status | complexity | model | session | worktree/branch | validated_commit | rounds | depends_on |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | research-auto-detect | research | validated | normal | session-default | ses_f25b78700ffevsq8L12nNQbyJm | — | — | 0 | — |
-| implement-plugin-status | implementation | validated | normal | session-default | ses_f25b46f41ffezflNS4lHllbMlY | /private/var/folders/_n/6b7jwbns0d99ps9k6g54pqs00000gn/T/opencode/modelselect-status / feature/plugin-status | 70a5ceb95e8e5c4726001e088bbb021f8747ca94 | 1 | research-auto-detect |
-| implement-extension | implementation | validated | normal | session-default | ses_f25af01e7ffeK3L6UoB3ndX2Oh | /private/var/folders/_n/6b7jwbns0d99ps9k6g54pqs00000gn/T/opencode/modelselect-extension / feature/extension | 738b9d2fdcf193646743f67f84646f931ecb699a | 1 | implement-plugin-status |
+| implement-plugin-status | implementation | validated | normal | session-default | ses_f25b46f41ffezflNS4lHllbMlY | /private/var/folders/_n/6b7jwbns0d99ps9k6g54pqs00000gn/T/opencode/modelselect-status / feature/plugin-status | da4742d (rebased onto f3713f4, was 70a5ceb) | 1 | research-auto-detect |
+| implement-extension | implementation | validated | normal | session-default | ses_f25af01e7ffeK3L6UoB3ndX2Oh | /private/var/folders/_n/6b7jwbns0d99ps9k6g54pqs00000gn/T/opencode/modelselect-extension / feature/extension | 213d6c4 (cherry-picked onto da4742d, was 738b9d2) | 1 | implement-plugin-status |
 | verify-e2e | verification | validated | normal | session-default | ses_f25a85e42ffeDX01nz3971eIdp | /private/var/folders/_n/6b7jwbns0d99ps9k6g54pqs00000gn/T/opencode/modelselect-verify / verify/extension | — | 0 | implement-extension |
 ## Decisions
 - 2026-09-25: 4-task serial chain (research → plugin status+mode → extension UI → verify); extension serialized after plugin so it builds against the real status-file contract, not a guessed one (rejected: parallel with orchestrator-dictated schema)
