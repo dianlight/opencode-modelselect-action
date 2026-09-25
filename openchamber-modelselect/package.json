@@ -1,0 +1,26 @@
+{
+  "name": "openchamber-modelselect",
+  "version": "0.1.0",
+  "description": "Work Status section surfacing the modelselect plugin's per-session pick plus its on/off/auto mode switch.",
+  "license": "MIT",
+  "openchamber": {
+    "apiVersion": 1,
+    "engines": {
+      "openchamber": ">=2.0.0"
+    },
+    "contributes": {
+      "statusSection": {
+        "entry": "status/index.html",
+        "title": "Model Select",
+        "height": 120
+      },
+      "capabilities": [
+        "files"
+      ],
+      "filesystem": [
+        "~/.config/opencode/opencode.json",
+        "~/.config/opencode/opencode.jsonc"
+      ]
+    }
+  }
+}
