@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-09-25T14:36:59.704521+00:00",
+  "task-types": {
+    "plan": {
+      "label": "Plan",
+      "description": "Planning, architecture decisions, task decomposition"
+    },
+    "issue-triage": {
+      "label": "Issue Triage",
+      "description": "Triage, label, categorize, route issues"
+    },
+    "review": {
+      "label": "Review",
+      "description": "Review PRs, pull requests, diffs"
+    },
+    "ui-design": {
+      "label": "UI Design",
+      "description": "UI design, components, layouts, mockups"
+    },
+    "ui-testing": {
+      "label": "UI Testing",
+      "description": "Playwright, Cypress, E2E, frontend tests"
+    },
+    "api-testing": {
+      "label": "API Testing",
+      "description": "API testing, integration tests, OpenAPI, Postman"
+    },
+    "docs": {
+      "label": "Docs",
+      "description": "Documentation, READMEs, changelogs, docstrings"
+    },
+    "debug": {
+      "label": "Debug",
+      "description": "Debugging, reproductions, crash and exception triage"
+    },
+    "refactor": {
+      "label": "Refactor",
+      "description": "Refactoring, cleanup, tech-debt reduction"
+    },
+    "security": {
+      "label": "Security",
+      "description": "Security review, vulnerabilities, hardening"
+    },
+    "code": {
+      "label": "Code",
+      "description": "Code generation, implementation, features"
+    },
+    "mechanical-engineer": {
+      "label": "Mechanical Engineer",
+      "description": "Mechanical engineering, calculations, CAD, thermodynamics, materials"
+    },
+    "web-search": {
+      "label": "Web Search",
+      "description": "Ricerche approfondite sul web, sintesi multi-fonte"
+    },
+    "generic": {
+      "label": "Generic",
+      "description": "General Q&A, explanations, analysis, everything else"
+    },
+    "small-model": {
+      "label": "Small Model",
+      "description": "Lightweight utility tasks: commit messages, session titles/renames, summaries"
+    }
+  }
+}
