@@ -45,6 +45,13 @@
   downstream OpenCode step — so `free-first` picks free even while Go quota
   remains. A 401 from one tier falls back to the other; the step fails as
   invalid token only when both tiers reject auth
+- v2 plugin prompt hook now reads `event.prompt.text`
+  (`PromptInput.Prompt = { text, files?, agents?, skills? }`) instead of the
+  legacy string/`parts` forms, so task inference, file/agent signals and the
+  chat-visible announce line fire again (old shapes kept as fallback). The
+  agent tag comes from prompt mentions (the hook event has no `agent`
+  field), announce edit failures log instead of vanishing silently, and
+  setup logs once so loading is verifiable
 ### Removed
 - No-op file-sync job, keep deprecated-workflow cleanup
 ### Changed

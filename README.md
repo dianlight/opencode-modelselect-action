@@ -285,6 +285,11 @@ plugins live in `.opencode/plugin/`:
 That is the only setup difference between v1 and v2: config key, entry
 shape, and local directory. Behavior and options are identical.
 
+OpenChamber users: its panel runs a separate managed server
+(`~/.config/openchamber/opencode.managed.json`) that ignores the global
+`plugins` list — add the entry there and restart OpenChamber. See
+`plugin/README.md` (OpenChamber).
+
 ### Plugin options
 
 | Option | Default | Description |

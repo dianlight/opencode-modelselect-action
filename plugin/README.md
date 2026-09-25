@@ -48,6 +48,18 @@ Differences between v1 and v2 setup: only the config key (`plugin` vs
 vs `.opencode/plugins/`). The package itself serves both hosts with no code
 changes.
 
+### OpenChamber
+
+OpenChamber runs its own OpenCode server with a managed config
+(`~/.config/openchamber/opencode.managed.json`) that ignores your global
+`~/.config/opencode/opencode.json` — global `plugins` entries never load in
+the OpenChamber panel, and `opencode service restart` does not touch that
+server. Add the plugin entry to the managed file (same object form as
+above) and quit + reopen OpenChamber so its server reloads; the file may be
+regenerated on updates, so re-check the entry if the plugin goes silent.
+Plugin `console.log` output does not land in `opencode.log`, so verify via
+the chat-visible announce line (`announce: "always"` for testing).
+
 ## Options
 
 ```jsonc
