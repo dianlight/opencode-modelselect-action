@@ -18,9 +18,11 @@
  *   `generate` requests intentionally keep their own models so cheap
  *   auxiliary calls stay cheap.
  * - The chat-visible announce line (`announce` option, default `switch`)
- *   is appended to the prompt text in the `prompt` hook: v2 has no
+ *   is appended to `event.prompt.text` in the `prompt` hook (v2
+ *   `PromptInput.Prompt = { text, files?, agents?, skills? }`): v2 has no
  *   zero-token visible channel (`context` edits never render), so the
- *   terse line persists+renders (~15 tokens/turn).
+ *   terse line persists+renders (~15 tokens/turn). The prompt hook event
+ *   carries no `agent` field — the agent tag is read from prompt mentions.
  */
 
 const path = require('node:path');
@@ -62,6 +64,39 @@ function promptTextFromMessages(messages) {
     .join('\n');
 }
 
+// v2 `prompt` hook carries `PromptInput.Prompt = { text, files?, agents?,
+// skills? }` — not a string and not `{ parts }`. Older shapes (plain string,
+// `{ parts }`, `{ content }`) are kept as fallback so tests and any other
+// host keep working.
+function promptTextFromPrompt(prompt) {
+  if (typeof prompt === 'string') return prompt;
+  if (prompt && typeof prompt === 'object') {
+    if (typeof prompt.text === 'string') return prompt.text;
+    if (Array.isArray(prompt.parts)) return promptTextFromMessages([prompt]);
+    if (typeof prompt.content === 'string') return prompt.content;
+  }
+  return '';
+}
+
+// File signals from a v2 prompt: `{ uri, name? }` entries. Basename-ish
+// strings are enough for the heuristics (they match on extensions/names).
+function filesFromPrompt(prompt) {
+  if (!prompt || typeof prompt !== 'object' || !Array.isArray(prompt.files)) return [];
+  return prompt.files.flatMap((f) => {
+    if (!f || typeof f !== 'object') return [];
+    const cands = [f.name, f.uri];
+    return cands.filter((c) => typeof c === 'string' && c);
+  });
+}
+
+// The v2 prompt hook event has no `agent` field; agent mentions arrive as
+// `prompt.agents = [{ name }]`. First mention wins (single-agent sessions).
+function agentFromPrompt(prompt) {
+  if (!prompt || typeof prompt !== 'object' || !Array.isArray(prompt.agents)) return undefined;
+  const first = prompt.agents.find((a) => a && typeof a.name === 'string' && a.name);
+  return first ? first.name : undefined;
+}
+
 async function setup(ctx) {
   const opts = normalizeOptions(ctx.options ?? {});
   const directory = ctx.location?.directory ?? process.cwd();
@@ -71,26 +106,39 @@ async function setup(ctx) {
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
 
-  // Append the terse pick line to the prompt text. Handles the string form
-  // plus common object shapes; returns false when nothing could be edited.
+  // Append the terse pick line to the prompt text. v2 shape first
+  // (`prompt.text`), then the legacy string / `{ parts }` / `{ content }`
+  // forms; returns false when nothing could be edited (e.g. frozen).
   function appendPromptLine(event, line) {
-    if (typeof event.prompt === 'string') {
-      event.prompt = `${event.prompt}\n${line}`;
-      return true;
-    }
     const p = event.prompt;
-    if (p && typeof p === 'object') {
-      if (Array.isArray(p.parts)) {
-        p.parts.push({ type: 'text', text: line });
-        return true;
-      }
-      if (typeof p.text === 'string') {
+    if (p && typeof p === 'object' && typeof p.text === 'string') {
+      try {
         p.text = `${p.text}\n${line}`;
         return true;
+      } catch {
+        return false;
       }
-      if (typeof p.content === 'string') {
-        p.content = `${p.content}\n${line}`;
+    }
+    if (typeof p === 'string') {
+      try {
+        event.prompt = `${p}\n${line}`;
         return true;
+      } catch {
+        return false;
+      }
+    }
+    if (p && typeof p === 'object') {
+      try {
+        if (Array.isArray(p.parts)) {
+          p.parts.push({ type: 'text', text: line });
+          return true;
+        }
+        if (typeof p.content === 'string') {
+          p.content = `${p.content}\n${line}`;
+          return true;
+        }
+      } catch {
+        return false;
       }
     }
     return false;
@@ -104,14 +152,14 @@ async function setup(ctx) {
   // previously applied pick (applied) and the last announced pick (covers
   // suggestOnly, where applied never moves); first turn counts as a switch.
   // Never throws — failures only log.
-  async function maybeAnnounce(event, text) {
+  async function maybeAnnounce(event, text, { files = [], agent = undefined } = {}) {
     if (opts.announce === 'off' || !text.trim() || !event.sessionID) return;
     try {
       const { taskType } = inferTaskType({
         prompt: text,
-        files: [],
+        files,
         repo,
-        agent: event.agent,
+        agent,
         fixedTaskType: opts.taskType,
         agentTaskMap: opts.agentTaskMap,
         defaultTaskType: opts.defaultTaskType,
@@ -125,21 +173,30 @@ async function setup(ctx) {
         model: picked.model,
         suggestOnly: opts.suggestOnly,
       });
-      appendPromptLine(event, line);
+      if (!appendPromptLine(event, line)) {
+        console.error(`[modelselect] announce skipped: could not edit prompt for session ${event.sessionID}`);
+        return;
+      }
       announced.set(event.sessionID, key);
     } catch (err) {
       console.error(`[modelselect] announce skipped: ${err?.message ?? err}`);
     }
   }
 
+  console.log(
+    `[modelselect] loaded (tier=${opts.tier} announce=${opts.announce} verbose=${opts.verbose} suggestOnly=${opts.suggestOnly})`,
+  );
+
   await ctx.session.hook('prompt', async (event) => {
     try {
-      const text =
-        typeof event.prompt === 'string'
-          ? event.prompt
-          : promptTextFromMessages(event.prompt?.parts ? [event.prompt] : []);
+      // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
+      // delivery }. `event.agent` does not exist here — the agent tag comes
+      // from prompt mentions (best-effort; undefined when absent).
+      const text = promptTextFromPrompt(event.prompt);
+      const files = filesFromPrompt(event.prompt);
+      const agent = agentFromPrompt(event.prompt) ?? event.agent;
       if (text.trim() && event.sessionID) prompts.set(event.sessionID, text);
-      await maybeAnnounce(event, text);
+      await maybeAnnounce(event, text, { files, agent });
     } catch {
       // never break the session
     }

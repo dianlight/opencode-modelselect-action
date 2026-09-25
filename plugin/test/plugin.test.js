@@ -530,6 +530,99 @@ describe('v2 announce', () => {
   });
 });
 
+describe('v2 prompt shape (PromptInput.Prompt)', () => {
+  async function v2Hooks(dir, opts) {
+    const v2 = require('../src/v2.js');
+    const seen = {};
+    const logs = [];
+    const origLog = console.log;
+    console.log = (...args) => logs.push(args.join(' '));
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review', ...opts },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    try {
+      await v2.setup(fakeCtx);
+    } finally {
+      console.log = origLog;
+    }
+    return { seen, logs };
+  }
+
+  it('logs once at setup so loading is verifiable', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const { logs } = await v2Hooks(dir, {});
+      assert.match(logs.join('\n'), /\[modelselect\] loaded/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('appends the announce line to prompt.text', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const { seen } = await v2Hooks(dir, {});
+      const e1 = { sessionID: 's1', messageID: 'm1', prompt: { text: 'review this diff' } };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt.text, 'review this diff\n[modelselect: task=review tier=free → f/b]');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('routes via agent mentions and file attachments', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        docs: { go: 'g/doc', free: 'f/doc' },
+      },
+    });
+    try {
+      const { seen } = await v2Hooks(dir, { taskType: 'auto', agentTaskMap: { writer: 'docs' } });
+      const e1 = {
+        sessionID: 's1',
+        messageID: 'm1',
+        prompt: {
+          text: 'review this diff',
+          files: [{ uri: 'file:///repo/README.md', name: 'README.md' }],
+          agents: [{ name: 'writer' }],
+        },
+      };
+      await seen.prompt(e1);
+      assert.match(e1.prompt.text, /task=docs/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('context hook still works when the prompt hook saw the v2 shape', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const { seen } = await v2Hooks(dir, {});
+      await seen.prompt({ sessionID: 's1', messageID: 'm1', prompt: { text: 'review this diff' } });
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'f');
+      assert.equal(event.model.id, 'b');
+      assert.deepEqual(seen.switched, { sessionID: 's1', model: { providerID: 'f', id: 'b' } });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
 describe('v2 routing hooks', () => {
   it('mutates event.model in place and persists via switchModel', async () => {
     const v2 = require('../src/v2.js');
