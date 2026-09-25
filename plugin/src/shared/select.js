@@ -189,18 +189,19 @@ async function resolveModel({ taskType, opts, cacheDir }) {
   const { config, source, stale } = await loadConfig(opts, cacheDir);
   const { key, entry } = entryFor(config, taskType);
   if (!key || !entry) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback` };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null };
     throw new Error(`No model configured for task-type='${taskType}'.`);
   }
   const go = entry.go || '';
   const free = entry.free || '';
   let tier = opts.tier;
+  let goOk = null; // last quota-probe result; null when no probe ran
   if (tier === 'auto') {
     const order = opts.autoPreference === 'go-first' ? ['go', 'free'] : ['free', 'go'];
     if (!opts.token) {
       tier = 'free';
     } else {
-      const goOk = await checkGoQuota(opts.token, opts.usageUrl);
+      goOk = await checkGoQuota(opts.token, opts.usageUrl);
       if (order[0] === 'free') tier = 'free';
       else tier = goOk === false ? 'free' : 'go';
       if (tier === 'go' && !go) tier = 'free';
@@ -209,10 +210,10 @@ async function resolveModel({ taskType, opts, cacheDir }) {
   }
   const model = tier === 'go' ? go : free;
   if (!model) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback` };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk };
 }
 
 /** Split a "provider/model" string. v1 uses modelID, v2 uses id. */

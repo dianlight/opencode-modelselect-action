@@ -139,6 +139,45 @@ A failed refetch keeps serving stale cache; only a missing cache with an
 unreachable remote throws, and even then the session keeps its current
 model (the error is logged, not fatal).
 
+## Status & mode
+
+Each routed turn (both hosts, including `suggestOnly` runs) writes a
+best-effort per-session status file next to the caches — it never throws:
+
+`<project>/.opencode/.modelselect-cache/status-<sessionID>.json`
+(`sessionID` sanitized to `[A-Za-z0-9-_]`)
+
+```jsonc
+{
+  "sessionID": "ses_abc123",
+  "taskType": "review",
+  "tier": "free",
+  "model": "opencode/muse-spark-free", // "provider/id"
+  "jev": "pinned",        // off | pinned | <choice>@<conf> | kept:<reason>
+  "goOk": null,           // quota probe: true | false | null (no probe ran)
+  "source": "cache",      // remote | cache | cache-stale…
+  "suggestOnly": false,
+  "updatedAt": 1720000000000 // epoch ms
+}
+```
+
+The global mode file `<project>/.opencode/.modelselect-cache/mode.json`
+(`{"mode": "on"|"off"|"auto"}`) controls routing; a missing file, bad
+JSON, or unknown value all mean `"on"` (today's behavior):
+
+```sh
+echo '{"mode":"off"}' > <project>/.opencode/.modelselect-cache/mode.json
+```
+
+- `on` — route every turn (default).
+- `off` — skip routing entirely for the turn: no mutation, no
+  `switchModel`, no announce line, no status write (one verbose log line
+  only).
+- `auto` — route only while the session looks unmanaged: the first turn
+  routes, later turns route only while the live model still matches the
+  last applied pick. If you (or another plugin) switch models mid-session,
+  the plugin steps aside and leaves your choice alone.
+
 ## Trial run without side effects
 
 Point OpenCode at the plugin with `suggestOnly: true` and use the session

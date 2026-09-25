@@ -29,6 +29,7 @@ const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
 const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
+const { readMode, writeStatus } = require('./shared/status');
 
 const ID = 'modelselect';
 
@@ -198,6 +199,12 @@ async function setup(ctx) {
 
   await ctx.session.hook('prompt', async (event) => {
     try {
+      const hookMode = readMode(cacheDir);
+      if (hookMode === 'off') return;
+      // In auto mode the context hook owns every turn after the first: the
+      // prompt hook has no model field to tell a user switch from our own
+      // pick, so announcing later turns could claim a pick we then skip.
+      if (hookMode === 'auto' && event.sessionID && applied.has(event.sessionID)) return;
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
       // delivery }. `event.agent` does not exist here — the agent tag comes
       // from prompt mentions (best-effort; undefined when absent).
@@ -214,6 +221,27 @@ async function setup(ctx) {
   await ctx.session.hook('context', async (event) => {
     try {
       const sessionID = event.sessionID;
+      const mode = readMode(cacheDir);
+      if (mode === 'off') {
+        if (opts.verbose) console.log(`[modelselect] mode=off: routing skipped for session=${sessionID}`);
+        return;
+      }
+      if (mode === 'auto') {
+        // Route only unmanaged sessions: an applied entry means we routed
+        // before, so a different live model is someone else's choice.
+        const prev = sessionID ? applied.get(sessionID) : undefined;
+        const cur = event.model;
+        const curKey =
+          cur && typeof cur === 'object' && cur.providerID && cur.id
+            ? `${cur.providerID}/${cur.id}`
+            : null;
+        if (prev && curKey && curKey !== prev) {
+          if (opts.verbose) {
+            console.log(`[modelselect] mode=auto: external model ${curKey} (was ${prev}), skipping session=${sessionID}`);
+          }
+          return;
+        }
+      }
       const prompt = prompts.get(sessionID) ?? promptTextFromMessages(event.messages);
       const { taskType: heuristic } = inferTaskType({
         prompt,
@@ -234,6 +262,15 @@ async function setup(ctx) {
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const ref = splitModelRef(picked.model);
       const key = `${ref.providerID}/${ref.id}`;
+      writeStatus(cacheDir, sessionID ?? 'default', {
+        taskType: picked.taskType,
+        tier: picked.tier,
+        model: picked.model,
+        jev,
+        goOk: picked.goOk ?? null,
+        source: picked.source,
+        suggestOnly: opts.suggestOnly,
+      });
       if (opts.suggestOnly) {
         // Trial mode: resolve everything but change nothing.
         const current =

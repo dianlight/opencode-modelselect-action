@@ -22,6 +22,19 @@ const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
 const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
+const { readMode, writeStatus } = require('./shared/status');
+
+function statusFields(picked, jev, suggestOnly) {
+  return {
+    taskType: picked.taskType,
+    tier: picked.tier,
+    model: picked.model,
+    jev,
+    goOk: picked.goOk ?? null,
+    source: picked.source,
+    suggestOnly,
+  };
+}
 
 function cacheDirFor(directory) {
   return path.join(String(directory || process.cwd()), '.opencode', '.modelselect-cache');
@@ -149,6 +162,28 @@ module.exports = {
       'chat.message': async (msgInput, output) => {
         try {
           const sessionID = msgInput?.sessionID ?? 'default';
+          const mode = readMode(cacheDir);
+          if (mode === 'off') {
+            if (options.verbose) console.log(`[modelselect] mode=off: routing skipped for session=${sessionID}`);
+            return;
+          }
+          if (mode === 'auto') {
+            // Route only unmanaged sessions: a sticky entry means we routed
+            // before, so a different live model is someone else's choice.
+            const prev = sticky.get(sessionID);
+            const cur = output?.message?.model;
+            const prevKey = prev ? `${prev.providerID}/${prev.id}` : null;
+            const curKey =
+              cur && typeof cur === 'object' && cur.providerID && cur.modelID
+                ? `${cur.providerID}/${cur.modelID}`
+                : null;
+            if (prevKey && curKey && curKey !== prevKey) {
+              if (options.verbose) {
+                console.log(`[modelselect] mode=auto: external model ${curKey} (was ${prevKey}), skipping session=${sessionID}`);
+              }
+              return;
+            }
+          }
           const prompt = promptTextFromParts(output?.parts);
           const files = filesFromParts(output?.parts);
           let ref = sticky.get(sessionID) ?? null;
@@ -169,6 +204,7 @@ module.exports = {
               console.log(
                 `[modelselect] (suggest-only) v1 session=${sessionID} task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current} jev=${routed.jev}`,
               );
+              writeStatus(cacheDir, sessionID, statusFields(picked, routed.jev, true));
               maybeAnnounce(msgInput, output, picked, routed.jev);
               return;
             }
@@ -177,6 +213,7 @@ module.exports = {
             // previously applied pick, and the first turn counts as a switch.
             maybeAnnounce(msgInput, output, picked, routed.jev);
             sticky.set(sessionID, ref);
+            writeStatus(cacheDir, sessionID, statusFields(picked, routed.jev, false));
           }
           const target = output?.message?.model;
           if (ref && target && typeof target === 'object') {
