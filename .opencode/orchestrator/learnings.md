@@ -8,3 +8,5 @@
 - 2026-09-24: plugin tests run with `node --test plugin/test/` from repo root; `node --check` per touched file; 43 tests green is the current baseline.
 - 2026-09-24: `.opencode/.modelselect-cache/` is runtime-generated; kept on disk, ignored via `.opencode/.gitignore`.
 - 2026-09-24: task worktrees in `/private/var/folders/_n/6b7jwbns0d99ps9k6g54pqs00000gn/T/opencode/<name>` with `-b feature/<name>` from base SHA; remove worktree + delete branch right after merge.
+- 2026-09-25: code-reviewer passed an OpenChamber manifest with keys at the wrong nesting level — orchestrator must validate manifest shape itself (assert contributes.* paths, not just node --check).
+- 2026-09-25: rebasing stacked deliveries — cherry-pick only the top commit onto the rebased base instead of rebasing the whole stack (avoids replaying lower commits into conflicts).
