@@ -1,5 +1,12 @@
 ## [Unreleased]
 ### Added
+- Plugin session continuation: zero-signal turns (short acks like `do it`,
+  `sì, procedi`, or answers after an assistant question — any language or
+  length) now inherit the previous substantive turn's task instead of
+  falling to `generic`. Score decides, the IT+EN ack match is only a second
+  opinion; Jev sees `Previous: … / Current: …` context (+ last assistant
+  snippet on v2). New `continuation` (default true) and `historyChars`
+  (default 2000) options, v1 + v2, with tests
 - Remote task-type list for the plugin's Jev refinement (option B): the
   maintenance run publishes `config/task-types.yaml` to
   `data/task-types.json`, and the plugin fetches it with its own parallel

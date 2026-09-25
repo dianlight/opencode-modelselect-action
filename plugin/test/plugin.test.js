@@ -1080,3 +1080,128 @@ describe('jev announce label', () => {
     }
   });
 });
+
+describe('continuation (short acks inherit previous task)', () => {
+  const { isAck, isLowSignal } = require('../src/shared/detect');
+  const { resolveWithHistory, continuationState, lastAssistantSnippet } = require('../src/shared/continuation');
+
+  it('matches Italian and English acks, not long messages', () => {
+    assert.equal(isAck('do it'), true);
+    assert.equal(isAck('yes'), true);
+    assert.equal(isAck('go ahead'), true);
+    assert.equal(isAck('sì, procedi'), true);
+    assert.equal(isAck('vai pure'), true);
+    assert.equal(isAck('va bene, procedi pure'), true);
+    assert.equal(isAck('perfetto'), true);
+    assert.equal(isAck('review this diff'), false);
+    assert.equal(
+      isAck('sì procedi pure con la seconda opzione che mi hai proposto ieri sera al telefono amico mio caro'),
+      false,
+    );
+  });
+
+  it('scores zero in any language regardless of length', () => {
+    assert.equal(isLowSignal({ prompt: 'do it' }), true);
+    assert.equal(isLowSignal({ prompt: 'sì, procedi pure così va bene grazie' }), true);
+    assert.equal(isLowSignal({ prompt: 'la seconda opzione che mi hai proposto' }), true);
+    assert.equal(isLowSignal({ prompt: 'review this pull request diff' }), false);
+  });
+
+  it('zero-signal turns inherit history, signal turns do not', () => {
+    const inherited = resolveWithHistory({ prompt: 'do it' }, { task: 'review', prompt: 'review this diff' });
+    assert.equal(inherited.taskType, 'review');
+    assert.equal(inherited.continued, true);
+    const kept = resolveWithHistory(
+      { prompt: 'review this pull request diff' },
+      { task: 'code', prompt: 'implement feature' },
+    );
+    assert.equal(kept.taskType, 'review');
+    assert.equal(kept.continued, false);
+    const noHistory = resolveWithHistory({ prompt: 'do it' }, null);
+    assert.equal(noHistory.taskType, 'generic');
+    assert.equal(noHistory.continued, false);
+  });
+
+  it('options default continuation on with 2000 history chars', () => {
+    const opts = normalizeOptions({});
+    assert.equal(opts.continuation, true);
+    assert.equal(opts.historyChars, 2000);
+    assert.equal(normalizeOptions({ continuation: false }).continuation, false);
+    assert.equal(normalizeOptions({ 'history-chars': 500 }).historyChars, 500);
+    assert.throws(() => normalizeOptions({ historyChars: -1 }));
+  });
+
+  it('continuation state carries previous prompt and assistant snippet', () => {
+    const s = continuationState({
+      current: 'do it',
+      historyPrompt: 'review this diff',
+      assistantSnippet: 'Shall I proceed?',
+      historyChars: 2000,
+    });
+    assert.match(s, /Previous: review this diff/);
+    assert.match(s, /Assistant: Shall I proceed\?/);
+    assert.match(s, /Current: do it/);
+    assert.equal(lastAssistantSnippet([{ role: 'assistant', parts: [{ type: 'text', text: 'Shall I proceed?' }] }]), 'Shall I proceed?');
+  });
+
+  it('v2 keeps review across an Italian ack end to end', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-cont-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        generic: { go: 'g/gen', free: 'f/gen' },
+      },
+    });
+    try {
+      const seen = {};
+      const fakeCtx = {
+        options: { tier: 'free', taskType: 'auto' },
+        location: { directory: dir },
+        session: {
+          async hook(name, cb) { seen[name] = cb; },
+          async switchModel(input) { seen.switched = input; },
+        },
+      };
+      await v2.setup(fakeCtx);
+      await seen.prompt({ sessionID: 's1', prompt: 'review this pull request diff' });
+      const e1 = { sessionID: 's1', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(e1);
+      assert.equal(e1.model.id, 'b');
+      await seen.prompt({ sessionID: 's1', prompt: 'sì, procedi pure' });
+      const e2 = { sessionID: 's1', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(e2);
+      assert.equal(e2.model.id, 'b', 'Italian ack stays on review, not generic');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('v1 keeps review across "do it" end to end', async () => {
+    const v1 = require('../src/v1.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-cont-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        generic: { go: 'g/gen', free: 'f/gen' },
+      },
+    });
+    try {
+      const hooks = await v1.server({ directory: dir }, { tier: 'free' });
+      const t1 = { providerID: 'old', modelID: 'old' };
+      await hooks['chat.message'](
+        { sessionID: 's1' },
+        { parts: [{ type: 'text', text: 'review this pull request diff' }], message: { model: t1 } },
+      );
+      assert.equal(t1.modelID, 'b');
+      const t2 = { providerID: 'old', modelID: 'old' };
+      await hooks['chat.message'](
+        { sessionID: 's1' },
+        { parts: [{ type: 'text', text: 'do it' }], message: { model: t2 } },
+      );
+      assert.equal(t2.modelID, 'b', '"do it" stays on review, not generic');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

@@ -19,8 +19,9 @@
  */
 
 const path = require('node:path');
-const { inferTaskType, detectRepoSignals } = require('./shared/detect');
+const { detectRepoSignals } = require('./shared/detect');
 const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
+const { resolveWithHistory, shouldRemember, continuationState, truncate } = require('./shared/continuation');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 function cacheDirFor(directory) {
@@ -75,10 +76,12 @@ module.exports = {
     const repo = detectRepoSignals(scanRepo(directory));
     const sticky = new Map(); // sessionID -> { providerID, modelID }
     const announced = new Map(); // sessionID -> last announced "provider/id" key
+    const history = new Map(); // sessionID -> { task, prompt } last substantive turn
     let announceSeq = 0;
 
     async function route(sessionID, prompt, files, agent) {
-      const { taskType: heuristic } = inferTaskType({
+      const prev = history.get(sessionID) || null;
+      const base = {
         prompt,
         files,
         repo,
@@ -86,16 +89,28 @@ module.exports = {
         fixedTaskType: options.taskType,
         agentTaskMap: options.agentTaskMap,
         defaultTaskType: options.defaultTaskType,
-      });
+      };
+      const r = options.continuation
+        ? resolveWithHistory(base, prev)
+        : (() => {
+            const { inferTaskType } = require('./shared/detect');
+            const first = inferTaskType(base);
+            return { ...first, heuristic: first.taskType, continued: false, ack: false, signal: 1 };
+          })();
       // Optional Jev refinement: only when jevModel is set; fails open to heuristics.
       // cacheDir lets Jev load the remote task-type list (same cache cadence
-      // as the model config) for its choice criteria.
-      let taskType = heuristic;
-      let jev = 'pinned';
-      if (!options.taskType || options.taskType === 'auto') {
+      // as the model config) for its choice criteria. Continued turns feed
+      // previous prompt as context so short acks keep their meaning.
+      let taskType = r.taskType;
+      let jev = r.override ? 'pinned' : 'off';
+      let continued = r.continued;
+      if ((!options.taskType || options.taskType === 'auto') && !r.override) {
+        const jevPrompt = r.continued
+          ? continuationState({ current: prompt, historyPrompt: prev?.prompt ?? '', historyChars: options.historyChars })
+          : prompt;
         const refined = await refineTaskTypeWithJev({
-          heuristic,
-          prompt,
+          heuristic: taskType,
+          prompt: jevPrompt,
           files,
           agent,
           opts: options,
@@ -103,9 +118,17 @@ module.exports = {
         });
         taskType = refined.taskType;
         jev = jevLabel(refined);
+        if (r.continued && refined.status !== 'ok') jev = `${jev}+cont`;
+      }
+      if (!r.override && !r.fastPath) {
+        if (!r.continued && shouldRemember({ ...r, taskType })) {
+          history.set(sessionID, { task: taskType, prompt: truncate(prompt, options.historyChars) });
+        }
+      } else if (r.override) {
+        history.set(sessionID, { task: taskType, prompt: truncate(prompt, options.historyChars) });
       }
       const picked = await resolveModel({ taskType, opts: options, cacheDir });
-      return { picked, ref: splitModelRef(picked.model), jev };
+      return { picked, ref: splitModelRef(picked.model), jev, continued };
     }
 
     // Chat-visible pick line. `switch` emits only when the resolved pick

@@ -115,6 +115,57 @@ function scoreAgent(agent) {
 }
 
 /**
+ * Multilingual acknowledgement / go-ahead matcher (IT + EN).
+ * Used only as a second opinion: the primary continuation signal is a
+ * zero heuristic score. Matches messages composed solely of ack words —
+ * "sì, procedi", "vai pure", "va bene, procedi pure", "do it", "go ahead"
+ * — in any combination, not new tasks containing those words alongside
+ * other content (unknown words fail the match, long messages fail too).
+ */
+const ACK_WORDS = new Set(
+  [
+    'si', 'sì', 'vai', 'procedi', 'procedo', 'continua', 'continuo', 'fai', 'faccio', 'fate',
+    'pure', 'bene', 'va', 'perfetto', 'ok', 'okay', 'certo', 'esatto', 'confermo', 'conferma',
+    'avanti', 'dai', 'prego', 'grazie', 'volentieri', 'assolutamente', 'esattamente',
+    'yes', 'yeah', 'yep', 'yup', 'sure', 'do', 'it', 'go', 'ahead', 'proceed', 'continue',
+    'sounds', 'looks', 'good', 'great', 'fine', 'by', 'me', 'lgtm', 'please', 'okay',
+  ].map((w) => w.toLowerCase()),
+);
+
+function isAck(text) {
+  const t = String(text ?? '').trim();
+  if (!t || t.length > 120) return false;
+  const words = t
+    .toLowerCase()
+    .replace(/[.,!…?;:()"'«»—–-]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!words.length) return false;
+  return words.every((w) => ACK_WORDS.has(w));
+}
+
+/**
+ * Heuristic signal strength of the current turn, excluding the generic
+ * repo baseline. Zero means the prompt/files/agent carry no task
+ * information (any language, any length) — the continuation case.
+ */
+function signalStrength({ prompt, files, agent } = {}) {
+  const p = scorePrompt(prompt);
+  const f = scoreFiles(files);
+  const a = scoreAgent(agent);
+  let sum = 0;
+  for (const t of TASK_TYPES) {
+    if (t === 'generic') continue;
+    sum += (p[t] ?? 0) + (f[t] ?? 0) + (a[t] ?? 0);
+  }
+  return sum;
+}
+
+function isLowSignal({ prompt, files, agent } = {}) {
+  return signalStrength({ prompt, files, agent }) <= 0;
+}
+
+/**
  * Normalize an agent -> task-type pin map (keys case-insensitive).
  * Accepts a plain object or a JSON string. Values must be known
  * task-type keys. Throws on anything else.
@@ -212,4 +263,7 @@ module.exports = {
   scoreRepo,
   scoreAgent,
   detectRepoSignals,
+  isAck,
+  signalStrength,
+  isLowSignal,
 };

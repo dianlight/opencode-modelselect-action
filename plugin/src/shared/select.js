@@ -55,6 +55,7 @@ function normalizeOptions(raw = {}) {
     suggestOnly: Boolean(raw.suggestOnly ?? raw['suggest-only'] ?? raw.suggest_only ?? false),
     announce,
     ...require('./jev').normalizeJevOptions(raw),
+    ...require('./continuation').normalizeHistoryOptions(raw),
   };
 }
 

@@ -79,7 +79,9 @@ the chat-visible announce line (`announce: "always"` for testing).
   "jevModel": "",            // e.g. "jev-1.13-free": when set, Jev refines the task-type
   "jevThreshold": 0.6,       // min Jev confidence to override heuristics
   "jevEndpoint": "https://opencode.ai/zen/v1/systemone",
-  "jevToken": ""             // falls back to token / OPENCODE_API_KEY
+  "jevToken": "",             // falls back to token / OPENCODE_API_KEY
+  "continuation": true,       // zero-signal turns inherit the previous task
+  "historyChars": 2000        // max chars of previous prompt kept for continuation
 }
 ```
 
@@ -102,6 +104,8 @@ the chat-visible announce line (`announce: "always"` for testing).
 | `jevThreshold` | `0.6` | Minimum Jev `confidence` (0..1) to accept the answer; below it the heuristic wins. |
 | `jevEndpoint` | `https://opencode.ai/zen/v1/systemone` | SystemOne endpoint for the Jev call. |
 | `jevToken` | `""` | Auth for the Jev call; falls back to `token` / `OPENCODE_API_KEY`. Never logged. |
+| `continuation` | `true` | Zero-signal turns (acks like `do it` / `sì, procedi`, answers after a question, any language or length) inherit the previous substantive turn's task instead of falling to `generic`. The ack match (IT+EN) is only a second opinion — the score decides. Set `false` to disable. |
+| `historyChars` | `2000` | Max chars of the previous substantive prompt kept per session for continuation (also fed to Jev as `Previous: … / Current: …` context, plus the last assistant snippet on v2). Accepts `history-chars` alias. |
 
 ## How it routes (verified against SDK types)
 
@@ -119,11 +123,15 @@ the chat-visible announce line (`announce: "always"` for testing).
 Scores each task-type from prompt (50) + touched files (25) + repo
 structure (15) + agent tag (10); highest wins, ties go to `generic`
 (or `defaultTaskType` when set). `small-model` triggers (commit messages,
-titles, summaries) win outright via fast-path. Resolution order is:
+titles, summaries) win outright via fast-path. A zero-signal turn (short
+ack, answer after a question — any language or length) inherits the
+previous substantive turn's task instead of falling to `generic`
+(`continuation`, on by default). Resolution order is:
 fixed `taskType` (absolute, global) first, then the `agentTaskMap` pin
 for the current agent tag, then fast-path, then weighted heuristics,
-then `defaultTaskType`. Prefer `agentTaskMap` + `defaultTaskType` over a
-fixed `taskType` when you want per-agent control with a safe fallback.
+then continuation, then `defaultTaskType`. Prefer `agentTaskMap` +
+`defaultTaskType` over a fixed `taskType` when you want per-agent
+control with a safe fallback.
 
 Tier `auto` probes the Go usage endpoint when a token is available
 (`token` option or `OPENCODE_API_KEY`) and degrades to the preferred tier

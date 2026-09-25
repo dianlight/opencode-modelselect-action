@@ -26,8 +26,15 @@
  */
 
 const path = require('node:path');
-const { inferTaskType, detectRepoSignals } = require('./shared/detect');
+const { detectRepoSignals } = require('./shared/detect');
 const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
+const {
+  resolveWithHistory,
+  shouldRemember,
+  continuationState,
+  lastAssistantSnippet,
+  truncate,
+} = require('./shared/continuation');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 const ID = 'modelselect';
@@ -106,6 +113,68 @@ async function setup(ctx) {
   const prompts = new Map(); // sessionID -> last prompt text
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
+  const history = new Map(); // sessionID -> { task, prompt } last substantive turn
+
+  // Resolve task-type with continuation: zero-signal turns (acks like
+  // "do it" / "sì, procedi", answers after a question, any language)
+  // inherit the previous substantive turn instead of falling to generic.
+  // Returns { taskType, jev, continued } and refreshes history when the
+  // turn carries its own signal. Jev sees previous prompt (+ assistant
+  // snippet when available) as context on continued turns.
+  async function resolveTask({ sessionID, text, files, agent, assistantSnippet }) {
+    const prev = (sessionID && history.get(sessionID)) || null;
+    const base = {
+      prompt: text,
+      files,
+      repo,
+      agent,
+      fixedTaskType: opts.taskType,
+      agentTaskMap: opts.agentTaskMap,
+      defaultTaskType: opts.defaultTaskType,
+    };
+    const r = opts.continuation
+      ? resolveWithHistory(base, prev)
+      : (() => {
+          const { inferTaskType } = require('./shared/detect');
+          const first = inferTaskType(base);
+          return { ...first, heuristic: first.taskType, continued: false, ack: false, signal: 1 };
+        })();
+    let taskType = r.taskType;
+    let jev = r.override ? 'pinned' : 'off';
+    if ((!opts.taskType || opts.taskType === 'auto') && !r.override) {
+      const jevPrompt = r.continued
+        ? continuationState({
+            current: text,
+            historyPrompt: prev?.prompt ?? '',
+            assistantSnippet: assistantSnippet ?? '',
+            historyChars: opts.historyChars,
+          })
+        : text;
+      const refined = await refineTaskTypeWithJev({
+        heuristic: taskType,
+        prompt: jevPrompt,
+        files,
+        agent,
+        opts,
+        cacheDir,
+      });
+      // On continued turns a low-confidence / unknown Jev answer keeps the
+      // inherited task (already the heuristic); a confident Jev override wins.
+      taskType = refined.taskType;
+      jev = jevLabel(refined);
+      if (r.continued && refined.status !== 'ok') jev = `${jev}+cont`;
+    }
+    if (!r.override && !r.fastPath) {
+      if (r.continued) {
+        if (opts.verbose) console.log(`[modelselect] continued task=${taskType} (prev=${prev?.task}) ack=${r.ack}`);
+      } else if (shouldRemember({ ...r, taskType })) {
+        if (sessionID) history.set(sessionID, { task: taskType, prompt: truncate(text, opts.historyChars) });
+      }
+    } else if (r.override && sessionID) {
+      history.set(sessionID, { task: taskType, prompt: truncate(text, opts.historyChars) });
+    }
+    return { taskType, jev, continued: r.continued };
+  }
 
   // Append the terse pick line to the prompt text. v2 shape first
   // (`prompt.text`), then the legacy string / `{ parts }` / `{ content }`
@@ -156,22 +225,7 @@ async function setup(ctx) {
   async function maybeAnnounce(event, text, { files = [], agent = undefined } = {}) {
     if (opts.announce === 'off' || !text.trim() || !event.sessionID) return;
     try {
-      const { taskType: heuristic } = inferTaskType({
-        prompt: text,
-        files,
-        repo,
-        agent,
-        fixedTaskType: opts.taskType,
-        agentTaskMap: opts.agentTaskMap,
-        defaultTaskType: opts.defaultTaskType,
-      });
-      let taskType = heuristic;
-      let jev = 'pinned';
-      if (!opts.taskType || opts.taskType === 'auto') {
-        const refined = await refineTaskTypeWithJev({ heuristic, prompt: text, files, agent, opts, cacheDir });
-        taskType = refined.taskType;
-        jev = jevLabel(refined);
-      }
+      const { taskType, jev } = await resolveTask({ sessionID: event.sessionID, text, files, agent });
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const key = picked.model;
       if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return;
@@ -215,22 +269,14 @@ async function setup(ctx) {
     try {
       const sessionID = event.sessionID;
       const prompt = prompts.get(sessionID) ?? promptTextFromMessages(event.messages);
-      const { taskType: heuristic } = inferTaskType({
-        prompt,
+      const assistantSnippet = lastAssistantSnippet(event.messages, 1000);
+      const { taskType, jev } = await resolveTask({
+        sessionID,
+        text: prompt,
         files: [],
-        repo,
         agent: event.agent,
-        fixedTaskType: opts.taskType,
-        agentTaskMap: opts.agentTaskMap,
-        defaultTaskType: opts.defaultTaskType,
+        assistantSnippet,
       });
-      let taskType = heuristic;
-      let jev = 'pinned';
-      if (!opts.taskType || opts.taskType === 'auto') {
-        const refined = await refineTaskTypeWithJev({ heuristic, prompt, files: [], agent: event.agent, opts, cacheDir });
-        taskType = refined.taskType;
-        jev = jevLabel(refined);
-      }
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const ref = splitModelRef(picked.model);
       const key = `${ref.providerID}/${ref.id}`;
