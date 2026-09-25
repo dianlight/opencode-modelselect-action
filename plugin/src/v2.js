@@ -27,7 +27,7 @@
 
 const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
-const { refineTaskTypeWithJev } = require('./shared/jev');
+const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 const ID = 'modelselect';
@@ -166,8 +166,11 @@ async function setup(ctx) {
         defaultTaskType: opts.defaultTaskType,
       });
       let taskType = heuristic;
+      let jev = 'pinned';
       if (!opts.taskType || opts.taskType === 'auto') {
-        ({ taskType } = await refineTaskTypeWithJev({ heuristic, prompt: text, files, agent, opts, cacheDir }));
+        const refined = await refineTaskTypeWithJev({ heuristic, prompt: text, files, agent, opts, cacheDir });
+        taskType = refined.taskType;
+        jev = jevLabel(refined);
       }
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const key = picked.model;
@@ -177,6 +180,7 @@ async function setup(ctx) {
         tier: picked.tier,
         model: picked.model,
         suggestOnly: opts.suggestOnly,
+        jev,
       });
       if (!appendPromptLine(event, line)) {
         console.error(`[modelselect] announce skipped: could not edit prompt for session ${event.sessionID}`);
@@ -221,8 +225,11 @@ async function setup(ctx) {
         defaultTaskType: opts.defaultTaskType,
       });
       let taskType = heuristic;
+      let jev = 'pinned';
       if (!opts.taskType || opts.taskType === 'auto') {
-        ({ taskType } = await refineTaskTypeWithJev({ heuristic, prompt, files: [], agent: event.agent, opts, cacheDir }));
+        const refined = await refineTaskTypeWithJev({ heuristic, prompt, files: [], agent: event.agent, opts, cacheDir });
+        taskType = refined.taskType;
+        jev = jevLabel(refined);
       }
       const picked = await resolveModel({ taskType, opts, cacheDir });
       const ref = splitModelRef(picked.model);
@@ -234,7 +241,7 @@ async function setup(ctx) {
             ? `${event.model.providerID}/${event.model.id}`
             : '?';
         console.log(
-          `[modelselect] (suggest-only) task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current}`,
+          `[modelselect] (suggest-only) task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current} jev=${jev}`,
         );
         return;
       }
@@ -252,7 +259,7 @@ async function setup(ctx) {
           if (opts.verbose) console.log(`[modelselect] switchModel skipped: ${err?.message ?? err}`);
         }
       }
-      if (opts.verbose) console.log(`[modelselect] task=${picked.taskType} tier=${picked.tier} model=${key}`);
+      if (opts.verbose) console.log(`[modelselect] task=${picked.taskType} tier=${picked.tier} model=${key} jev=${jev}`);
     } catch (err) {
       console.error(`[modelselect] keeping current model: ${err?.message ?? err}`);
     }

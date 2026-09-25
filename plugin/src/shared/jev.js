@@ -141,7 +141,9 @@ async function callJev({ state, opts, token, questions }) {
 
 /**
  * Refine a heuristic task-type via Jev. Always resolves; never throws.
- * Returns { taskType, jev } where jev is null when heuristics were kept.
+ * Returns { taskType, jev, status } where jev is null when heuristics were
+ * kept and status is one of: off, no-token, empty, error, unknown,
+ * lowconf, ok.
  *
  * `taskTypes` (remote `{ name: { description } }` map) overrides the choice
  * list; when omitted and `cacheDir` is given, the remote file is loaded
@@ -150,11 +152,11 @@ async function callJev({ state, opts, token, questions }) {
  * any failure still fails open to the heuristic.
  */
 async function refineTaskTypeWithJev({ heuristic, prompt, files, agent, opts, token, taskTypes, cacheDir }) {
-  if (!opts || !opts.jevModel) return { taskType: heuristic, jev: null };
+  if (!opts || !opts.jevModel) return { taskType: heuristic, jev: null, status: 'off' };
   const key = String(token || opts.jevToken || opts.token || '').trim();
-  if (!key) return { taskType: heuristic, jev: null };
+  if (!key) return { taskType: heuristic, jev: null, status: 'no-token' };
   const state = buildJevState({ prompt, files, agent });
-  if (!state) return { taskType: heuristic, jev: null };
+  if (!state) return { taskType: heuristic, jev: null, status: 'empty' };
   let defs = taskTypes ?? null;
   if (!defs && cacheDir) {
     try {
@@ -172,17 +174,32 @@ async function refineTaskTypeWithJev({ heuristic, prompt, files, agent, opts, to
     parsed = parseJevAnswer(data);
   } catch (err) {
     if (opts.verbose) console.log(`[modelselect] jev skipped: ${err?.message ?? err}`);
-    return { taskType: heuristic, jev: null };
+    return { taskType: heuristic, jev: null, status: 'error' };
   }
   if (!parsed || !valid.includes(parsed.choice)) {
-    return { taskType: heuristic, jev: null };
+    return { taskType: heuristic, jev: null, status: 'unknown' };
   }
   if (parsed.confidence !== null && parsed.confidence < opts.jevThreshold) {
     if (opts.verbose) console.log(`[modelselect] jev low confidence: ${parsed.choice} ${parsed.confidence}`);
-    return { taskType: heuristic, jev: null };
+    return { taskType: heuristic, jev: null, status: 'lowconf' };
   }
   if (opts.verbose) console.log(`[modelselect] jev task=${parsed.choice} conf=${parsed.confidence ?? '?'} (heuristic=${heuristic})`);
-  return { taskType: parsed.choice, jev: parsed };
+  return { taskType: parsed.choice, jev: parsed, status: 'ok' };
+}
+
+/**
+ * Terse label for the announce line. ok -> `review@0.95`;
+ * off/pinned pass through; anything else -> `kept:<reason>`.
+ */
+function jevLabel({ status, jev } = {}) {
+  if (status === 'ok' && jev) {
+    const c = jev.confidence;
+    const conf = typeof c === 'number' && Number.isFinite(c) ? String(Math.round(c * 100) / 100) : '?';
+    return `${jev.choice}@${conf}`;
+  }
+  if (status === 'off' || status === 'pinned') return status;
+  if (!status) return null;
+  return `kept:${status}`;
 }
 
 module.exports = {
@@ -191,6 +208,7 @@ module.exports = {
   buildJevQuestions,
   parseJevAnswer,
   refineTaskTypeWithJev,
+  jevLabel,
   DEFAULT_JEV_ENDPOINT,
   DEFAULT_JEV_THRESHOLD,
   DEFAULT_JEV_TIMEOUT_MS,

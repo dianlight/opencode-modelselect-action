@@ -8,7 +8,7 @@ const path = require('node:path');
 
 const { inferTaskType } = require('../src/shared/detect');
 const { normalizeOptions, formatAnnounce, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
-const { parseJevAnswer, refineTaskTypeWithJev, buildJevQuestions, DEFAULT_JEV_ENDPOINT } = require('../src/shared/jev');
+const { parseJevAnswer, refineTaskTypeWithJev, buildJevQuestions, jevLabel, DEFAULT_JEV_ENDPOINT } = require('../src/shared/jev');
 const { loadTaskTypes, normalizeTaskTypes, taskTypesCacheFile, DEFAULT_TASK_TYPES_URL } = require('../src/shared/tasktypes');
 
 function seedCache(dir, config) {
@@ -304,6 +304,17 @@ describe('announce option', () => {
       '[modelselect: task=review tier=free would use f/b]',
     );
   });
+
+  it('appends the jev segment when given', () => {
+    assert.equal(
+      formatAnnounce({ taskType: 'review', tier: 'free', model: 'f/b', suggestOnly: false, jev: 'review@0.95' }),
+      '[modelselect: task=review tier=free → f/b jev=review@0.95]',
+    );
+    assert.equal(
+      formatAnnounce({ taskType: 'generic', tier: 'free', model: 'f/b', suggestOnly: true, jev: 'kept:no-token' }),
+      '[modelselect: task=generic tier=free would use f/b jev=kept:no-token]',
+    );
+  });
 });
 
 describe('v1 announce', () => {
@@ -337,7 +348,7 @@ describe('v1 announce', () => {
       assert.equal(ann.sessionID, 's1');
       assert.equal(ann.messageID, 'm1');
       assert.ok(typeof ann.id === 'string' && ann.id.length > 0);
-      assert.equal(ann.text, '[modelselect: task=review tier=free → f/b]');
+      assert.equal(ann.text, '[modelselect: task=review tier=free → f/b jev=pinned]');
       assert.equal(t1.output.message.model.providerID, 'f');
       const t2 = v1Turn('m2');
       await hooks['chat.message'](t2.input, t2.output);
@@ -395,7 +406,7 @@ describe('v1 announce', () => {
       }
       assert.equal(t1.output.message.model.providerID, 'old');
       assert.equal(t1.output.parts.length, 2);
-      assert.equal(t1.output.parts[1].text, '[modelselect: task=review tier=free would use f/b]');
+      assert.equal(t1.output.parts[1].text, '[modelselect: task=review tier=free would use f/b jev=pinned]');
       assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -456,7 +467,7 @@ describe('v2 announce', () => {
       const seen = await v2Hooks(dir, {});
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
-      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free → f/b]');
+      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free → f/b jev=pinned]');
       await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
       const e2 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e2);
@@ -476,8 +487,8 @@ describe('v2 announce', () => {
       await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
       const e2 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e2);
-      assert.match(e1.prompt, /\[modelselect: task=review tier=free → f\/b\]/);
-      assert.match(e2.prompt, /\[modelselect: task=review tier=free → f\/b\]/);
+      assert.match(e1.prompt, /\[modelselect: task=review tier=free → f\/b jev=pinned\]/);
+      assert.match(e2.prompt, /\[modelselect: task=review tier=free → f\/b jev=pinned\]/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -507,7 +518,7 @@ describe('v2 announce', () => {
       const seen = await v2Hooks(dir, { suggestOnly: true });
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
-      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free would use f/b]');
+      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free would use f/b jev=pinned]');
       const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
       await seen.context(event);
       assert.equal(event.model.providerID, 'old');
@@ -586,7 +597,7 @@ describe('v2 prompt shape (PromptInput.Prompt)', () => {
       const { seen } = await v2Hooks(dir, {});
       const e1 = { sessionID: 's1', messageID: 'm1', prompt: { text: 'review this diff' } };
       await seen.prompt(e1);
-      assert.equal(e1.prompt.text, 'review this diff\n[modelselect: task=review tier=free → f/b]');
+      assert.equal(e1.prompt.text, 'review this diff\n[modelselect: task=review tier=free → f/b jev=pinned]');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -990,6 +1001,81 @@ describe('remote task-types (option B)', () => {
       assert.equal(taskType, 'web-search');
     } finally {
       globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('jev announce label', () => {
+  it('labels ok / off / pinned / kept states', () => {
+    assert.equal(jevLabel({ status: 'ok', jev: { choice: 'review', confidence: 0.95 } }), 'review@0.95');
+    assert.equal(jevLabel({ status: 'ok', jev: { choice: 'review', confidence: null } }), 'review@?');
+    assert.equal(jevLabel({ status: 'off', jev: null }), 'off');
+    assert.equal(jevLabel({ status: 'pinned', jev: null }), 'pinned');
+    assert.equal(jevLabel({ status: 'no-token', jev: null }), 'kept:no-token');
+    assert.equal(jevLabel({ status: 'lowconf', jev: null }), 'kept:lowconf');
+    assert.equal(jevLabel({ status: 'error', jev: null }), 'kept:error');
+    assert.equal(jevLabel({}), null);
+  });
+
+  it('v2 announce shows the jev choice when it overrides', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-jevann-'));
+    seedCache(dir, {
+      'task-types': {
+        generic: { go: 'g/gen', free: 'f/gen' },
+        review: { go: 'g/a', free: 'f/b' },
+      },
+    });
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.95 } } }),
+    });
+    try {
+      const seen = {};
+      const fakeCtx = {
+        options: { tier: 'free', taskType: 'auto', jevModel: 'jev-1.13-free', token: 'tok' },
+        location: { directory: dir },
+        session: {
+          async hook(name, cb) { seen[name] = cb; },
+          async switchModel(input) { seen.switched = input; },
+        },
+      };
+      await v2.setup(fakeCtx);
+      const e1 = { sessionID: 's1', prompt: 'ciao, controlla questo lavoro' };
+      await seen.prompt(e1);
+      assert.match(e1.prompt, /task=review.*jev=review@0\.95/);
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('v2 announce shows kept:no-token when the key is missing', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-jevnotok-'));
+    seedCache(dir, { 'task-types': { generic: { go: 'g/gen', free: 'f/gen' } } });
+    const prev = process.env.OPENCODE_API_KEY;
+    delete process.env.OPENCODE_API_KEY;
+    try {
+      const seen = {};
+      const fakeCtx = {
+        options: { tier: 'free', taskType: 'auto', jevModel: 'jev-1.13-free' },
+        location: { directory: dir },
+        session: {
+          async hook(name, cb) { seen[name] = cb; },
+          async switchModel(input) { seen.switched = input; },
+        },
+      };
+      await v2.setup(fakeCtx);
+      const e1 = { sessionID: 's1', prompt: 'ciao' };
+      await seen.prompt(e1);
+      assert.match(e1.prompt, /task=generic.*jev=kept:no-token/);
+    } finally {
+      if (prev === undefined) delete process.env.OPENCODE_API_KEY;
+      else process.env.OPENCODE_API_KEY = prev;
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });

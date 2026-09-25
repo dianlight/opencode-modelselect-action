@@ -20,7 +20,7 @@
 
 const path = require('node:path');
 const { inferTaskType, detectRepoSignals } = require('./shared/detect');
-const { refineTaskTypeWithJev } = require('./shared/jev');
+const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 
 function cacheDirFor(directory) {
@@ -91,25 +91,28 @@ module.exports = {
       // cacheDir lets Jev load the remote task-type list (same cache cadence
       // as the model config) for its choice criteria.
       let taskType = heuristic;
+      let jev = 'pinned';
       if (!options.taskType || options.taskType === 'auto') {
-        ({ taskType } = await refineTaskTypeWithJev({
+        const refined = await refineTaskTypeWithJev({
           heuristic,
           prompt,
           files,
           agent,
           opts: options,
           cacheDir,
-        }));
+        });
+        taskType = refined.taskType;
+        jev = jevLabel(refined);
       }
       const picked = await resolveModel({ taskType, opts: options, cacheDir });
-      return { picked, ref: splitModelRef(picked.model) };
+      return { picked, ref: splitModelRef(picked.model), jev };
     }
 
     // Chat-visible pick line. `switch` emits only when the resolved pick
     // differs from the previously applied pick (sticky) and the last
     // announced pick (covers suggestOnly, where sticky never moves);
     // first turn counts as a switch. Never throws — failures only log.
-    function maybeAnnounce(msgInput, output, picked) {
+    function maybeAnnounce(msgInput, output, picked, jev) {
       try {
         const sessionID = msgInput?.sessionID ?? 'default';
         const key = picked.model;
@@ -121,6 +124,7 @@ module.exports = {
           tier: picked.tier,
           model: picked.model,
           suggestOnly: options.suggestOnly,
+          jev,
         });
         let parts = null;
         if (Array.isArray(output?.parts)) parts = output.parts;
@@ -149,9 +153,11 @@ module.exports = {
           const files = filesFromParts(output?.parts);
           let ref = sticky.get(sessionID) ?? null;
           let picked = null;
+          let jev = 'pinned';
           if (prompt.trim() || options.taskType !== 'auto') {
             const routed = await route(sessionID, prompt, files, msgInput?.agent);
             picked = routed.picked;
+            jev = routed.jev;
             if (options.suggestOnly) {
               // Trial mode: resolve everything but change nothing.
               const key = `${routed.ref.providerID}/${routed.ref.id}`;
@@ -161,15 +167,15 @@ module.exports = {
                   ? `${currentTarget.providerID}/${currentTarget.modelID}`
                   : '?';
               console.log(
-                `[modelselect] (suggest-only) v1 session=${sessionID} task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current}`,
+                `[modelselect] (suggest-only) v1 session=${sessionID} task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current} jev=${routed.jev}`,
               );
-              maybeAnnounce(msgInput, output, picked);
+              maybeAnnounce(msgInput, output, picked, routed.jev);
               return;
             }
             ref = routed.ref;
             // Announce before sticky.set: switch-mode compares against the
             // previously applied pick, and the first turn counts as a switch.
-            maybeAnnounce(msgInput, output, picked);
+            maybeAnnounce(msgInput, output, picked, routed.jev);
             sticky.set(sessionID, ref);
           }
           const target = output?.message?.model;
@@ -177,7 +183,7 @@ module.exports = {
             target.providerID = ref.providerID;
             target.modelID = ref.id;
           }
-          if (options.verbose) console.log(`[modelselect] v1 session=${sessionID} model=${ref?.providerID}/${ref?.id}`);
+          if (options.verbose) console.log(`[modelselect] v1 session=${sessionID} model=${ref?.providerID}/${ref?.id} jev=${jev}`);
         } catch (err) {
           console.error(`[modelselect] keeping current model: ${err?.message ?? err}`);
         }

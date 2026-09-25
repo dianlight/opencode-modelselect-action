@@ -59,9 +59,10 @@ function normalizeOptions(raw = {}) {
 }
 
 /** Terse chat-visible pick line. suggestOnly turns `→` into `would use`. */
-function formatAnnounce({ taskType, tier, model, suggestOnly }) {
+function formatAnnounce({ taskType, tier, model, suggestOnly, jev }) {
   const verb = suggestOnly ? 'would use' : '→';
-  return `[modelselect: task=${taskType} tier=${tier} ${verb} ${model}]`;
+  const tail = jev ? ` jev=${jev}` : '';
+  return `[modelselect: task=${taskType} tier=${tier} ${verb} ${model}${tail}]`;
 }
 
 /**
