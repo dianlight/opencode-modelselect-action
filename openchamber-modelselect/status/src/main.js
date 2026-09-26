@@ -224,12 +224,6 @@ function isStale(status) {
     (Date.now() - status.updatedAt) > STALE_MS);
 }
 
-function goBadge(goOk) {
-  if (goOk === true) return { label: 'Go ok', tone: 'success' };
-  if (goOk === false) return { label: 'Go out', tone: 'warning' };
-  return { label: 'unknown', tone: 'neutral' };
-}
-
 function modeHint(mode) {
   if (mode === 'off') return 'routing paused';
   if (mode === 'auto') return 'routes until you pick a model';
@@ -288,7 +282,7 @@ function renderHeader(root, mode) {
   root.appendChild(hint);
 }
 
-function field(grid, key, value, mono) {
+function field(grid, key, value, mono, icon) {
   var cell = document.createElement('div');
   cell.className = 'ms-field';
   var k = document.createElement('span');
@@ -300,32 +294,50 @@ function field(grid, key, value, mono) {
   if (mono && value && value !== '—') v.setAttribute('title', value);
   cell.appendChild(k);
   cell.appendChild(v);
+  if (icon) {
+    var ico = document.createElement('span');
+    ico.className = 'ms-ico ' + icon.cls;
+    ico.setAttribute('title', icon.tip);
+    ico.appendChild(text(icon.glyph));
+    (function (toast) {
+      ico.addEventListener('click', function () {
+        // Native title tooltips don't surface in the sandboxed frame,
+        // so the explanation goes through the host toast instead.
+        toPromise(function () {
+          return host.toast({ kind: toast.kind, message: toast.message });
+        }).then(noop, noop);
+      });
+    })(icon.toast);
+    v.appendChild(text(' '));
+    v.appendChild(ico);
+  }
   grid.appendChild(cell);
 }
 
-function renderStatusBar(root, status) {
-  if (!status) return;
-  var bar = document.createElement('div');
-  bar.className = 'ms-statusbar';
-  var go = goBadge(status.goOk);
-  var goIcon = document.createElement('span');
-  goIcon.className = 'ms-ico ' + (status.goOk === true ? 'go-ok'
-    : status.goOk === false ? 'go-out' : 'go-unknown');
-  goIcon.setAttribute('title', status.goOk === true
-    ? 'Go auth OK — quota available, the paid tier can be used'
-    : status.goOk === false
-      ? 'Go auth exhausted — quota is out, the free tier is used'
-      : 'Go quota unknown — no probe ran (no token found)');
-  goIcon.appendChild(text(status.goOk === true ? '✓' : status.goOk === false ? '✕' : '?'));
-  bar.appendChild(goIcon);
-  if (status.suggestOnly) {
-    var sug = document.createElement('span');
-    sug.className = 'ms-ico suggest';
-    sug.setAttribute('title', 'Suggest-only trial mode — the pick is logged but never applied');
-    sug.appendChild(text('!'));
-    bar.appendChild(sug);
+function goIcon(goOk) {
+  if (goOk === true) {
+    return {
+      glyph: '✓', cls: 'go-ok', tip: 'Go auth OK — quota available',
+      toast: { kind: 'success', message: 'Go auth OK — quota available, the paid tier can be used.' }
+    };
   }
-  root.appendChild(bar);
+  if (goOk === false) {
+    return {
+      glyph: '✕', cls: 'go-out', tip: 'Go auth exhausted — quota is out',
+      toast: { kind: 'warning', message: 'Go auth exhausted — quota is out, the free tier is used.' }
+    };
+  }
+  return {
+    glyph: '?', cls: 'go-unknown', tip: 'Go quota unknown — no probe ran',
+    toast: { kind: 'info', message: 'Go quota unknown — no probe ran (no token found).' }
+  };
+}
+
+function suggestIcon() {
+  return {
+    glyph: '!', cls: 'suggest', tip: 'Suggest-only trial mode',
+    toast: { kind: 'info', message: 'Suggest-only trial mode — the pick is logged but never applied.' }
+  };
 }
 
 function renderBadges(root, status, stale, autoSession, unlisted) {
@@ -343,15 +355,16 @@ function renderBadges(root, status, stale, autoSession, unlisted) {
   if (any) root.appendChild(wrap);
 }
 
-function renderGrid(root, status, knownTypes, autoSession) {
+function renderStatusGrid(root, status, knownTypes, autoSession) {
   var stale = isStale(status);
   var unlisted = Boolean(Array.isArray(knownTypes) && knownTypes.length && status &&
     status.taskType && knownTypes.indexOf(status.taskType) === -1);
   var grid = document.createElement('div');
   grid.className = 'ms-grid' + (stale ? ' stale' : '');
   field(grid, 'Task', (status && status.taskType) || '—');
-  field(grid, 'Tier', (status && status.tier) || '—');
-  field(grid, 'Model', (status && status.model) || '—', true);
+  field(grid, 'Tier', (status && status.tier) || '—', false, status && goIcon(status.goOk));
+  field(grid, 'Model', (status && status.model) || '—', true,
+    status && status.suggestOnly ? suggestIcon() : null);
   field(grid, 'Jev', (status && status.jev) || '—', true);
   field(grid, 'Source', (status && status.source) || '—');
   root.appendChild(grid);
@@ -400,15 +413,14 @@ function render(state) {
     if (!state.globalEntry.entry) {
       renderFixBanner(shell, err);
     } else {
-      renderGrid(shell, null, state.knownTypes, autoSession);
+      renderStatusGrid(shell, null, state.knownTypes, autoSession);
     }
     renderHeader(shell, currentMode);
     fitHeight();
     return;
   }
 
-  renderStatusBar(shell, state.status.data);
-  renderGrid(shell, state.status.data, state.knownTypes, autoSession);
+  renderStatusGrid(shell, state.status.data, state.knownTypes, autoSession);
   renderHeader(shell, currentMode);
   fitHeight();
 }

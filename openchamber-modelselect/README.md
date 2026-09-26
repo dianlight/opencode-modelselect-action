@@ -49,11 +49,14 @@ Folder/ZIP/URL source.
   and mirrors the value to `host.storage` `modelselect:mode`), with the
   mode hint below (`routes every turn` / `routing paused` /
   `routes until you pick a model`).
-- Status bar (`ms-statusbar`, on top): icon-only indicators with native
-  tooltips — Go auth (`✓` ok / `✕` out / `?` unknown) and `!` when the
-  plugin runs in suggest-only trial mode.
-- Key grid (`ms-grid`): Task, Tier, Model (`provider/id`, mono, truncated
-  with `title`), Jev, Source. Badges (`mountBadge`) carry `last known` +
+- Status icons: color-coded glyphs trailing the Tier value (Go auth:
+  `✓` ok / `✕` out / `?` unknown) and the Model value (`!` while the
+  plugin runs in suggest-only trial mode). Native tooltips don't surface
+  in the sandboxed frame, so clicking an icon shows the explanation in a
+  host toast instead.
+- Key list (`ms-grid`): one row per field in Turn-stats style (muted
+  label left, right-aligned value) — Task, Tier, Model (`provider/id`,
+  mono, truncated with `title` tooltip), Jev, Source. Badges (`mountBadge`) carry `last known` +
   dimming when the pick is older than ~10 min
   (skipped auto turns don't rewrite the status file, so stale = last
   applied pick), `unlisted task` when the task is absent from the config
