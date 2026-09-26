@@ -1,5 +1,35 @@
 ## [Unreleased]
 ### Added
+- Plugin session continuation: zero-signal turns (short acks like `do it`,
+  `sì, procedi`, or answers after an assistant question — any language or
+  length) now inherit the previous substantive turn's task instead of
+  falling to `generic`. Score decides, the IT+EN ack match is only a second
+  opinion; Jev sees `Previous: … / Current: …` context (+ last assistant
+  snippet on v2). New `continuation` (default true) and `historyChars`
+  (default 2000) options, v1 + v2, with tests
+- Remote task-type list for the plugin's Jev refinement (option B): the
+  maintenance run publishes `config/task-types.yaml` to
+  `data/task-types.json`, and the plugin fetches it with its own parallel
+  cache (`task-types-cache.json`, same `configRefreshMinutes` cadence, new
+  `taskTypesUrl` option) to build the Jev `choice` criteria and validate
+  answers — no more hardcoded type map in the Jev path (static list kept
+  as offline fallback only). Only fetched when `jevModel` is set
+- New `plugin/` dual-entry package auto-selecting the OpenCode model from
+  project signals, prompt text and agent tag (v1 `server()` via `chat.message`
+  in-place routing with per-session stickiness; v2 `{ id, setup }` via
+  `prompt` + `context` hooks with in-place `Model.Ref` mutation and
+  `switchModel` persistence). Shared heuristics (prompt 50 / files 25 / repo
+  15 / agent 10, `small-model` fast-path, manual `taskType` override) and
+  tier `go`/`free`/`auto` resolution reuse the central `model-config.json`,
+  cached locally with `configRefreshMinutes` (default 1440 = 24h, 0 = always
+  refetch). Zero dependencies, Node >= 20
+- New `release-plugin` workflow publishing `plugin/` to npm as
+  `opencode-modelselect-plugin` on `plugin-v*` tags (version must match
+  `plugin/package.json`; requires a `NPM_TOKEN` secret), with tarball
+  attached to the GitHub Release and dry-run on manual dispatch
+- Plugin install docs (npm + local, v1 `plugin` tuple form vs v2 `plugins`
+  object form) in the root README and `plugin/README.md`; fixed the stale
+  repo intro line
 - New `small-model` task type (Small Model: lightweight utility tasks —
   commit messages, session titles/renames, summaries; `instruction_following`
   priority with `speed` as secondary signal) in `config/task-types.yaml`,
@@ -29,6 +59,13 @@
   downstream OpenCode step — so `free-first` picks free even while Go quota
   remains. A 401 from one tier falls back to the other; the step fails as
   invalid token only when both tiers reject auth
+- v2 plugin prompt hook now reads `event.prompt.text`
+  (`PromptInput.Prompt = { text, files?, agents?, skills? }`) instead of the
+  legacy string/`parts` forms, so task inference, file/agent signals and the
+  chat-visible announce line fire again (old shapes kept as fallback). The
+  agent tag comes from prompt mentions (the hook event has no `agent`
+  field), announce edit failures log instead of vanishing silently, and
+  setup logs once so loading is verifiable
 ### Removed
 - No-op file-sync job, keep deprecated-workflow cleanup
 ### Changed

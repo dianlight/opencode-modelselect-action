@@ -11,3 +11,5 @@ group:
   # opencode-issue-handler.yml and .github/scripts/auth.sh were deprecated
   # and deleted; removal in target repos is handled by the sync-actions
   # cleanup PR job.
+  # NOTE: release-plugin.yml is intentionally repo-local (publishes plugin/
+  # to npm on plugin-v* tags) and is never synced downstream.

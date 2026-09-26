@@ -6,7 +6,12 @@
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/dianlight/opencode-modelselect-action)](https://github.com/dianlight/opencode-modelselect-action/pulls)
 [![GitHub license](https://img.shields.io/github/license/dianlight/opencode-modelselect-action)](https://github.com/dianlight/opencode-modelselect-action/blob/main/LICENSE)
 
-Main repository for my Opencode Modelselect Github Action, shared to multiple repositories and kept in sync
+Main repository for the Opencode Modelselect GitHub Action and the
+Modelselect OpenCode plugin (`plugin/`). The action preselects the model in
+CI before running the OpenCode step; the plugin routes the model live inside
+OpenCode sessions. Both read the same central config
+(`data/model-config.json` in this repo), so model updates propagate with no
+sync and no edits.
 
 ## Select Model Action
 
@@ -231,6 +236,100 @@ missing or not a string map, `tier: auto` has no token or gets HTTP 401,
 both tiers stay exhausted past `max-wait-seconds`, or no ranked model fits
 `max-cost`. Each case prints a `::error::` explaining the fix (add the
 config entry, retry later, raise the budget/wait, or pass `fallback-model`).
+
+## Modelselect Plugin
+
+Live model routing inside OpenCode sessions: the plugin (`plugin/`, zero
+dependencies, Node >= 20) infers the task-type from project signals, prompt
+text and agent tag, then picks the `go`/`free` model from the same central
+config the action uses. One package serves both hosts with no code changes:
+v1 follows `package.json` `main` → `src/v1.js` (`server()`), v2 ignores
+`main` and loads the package root `/index.js` (the v2 `{ id, setup }`
+definition). Requires OpenCode v1 >= 1.18.29 (object-form plugins) or
+OpenCode v2.
+
+### Install on OpenCode v2
+
+The config key is plural `plugins` and local plugins live in
+`.opencode/plugins/`:
+
+```jsonc
+{
+  "plugins": [
+    // from npm (published by the release-plugin workflow):
+    "opencode-modelselect-plugin",
+    // ...with options:
+    // { "package": "opencode-modelselect-plugin", "options": { "tier": "auto" } },
+    // ...or from a local checkout:
+    // { "package": "./plugin", "options": { "tier": "auto" } }
+  ]
+}
+```
+
+### Install on OpenCode v1
+
+The config key is singular `plugin`, options use the tuple form, and local
+plugins live in `.opencode/plugin/`:
+
+```jsonc
+{
+  // from npm:
+  // "plugin": ["opencode-modelselect-plugin"],
+  // ...with options (tuple form):
+  // "plugin": [["opencode-modelselect-plugin", { "tier": "auto", "taskType": "auto" }]],
+  // ...or from a local checkout:
+  "plugin": [["./plugin", { "tier": "auto", "taskType": "auto" }]]
+}
+```
+
+That is the only setup difference between v1 and v2: config key, entry
+shape, and local directory. Behavior and options are identical.
+
+OpenChamber users: its panel runs a separate managed server
+(`~/.config/openchamber/opencode.managed.json`) that ignores the global
+`plugins` list — add the entry there and restart OpenChamber. See
+`plugin/README.md` (OpenChamber).
+
+### Plugin options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `taskType` | `auto` | `auto` infers from prompt/files/repo/agent; any task-type key pins it globally and skips inference (absolute override). |
+| `defaultTaskType` | `generic` | Fallback when heuristics score nothing. Must be a task-type key. |
+| `agentTaskMap` | `{}` | Per-agent pins, e.g. `{ "reviewer": "review" }` (keys case-insensitive). A pinned agent beats prompt signals and the `small-model` fast-path. |
+| `tier` | `auto` | `go`, `free`, or `auto` (token ? probe live quota : `free`). |
+| `autoPreference` | `free-first` | Probe order for `tier: auto`. |
+| `token` | `""` | Token for `tier: auto` probing; falls back to `OPENCODE_API_KEY`. Never logged. |
+| `configUrl` | action default | Remote central model config, cached under `<project>/.opencode/.modelselect-cache/`. |
+| `configRefreshMinutes` | `1440` | Cache validity in minutes (`0` = refetch every request, default 24h). Stale cache survives fetch failures. |
+| `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
+| `verbose` | `false` | Log each selection (`task/tier/model`). |
+| `suggestOnly` | `false` | Trial mode: resolve as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) … would-select=… current=…`. See `plugin/README.md` (Trial run, Develop). |
+| `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model]`, `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. v1 is zero-token (`ignored:true` part); v2 appends a terse prompt line. |
+
+### How routing works
+
+Each task-type scores from prompt (50) + touched files (25) + repo
+structure (15) + agent tag (10); highest wins, ties go to `generic` (or
+`defaultTaskType` when set), and `small-model` triggers (commit messages,
+titles, summaries) win outright via fast-path unless the agent is pinned
+in `agentTaskMap` (fixed `taskType` wins over everything). Routing shapes are verified against the SDK types
+(`@opencode-ai/plugin` 1.18.x, `@opencode/plugin` 2.0.x): v1 routes in
+`chat.message` by mutating `output.message.model` in place with per-session
+stickiness (`chat.params` output has no model field); v2 mutates the
+`Model.Ref` `{ providerID, id }` fields in the `context` hook and persists
+via `ctx.session.switchModel`, leaving `title`/`compaction`/`generate`
+requests on their own models. Unlike the action step, the plugin never fails
+the session: on any error it logs and keeps the current model.
+
+### Releasing the plugin
+
+Push a `plugin-v*` tag matching `plugin/package.json` (e.g.
+`plugin-v0.1.0`); the `release-plugin` workflow checks syntax, runs
+`node --test plugin/test/`, publishes `opencode-modelselect-plugin` to npm
+(requires a `NPM_TOKEN` repository secret), and attaches the tarball to a
+GitHub Release. Manual workflow runs only verify plus a dry-run publish.
+Tags are namespaced so they never clash with action releases (`v*`).
 
 ## Model Recommendations by Task Type
 

@@ -1,0 +1,30 @@
+{
+  "name": "opencode-modelselect-plugin",
+  "version": "0.1.0",
+  "description": "Auto-select the OpenCode model from project signals, prompt and agent tag (v1 + v2 dual entry)",
+  "main": "src/v1.js",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dianlight/opencode-modelselect-action.git",
+    "directory": "plugin"
+  },
+  "homepage": "https://github.com/dianlight/opencode-modelselect-action#modelselect-plugin",
+  "keywords": [
+    "opencode",
+    "plugin",
+    "model",
+    "routing"
+  ],
+  "files": [
+    "index.js",
+    "src/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

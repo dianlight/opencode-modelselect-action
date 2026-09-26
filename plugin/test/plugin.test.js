@@ -1,0 +1,1207 @@
+'use strict';
+
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const { inferTaskType } = require('../src/shared/detect');
+const { normalizeOptions, formatAnnounce, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
+const { parseJevAnswer, refineTaskTypeWithJev, buildJevQuestions, jevLabel, DEFAULT_JEV_ENDPOINT } = require('../src/shared/jev');
+const { loadTaskTypes, normalizeTaskTypes, taskTypesCacheFile, DEFAULT_TASK_TYPES_URL } = require('../src/shared/tasktypes');
+
+function seedCache(dir, config) {
+  const cache = path.join(dir, '.opencode', '.modelselect-cache');
+  fs.mkdirSync(cache, { recursive: true });
+  fs.writeFileSync(
+    path.join(cache, 'model-config-cache.json'),
+    JSON.stringify({ fetchedAt: Date.now(), config }),
+  );
+}
+
+function seedTaskTypes(dir, taskTypes) {
+  const cache = path.join(dir, '.opencode', '.modelselect-cache');
+  fs.mkdirSync(cache, { recursive: true });
+  fs.writeFileSync(
+    path.join(cache, 'task-types-cache.json'),
+    JSON.stringify({ fetchedAt: Date.now(), taskTypes }),
+  );
+}
+
+describe('detect heuristics', () => {
+  it('small-model fast-path wins on commit prompts', () => {
+    const { taskType } = inferTaskType({ prompt: 'generate a commit message for this diff' });
+    assert.equal(taskType, 'small-model');
+  });
+
+  it('review prompt beats generic repo signals', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'review this pull request diff',
+      files: ['src/index.ts'],
+      repo: { stackFiles: ['package.json'], hasUI: false, hasE2E: false, hasMech: false, fileCount: 120 },
+    });
+    assert.equal(taskType, 'review');
+  });
+
+  it('agent tag boosts but a clear prompt wins', () => {
+    const { taskType } = inferTaskType({ prompt: 'review this diff', agent: 'docs' });
+    assert.equal(taskType, 'review');
+  });
+
+  it('fixed task-type overrides everything', () => {
+    const { taskType, override } = inferTaskType({ prompt: 'review this diff', fixedTaskType: 'plan' });
+    assert.equal(taskType, 'plan');
+    assert.equal(override, true);
+  });
+
+  it('empty signals fall back to generic', () => {
+    const { taskType } = inferTaskType({});
+    assert.equal(taskType, 'generic');
+  });
+
+  it('defaultTaskType replaces the generic fallback', () => {
+    const { taskType } = inferTaskType({ defaultTaskType: 'docs' });
+    assert.equal(taskType, 'docs');
+  });
+
+  it('rejects an unknown defaultTaskType', () => {
+    assert.throws(() => inferTaskType({ defaultTaskType: 'nope' }));
+  });
+
+  it('agentTaskMap pin beats a clear prompt', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'review this diff',
+      agent: 'writer',
+      agentTaskMap: { writer: 'docs' },
+    });
+    assert.equal(taskType, 'docs');
+  });
+
+  it('agentTaskMap keys are case-insensitive', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'hello',
+      agent: 'Reviewer',
+      agentTaskMap: { reviewer: 'review' },
+    });
+    assert.equal(taskType, 'review');
+  });
+
+  it('agentTaskMap pin beats the small-model fast-path', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'generate a commit message for this diff',
+      agent: 'reviewer',
+      agentTaskMap: { reviewer: 'review' },
+    });
+    assert.equal(taskType, 'review');
+  });
+
+  it('fixed taskType still beats the agent map', () => {
+    const { taskType } = inferTaskType({
+      prompt: 'review this diff',
+      agent: 'writer',
+      fixedTaskType: 'plan',
+      agentTaskMap: { writer: 'docs' },
+    });
+    assert.equal(taskType, 'plan');
+  });
+
+  it('ties fall back to generic', () => {
+    const { taskType } = inferTaskType({ prompt: 'plan the review of this diff' });
+    assert.equal(taskType, 'generic');
+  });
+
+  it('ties fall back to defaultTaskType when set', () => {
+    const { taskType } = inferTaskType({ prompt: 'plan the review of this diff', defaultTaskType: 'docs' });
+    assert.equal(taskType, 'docs');
+  });
+
+  it('a repo-only baseline never decides alone', () => {
+    const { taskType } = inferTaskType({
+      prompt: '',
+      files: [],
+      repo: { stackFiles: ['package.json'], hasUI: false, hasE2E: false, hasMech: false, fileCount: 120 },
+    });
+    assert.equal(taskType, 'generic');
+  });
+
+  it('rejects unknown types in agentTaskMap', () => {
+    assert.throws(() => inferTaskType({ agent: 'x', agentTaskMap: { x: 'nope' } }));
+    assert.throws(() => normalizeOptions({ agentTaskMap: { x: 'nope' } }));
+  });
+});
+
+describe('select options + cache', () => {
+  it('defaults to 24h refresh', () => {
+    assert.equal(normalizeOptions({}).configRefreshMinutes, 1440);
+  });
+
+  it('accepts 0 for always-refetch', () => {
+    assert.equal(normalizeOptions({ configRefreshMinutes: 0 }).configRefreshMinutes, 0);
+  });
+
+  it('rejects negative refresh', () => {
+    assert.throws(() => normalizeOptions({ configRefreshMinutes: -1 }));
+  });
+
+  it('defaults suggestOnly to false and accepts aliases', () => {
+    assert.equal(normalizeOptions({}).suggestOnly, false);
+    assert.equal(normalizeOptions({ suggestOnly: true }).suggestOnly, true);
+    assert.equal(normalizeOptions({ 'suggest-only': true }).suggestOnly, true);
+    assert.equal(normalizeOptions({ suggest_only: true }).suggestOnly, true);
+  });
+
+  it('defaults defaultTaskType/agentTaskMap and validates them', () => {
+    const opts = normalizeOptions({});
+    assert.equal(opts.defaultTaskType, 'generic');
+    assert.deepEqual(opts.agentTaskMap, {});
+    assert.equal(normalizeOptions({ defaultTaskType: 'docs' }).defaultTaskType, 'docs');
+    assert.deepEqual(normalizeOptions({ agentTaskMap: { Writer: 'docs' } }).agentTaskMap, {
+      writer: 'docs',
+    });
+    assert.throws(() => normalizeOptions({ defaultTaskType: 'nope' }));
+  });
+
+  it('empty token falls back to OPENCODE_API_KEY', () => {
+    const prev = process.env.OPENCODE_API_KEY;
+    process.env.OPENCODE_API_KEY = 'env-key';
+    try {
+      assert.equal(normalizeOptions({ token: '' }).token, 'env-key');
+      assert.equal(normalizeOptions({}).token, 'env-key');
+      assert.equal(normalizeOptions({ token: 'explicit' }).token, 'explicit');
+    } finally {
+      if (prev === undefined) delete process.env.OPENCODE_API_KEY;
+      else process.env.OPENCODE_API_KEY = prev;
+    }
+  });
+
+  it('free-first stays on free when Go quota is unusable', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tier-'));
+    seedCache(dir, { 'task-types': { code: { go: 'g/a', free: 'f/b' } } });
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ status: 401, ok: false });
+    try {
+      clearQuotaCache();
+      const opts = normalizeOptions({ tier: 'auto', autoPreference: 'free-first', token: 'bad-token' });
+      const { model, tier } = await resolveModel({ taskType: 'code', opts, cacheDir: path.join(dir, '.opencode', '.modelselect-cache') });
+      assert.equal(tier, 'free');
+      assert.equal(model, 'f/b');
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('caches the Go quota probe per token', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-quota-'));
+    seedCache(dir, { 'task-types': { code: { go: 'g/a', free: 'f/b' } } });
+    let calls = 0;
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      calls += 1;
+      return { status: 401, ok: false };
+    };
+    try {
+      clearQuotaCache();
+      const cacheDir = path.join(dir, '.opencode', '.modelselect-cache');
+      const opts = normalizeOptions({ tier: 'auto', autoPreference: 'free-first', token: 'tok' });
+      await resolveModel({ taskType: 'code', opts, cacheDir });
+      await resolveModel({ taskType: 'code', opts, cacheDir });
+      assert.equal(calls, 1);
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+  it('uses fresh cache without network', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-'));
+    const config = { 'task-types': { plan: { go: 'g', free: 'f' } } };
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, 'model-config-cache.json'),
+      JSON.stringify({ fetchedAt: Date.now(), config }),
+    );
+    const opts = normalizeOptions({});
+    const { config: got, source } = await loadConfig(opts, dir);
+    assert.equal(source, 'cache');
+    assert.deepEqual(got, config);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('splits provider/model refs (modelID may contain slashes)', () => {
+    assert.deepEqual(splitModelRef('opencode/muse-spark-free'), {
+      providerID: 'opencode',
+      id: 'muse-spark-free',
+    });
+    assert.deepEqual(splitModelRef('acme/a/b'), { providerID: 'acme', id: 'a/b' });
+    assert.throws(() => splitModelRef('bare'));
+  });
+});
+
+describe('v1 routing hook', () => {
+  it('mutates output.message.model in place via chat.message', async () => {
+    const v1 = require('../src/v1.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
+    assert.ok(hooks['chat.message']);
+    assert.ok(!hooks['chat.params'], 'chat.params cannot route (no model field in output)');
+    const target = { providerID: 'old', modelID: 'old' };
+    await hooks['chat.message'](
+      { sessionID: 's1' },
+      { parts: [{ type: 'text', text: 'review this diff' }], message: { model: target } },
+    );
+    assert.equal(target.providerID, 'f');
+    assert.equal(target.modelID, 'b');
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('suggestOnly logs the pick without touching the model', async () => {
+    const v1 = require('../src/v1.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-suggest-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    const hooks = await v1.server(
+      { directory: dir },
+      { tier: 'free', taskType: 'review', suggestOnly: true },
+    );
+    const target = { providerID: 'old', modelID: 'old' };
+    const lines = [];
+    const origLog = console.log;
+    console.log = (...args) => lines.push(args.join(' '));
+    try {
+      await hooks['chat.message'](
+        { sessionID: 's1' },
+        { parts: [{ type: 'text', text: 'review this diff' }], message: { model: target } },
+      );
+    } finally {
+      console.log = origLog;
+    }
+    assert.equal(target.providerID, 'old');
+    assert.equal(target.modelID, 'old');
+    assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b/);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('announce option', () => {
+  it('defaults to switch and accepts always/off', () => {
+    assert.equal(normalizeOptions({}).announce, 'switch');
+    assert.equal(normalizeOptions({ announce: 'always' }).announce, 'always');
+    assert.equal(normalizeOptions({ announce: 'OFF' }).announce, 'off');
+  });
+
+  it('rejects invalid values like tier does', () => {
+    assert.throws(() => normalizeOptions({ announce: 'sometimes' }));
+  });
+
+  it('formats the terse line, with would-use wording in suggestOnly', () => {
+    assert.equal(
+      formatAnnounce({ taskType: 'review', tier: 'free', model: 'f/b', suggestOnly: false }),
+      '[modelselect: task=review tier=free → f/b]',
+    );
+    assert.equal(
+      formatAnnounce({ taskType: 'review', tier: 'free', model: 'f/b', suggestOnly: true }),
+      '[modelselect: task=review tier=free would use f/b]',
+    );
+  });
+
+  it('appends the jev segment when given', () => {
+    assert.equal(
+      formatAnnounce({ taskType: 'review', tier: 'free', model: 'f/b', suggestOnly: false, jev: 'review@0.95' }),
+      '[modelselect: task=review tier=free → f/b jev=review@0.95]',
+    );
+    assert.equal(
+      formatAnnounce({ taskType: 'generic', tier: 'free', model: 'f/b', suggestOnly: true, jev: 'kept:no-token' }),
+      '[modelselect: task=generic tier=free would use f/b jev=kept:no-token]',
+    );
+  });
+});
+
+describe('v1 announce', () => {
+  async function v1Hooks(dir, opts) {
+    const v1 = require('../src/v1.js');
+    return v1.server({ directory: dir }, { tier: 'free', taskType: 'review', ...opts });
+  }
+
+  function v1Turn(msgId) {
+    return {
+      input: { sessionID: 's1', messageID: msgId },
+      output: {
+        parts: [{ type: 'text', text: 'review this diff' }],
+        message: { model: { providerID: 'old', modelID: 'old' } },
+      },
+    };
+  }
+
+  it('switch mode announces the first turn and dedups the second', async () => {
+    const v1 = require('../src/v1.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
+      const t1 = v1Turn('m1');
+      await hooks['chat.message'](t1.input, t1.output);
+      assert.equal(t1.output.parts.length, 2);
+      const ann = t1.output.parts[1];
+      assert.equal(ann.type, 'text');
+      assert.equal(ann.ignored, true);
+      assert.equal(ann.sessionID, 's1');
+      assert.equal(ann.messageID, 'm1');
+      assert.ok(typeof ann.id === 'string' && ann.id.length > 0);
+      assert.equal(ann.text, '[modelselect: task=review tier=free → f/b jev=pinned]');
+      assert.equal(t1.output.message.model.providerID, 'f');
+      const t2 = v1Turn('m2');
+      await hooks['chat.message'](t2.input, t2.output);
+      assert.equal(t2.output.parts.length, 1, 'identical second turn emits nothing');
+      assert.equal(t2.output.message.model.providerID, 'f');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('always mode announces every identical turn', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-always-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, { announce: 'always' });
+      const t1 = v1Turn('m1');
+      await hooks['chat.message'](t1.input, t1.output);
+      const t2 = v1Turn('m2');
+      await hooks['chat.message'](t2.input, t2.output);
+      assert.equal(t1.output.parts.length, 2);
+      assert.equal(t2.output.parts.length, 2);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('off mode keeps console-only behavior with routing intact', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-off-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, { announce: 'off' });
+      const t1 = v1Turn('m1');
+      await hooks['chat.message'](t1.input, t1.output);
+      assert.equal(t1.output.parts.length, 1);
+      assert.equal(t1.output.message.model.providerID, 'f');
+      assert.equal(t1.output.message.model.modelID, 'b');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('suggestOnly announces with would-use wording without touching the model', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-suggest-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, { suggestOnly: true });
+      const lines = [];
+      const origLog = console.log;
+      console.log = (...args) => lines.push(args.join(' '));
+      const t1 = v1Turn('m1');
+      try {
+        await hooks['chat.message'](t1.input, t1.output);
+      } finally {
+        console.log = origLog;
+      }
+      assert.equal(t1.output.message.model.providerID, 'old');
+      assert.equal(t1.output.parts.length, 2);
+      assert.equal(t1.output.parts[1].text, '[modelselect: task=review tier=free would use f/b jev=pinned]');
+      assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('announce failure does not break routing', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-annfail-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const hooks = await v1Hooks(dir, {});
+      const target = { providerID: 'old', modelID: 'old' };
+      const output = {
+        parts: Object.freeze([{ type: 'text', text: 'review this diff' }]),
+        message: { model: target },
+      };
+      const errs = [];
+      const origErr = console.error;
+      console.error = (...args) => errs.push(args.join(' '));
+      try {
+        await hooks['chat.message']({ sessionID: 's1', messageID: 'm1' }, output);
+      } finally {
+        console.error = origErr;
+      }
+      assert.equal(target.providerID, 'f');
+      assert.equal(target.modelID, 'b');
+      assert.match(errs.join('\n'), /announce skipped/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('v2 announce', () => {
+  async function v2Hooks(dir, opts) {
+    const v2 = require('../src/v2.js');
+    const seen = {};
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review', ...opts },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    return seen;
+  }
+
+  it('switch mode appends once and dedups the second identical turn', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, {});
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free → f/b jev=pinned]');
+      await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
+      const e2 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e2);
+      assert.equal(e2.prompt, 'review this diff', 'identical second turn emits nothing');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('always mode appends every identical turn', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-always-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, { announce: 'always' });
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
+      const e2 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e2);
+      assert.match(e1.prompt, /\[modelselect: task=review tier=free → f\/b jev=pinned\]/);
+      assert.match(e2.prompt, /\[modelselect: task=review tier=free → f\/b jev=pinned\]/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('off mode leaves the prompt untouched with routing intact', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-off-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, { announce: 'off' });
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff');
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'f');
+      assert.equal(event.model.id, 'b');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('suggestOnly appends with would-use wording without mutating', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-suggest-ann-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, { suggestOnly: true });
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free would use f/b jev=pinned]');
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'old');
+      assert.equal(seen.switched, undefined);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('announce failure does not break routing', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-annfail-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const seen = await v2Hooks(dir, {});
+      const errs = [];
+      const origErr = console.error;
+      console.error = (...args) => errs.push(args.join(' '));
+      try {
+        await seen.prompt(Object.freeze({ sessionID: 's1', prompt: 'review this diff' }));
+      } finally {
+        console.error = origErr;
+      }
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'f');
+      assert.equal(event.model.id, 'b');
+      assert.match(errs.join('\n'), /announce skipped/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('v2 prompt shape (PromptInput.Prompt)', () => {
+  async function v2Hooks(dir, opts) {
+    const v2 = require('../src/v2.js');
+    const seen = {};
+    const logs = [];
+    const origLog = console.log;
+    console.log = (...args) => logs.push(args.join(' '));
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review', ...opts },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    try {
+      await v2.setup(fakeCtx);
+    } finally {
+      console.log = origLog;
+    }
+    return { seen, logs };
+  }
+
+  it('logs once at setup so loading is verifiable', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const { logs } = await v2Hooks(dir, {});
+      assert.match(logs.join('\n'), /\[modelselect\] loaded/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('appends the announce line to prompt.text', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const { seen } = await v2Hooks(dir, {});
+      const e1 = { sessionID: 's1', messageID: 'm1', prompt: { text: 'review this diff' } };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt.text, 'review this diff\n[modelselect: task=review tier=free → f/b jev=pinned]');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('routes via agent mentions and file attachments', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        docs: { go: 'g/doc', free: 'f/doc' },
+      },
+    });
+    try {
+      const { seen } = await v2Hooks(dir, { taskType: 'auto', agentTaskMap: { writer: 'docs' } });
+      const e1 = {
+        sessionID: 's1',
+        messageID: 'm1',
+        prompt: {
+          text: 'review this diff',
+          files: [{ uri: 'file:///repo/README.md', name: 'README.md' }],
+          agents: [{ name: 'writer' }],
+        },
+      };
+      await seen.prompt(e1);
+      assert.match(e1.prompt.text, /task=docs/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('context hook still works when the prompt hook saw the v2 shape', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    try {
+      const { seen } = await v2Hooks(dir, {});
+      await seen.prompt({ sessionID: 's1', messageID: 'm1', prompt: { text: 'review this diff' } });
+      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(event);
+      assert.equal(event.model.providerID, 'f');
+      assert.equal(event.model.id, 'b');
+      assert.deepEqual(seen.switched, { sessionID: 's1', model: { providerID: 'f', id: 'b' } });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+describe('v2 routing hooks', () => {
+  it('mutates event.model in place and persists via switchModel', async () => {
+    const v2 = require('../src/v2.js');
+    assert.equal(v2.id, 'modelselect');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    const seen = {};
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review' },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    assert.ok(seen.prompt && seen.context, 'registers prompt + context hooks');
+    await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
+    const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+    await seen.context(event);
+    assert.equal(event.model.providerID, 'f');
+    assert.equal(event.model.id, 'b');
+    assert.deepEqual(seen.switched, {
+      sessionID: 's1',
+      model: { providerID: 'f', id: 'b' },
+    });
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('agentTaskMap pin routes the pinned entry end to end', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-agentmap-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        docs: { go: 'g/doc', free: 'f/doc' },
+      },
+    });
+    const seen = {};
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'auto', agentTaskMap: { writer: 'docs' } },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
+    const event = { sessionID: 's1', agent: 'writer', model: { providerID: 'old', id: 'old' }, messages: [] };
+    await seen.context(event);
+    assert.equal(event.model.providerID, 'f');
+    assert.equal(event.model.id, 'doc');
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('suggestOnly logs the pick without mutating or persisting', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-suggest-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    const seen = {};
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review', suggestOnly: true },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switched = input;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
+    const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+    const lines = [];
+    const origLog = console.log;
+    console.log = (...args) => lines.push(args.join(' '));
+    try {
+      await seen.context(event);
+    } finally {
+      console.log = origLog;
+    }
+    assert.equal(event.model.providerID, 'old');
+    assert.equal(event.model.id, 'old');
+    assert.equal(seen.switched, undefined);
+    assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b.*current=old\/old/);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('jev optional refinement', () => {
+  it('defaults to disabled with threshold 0.6', () => {
+    const opts = normalizeOptions({});
+    assert.equal(opts.jevModel, '');
+    assert.equal(opts.jevThreshold, 0.6);
+    assert.equal(opts.jevEndpoint, DEFAULT_JEV_ENDPOINT);
+  });
+
+  it('accepts aliases and rejects bad thresholds', () => {
+    assert.equal(normalizeOptions({ 'jev-model': 'jev-1.13-free' }).jevModel, 'jev-1.13-free');
+    assert.equal(normalizeOptions({ typesafeModel: 'jev-1.13' }).jevModel, 'jev-1.13');
+    assert.equal(normalizeOptions({ jevThreshold: 0.8 }).jevThreshold, 0.8);
+    assert.throws(() => normalizeOptions({ jevThreshold: 2 }));
+    assert.throws(() => normalizeOptions({ jevThreshold: -0.1 }));
+  });
+
+  it('parses the Choice answer shape', () => {
+    assert.deepEqual(
+      parseJevAnswer({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.95 } } }),
+      { choice: 'review', confidence: 0.95 },
+    );
+    assert.equal(parseJevAnswer({ answers: {} }), null);
+    assert.equal(parseJevAnswer({}), null);
+  });
+
+  it('disabled jev never calls fetch', async () => {
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => { calls += 1; throw new Error('must not be called'); };
+    try {
+      const opts = normalizeOptions({});
+      const { taskType, jev } = await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hello', opts });
+      assert.equal(taskType, 'generic');
+      assert.equal(jev, null);
+      assert.equal(calls, 0);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('confident jev overrides the heuristic', async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.95 } } }),
+    });
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const { taskType, jev } = await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'review this diff', opts });
+      assert.equal(taskType, 'review');
+      assert.equal(jev.choice, 'review');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('low confidence keeps the heuristic', async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.2 } } }),
+    });
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const { taskType, jev } = await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'review this diff', opts });
+      assert.equal(taskType, 'generic');
+      assert.equal(jev, null);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('network errors and unknown choices fail open', async () => {
+    const realFetch = globalThis.fetch;
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      globalThis.fetch = async () => { throw new Error('down'); };
+      assert.equal((await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hi', opts })).taskType, 'generic');
+      globalThis.fetch = async () => ({
+        ok: true, status: 200,
+        json: async () => ({ answers: { task: { type: 'choice', choice: 'nope', confidence: 0.99 } } }),
+      });
+      assert.equal((await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hi', opts })).taskType, 'generic');
+      const noToken = normalizeOptions({ jevModel: 'jev-1.13-free' });
+      delete process.env.OPENCODE_API_KEY;
+      noToken.token = '';
+      noToken.jevToken = '';
+      let calls = 0;
+      globalThis.fetch = async () => { calls += 1; throw new Error('must not be called'); };
+      assert.equal((await refineTaskTypeWithJev({ heuristic: 'generic', prompt: 'hi', opts: noToken })).taskType, 'generic');
+      assert.equal(calls, 0);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+});
+
+describe('remote task-types (option B)', () => {
+  it('normalizeOptions defaults taskTypesUrl', () => {
+    assert.equal(normalizeOptions({}).taskTypesUrl, DEFAULT_TASK_TYPES_URL);
+    assert.equal(
+      normalizeOptions({ 'task-types-url': 'https://example.com/tt.json' }).taskTypesUrl,
+      'https://example.com/tt.json',
+    );
+  });
+
+  it('normalizeTaskTypes accepts published and bare shapes', () => {
+    const got = normalizeTaskTypes({
+      timestamp: 'x',
+      'task-types': {
+        plan: { label: 'Plan', description: 'Planning things' },
+        bare: 'Just a description',
+        labelOnly: { label: 'Label Only' },
+        empty: {},
+      },
+    });
+    assert.deepEqual(got, {
+      plan: { label: 'Plan', description: 'Planning things' },
+      bare: { label: 'bare', description: 'Just a description' },
+      labelonly: { label: 'Label Only', description: 'Label Only' },
+    });
+    assert.deepEqual(
+      normalizeTaskTypes({ task_types: { docs: { label: 'Docs', description: 'Write docs' } } }),
+      { docs: { label: 'Docs', description: 'Write docs' } },
+    );
+    assert.equal(normalizeTaskTypes({}), null);
+    assert.equal(normalizeTaskTypes(null), null);
+    assert.equal(normalizeTaskTypes([]), null);
+  });
+
+  it('buildJevQuestions uses remote descriptions, incl. types missing from the fallback', () => {
+    const q = buildJevQuestions({
+      'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
+      review: { label: 'Review', description: 'Review a diff' },
+    });
+    assert.equal(q.task.type, 'choice');
+    assert.deepEqual(q.task.criteria, {
+      'web-search': 'Deep multi-source web research',
+      review: 'Review a diff',
+    });
+  });
+
+  it('buildJevQuestions falls back to the static list without remote data', () => {
+    const q = buildJevQuestions();
+    assert.ok(q.task.criteria.plan);
+    assert.ok(q.task.criteria.review);
+  });
+
+  it('loadTaskTypes uses fresh cache without network', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-'));
+    const taskTypes = { review: { label: 'Review', description: 'Review a diff' } };
+    seedTaskTypes(dir, taskTypes);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => { throw new Error('must not be called'); };
+    try {
+      const opts = normalizeOptions({});
+      const { taskTypes: got, source } = await loadTaskTypes(
+        opts, path.join(dir, '.opencode', '.modelselect-cache'),
+      );
+      assert.equal(source, 'cache');
+      assert.deepEqual(got, taskTypes);
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('loadTaskTypes serves stale cache on fetch failure and throws with neither', async () => {
+    const realFetch = globalThis.fetch;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-stale-'));
+    const taskTypes = { review: { label: 'Review', description: 'Review a diff' } };
+    seedTaskTypes(dir, taskTypes);
+    // age the cache past the default 24h window
+    const file = taskTypesCacheFile(path.join(dir, '.opencode', '.modelselect-cache'));
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    raw.fetchedAt -= 25 * 60 * 60 * 1000;
+    fs.writeFileSync(file, JSON.stringify(raw));
+    globalThis.fetch = async () => { throw new Error('down'); };
+    try {
+      const opts = normalizeOptions({});
+      const { taskTypes: got, source, stale } = await loadTaskTypes(
+        opts, path.join(dir, '.opencode', '.modelselect-cache'),
+      );
+      assert.equal(source, 'cache-stale');
+      assert.equal(stale, true);
+      assert.deepEqual(got, taskTypes);
+      const empty = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-empty-'));
+      try {
+        await assert.rejects(loadTaskTypes(opts, empty), /unreachable/);
+      } finally {
+        fs.rmSync(empty, { recursive: true, force: true });
+      }
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('jev accepts a remote-only choice and sends remote criteria', async () => {
+    const realFetch = globalThis.fetch;
+    let body = null;
+    globalThis.fetch = async (url, init) => {
+      body = JSON.parse(init.body);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ answers: { task: { type: 'choice', choice: 'web-search', confidence: 0.9 } } }),
+      };
+    };
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const taskTypes = {
+        'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
+        generic: { label: 'Generic', description: 'Everything else' },
+      };
+      const { taskType, jev } = await refineTaskTypeWithJev({
+        heuristic: 'generic', prompt: 'research this topic online', opts, taskTypes,
+      });
+      assert.equal(taskType, 'web-search');
+      assert.equal(jev.choice, 'web-search');
+      assert.equal(body.questions.task.criteria['web-search'], 'Deep multi-source web research');
+      // without the remote map the same answer fails open (unknown choice)
+      const keep = await refineTaskTypeWithJev({
+        heuristic: 'generic', prompt: 'research this topic online', opts,
+      });
+      assert.equal(keep.taskType, 'generic');
+      assert.equal(keep.jev, null);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it('jev loads the remote list from cacheDir best-effort', async () => {
+    const realFetch = globalThis.fetch;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-jev-'));
+    seedTaskTypes(dir, {
+      'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
+    });
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'web-search', confidence: 0.9 } } }),
+    });
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const { taskType } = await refineTaskTypeWithJev({
+        heuristic: 'generic',
+        prompt: 'research this topic online',
+        opts,
+        cacheDir: path.join(dir, '.opencode', '.modelselect-cache'),
+      });
+      assert.equal(taskType, 'web-search');
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('jev announce label', () => {
+  it('labels ok / off / pinned / kept states', () => {
+    assert.equal(jevLabel({ status: 'ok', jev: { choice: 'review', confidence: 0.95 } }), 'review@0.95');
+    assert.equal(jevLabel({ status: 'ok', jev: { choice: 'review', confidence: null } }), 'review@?');
+    assert.equal(jevLabel({ status: 'off', jev: null }), 'off');
+    assert.equal(jevLabel({ status: 'pinned', jev: null }), 'pinned');
+    assert.equal(jevLabel({ status: 'no-token', jev: null }), 'kept:no-token');
+    assert.equal(jevLabel({ status: 'lowconf', jev: null }), 'kept:lowconf');
+    assert.equal(jevLabel({ status: 'error', jev: null }), 'kept:error');
+    assert.equal(jevLabel({}), null);
+  });
+
+  it('v2 announce shows the jev choice when it overrides', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-jevann-'));
+    seedCache(dir, {
+      'task-types': {
+        generic: { go: 'g/gen', free: 'f/gen' },
+        review: { go: 'g/a', free: 'f/b' },
+      },
+    });
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'review', confidence: 0.95 } } }),
+    });
+    try {
+      const seen = {};
+      const fakeCtx = {
+        options: { tier: 'free', taskType: 'auto', jevModel: 'jev-1.13-free', token: 'tok' },
+        location: { directory: dir },
+        session: {
+          async hook(name, cb) { seen[name] = cb; },
+          async switchModel(input) { seen.switched = input; },
+        },
+      };
+      await v2.setup(fakeCtx);
+      const e1 = { sessionID: 's1', prompt: 'ciao, controlla questo lavoro' };
+      await seen.prompt(e1);
+      assert.match(e1.prompt, /task=review.*jev=review@0\.95/);
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('v2 announce shows kept:no-token when the key is missing', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-jevnotok-'));
+    seedCache(dir, { 'task-types': { generic: { go: 'g/gen', free: 'f/gen' } } });
+    const prev = process.env.OPENCODE_API_KEY;
+    delete process.env.OPENCODE_API_KEY;
+    try {
+      const seen = {};
+      const fakeCtx = {
+        options: { tier: 'free', taskType: 'auto', jevModel: 'jev-1.13-free' },
+        location: { directory: dir },
+        session: {
+          async hook(name, cb) { seen[name] = cb; },
+          async switchModel(input) { seen.switched = input; },
+        },
+      };
+      await v2.setup(fakeCtx);
+      const e1 = { sessionID: 's1', prompt: 'ciao' };
+      await seen.prompt(e1);
+      assert.match(e1.prompt, /task=generic.*jev=kept:no-token/);
+    } finally {
+      if (prev === undefined) delete process.env.OPENCODE_API_KEY;
+      else process.env.OPENCODE_API_KEY = prev;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('continuation (short acks inherit previous task)', () => {
+  const { isAck, isLowSignal } = require('../src/shared/detect');
+  const { resolveWithHistory, continuationState, lastAssistantSnippet } = require('../src/shared/continuation');
+
+  it('matches Italian and English acks, not long messages', () => {
+    assert.equal(isAck('do it'), true);
+    assert.equal(isAck('yes'), true);
+    assert.equal(isAck('go ahead'), true);
+    assert.equal(isAck('sì, procedi'), true);
+    assert.equal(isAck('vai pure'), true);
+    assert.equal(isAck('va bene, procedi pure'), true);
+    assert.equal(isAck('perfetto'), true);
+    assert.equal(isAck('review this diff'), false);
+    assert.equal(
+      isAck('sì procedi pure con la seconda opzione che mi hai proposto ieri sera al telefono amico mio caro'),
+      false,
+    );
+  });
+
+  it('scores zero in any language regardless of length', () => {
+    assert.equal(isLowSignal({ prompt: 'do it' }), true);
+    assert.equal(isLowSignal({ prompt: 'sì, procedi pure così va bene grazie' }), true);
+    assert.equal(isLowSignal({ prompt: 'la seconda opzione che mi hai proposto' }), true);
+    assert.equal(isLowSignal({ prompt: 'review this pull request diff' }), false);
+  });
+
+  it('zero-signal turns inherit history, signal turns do not', () => {
+    const inherited = resolveWithHistory({ prompt: 'do it' }, { task: 'review', prompt: 'review this diff' });
+    assert.equal(inherited.taskType, 'review');
+    assert.equal(inherited.continued, true);
+    const kept = resolveWithHistory(
+      { prompt: 'review this pull request diff' },
+      { task: 'code', prompt: 'implement feature' },
+    );
+    assert.equal(kept.taskType, 'review');
+    assert.equal(kept.continued, false);
+    const noHistory = resolveWithHistory({ prompt: 'do it' }, null);
+    assert.equal(noHistory.taskType, 'generic');
+    assert.equal(noHistory.continued, false);
+  });
+
+  it('options default continuation on with 2000 history chars', () => {
+    const opts = normalizeOptions({});
+    assert.equal(opts.continuation, true);
+    assert.equal(opts.historyChars, 2000);
+    assert.equal(normalizeOptions({ continuation: false }).continuation, false);
+    assert.equal(normalizeOptions({ 'history-chars': 500 }).historyChars, 500);
+    assert.throws(() => normalizeOptions({ historyChars: -1 }));
+  });
+
+  it('continuation state carries previous prompt and assistant snippet', () => {
+    const s = continuationState({
+      current: 'do it',
+      historyPrompt: 'review this diff',
+      assistantSnippet: 'Shall I proceed?',
+      historyChars: 2000,
+    });
+    assert.match(s, /Previous: review this diff/);
+    assert.match(s, /Assistant: Shall I proceed\?/);
+    assert.match(s, /Current: do it/);
+    assert.equal(lastAssistantSnippet([{ role: 'assistant', parts: [{ type: 'text', text: 'Shall I proceed?' }] }]), 'Shall I proceed?');
+  });
+
+  it('v2 keeps review across an Italian ack end to end', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-cont-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        generic: { go: 'g/gen', free: 'f/gen' },
+      },
+    });
+    try {
+      const seen = {};
+      const fakeCtx = {
+        options: { tier: 'free', taskType: 'auto' },
+        location: { directory: dir },
+        session: {
+          async hook(name, cb) { seen[name] = cb; },
+          async switchModel(input) { seen.switched = input; },
+        },
+      };
+      await v2.setup(fakeCtx);
+      await seen.prompt({ sessionID: 's1', prompt: 'review this pull request diff' });
+      const e1 = { sessionID: 's1', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(e1);
+      assert.equal(e1.model.id, 'b');
+      await seen.prompt({ sessionID: 's1', prompt: 'sì, procedi pure' });
+      const e2 = { sessionID: 's1', model: { providerID: 'old', id: 'old' }, messages: [] };
+      await seen.context(e2);
+      assert.equal(e2.model.id, 'b', 'Italian ack stays on review, not generic');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('v1 keeps review across "do it" end to end', async () => {
+    const v1 = require('../src/v1.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-cont-'));
+    seedCache(dir, {
+      'task-types': {
+        review: { go: 'g/a', free: 'f/b' },
+        generic: { go: 'g/gen', free: 'f/gen' },
+      },
+    });
+    try {
+      const hooks = await v1.server({ directory: dir }, { tier: 'free' });
+      const t1 = { providerID: 'old', modelID: 'old' };
+      await hooks['chat.message'](
+        { sessionID: 's1' },
+        { parts: [{ type: 'text', text: 'review this pull request diff' }], message: { model: t1 } },
+      );
+      assert.equal(t1.modelID, 'b');
+      const t2 = { providerID: 'old', modelID: 'old' };
+      await hooks['chat.message'](
+        { sessionID: 's1' },
+        { parts: [{ type: 'text', text: 'do it' }], message: { model: t2 } },
+      );
+      assert.equal(t2.modelID, 'b', '"do it" stays on review, not generic');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
