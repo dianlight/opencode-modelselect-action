@@ -24,6 +24,7 @@
 
 const { TASK_TYPES } = require('./detect');
 const { loadTaskTypes } = require('./tasktypes');
+const { readAuthToken } = require('./auth');
 
 const DEFAULT_JEV_ENDPOINT = 'https://opencode.ai/zen/v1/systemone';
 const DEFAULT_JEV_THRESHOLD = 0.6;
@@ -84,18 +85,31 @@ function buildJevState({ prompt, files, agent } = {}) {
 function buildJevQuestions(taskTypes) {
   const criteria = {};
   if (taskTypes && typeof taskTypes === 'object' && !Array.isArray(taskTypes)) {
-    // Remote definitions: { name: { description } } from data/task-types.json.
+    // Remote definitions: { name: { jev_criteria } } from data/task-types.json.
+    // jev_criteria is primary with no fallback on description: entries with
+    // an empty criteria are ignored (Jev cannot choose them).
     for (const [name, meta] of Object.entries(taskTypes)) {
       const key = String(name).toLowerCase().trim();
       if (!key) continue;
-      criteria[key] =
-        (meta && typeof meta === 'object'
-          ? String(meta.description ?? meta.label ?? '').trim()
-          : String(meta ?? '').trim()) || key;
+      const crit =
+        meta && typeof meta === 'object'
+          ? String(meta.jev_criteria ?? meta.jevCriteria ?? '').trim()
+          : '';
+      if (crit) criteria[key] = crit;
     }
-  } else {
-    for (const t of TASK_TYPES) criteria[t] = FALLBACK_JEV_CRITERIA[t] ?? t;
+    if (Object.keys(criteria).length) {
+      return {
+        task: {
+          type: 'choice',
+          instructions: 'Which task class best describes the user request?',
+          criteria,
+        },
+      };
+    }
+    // All remote entries empty: fall through to the static list rather than
+    // asking Jev an empty question.
   }
+  for (const t of TASK_TYPES) criteria[t] = FALLBACK_JEV_CRITERIA[t] ?? t;
   return {
     task: {
       type: 'choice',
@@ -145,7 +159,7 @@ async function callJev({ state, opts, token, questions }) {
  * kept and status is one of: off, no-token, empty, error, unknown,
  * lowconf, ok.
  *
- * `taskTypes` (remote `{ name: { description } }` map) overrides the choice
+ * `taskTypes` (remote `{ name: { jev_criteria } }` map) overrides the choice
  * list; when omitted and `cacheDir` is given, the remote file is loaded
  * best-effort (same cache cadence as the model config). Anything unusable —
  * missing cache, unreachable remote — falls back to the static list, and
@@ -153,7 +167,10 @@ async function callJev({ state, opts, token, questions }) {
  */
 async function refineTaskTypeWithJev({ heuristic, prompt, files, agent, opts, token, taskTypes, cacheDir }) {
   if (!opts || !opts.jevModel) return { taskType: heuristic, jev: null, status: 'off' };
-  const key = String(token || opts.jevToken || opts.token || '').trim();
+  // Same chain as the tier probe: explicit jevToken / token, then the
+  // OPENCODE_API_KEY-derived `opts.token`, then the OpenCode auth store
+  // (GUI hosts like OpenChamber never see the env var — see auth.js).
+  const key = String(token || opts.jevToken || opts.token || readAuthToken()?.token || '').trim();
   if (!key) return { taskType: heuristic, jev: null, status: 'no-token' };
   const state = buildJevState({ prompt, files, agent });
   if (!state) return { taskType: heuristic, jev: null, status: 'empty' };
@@ -166,8 +183,8 @@ async function refineTaskTypeWithJev({ heuristic, prompt, files, agent, opts, to
       defs = null;
     }
   }
-  const valid = defs ? Object.keys(defs) : TASK_TYPES;
   const questions = buildJevQuestions(defs);
+  const valid = Object.keys(questions.task.criteria);
   let parsed = null;
   try {
     const data = await callJev({ state, opts, token: key, questions });

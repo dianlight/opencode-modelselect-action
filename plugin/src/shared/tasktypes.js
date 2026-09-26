@@ -65,10 +65,13 @@ async function fetchRemote(url) {
 }
 
 /**
- * Normalize a decoded task-types payload to `{ name: { label, description } }`.
+ * Normalize a decoded task-types payload to
+ * `{ name: { label, description, jev_criteria, agent? } }`.
  * Accepts the published shape (`{ "task-types": {...} }`, either hyphen or
  * underscore key) or a bare name -> meta map. String metas are treated as
- * bare descriptions. Returns null when nothing usable is found.
+ * bare descriptions with an empty `jev_criteria` (ignored downstream: the
+ * Jev criteria are primary with no fallback on description). `agent` is
+ * kept only when set. Returns null when nothing usable is found.
  */
 function normalizeTaskTypes(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
@@ -80,11 +83,15 @@ function normalizeTaskTypes(data) {
     if (!key) continue;
     if (typeof meta === 'string') {
       if (!meta.trim()) continue;
-      out[key] = { label: name, description: meta.trim() };
+      out[key] = { label: name, description: meta.trim(), jev_criteria: '' };
     } else if (meta && typeof meta === 'object') {
       const description = String(meta.description ?? meta.label ?? '').trim();
       if (!description) continue;
-      out[key] = { label: String(meta.label ?? name), description };
+      const entry = { label: String(meta.label ?? name), description };
+      entry.jev_criteria = String(meta.jev_criteria ?? meta.jevCriteria ?? '').trim();
+      const agent = String(meta.agent ?? '').trim();
+      if (agent) entry.agent = agent;
+      out[key] = entry;
     }
   }
   return Object.keys(out).length ? out : null;

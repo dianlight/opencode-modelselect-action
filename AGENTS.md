@@ -90,6 +90,10 @@ When updating `CHANGELOG.md`:
 - **Always run `mise run lint-yaml` after editing any YAML file** — the CI lints YAML and a `syntax error: could not find expected ':'` usually means a `|` block line broke out of the correct indent level
 - **Always run `mise run lint-python` after editing any Python file** — the CI checks Python with ruff
 - Verify with `node --check src/index.js` after changing the action
+- After changing `openchamber-modelselect/status/src/main.js`, rebuild the
+  bundle (`bun run build` in `openchamber-modelselect/`), verify with
+  `bun run check`, run the frame tests (`bun run test`), and commit the
+  rebuilt `status/main.js` alongside the source
 
 ## Renovate
 

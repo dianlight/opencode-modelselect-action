@@ -248,7 +248,7 @@ async function setup(ctx) {
   }
 
   console.log(
-    `[modelselect] loaded (tier=${opts.tier} announce=${opts.announce} verbose=${opts.verbose} suggestOnly=${opts.suggestOnly})`,
+    `[modelselect] loaded (tier=${opts.tier} token-source=${opts.tokenSource || 'none'} announce=${opts.announce} verbose=${opts.verbose} suggestOnly=${opts.suggestOnly})`,
   );
 
   await ctx.session.hook('prompt', async (event) => {

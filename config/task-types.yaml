@@ -8,24 +8,31 @@ task_types:
   - name: "plan"
     label: "Plan"
     description: "Planning, architecture decisions, task decomposition"
+    jev_criteria: "Planning and architecture work: decide structure, decompose tasks, weigh trade-offs across files and modules."
+    agent: "plan"
     relevant_subscores: ["reasoning", "instruction_following"]
     priority: "reasoning"
 
   - name: "issue-triage"
     label: "Issue Triage"
     description: "Triage, label, categorize, route issues"
+    jev_criteria: "Triage work: read an issue, decide what it is, how urgent it is, where it belongs and what happens next."
     relevant_subscores: ["instruction_following", "speed"]
     priority: "instruction_following"
 
   - name: "review"
     label: "Review"
     description: "Review PRs, pull requests, diffs"
+    jev_criteria: "Review work: read diffs and pull requests, judge correctness and risks, decide what must change before merge."
+    agent: "plan"
     relevant_subscores: ["reasoning"]
     priority: "reasoning"
 
   - name: "ui-design"
     label: "UI Design"
     description: "UI design, components, layouts, mockups"
+    jev_criteria: "UI design work: decide components, layout and visual structure, design-system and styling choices."
+    agent: "build"
     relevant_subscores: ["vision", "coding"]
     priority: "vision"
     requires_vision: true
@@ -33,66 +40,83 @@ task_types:
   - name: "ui-testing"
     label: "UI Testing"
     description: "Playwright, Cypress, E2E, frontend tests"
+    jev_criteria: "Frontend testing work: reason about user flows and E2E scenarios with Playwright or Cypress, decide what to assert."
+    agent: "build"
     relevant_subscores: ["coding"]
     priority: "coding"
 
   - name: "api-testing"
     label: "API Testing"
     description: "API testing, integration tests, OpenAPI, Postman"
+    jev_criteria: "API testing work: reason about endpoints, contracts and integration cases with OpenAPI or Postman."
+    agent: "build"
     relevant_subscores: ["coding", "reasoning"]
     priority: "coding"
 
   - name: "docs"
     label: "Docs"
     description: "Documentation, READMEs, changelogs, docstrings"
+    jev_criteria: "Documentation work: explain, summarize or document behavior in READMEs, changelogs and docstrings."
     relevant_subscores: ["instruction_following"]
     priority: "instruction_following"
 
   - name: "debug"
     label: "Debug"
     description: "Debugging, reproductions, crash and exception triage"
+    jev_criteria: "Debugging work: diagnose crashes, exceptions and reproductions from traces and symptoms to root cause."
+    agent: "build"
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
 
   - name: "refactor"
     label: "Refactor"
     description: "Refactoring, cleanup, tech-debt reduction"
+    jev_criteria: "Refactoring work: restructure and clean up code across modules while preserving behavior."
+    agent: "build"
     relevant_subscores: ["coding"]
     priority: "coding"
 
   - name: "security"
     label: "Security"
     description: "Security review, vulnerabilities, hardening"
+    jev_criteria: "Security work: spot vulnerabilities, judge exploitability and the hardening needed."
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
 
   - name: "code"
     label: "Code"
     description: "Code generation, implementation, features"
+    jev_criteria: "Implementation work: write features, functions and endpoints from requirements to working code."
+    agent: "build"
     relevant_subscores: ["coding"]
     priority: "coding"
 
   - name: "mechanical-engineer"
     label: "Mechanical Engineer"
     description: "Mechanical engineering, calculations, CAD, thermodynamics, materials"
+    jev_criteria: "Mechanical engineering work: calculations, CAD, thermodynamics and material decisions."
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
 
   - name: "web-search"
     label: "Web Search"
     description: "Ricerche approfondite sul web, sintesi multi-fonte"
+    jev_criteria: "Research work: gather, compare and synthesize answers from multiple web sources."
+    agent: "plan"
     relevant_subscores: ["reasoning", "instruction_following"]
     priority: "reasoning"
 
   - name: "generic"
     label: "Generic"
     description: "General Q&A, explanations, analysis, everything else"
+    jev_criteria: "General work: explanations, analysis and Q&A not covered by other categories."
     relevant_subscores: ["instruction_following", "reasoning"]
     priority: "instruction_following"
 
   - name: "small-model"
     label: "Small Model"
     description: "Lightweight utility tasks: commit messages, session titles/renames, summaries"
+    jev_criteria: "Trivial mechanical work: commit messages, session titles and renames, short summaries with no design judgement."
     relevant_subscores: ["instruction_following", "speed"]
     priority: "instruction_following"
 

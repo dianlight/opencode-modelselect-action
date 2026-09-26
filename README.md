@@ -299,13 +299,32 @@ OpenChamber users: its panel runs a separate managed server
 | `agentTaskMap` | `{}` | Per-agent pins, e.g. `{ "reviewer": "review" }` (keys case-insensitive). A pinned agent beats prompt signals and the `small-model` fast-path. |
 | `tier` | `auto` | `go`, `free`, or `auto` (token ? probe live quota : `free`). |
 | `autoPreference` | `free-first` | Probe order for `tier: auto`. |
-| `token` | `""` | Token for `tier: auto` probing; falls back to `OPENCODE_API_KEY`. Never logged. |
+| `token` | `""` | Token for `tier: auto` probing and the Jev call; falls back to `OPENCODE_API_KEY`, then to the `opencode` / `opencode-go` key in OpenCode's `auth.json` (so GUI hosts like OpenChamber, which never see the shell env, still probe). Never logged. See [Token resolution](#token-resolution). |
 | `configUrl` | action default | Remote central model config, cached under `<project>/.opencode/.modelselect-cache/`. |
 | `configRefreshMinutes` | `1440` | Cache validity in minutes (`0` = refetch every request, default 24h). Stale cache survives fetch failures. |
 | `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
 | `verbose` | `false` | Log each selection (`task/tier/model`). |
 | `suggestOnly` | `false` | Trial mode: resolve as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) … would-select=… current=…`. See `plugin/README.md` (Trial run, Develop). |
 | `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model]`, `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. v1 is zero-token (`ignored:true` part); v2 appends a terse prompt line. |
+
+### Token resolution
+
+The plugin needs a key only for `tier: auto` (live Go-quota probe) and for
+Jev refinement. It resolves one in this order:
+
+1. the `token` option (`opencode-token` alias) — explicit always wins;
+2. `OPENCODE_API_KEY` from the environment;
+3. the `opencode` (Zen) key in OpenCode's auth store, then `opencode-go` —
+   `OPENCODE_AUTH_JSON` if set, else `<XDG_DATA_HOME|~/.local/share>/opencode/auth.json`,
+   the same file `/connect` writes.
+
+Step 3 exists because a GUI host does not pass your shell environment to the
+OpenCode server it spawns: under OpenChamber, `OPENCODE_API_KEY` is empty, so
+`tier: auto` used to degrade to `free` and Jev reported `kept:no-token`. With
+`/connect` already done, the key is on disk and gets picked up anyway. Nothing
+usable (no file, bad JSON, OAuth-only entry) means no token: `tier: auto`
+falls back to `free` and `verbose: true` logs a one-line hint. The key is
+never logged or written to the status file.
 
 ### How routing works
 

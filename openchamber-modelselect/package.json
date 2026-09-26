@@ -1,8 +1,17 @@
 {
   "name": "openchamber-modelselect",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Work Status section surfacing the modelselect plugin's per-session pick plus its on/off/auto mode switch.",
   "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@openchamber/sdk": "2.0.2"
+  },
+  "scripts": {
+    "build": "openchamber-guest-bundle status/src/main.js status/main.js",
+    "check": "node --check status/main.js",
+    "test": "node --test test/"
+  },
   "openchamber": {
     "apiVersion": 1,
     "engines": {
@@ -11,12 +20,12 @@
     "contributes": {
       "panel": {
         "id": "model-select",
-        "name": "Model Select",
+        "name": "Model select",
         "icon": "window"
       },
       "statusSection": {
         "entry": "status/index.html",
-        "title": "Model Select",
+        "title": "Model select",
         "height": 120
       },
       "capabilities": [
@@ -24,7 +33,9 @@
       ],
       "filesystem": [
         "~/.config/opencode/opencode.json",
-        "~/.config/opencode/opencode.jsonc"
+        "~/.config/opencode/opencode.jsonc",
+        "~/.config/openchamber/opencode.managed.json",
+        "~/.config/openchamber/routing.json"
       ]
     }
   }

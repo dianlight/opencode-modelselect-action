@@ -14,6 +14,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { TASK_TYPES, normalizeAgentMap } = require('./detect');
 const { DEFAULT_TASK_TYPES_URL } = require('./tasktypes');
+const { resolveToken } = require('./auth');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
@@ -26,6 +27,12 @@ function normalizeOptions(raw = {}) {
   const announce = String(raw.announce ?? 'switch').toLowerCase();
   if (!['switch', 'always', 'off'].includes(announce)) throw new Error(`Invalid announce '${raw.announce}'.`);
   const preference = String(raw.autoPreference ?? raw['auto-preference'] ?? 'free-first').toLowerCase();
+  // Option > OPENCODE_API_KEY > the opencode / opencode-go key in OpenCode's
+  // auth store (see auth.js: GUI hosts like OpenChamber start their own
+  // OpenCode server without the shell env, but /connect already wrote the key
+  // to auth.json). `tokenSource` is for verbose diagnostics only — never log
+  // the token itself.
+  const { token, source: tokenSource } = resolveToken(raw);
   let refresh = raw.configRefreshMinutes ?? raw.refreshMinutes ?? 1440;
   refresh = Number(refresh);
   if (!Number.isFinite(refresh) || refresh < 0) throw new Error('configRefreshMinutes must be >= 0.');
@@ -49,7 +56,8 @@ function normalizeOptions(raw = {}) {
     ),
     fallbackModel: String(raw.fallbackModel ?? raw['fallback-model'] ?? '').trim(),
     maxCost: raw.maxCost ?? raw['max-cost'] ?? '',
-    token: String(raw.token || raw['opencode-token'] || process.env.OPENCODE_API_KEY || '').trim(),
+    token,
+    tokenSource,
     usageUrl: String(raw.usageUrl ?? raw['usage-url'] ?? DEFAULT_USAGE_URL),
     verbose: Boolean(raw.verbose ?? false),
     suggestOnly: Boolean(raw.suggestOnly ?? raw['suggest-only'] ?? raw.suggest_only ?? false),
@@ -146,6 +154,7 @@ function entryFor(config, taskType) {
 
 const GO_QUOTA_TTL_MS = 5 * 60 * 1000;
 const goQuotaCache = new Map(); // token -> { ok, at }
+let noTokenHinted = false; // verbose no-token hint, once per process
 
 async function checkGoQuotaLive(token, usageUrl) {
   if (!token) return null; // unknown without a token: let preference decide
@@ -183,6 +192,7 @@ async function checkGoQuota(token, usageUrl) {
 
 function clearQuotaCache() {
   goQuotaCache.clear();
+  noTokenHinted = false;
 }
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
@@ -201,7 +211,21 @@ async function resolveModel({ taskType, opts, cacheDir }) {
     const order = opts.autoPreference === 'go-first' ? ['go', 'free'] : ['free', 'go'];
     if (!opts.token) {
       tier = 'free';
+      if (opts.verbose) {
+        // Once per process: a GUI host without a key would otherwise log this
+        // on every turn. Points at the auth store, not the env var, because
+        // that is the miss people hit (OpenChamber spawns its own server).
+        if (!noTokenHinted) {
+          noTokenHinted = true;
+          console.log(
+            `[modelselect] no token (source=${opts.tokenSource || 'none'}): tier=auto falls back to free. ` +
+              "Set the 'token' option, export OPENCODE_API_KEY, or run /connect so the opencode key " +
+              'lands in OpenCode auth.json.',
+          );
+        }
+      }
     } else {
+      if (opts.verbose) console.log(`[modelselect] token source=${opts.tokenSource || 'option'}`);
       goOk = await checkGoQuota(opts.token, opts.usageUrl);
       if (order[0] === 'free') tier = 'free';
       else tier = goOk === false ? 'free' : 'go';

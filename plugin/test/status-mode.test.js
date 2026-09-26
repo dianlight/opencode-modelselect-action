@@ -8,15 +8,7 @@ const path = require('node:path');
 
 const { normalizeOptions, resolveModel, clearQuotaCache } = require('../src/shared/select');
 const { sanitizeSessionID, readMode, clearModeCache, writeStatus, statusFile } = require('../src/shared/status');
-
-function seedCache(dir, config) {
-  const cache = path.join(dir, '.opencode', '.modelselect-cache');
-  fs.mkdirSync(cache, { recursive: true });
-  fs.writeFileSync(
-    path.join(cache, 'model-config-cache.json'),
-    JSON.stringify({ fetchedAt: Date.now(), config }),
-  );
-}
+const { seedCache, isolateAuth } = require('./helpers');
 
 describe('status file helpers', () => {
   it('sanitizes session IDs to [A-Za-z0-9-_]', () => {
@@ -150,25 +142,21 @@ describe('resolveModel goOk', () => {
   it('is null when no quota probe runs', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-gook-'));
     seedCache(dir, { 'task-types': { code: { go: 'g/a', free: 'f/b' } } });
+    const restoreAuth = isolateAuth(dir);
     try {
       clearQuotaCache();
       const cacheDir = path.join(dir, '.opencode', '.modelselect-cache');
       const explicit = await resolveModel({ taskType: 'code', opts: normalizeOptions({ tier: 'free' }), cacheDir });
       assert.equal(explicit.goOk, null);
-      const prev = process.env.OPENCODE_API_KEY;
-      delete process.env.OPENCODE_API_KEY;
-      try {
-        const auto = await resolveModel({
-          taskType: 'code',
-          opts: normalizeOptions({ tier: 'auto', token: '' }),
-          cacheDir,
-        });
-        assert.equal(auto.tier, 'free');
-        assert.equal(auto.goOk, null);
-      } finally {
-        if (prev !== undefined) process.env.OPENCODE_API_KEY = prev;
-      }
+      const auto = await resolveModel({
+        taskType: 'code',
+        opts: normalizeOptions({ tier: 'auto', token: '' }),
+        cacheDir,
+      });
+      assert.equal(auto.tier, 'free');
+      assert.equal(auto.goOk, null);
     } finally {
+      restoreAuth();
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });

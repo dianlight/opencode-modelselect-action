@@ -58,7 +58,11 @@ server. Add the plugin entry to the managed file (same object form as
 above) and quit + reopen OpenChamber so its server reloads; the file may be
 regenerated on updates, so re-check the entry if the plugin goes silent.
 Plugin `console.log` output does not land in `opencode.log`, so verify via
-the chat-visible announce line (`announce: "always"` for testing).
+the chat-visible announce line (`announce: "always"` for testing). The same
+applies to `OPENCODE_API_KEY`: OpenChamber's server does not inherit your shell
+env, so the plugin reads the key from OpenCode's `auth.json` instead — see
+[Token resolution](#token-resolution). The startup log names the source
+(`token-source=auth.json:opencode`), never the key.
 
 ## Options
 
@@ -69,7 +73,7 @@ the chat-visible announce line (`announce: "always"` for testing).
   "agentTaskMap": {},       // per-agent pins, e.g. { "reviewer": "review" }
   "tier": "auto",           // go | free | auto
   "autoPreference": "free-first", // or go-first (tier auto only)
-  "token": "",              // tier auto only; falls back to OPENCODE_API_KEY
+  "token": "",              // tier auto + jev; falls back to OPENCODE_API_KEY, then auth.json
   "configUrl": "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json",
   "configRefreshMinutes": 1440, // 0 = refetch every request, default 24h (also governs the task-types cache below)
   "taskTypesUrl": "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/task-types.json",
@@ -79,7 +83,7 @@ the chat-visible announce line (`announce: "always"` for testing).
   "jevModel": "",            // e.g. "jev-1.13-free": when set, Jev refines the task-type
   "jevThreshold": 0.6,       // min Jev confidence to override heuristics
   "jevEndpoint": "https://opencode.ai/zen/v1/systemone",
-  "jevToken": "",             // falls back to token / OPENCODE_API_KEY
+  "jevToken": "",             // falls back to token / OPENCODE_API_KEY / auth.json
   "continuation": true,       // zero-signal turns inherit the previous task
   "historyChars": 2000        // max chars of previous prompt kept for continuation
 }
@@ -92,7 +96,7 @@ the chat-visible announce line (`announce: "always"` for testing).
 | `agentTaskMap` | `{}` | Per-agent pins, e.g. `{ "reviewer": "review", "writer": "docs" }` (keys case-insensitive, values must be task-type keys; a JSON string is also accepted). A pinned agent always resolves to its type, beating prompt signals and the `small-model` fast-path. |
 | `tier` | `auto` | `go`, `free`, or `auto` (token ? probe live quota : `free`). |
 | `autoPreference` | `free-first` | Probe order for `tier: auto`. |
-| `token` | `""` | Token for `tier: auto` probing; falls back to `OPENCODE_API_KEY`. Never logged. |
+| `token` | `""` | Token for `tier: auto` probing and the Jev call; falls back to `OPENCODE_API_KEY`, then to the `opencode` / `opencode-go` key in OpenCode's `auth.json` (GUI hosts never inherit the shell env). Never logged. See [Token resolution](#token-resolution). |
 | `configUrl` | (see above) | Remote central model config, cached locally. |
 | `configRefreshMinutes` | `1440` | Cache validity in minutes for both the model config and the task-type list; `0` refetches every request. Stale cache survives fetch failures. |
 | `taskTypesUrl` | (see above) | Remote task-type definitions (`data/task-types.json`, published from `config/task-types.yaml` by the maintenance run), cached locally as `task-types-cache.json`. Only fetched when Jev refinement is enabled (`jevModel` set): it supplies the Jev `choice` criteria and the accepted answer list. Accepts `task-types-url` as alias. |
@@ -103,7 +107,7 @@ the chat-visible announce line (`announce: "always"` for testing).
 | `jevModel` | `""` | Optional Jev refinement (`jev-1.13` / `jev-1.13-free`, aliases `jev-model` / `typesafe-model`): when set, a `choice` question is POSTed to `jevEndpoint` with the prompt as state; a confident answer overrides the heuristic task-type. The choice criteria (and accepted answers) come from the remote task-type list (`taskTypesUrl`), never a hardcoded map — the static list is only an offline fallback. Empty (default) disables Jev entirely — no network call. |
 | `jevThreshold` | `0.6` | Minimum Jev `confidence` (0..1) to accept the answer; below it the heuristic wins. |
 | `jevEndpoint` | `https://opencode.ai/zen/v1/systemone` | SystemOne endpoint for the Jev call. |
-| `jevToken` | `""` | Auth for the Jev call; falls back to `token` / `OPENCODE_API_KEY`. Never logged. |
+| `jevToken` | `""` | Auth for the Jev call; falls back to `token` / `OPENCODE_API_KEY` / `auth.json`. Never logged. |
 | `continuation` | `true` | Zero-signal turns (acks like `do it` / `sì, procedi`, answers after a question, any language or length) inherit the previous substantive turn's task instead of falling to `generic`. The ack match (IT+EN) is only a second opinion — the score decides. Set `false` to disable. |
 | `historyChars` | `2000` | Max chars of the previous substantive prompt kept per session for continuation (also fed to Jev as `Previous: … / Current: …` context, plus the last assistant snippet on v2). Accepts `history-chars` alias. |
 
@@ -134,8 +138,52 @@ then continuation, then `defaultTaskType`. Prefer `agentTaskMap` +
 control with a safe fallback.
 
 Tier `auto` probes the Go usage endpoint when a token is available
-(`token` option or `OPENCODE_API_KEY`) and degrades to the preferred tier
+(see [Token resolution](#token-resolution)) and degrades to the preferred tier
 instead of failing the session; without a token it uses `free`.
+
+## Token resolution
+
+A key is needed only for `tier: auto` (live Go-quota probe) and for Jev
+refinement. One token serves both, resolved in this order:
+
+1. the `token` option (`opencode-token` alias) — explicit always wins;
+2. `OPENCODE_API_KEY` from the environment;
+3. the `opencode` (Zen) key in OpenCode's auth store, then `opencode-go` —
+   `OPENCODE_AUTH_JSON` when set, otherwise
+   `<XDG_DATA_HOME|~/.local/share>/opencode/auth.json`, the same file
+   `/connect` writes.
+
+Step 3 exists because a GUI host does not hand your shell environment to the
+OpenCode server it spawns. Under OpenChamber `OPENCODE_API_KEY` is empty, so
+`tier: auto` degraded to `free` and the announce line showed
+`jev=kept:no-token` even with a working key. Now the on-disk key is picked up
+automatically — no config change needed. Jev uses the same chain, so
+`jevToken` is optional there too.
+
+Nothing usable (no file, bad JSON, an OAuth-only entry, or another provider's
+key) simply means no token: `tier: auto` falls back to `free` and, with
+`verbose: true`, logs one hint per process naming the option, the env var and
+the auth store. The key is never logged, never written to the status file, and
+never leaves the machine. The read is memoized, so a `/connect` mid-session is
+picked up on the next OpenCode restart (or after `clearAuthCache()` in tests).
+
+To pin a key explicitly instead — e.g. a Go-only key, or a host whose auth
+store you do not want read — set it in the OpenChamber managed config along
+with the plugin entry:
+
+```jsonc
+// ~/.config/openchamber/opencode.managed.json
+{
+  "plugins": [
+    {
+      "package": "opencode-modelselect-plugin",
+      "options": { "tier": "auto", "token": "sk-…" }
+    }
+  ]
+}
+```
+
+Then reopen OpenChamber so its server reloads.
 
 The remote model config is cached under
 `<project>/.opencode/.modelselect-cache/` (`model-config-cache.json`; the

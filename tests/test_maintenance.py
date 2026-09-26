@@ -625,7 +625,7 @@ class TaskTypesJsonTest(unittest.TestCase):
             target = Path(tmp) / "task-types.json"
             with patch.object(m, "TASK_TYPES_JSON_PATH", target):
                 changed = m.generate_task_types_json([
-                    {"name": "plan", "label": "Plan", "description": "Planning things"},
+                    {"name": "plan", "label": "Plan", "description": "Planning things", "jev_criteria": "Decide structure", "agent": "plan"},
                     {"name": "bare"},
                     {"label": "No name skipped"},
                     "not-a-dict-skipped",
@@ -634,16 +634,16 @@ class TaskTypesJsonTest(unittest.TestCase):
                 data = json.loads(target.read_text())
                 self.assertEqual(
                     data["task-types"]["plan"],
-                    {"label": "Plan", "description": "Planning things"},
+                    {"label": "Plan", "description": "Planning things", "jev_criteria": "Decide structure", "agent": "plan"},
                 )
                 self.assertEqual(
-                    data["task-types"]["bare"], {"label": "bare", "description": ""}
+                    data["task-types"]["bare"], {"label": "bare", "description": "", "jev_criteria": ""}
                 )
                 self.assertNotIn("No name skipped", str(data["task-types"]))
                 # second run with identical input reports no change
                 self.assertFalse(
                     m.generate_task_types_json([
-                        {"name": "plan", "label": "Plan", "description": "Planning things"},
+                        {"name": "plan", "label": "Plan", "description": "Planning things", "jev_criteria": "Decide structure", "agent": "plan"},
                         {"name": "bare"},
                         {"label": "No name skipped"},
                         "not-a-dict-skipped",

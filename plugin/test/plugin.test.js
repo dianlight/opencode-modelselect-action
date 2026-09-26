@@ -10,24 +10,7 @@ const { inferTaskType } = require('../src/shared/detect');
 const { normalizeOptions, formatAnnounce, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
 const { parseJevAnswer, refineTaskTypeWithJev, buildJevQuestions, jevLabel, DEFAULT_JEV_ENDPOINT } = require('../src/shared/jev');
 const { loadTaskTypes, normalizeTaskTypes, taskTypesCacheFile, DEFAULT_TASK_TYPES_URL } = require('../src/shared/tasktypes');
-
-function seedCache(dir, config) {
-  const cache = path.join(dir, '.opencode', '.modelselect-cache');
-  fs.mkdirSync(cache, { recursive: true });
-  fs.writeFileSync(
-    path.join(cache, 'model-config-cache.json'),
-    JSON.stringify({ fetchedAt: Date.now(), config }),
-  );
-}
-
-function seedTaskTypes(dir, taskTypes) {
-  const cache = path.join(dir, '.opencode', '.modelselect-cache');
-  fs.mkdirSync(cache, { recursive: true });
-  fs.writeFileSync(
-    path.join(cache, 'task-types-cache.json'),
-    JSON.stringify({ fetchedAt: Date.now(), taskTypes }),
-  );
-}
+const { seedCache, seedTaskTypes, isolateAuth, writeAuthFile } = require('./helpers');
 
 describe('detect heuristics', () => {
   it('small-model fast-path wins on commit prompts', () => {
@@ -821,6 +804,8 @@ describe('jev optional refinement', () => {
 
   it('network errors and unknown choices fail open', async () => {
     const realFetch = globalThis.fetch;
+    const authDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-jev-failopen-'));
+    const restoreAuth = isolateAuth(authDir);
     try {
       const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
       globalThis.fetch = async () => { throw new Error('down'); };
@@ -840,6 +825,31 @@ describe('jev optional refinement', () => {
       assert.equal(calls, 0);
     } finally {
       globalThis.fetch = realFetch;
+      restoreAuth();
+      fs.rmSync(authDir, { recursive: true, force: true });
+    }
+  });
+
+  it('a dev-machine auth.json key still does not leak into no-token paths', async () => {
+    // refineTaskTypeWithJev falls back to the auth store, so a test that
+    // wants "no token" must isolate the store, not just the env var.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-jev-isolate-'));
+    const restoreAuth = isolateAuth(dir);
+    const realFetch = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => { calls += 1; throw new Error('must not be called'); };
+    try {
+      const r = await refineTaskTypeWithJev({
+        heuristic: 'generic',
+        prompt: 'hi',
+        opts: { jevModel: 'jev-1.13-free', token: '', jevToken: '', jevThreshold: 0.6, verbose: false },
+      });
+      assert.equal(r.status, 'no-token');
+      assert.equal(calls, 0);
+    } finally {
+      globalThis.fetch = realFetch;
+      restoreAuth();
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });
@@ -857,35 +867,34 @@ describe('remote task-types (option B)', () => {
     const got = normalizeTaskTypes({
       timestamp: 'x',
       'task-types': {
-        plan: { label: 'Plan', description: 'Planning things' },
+        plan: { label: 'Plan', description: 'Planning things', jev_criteria: 'Decide structure', agent: 'plan' },
         bare: 'Just a description',
         labelOnly: { label: 'Label Only' },
         empty: {},
       },
     });
     assert.deepEqual(got, {
-      plan: { label: 'Plan', description: 'Planning things' },
-      bare: { label: 'bare', description: 'Just a description' },
-      labelonly: { label: 'Label Only', description: 'Label Only' },
+      plan: { label: 'Plan', description: 'Planning things', jev_criteria: 'Decide structure', agent: 'plan' },
+      bare: { label: 'bare', description: 'Just a description', jev_criteria: '' },
+      labelonly: { label: 'Label Only', description: 'Label Only', jev_criteria: '' },
     });
     assert.deepEqual(
-      normalizeTaskTypes({ task_types: { docs: { label: 'Docs', description: 'Write docs' } } }),
-      { docs: { label: 'Docs', description: 'Write docs' } },
+      normalizeTaskTypes({ task_types: { docs: { label: 'Docs', description: 'Write docs', jev_criteria: 'Explain things' } } }),
+      { docs: { label: 'Docs', description: 'Write docs', jev_criteria: 'Explain things' } },
     );
     assert.equal(normalizeTaskTypes({}), null);
     assert.equal(normalizeTaskTypes(null), null);
     assert.equal(normalizeTaskTypes([]), null);
   });
 
-  it('buildJevQuestions uses remote descriptions, incl. types missing from the fallback', () => {
+  it('buildJevQuestions uses remote jev_criteria and ignores empty ones', () => {
     const q = buildJevQuestions({
-      'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
-      review: { label: 'Review', description: 'Review a diff' },
+      'web-search': { label: 'Web Search', description: 'Deep research', jev_criteria: 'Gather and synthesize from the web' },
+      review: { label: 'Review', description: 'Review a diff', jev_criteria: '' },
     });
     assert.equal(q.task.type, 'choice');
     assert.deepEqual(q.task.criteria, {
-      'web-search': 'Deep multi-source web research',
-      review: 'Review a diff',
+      'web-search': 'Gather and synthesize from the web',
     });
   });
 
@@ -959,8 +968,8 @@ describe('remote task-types (option B)', () => {
     try {
       const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
       const taskTypes = {
-        'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
-        generic: { label: 'Generic', description: 'Everything else' },
+        'web-search': { label: 'Web Search', description: 'Deep research', jev_criteria: 'Deep multi-source web research' },
+        generic: { label: 'Generic', description: 'Everything else', jev_criteria: 'General work' },
       };
       const { taskType, jev } = await refineTaskTypeWithJev({
         heuristic: 'generic', prompt: 'research this topic online', opts, taskTypes,
@@ -983,7 +992,7 @@ describe('remote task-types (option B)', () => {
     const realFetch = globalThis.fetch;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-jev-'));
     seedTaskTypes(dir, {
-      'web-search': { label: 'Web Search', description: 'Deep multi-source web research' },
+      'web-search': { label: 'Web Search', description: 'Deep multi-source web research', jev_criteria: 'Deep multi-source web research' },
     });
     globalThis.fetch = async () => ({
       ok: true,
@@ -1057,8 +1066,7 @@ describe('jev announce label', () => {
     const v2 = require('../src/v2.js');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-jevnotok-'));
     seedCache(dir, { 'task-types': { generic: { go: 'g/gen', free: 'f/gen' } } });
-    const prev = process.env.OPENCODE_API_KEY;
-    delete process.env.OPENCODE_API_KEY;
+    const restoreAuth = isolateAuth(dir);
     try {
       const seen = {};
       const fakeCtx = {
@@ -1074,8 +1082,48 @@ describe('jev announce label', () => {
       await seen.prompt(e1);
       assert.match(e1.prompt, /task=generic.*jev=kept:no-token/);
     } finally {
-      if (prev === undefined) delete process.env.OPENCODE_API_KEY;
-      else process.env.OPENCODE_API_KEY = prev;
+      restoreAuth();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('v2 reads the auth.json key so Jev runs under OpenChamber', async () => {
+    const v2 = require('../src/v2.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-jevauth-'));
+    seedCache(dir, { 'task-types': { generic: { go: 'g/gen', free: 'f/gen' }, review: { go: 'g/rev', free: 'f/rev' } } });
+    const restoreAuth = isolateAuth(dir);
+    writeAuthFile(dir, { opencode: { type: 'api', key: 'sk-store' } });
+    const realFetch = globalThis.fetch;
+    let sawAuth = null;
+    globalThis.fetch = async (_url, init) => {
+      if (init?.method === 'POST') {
+        sawAuth = init.headers.Authorization;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ answers: { task: { choice: 'review', confidence: 0.95 } } }),
+        };
+      }
+      return { status: 401, ok: false };
+    };
+    try {
+      const seen = {};
+      const fakeCtx = {
+        options: { tier: 'free', taskType: 'auto', jevModel: 'jev-1.13-free' },
+        location: { directory: dir },
+        session: {
+          async hook(name, cb) { seen[name] = cb; },
+          async switchModel(input) { seen.switched = input; },
+        },
+      };
+      await v2.setup(fakeCtx);
+      const e1 = { sessionID: 's1', prompt: 'review this diff please' };
+      await seen.prompt(e1);
+      assert.equal(sawAuth, 'Bearer sk-store');
+      assert.match(e1.prompt, /task=review.*jev=review@0\.95/);
+    } finally {
+      globalThis.fetch = realFetch;
+      restoreAuth();
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });

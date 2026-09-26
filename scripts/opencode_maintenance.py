@@ -855,21 +855,29 @@ def generate_task_types_json(task_types: list[dict[str, Any]]) -> bool:
     """Publish the task-type definitions for the plugin's Jev refinement.
 
     Writes data/task-types.json from config/task-types.yaml: each entry
-    carries the label + description the Jev `choice` criteria are built
-    from, so adding a task type needs no plugin change (option B: the
-    plugin fetches this file with its own parallel cache, like the model
-    config). Entries without a name are skipped.
+    carries the label + description plus the `jev_criteria` string the Jev
+    `choice` criteria are built from (primary, no fallback: empty means the
+    category is ignored) and the optional `agent` to set on the matching
+    OpenChamber routing category (only when set; otherwise the user's value
+    is left alone). Adding a task type needs no plugin change (option B:
+    the plugin fetches this file with its own parallel cache, like the
+    model config). Entries without a name are skipped.
 
     Returns True when the written file differs from the previous commit.
     """
-    table = {
-        tt["name"]: {
+    table = {}
+    for tt in task_types:
+        if not isinstance(tt, dict) or not tt.get("name"):
+            continue
+        entry: dict[str, Any] = {
             "label": tt.get("label", tt["name"]),
             "description": tt.get("description", ""),
+            "jev_criteria": str(tt.get("jev_criteria", "") or "").strip(),
         }
-        for tt in task_types
-        if isinstance(tt, dict) and tt.get("name")
-    }
+        agent = str(tt.get("agent", "") or "").strip()
+        if agent:
+            entry["agent"] = agent
+        table[tt["name"]] = entry
     proposed = {
         "timestamp": datetime.now(UTC).isoformat(),
         "task-types": table,

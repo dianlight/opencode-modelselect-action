@@ -46,6 +46,36 @@
 - Checkbox-handler Select model step now uses `tier: auto` (with
   `opencode-token` for live quota probing) and `task-type: generic`, fitting
   its research + small-config-edit workload instead of hardcoded `go`/`code`
+### Fixed
+- The plugin no longer needs `OPENCODE_API_KEY` in its environment: when the
+  option and the env var are both empty it reads the `opencode` (Zen) key,
+  then `opencode-go`, from OpenCode's auth store
+  (`OPENCODE_AUTH_JSON`, else `<XDG_DATA_HOME|~/.local/share>/opencode/auth.json`
+  — the file `/connect` writes). GUI hosts that spawn their own OpenCode
+  server, OpenChamber in particular, never inherit the shell env, so tier
+  `auto` silently degraded to `free` and Jev reported `kept:no-token` there.
+  The same chain now backs the Jev call, so `jevToken` is optional as well;
+  with `verbose: true` the startup log names the source
+  (`token-source=auth.json:opencode`) and a keyless run logs one hint per
+  process. Missing file, bad JSON or an OAuth-only entry still means no
+  token, so behavior is unchanged without a key. The key is never logged or
+  written to the status file
+- Work Status section (`openchamber-modelselect`) renders again: the view
+  referenced a `connectHost` global that does not exist in the extension
+  sandbox, so the bridge was permanently null and the panel always showed
+  "extension host bridge unavailable". The view is now ESM importing
+  `connectHost` from `@openchamber/sdk` (pinned 2.0.2) bundled to a
+  committed IIFE via `openchamber-guest-bundle`. Same fix pass corrects
+  three latent read bugs that surfaced once the bridge existed:
+  `readFile` resolves `{ content }` (was parsed as a raw string),
+  `stat` resolves `{ kind: 'missing' }` instead of rejecting (existence is
+  now read off `kind`), and `setHeight`/`storage.set` promises are no
+  longer left unhandled. The installed-check also covers the OpenChamber
+  managed config (`~/.config/openchamber/opencode.managed.json`, added to
+  `contributes.filesystem` — re-grant file access on update). New frame
+  smoke test (`openchamber-modelselect/test/`, fake guest frame speaking
+  the SDK wire protocol) asserts `hello`, the per-session pick, the mode
+  switch write, and the fix hint
 
 ## [0.3.0]
 ### Fixed

@@ -3,22 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Model Select</title>
+<title>Model select</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
-    font: 12px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: CanvasText;
+    font: 12px/1.45 var(--font-sans, var(--oc-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif));
+    color: var(--surface-foreground, var(--oc-fg, CanvasText));
     background: transparent;
     padding: 8px 10px;
   }
-  .row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .row + .row { margin-top: 6px; }
-  .label { opacity: 0.65; }
-  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .pill {
+  .ms { display: flex; flex-direction: column; gap: 6px; }
+  .ms-statusbar { display: flex; align-items: center; gap: 6px; }
+  .ms-statusbar:empty { display: none; }
+  .ms-ico {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: default;
+  }
+  .ms-ico.go-ok { color: var(--status-success, var(--oc-success, #1e7e34)); }
+  .ms-ico.go-out { color: var(--status-error, var(--oc-error, #b3261e)); }
+  .ms-ico.go-unknown { color: var(--surface-muted-foreground, var(--oc-muted, GrayText)); }
+  .ms-ico.suggest { color: var(--status-warning, var(--oc-warning, #b7791f)); }
+  .ms-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ms-title { font-weight: 600; font-size: 12px; white-space: nowrap; }
+  .ms-tabs { min-width: 0; }
+  .ms-hint {
+    font-size: 11px;
+    color: var(--surface-muted-foreground, var(--oc-muted, GrayText));
+  }
+  .ms-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 4px 12px;
+  }
+  .ms-field { display: flex; flex-direction: column; min-width: 0; }
+  .ms-field:nth-child(3), .ms-field:nth-child(4) { grid-column: 1 / -1; }
+  .ms-k {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--surface-muted-foreground, var(--oc-muted, GrayText));
+  }
+  .ms-v {
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ms-v.mono { font-family: var(--font-mono, var(--oc-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace)); }
+  .ms-grid.stale .ms-grid, .ms-grid.stale { opacity: 0.55; }
+  .ms-badges { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+  .ms-badges:empty { display: none; }
+  .ms-note {
+    font-size: 12px;
+    color: var(--surface-muted-foreground, var(--oc-muted, GrayText));
+  }
+  .ms-error { color: var(--status-error, var(--oc-error, #b3261e)); font-size: 12px; }
+  @media (prefers-color-scheme: dark) { .ms-error { color: var(--status-error, var(--oc-error, #f2b8b5)); } }
+  .ms-fallback-badge {
     display: inline-block;
     padding: 0 7px;
     border-radius: 999px;
@@ -26,32 +79,24 @@
     background: ButtonFace;
     color: ButtonText;
     white-space: nowrap;
+    font-size: 11px;
   }
-  .pill.dim { opacity: 0.6; }
-  .pill.warn { border-color: #b7791f; }
-  .pill.err { border-color: #b3261e; }
-  .pill.ok { border-color: #1e7e34; }
-  .seg { display: inline-flex; border: 1px solid ButtonBorder; border-radius: 6px; overflow: hidden; }
-  .seg button {
+  .ms-fallback-tab {
     appearance: none;
-    border: 0;
+    border: 1px solid ButtonBorder;
     background: ButtonFace;
     color: ButtonText;
     font: inherit;
-    padding: 2px 10px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
     cursor: pointer;
   }
-  .seg button + button { border-left: 1px solid ButtonBorder; }
-  .seg button[aria-pressed="true"] { background: Highlight; color: HighlightText; }
-  .seg button:disabled { opacity: 0.5; cursor: default; }
-  .note { opacity: 0.75; }
-  .error { color: #b3261e; }
-  @media (prefers-color-scheme: dark) { .error { color: #f2b8b5; } }
-  .stale { opacity: 0.55; }
+  .ms-fallback-tab.on { background: Highlight; color: HighlightText; }
 </style>
 </head>
 <body>
-<div id="root"><span class="note">Loading model status…</span></div>
+<div id="root"><span class="ms-note">Loading model status…</span></div>
 <script src="./main.js"></script>
 </body>
 </html>
