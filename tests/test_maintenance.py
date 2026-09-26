@@ -660,3 +660,97 @@ class TaskTypesJsonTest(unittest.TestCase):
             self.assertEqual(set(data["task-types"]), names)
             for name, entry in data["task-types"].items():
                 self.assertTrue(entry["description"], f"{name} missing description")
+
+
+class HfModalityTest(unittest.TestCase):
+    def test_multimodal_tags(self):
+        self.assertEqual(
+            m._hf_modality_from_api(
+                {"pipeline_tag": "text-generation", "tags": ["multimodal", "transformers"]}
+            ),
+            "multimodal",
+        )
+
+    def test_text_only(self):
+        self.assertEqual(
+            m._hf_modality_from_api(
+                {"pipeline_tag": "text-generation", "tags": ["text-generation", "code"]}
+            ),
+            "text-only",
+        )
+
+    def test_unknown(self):
+        self.assertEqual(m._hf_modality_from_api({}), "unknown")
+        self.assertEqual(m._hf_modality_from_api(None), "unknown")
+        self.assertEqual(
+            m._hf_modality_from_api({"pipeline_tag": "other", "tags": ["x"]}),
+            "unknown",
+        )
+
+
+class AaModalityTest(unittest.TestCase):
+    def test_text_only(self):
+        self.assertEqual(
+            m._aa_modality_from_html(
+                "Does not support image input. Only supports text input."
+            ),
+            "text-only",
+        )
+
+    def test_multimodal(self):
+        self.assertEqual(
+            m._aa_modality_from_html("Supports text, image, speech, and video input."),
+            "multimodal",
+        )
+
+    def test_unknown(self):
+        self.assertEqual(m._aa_modality_from_html(""), "unknown")
+        self.assertEqual(m._aa_modality_from_html(None), "unknown")
+        self.assertEqual(m._aa_modality_from_html("Some unrelated page"), "unknown")
+
+
+class FallbackModalityMismatchTest(unittest.TestCase):
+    def _both(self, mod):
+        return lambda _x: mod
+
+    def test_flags_text_only_pair(self):
+        out = m.detect_fallback_modality_mismatches(
+            {"longcat-2.0": {"vision": 40.0}},
+            hf_fetch=self._both("text-only"),
+            aa_fetch=self._both("text-only"),
+        )
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["model"], "longcat-2.0")
+        self.assertEqual(out[0]["suggested_vision"], 5.0)
+
+    def test_single_source_never_flags(self):
+        out = m.detect_fallback_modality_mismatches(
+            {"longcat-2.0": {"vision": 40.0}},
+            hf_fetch=self._both("unknown"),
+            aa_fetch=self._both("text-only"),
+        )
+        self.assertEqual(out, [])
+
+    def test_disagreement_never_flags(self):
+        out = m.detect_fallback_modality_mismatches(
+            {"longcat-2.0": {"vision": 40.0}},
+            hf_fetch=self._both("multimodal"),
+            aa_fetch=self._both("text-only"),
+        )
+        self.assertEqual(out, [])
+
+    def test_consistent_no_flag(self):
+        out = m.detect_fallback_modality_mismatches(
+            {"mimo-v2.6-pro": {"vision": 50.0}},
+            hf_fetch=self._both("multimodal"),
+            aa_fetch=self._both("multimodal"),
+        )
+        self.assertEqual(out, [])
+
+    def test_unmapped_skipped(self):
+        out = m.detect_fallback_modality_mismatches(
+            {"space-bunny-free": {"vision": 38.0}},
+            hf_fetch=self._both("text-only"),
+            aa_fetch=self._both("text-only"),
+        )
+        self.assertEqual(out, [])

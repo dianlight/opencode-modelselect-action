@@ -46,7 +46,7 @@ model_scores:
     instruction_following: 74.0
     overall: 68.0
     reasoning: 70.0
-    vision: 55.0
+    vision: 5.0               # text-only per AA (no image input, not multimodal) + HF tags text-generation/agent/code
   nemotron-3.5-lightning-free:
     coding: 36.2             # BenchLM coding (#135/147); SWE-bench Verified 51.6, SciCode 32.6
     instruction_following: 72.0  # IFBench (loose) 71.88 / BenchLM IF 76.3
@@ -78,17 +78,17 @@ model_scores:
     reasoning: 72.0
     vision: 62.0
   laguna-s-2.1-free:
-    coding: 52.0
+    coding: 59.0              # SWE-bench Pro 59.4 (poolside/HF/BenchLM agree); T-Bench 70.2, SWE-Multi 78.5
     instruction_following: 54.0
     overall: 45.0
     reasoning: 48.0
-    vision: 40.0
+    vision: 5.0               # text-to-text per HF + llm-stats (text-only)
   ling-3.0-flash-free:
-    coding: 48.0
+    coding: 48.0              # catalog holds ling-3.0-flash-fin-free (finance variant); base Ling-3.0-flash is InclusionAI open-weight
     instruction_following: 50.0
     overall: 45.0
     reasoning: 48.0
-    vision: 40.0
+    vision: 5.0               # text-only per HF text-generation + llm-stats
   mimo-v2.6-flash:
     coding: 75.0             # Terminal-Bench 2.1 87.6, DeepSWE 67.9, CyberGym 95.1 (BenchLM / LLM Stats)
     instruction_following: 76.0  # strong agentic IF-style performance; agentic index 76.5 (modelscale.dev)
@@ -109,10 +109,10 @@ model_scores:
     vision: 50.0              # multimodal: text, image, speech, video input (Xiaomi MiMo)
   longcat-2.0:
     coding: 70.0             # Terminal-Bench 2.1 70.8, SWE-bench Pro 59.5, SWE-bench Multilingual 77.3
-    instruction_following: 85.0  # IFEval 90.0, WritingBench 83.8
-    overall: 60.0             # AA Intelligence Index 34; BrowseComp 79.9, FORTE 73.2
-    reasoning: 85.0           # GPQA-diamond 88.9, IMO-AnswerBench 81.8
-    vision: 40.0              # multimodal input supported
+    instruction_following: 90.0  # IFEval 90.0 (publisher, dual-corroborated), WritingBench 83.8
+    overall: 60.0             # AA Intelligence Index 19; BrowseComp 79.9, FORTE 73.2
+    reasoning: 89.0           # GPQA-diamond 88.9 (publisher, dual-corroborated), IMO-AnswerBench 81.8
+    vision: 5.0               # text-only per AA (no image input) + HF text-generation
   big-pickle:
     coding: 67.0              # ORPT-Bench task success rate (ops/coding repair)
     instruction_following: 60.0

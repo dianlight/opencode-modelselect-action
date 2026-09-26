@@ -92,8 +92,9 @@ jobs:
           # Check coverage issues
           STALE=$(python3 -c "import json; d=json.load(open('data/coverage_issues.json')); print(len(d.get('stale_fallback',[])))" 2>/dev/null || echo "0")
           MISSING=$(python3 -c "import json; d=json.load(open('data/coverage_issues.json')); print(len(d.get('missing_scores',[])))" 2>/dev/null || echo "0")
+          MISMATCH=$(python3 -c "import json; d=json.load(open('data/coverage_issues.json')); print(len(d.get('fallback_mismatch',[])))" 2>/dev/null || echo "0")
 
-          if [ "$STALE" = "0" ] && [ "$MISSING" = "0" ]; then
+          if [ "$STALE" = "0" ] && [ "$MISSING" = "0" ] && [ "$MISMATCH" = "0" ]; then
             echo "✓ No issues detected — skipping issue creation"
             exit 0
           fi
@@ -108,6 +109,7 @@ jobs:
 
           stale = coverage.get("stale_fallback", [])
           missing = coverage.get("missing_scores", [])
+          mismatch = coverage.get("fallback_mismatch", [])
 
           lines = [
               "# OpenCode Maintenance Report",
@@ -117,7 +119,7 @@ jobs:
               "",
           ]
 
-          has_tasks = bool(stale or missing)
+          has_tasks = bool(stale or missing or mismatch)
 
           if has_tasks:
               lines.append("## ✅ Tasks")
@@ -182,7 +184,7 @@ jobs:
               lines.append("---")
               lines.append("")
 
-          if stale or missing:
+          if stale or missing or mismatch:
               lines.append("## 📋 Model Coverage Issues")
               lines.append("")
 
@@ -220,6 +222,29 @@ jobs:
                   lines.append(f"| {m['model']} | {m.get('tier', '')} |")
               if len(missing) > 30:
                   lines.append(f"| … and {len(missing) - 30} more | |")
+              lines.append("")
+
+          if mismatch:
+              lines.append("### 👁 Fallback Vision Mismatches")
+              lines.append("")
+              lines.append(
+                  "The following fallback `vision` scores are contradicted by "
+                  "**both** secondary sources (Hugging Face tags + Artificial "
+                  "Analysis page). Apply the suggested value to "
+                  "`config/model-scores.yaml`."
+              )
+              lines.append("")
+              lines.append("| Model | Fallback | Suggested | Signals |")
+              lines.append("|-------|----------|-----------|---------|")
+              for m in mismatch[:30]:
+                  sig = m.get("signals", {})
+                  lines.append(
+                      f"| {m['model']} | {m.get('fallback_vision', '?')} "
+                      f"| {m.get('suggested_vision', '?')} "
+                      f"| hf={sig.get('hf', '?')}, aa={sig.get('aa', '?')} |"
+                  )
+              if len(mismatch) > 30:
+                  lines.append(f"| … and {len(mismatch) - 30} more | | | |")
               lines.append("")
 
           lines.append("---")
@@ -446,7 +471,9 @@ jobs:
             4. On that branch only: remove stale entries now on LiveBench from
                `config/model-scores.yaml`; for missing models, search the web for
                benchmark scores and add them (in split mode the research comes
-               from the "search-missing-scores" task — same branch, single PR)
+               from the "search-missing-scores" task — same branch, single PR);
+               for models listed under Fallback Vision Mismatches, apply the
+               suggested `vision` score (both secondary sources already agree)
             5. Run `python scripts/opencode_maintenance.py` to verify (it
                rewrites README.md and data/ — leave those uncommitted)
             6. Commit and push the branch with ONLY `config/model-scores.yaml`

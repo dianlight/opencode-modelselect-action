@@ -1,5 +1,18 @@
 ## [Unreleased]
 ### Fixed
+- Corrected fallback `vision` scores in `config/model-scores.yaml` that
+  claimed a vision encoder for text-only models (Hugging Face tags +
+  Artificial Analysis page agree): `mimo-v2.5-pro` 55→5, `longcat-2.0`
+  40→5, `laguna-s-2.1-free` 40→5, `ling-3.0-flash-free` 40→5. Also
+  `longcat-2.0` instruction_following 85→90 and reasoning 85→89
+  (publisher figures, dual-corroborated), `laguna-s-2.1-free` coding
+  52→59 (SWE-bench Pro 59.4, three sources), and the stale AA Index
+  comment on `longcat-2.0` (34→19)
+- Daily maintenance now auto-verifies fallback `vision` scores against
+  two secondary sources (HF model tags + AA model page, both must agree
+  to flag) and surfaces mismatches as `fallback_mismatch` in
+  `data/coverage_issues.json` and the maintenance issue, so the
+  verification repeats every run instead of being a one-off
 - OpenChamber routing sync no longer disables every category when the
   plugin's `task-types-cache.json` predates `jev_criteria` (a stale cache
   marks no type as routable, so each stored id looked stale and the sync

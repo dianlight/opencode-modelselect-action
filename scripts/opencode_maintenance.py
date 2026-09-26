@@ -24,6 +24,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import yaml
+from collections.abc import Callable
 
 # --- Paths ---
 ROOT = Path(__file__).parent.parent
@@ -1568,14 +1569,19 @@ def detect_coverage_issues(
         "stale_fallback": [{"model": str, "livebench_scores": {...}}],
         "missing_scores": [{"model": str, "tier": str}],
         "missing_prices": [{"model": str, "tier": str}],
+        "fallback_mismatch": [{"model": str, "fallback_vision": float,
+            "signals": {"hf": str, "aa": str}, "suggested_vision": float}],
     }
     `missing_prices` lists paid models with no in/out pricing (unknown cost);
     free-tier models default to Free and are never listed there.
+    `fallback_mismatch` is filled in by main() via
+    detect_fallback_modality_mismatches() (HF tags + AA page must agree).
     """
     issues: dict[str, list[dict[str, Any]]] = {
         "stale_fallback": [],
         "missing_scores": [],
         "missing_prices": [],
+        "fallback_mismatch": [],
     }
     lb_models = _lb_models(livebench)
     fallback = _get_fallback_scores()
@@ -1624,6 +1630,171 @@ def detect_coverage_issues(
                 )
 
     return issues
+
+
+# --- Secondary-Source Fallback Verification ---
+# LiveBench misses many OpenCode models, so static fallbacks in
+# config/model-scores.yaml carry hand-written estimates that drift. The
+# vision subscore is bimodal (TEXT_ONLY_VISION for text-only models,
+# MULTIMODAL_VISION_BASELINE+ for vision encoders), so a modality
+# cross-check catches the whole bug class without mapping numeric scales
+# across harnesses (Terminal-Bench/SWE-bench raws must never be copied 1:1
+# into LiveBench-scale slots).
+# Open LLM Leaderboard was evaluated and rejected as the primary second
+# source (archived, open-weights only, no API rows for proprietary Zen/Go
+# IDs). Instead two independent live signals are required to flag: the
+# Hugging Face model tags plus the Artificial Analysis model page. A single
+# source never flags (corrections need >= 2 agreeing sources). BenchLM
+# model pages and vendor blogs remain manual second sources for models
+# without both signals (e.g. laguna, ling); extend SECONDARY_SOURCE_MAP as
+# new AA slugs / HF repos are verified.
+SECONDARY_SOURCE_TIMEOUT = 15
+TEXT_ONLY_VISION = 5.0
+MULTIMODAL_VISION_BASELINE = 40.0
+# Fallback vision <= VISION_TEXT_ONLY_MAX claims text-only;
+# >= VISION_MULTIMODAL_MIN claims a vision encoder.
+VISION_TEXT_ONLY_MAX = 10.0
+VISION_MULTIMODAL_MIN = 20.0
+
+HF_API_MODEL_URL = "https://huggingface.co/api/models/{repo}"
+AA_MODEL_URL = "https://artificialanalysis.ai/models/{slug}"
+
+_HF_MULTIMODAL_TAGS = frozenset(
+    {
+        "multimodal",
+        "vision-language",
+        "image",
+        "visual",
+        "video-understanding",
+        "audio",
+    }
+)
+
+# Fallback key (lowercased, as in config/model-scores.yaml) ->
+# (Artificial Analysis slug, Hugging Face repo). Both must exist: the check
+# only flags when the two signals agree.
+SECONDARY_SOURCE_MAP: dict[str, tuple[str, str]] = {
+    "mimo-v2.5-pro": ("mimo-v2-5-pro", "XiaomiMiMo/MiMo-V2.5-Pro"),
+    "mimo-v2.6-pro": ("mimo-v2-6-pro", "XiaomiMiMo/MiMo-V2.6-Pro-RL"),
+    "longcat-2.0": ("longcat-2-0", "meituan-longcat/LongCat-2.0"),
+}
+
+
+def _hf_modality_from_api(data: object) -> str:
+    """Classify an HF model API payload: text-only / multimodal / unknown."""
+    if not isinstance(data, dict):
+        return "unknown"
+    tags: set[str] = set()
+    raw_tags = data.get("tags")
+    if isinstance(raw_tags, list):
+        tags.update(str(t).lower() for t in raw_tags if isinstance(t, str))
+    card = data.get("cardData")
+    if isinstance(card, dict):
+        raw_card = card.get("tags")
+        if isinstance(raw_card, list):
+            tags.update(str(t).lower() for t in raw_card if isinstance(t, str))
+    if not tags:
+        return "unknown"
+    if tags & _HF_MULTIMODAL_TAGS:
+        return "multimodal"
+    if data.get("pipeline_tag") == "text-generation":
+        return "text-only"
+    return "unknown"
+
+
+def fetch_hf_modality(
+    hf_repo: str, timeout: int = SECONDARY_SOURCE_TIMEOUT
+) -> str:
+    """Fetch HF model tags and classify modality (unknown on any failure)."""
+    try:
+        req = Request(
+            HF_API_MODEL_URL.format(repo=hf_repo),
+            headers={"User-Agent": "opencode-maintenance/1.0"},
+        )
+        with urlopen(req, timeout=timeout) as resp:
+            data = json.load(resp)
+    except (URLError, HTTPError, json.JSONDecodeError, TimeoutError):
+        return "unknown"
+    return _hf_modality_from_api(data)
+
+
+def _aa_modality_from_html(html: object) -> str:
+    """Classify an AA model page modality from its FAQ/spec text."""
+    if not isinstance(html, str) or not html:
+        return "unknown"
+    text = html.lower()
+    if (
+        "does not support image" in text
+        or "only supports text input" in text
+        or "only supports text" in text
+    ):
+        return "text-only"
+    if "can process images" in text or "supports text, image" in text:
+        return "multimodal"
+    return "unknown"
+
+
+def fetch_aa_modality(
+    aa_slug: str, timeout: int = SECONDARY_SOURCE_TIMEOUT
+) -> str:
+    """Fetch an AA model page and classify modality (unknown if unreachable)."""
+    html = fetch_text(AA_MODEL_URL.format(slug=aa_slug), timeout=timeout)
+    if not html:
+        return "unknown"
+    return _aa_modality_from_html(html)
+
+
+def detect_fallback_modality_mismatches(
+    fallback_scores: dict[str, dict[str, float]] | None = None,
+    hf_fetch: Callable[[str], str] | None = None,
+    aa_fetch: Callable[[str], str] | None = None,
+) -> list[dict[str, Any]]:
+    """Flag fallback vision scores contradicted by both secondary sources.
+
+    For each fallback entry present in SECONDARY_SOURCE_MAP, fetch the HF
+    and AA modalities. A flag needs both to agree AND to contradict the
+    fallback claim (vision >= VISION_MULTIMODAL_MIN while both say
+    text-only, or vision <= VISION_TEXT_ONLY_MAX while both say
+    multimodal). Unknown signals or disagreements never flag.
+    Returns [{"model", "fallback_vision", "signals", "suggested_vision"}].
+    Network failures yield "unknown" and never flag (fail-soft for the
+    daily run and offline unit tests).
+    """
+    hf_fetch = hf_fetch or fetch_hf_modality
+    aa_fetch = aa_fetch or fetch_aa_modality
+    scores = fallback_scores if fallback_scores is not None else _get_fallback_scores()
+    mismatches: list[dict[str, Any]] = []
+    for key, entry in scores.items():
+        norm = key.strip().lower()
+        if norm not in SECONDARY_SOURCE_MAP:
+            continue
+        vision = entry.get("vision") if isinstance(entry, dict) else None
+        if not isinstance(vision, (int, float)):
+            continue
+        aa_slug, hf_repo = SECONDARY_SOURCE_MAP[norm]
+        hf_mod = hf_fetch(hf_repo)
+        aa_mod = aa_fetch(aa_slug)
+        if hf_mod == "unknown" or aa_mod == "unknown" or hf_mod != aa_mod:
+            continue
+        if hf_mod == "text-only" and vision >= VISION_MULTIMODAL_MIN:
+            mismatches.append(
+                {
+                    "model": norm,
+                    "fallback_vision": vision,
+                    "signals": {"hf": hf_mod, "aa": aa_mod},
+                    "suggested_vision": TEXT_ONLY_VISION,
+                }
+            )
+        elif hf_mod == "multimodal" and vision <= VISION_TEXT_ONLY_MAX:
+            mismatches.append(
+                {
+                    "model": norm,
+                    "fallback_vision": vision,
+                    "signals": {"hf": hf_mod, "aa": aa_mod},
+                    "suggested_vision": MULTIMODAL_VISION_BASELINE,
+                }
+            )
+    return mismatches
 
 
 def generate_model_recommendation_table(
@@ -2034,6 +2205,17 @@ def main() -> None:
     coverage = detect_coverage_issues(
         free_models, go_models, livebench, price_lookup
     )
+    # 7b. Secondary-source vision check (HF tags + AA pages, both must agree
+    # to flag; fail-soft offline). Numeric coding/IF/reasoning raws stay
+    # manual: vendor harnesses differ from LiveBench scale and must never
+    # auto-map.
+    print("-> Verifying fallback vision against secondary sources...")
+    try:
+        modality_flags = detect_fallback_modality_mismatches()
+    except (URLError, HTTPError, TimeoutError, ValueError) as e:
+        print(f"  w Secondary-source check skipped: {e}")
+        modality_flags = []
+    coverage["fallback_mismatch"] = modality_flags
     save_json(COVERAGE_ISSUES_PATH, coverage)
     if coverage.get("stale_fallback"):
         for m in coverage["stale_fallback"]:
@@ -2044,7 +2226,10 @@ def main() -> None:
     if coverage.get("missing_prices"):
         for m in coverage["missing_prices"]:
             print(f"  w Missing prices: {m['model']} ({m['tier']}) — cost unknown")
-    if not coverage.get("stale_fallback") and not coverage.get("missing_scores"):
+    if coverage.get("fallback_mismatch"):
+        for m in coverage["fallback_mismatch"]:
+            print(f"  w Vision mismatch: {m['model']} fallback={m['fallback_vision']} suggested={m['suggested_vision']} (hf={m['signals']['hf']}, aa={m['signals']['aa']})")
+    if not coverage.get("stale_fallback") and not coverage.get("missing_scores") and not coverage.get("fallback_mismatch"):
         print("  v All models have scores, no stale fallback entries")
 
 
