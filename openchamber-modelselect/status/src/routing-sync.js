@@ -16,6 +16,11 @@
  * - Stale entries (stored ids that are not task types, or ignored ones)
  *   are disabled (`disabled: true`), never deleted. Built-in overrides
  *   keep `builtin: true`.
+ * - Never writes from an unusable payload: a cache written before
+ *   `jev_criteria` existed (or a payload where no type carries one) marks
+ *   every stored entry stale, which would disable the whole category list.
+ *   Such a payload is skipped entirely — routing is left untouched until
+ *   the plugin refreshes its cache.
  * - Writes only when something changed. All failures are silent: sync is
  *   best-effort and must never break the status view.
  */
@@ -133,12 +138,15 @@ function splitModelRef(model) {
 
 // Build the desired user categories from the task-type map
 // ({ name: { label, jev_criteria, agent? } }) and the model-config table
-// ({ name: { go, free } }). Returns { desired, ignored } where desired maps
-// id -> { name, description, model?, agent? } and ignored lists the ids
-// with an empty criteria.
+// ({ name: { go, free } }). Returns { desired, ignored, unusable } where
+// desired maps id -> { name, description, model?, agent? }, ignored lists
+// the ids with an empty criteria, and `unusable` flags a payload that
+// carries no criteria at all (pre-jev_criteria cache or a shape change):
+// there the "everything else is stale" rule would wipe the whole list.
 function buildDesired(taskTypes, modelTable, preference) {
   var desired = {};
   var ignored = [];
+  var withCriteria = 0;
   var names = Object.keys(taskTypes || {});
   for (var ni = 0; ni < names.length; ni++) {
     var id = String(names[ni]).toLowerCase().trim();
@@ -149,6 +157,7 @@ function buildDesired(taskTypes, modelTable, preference) {
       ignored.push(id);
       continue;
     }
+    withCriteria++;
     var cat = {
       name: String(meta.label || id),
       description: crit
@@ -165,7 +174,7 @@ function buildDesired(taskTypes, modelTable, preference) {
     if (agent) cat.agent = agent;
     desired[id] = cat;
   }
-  return { desired: desired, ignored: ignored };
+  return { desired: desired, ignored: ignored, unusable: withCriteria === 0 };
 }
 
 function stableStringify(v) {
@@ -302,7 +311,13 @@ function syncRouting(host) {
     }
     if (!isObject(taskTypes) || !isObject(modelTable)) return { written: false };
     var built = buildDesired(taskTypes, modelTable, preference);
-    if (!Object.keys(built.desired).length && !built.ignored.length) return { written: false };
+    // A payload with no criteria anywhere is unrecognised (stale cache
+    // written before jev_criteria existed): leave routing alone rather
+    // than disable every stored category as stale.
+    if (built.unusable) return { written: false };
+    // Also skip when the payload yields no category: with an empty desired
+    // set every stored id looks stale, so a write could only ever disable.
+    if (!Object.keys(built.desired).length) return { written: false };
     var stored = isObject(routing) ? routing : {};
     var nextCats = mergeCategories(stored.categories, built.desired, built.ignored);
     // Fallback follows `generic` under the same preference.

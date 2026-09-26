@@ -176,7 +176,7 @@ function loadFrame({ files, session }) {
         writes.push({ path: m.payload.path, content: m.payload.content });
         files.set(m.payload.path, m.payload.content);
         ok(m.id, { written: true });
-      } else if (m.type === 'resize' || m.type === 'storage') {
+      } else if (m.type === 'resize' || m.type === 'storage' || m.type === 'toast') {
         ok(m.id, {});
       }
     }
@@ -239,11 +239,15 @@ describe('modelselect status frame', () => {
       assert.match(txt, /Auto/); // session model is unset
       assert.doesNotMatch(txt, /bridge unavailable/);
 
-      // Status bar icons with tooltips: Go auth + suggest-only.
+      // Row icons with tooltips: Go auth on the Tier row, suggest-only on
+      // the Model row. Clicking one toasts the explanation (native title
+      // tooltips don't surface in the sandboxed frame).
       const icons = findAll(frame.root, (el) => el.className && el.className.split(' ').includes('ms-ico'));
       assert.equal(icons.length, 2);
       assert.match(icons[0].attrs.title, /Go auth OK/);
       assert.match(icons[1].attrs.title, /Suggest-only/);
+      icons[0].click(); // toast path must not throw
+      await frame.settle();
 
       // Mode defaults to on (no mode.json): On selected, "routes every turn".
       // The mode switch is SDK kit tabs (role=tab + aria-selected).
@@ -417,6 +421,77 @@ describe('modelselect status frame', () => {
       });
       assert.equal(next.categories.vanished.disabled, true);
       assert.equal(next.categories.vanished.name, 'Vanished');
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('sync writes nothing when the cached task types predate jev_criteria', async () => {
+    // Regression gate: a cache written by a pre-jev_criteria plugin has
+    // no criteria on any type, so every stored category looks stale. The
+    // sync must leave routing.json alone instead of disabling all of it.
+    const files = new Map([
+      [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+      ['~/.config/openchamber/opencode.managed.json', JSON.stringify({ plugins: ['opencode-modelselect-plugin'] })],
+      [`${STATUS_DIR}/model-config-cache.json`, JSON.stringify({
+        fetchedAt: Date.now(),
+        config: {
+          'task-types': {
+            plan: { go: 'opencode-go/m-plan', free: 'opencode/m-plan-free' },
+            generic: { go: 'opencode-go/m-generic', free: 'opencode/m-generic-free' },
+          },
+        },
+      })],
+      [`${STATUS_DIR}/task-types-cache.json`, JSON.stringify({
+        fetchedAt: Date.now(),
+        taskTypes: {
+          plan: { label: 'Plan', description: 'Planning, architecture decisions' },
+          generic: { label: 'Generic', description: 'General Q&A, explanations' },
+        },
+      })],
+      ['~/.config/openchamber/routing.json', JSON.stringify({
+        version: 1,
+        enabled: true,
+        categories: {
+          trivial: { builtin: true, model: { providerID: 'opencode', modelID: 'x-free' } },
+          research: { builtin: true, model: { providerID: 'opencode', modelID: 'y-free' }, agent: 'plan' },
+        },
+      })],
+    ]);
+    const frame = loadFrame({ files, session: AUTO_SESSION });
+    try {
+      await frame.ready();
+      const writes = frame.writes.filter((w) => w.path === '~/.config/openchamber/routing.json');
+      assert.equal(writes.length, 0, 'expected no write from a criteria-less task-type payload');
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('sync writes nothing when no task type carries a criteria', async () => {
+    // Every type explicitly ignored: desired is empty, so a write could
+    // only disable. Nothing to create means nothing to write.
+    const files = new Map([
+      [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+      ['~/.config/openchamber/opencode.managed.json', JSON.stringify({ plugins: ['opencode-modelselect-plugin'] })],
+      [`${STATUS_DIR}/model-config-cache.json`, JSON.stringify({
+        fetchedAt: Date.now(),
+        config: { 'task-types': { plan: { go: 'opencode-go/m-plan', free: 'opencode/m-plan-free' } } },
+      })],
+      [`${STATUS_DIR}/task-types-cache.json`, JSON.stringify({
+        fetchedAt: Date.now(),
+        taskTypes: { plan: { label: 'Plan', description: 'Planning', jev_criteria: '   ' } },
+      })],
+      ['~/.config/openchamber/routing.json', JSON.stringify({
+        version: 1,
+        categories: { plan: { builtin: false, name: 'Plan', description: 'Planning work.' } },
+      })],
+    ]);
+    const frame = loadFrame({ files, session: AUTO_SESSION });
+    try {
+      await frame.ready();
+      const writes = frame.writes.filter((w) => w.path === '~/.config/openchamber/routing.json');
+      assert.equal(writes.length, 0, 'expected no write when no category would be created');
     } finally {
       frame.close();
     }

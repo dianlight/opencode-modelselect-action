@@ -1,4 +1,13 @@
 ## [Unreleased]
+### Fixed
+- OpenChamber routing sync no longer disables every category when the
+  plugin's `task-types-cache.json` predates `jev_criteria` (a stale cache
+  marks no type as routable, so each stored id looked stale and the sync
+  wrote a routing.json with all built-ins off and none of the task-type
+  categories). A payload with no criteria anywhere, or one that yields no
+  category, is now skipped entirely and `routing.json` is left untouched
+  until the plugin refreshes its cache
+
 ### Added
 - Plugin session continuation: zero-signal turns (short acks like `do it`,
   `sì, procedi`, or answers after an assistant question — any language or
