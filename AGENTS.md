@@ -2,7 +2,7 @@
 
 ## Repository purpose
 
-This repo is a GitHub Action (`action.yml` at the root) that preselects the OpenCode model for a task class and tier, plus the workflow distribution hub that consumes it downstream.
+This repo is a model-routing hub for OpenCode: a GitHub Action (canonical code in `github-action/`, thin `action.yml` shim at the root), an OpenCode plugin (`plugin/`), and an OpenChamber status view (`openchamber-modelselect/`). The action preselects the OpenCode model for a task class and tier, plus the workflow distribution hub that consumes it downstream.
 
 ## Active vs deprecated workflows
 
@@ -41,7 +41,7 @@ authorization gate (`author_association` in `OWNER/MEMBER/COLLABORATOR`) applied
 to those workflows while they existed. The `go`/`free` tier inputs on the
 select-model action remain — only the slash-command trigger syntax is gone.
 
-The select-model action (`action.yml` + `src/index.js`, Node 24, zero dependencies) preselects the model for a `task-type` + `tier` (`go`/`free`) step before the OpenCode step, from the central model config (`data/model-config.json`). There are **no default models**: if the config is unreachable or the entry is missing, the step fails hard and the workflow stops (unless an explicit `fallback-model` input is given). Model selection needs no sync since downstream workflows call this repo's action directly.
+The select-model action (canonical `github-action/action.yml` + `github-action/src/index.js`, root `action.yml` shim pointing at it, Node 24, zero dependencies) preselects the model for a `task-type` + `tier` (`go`/`free`) step before the OpenCode step, from the central model config (`data/model-config.json`). There are **no default models**: if the config is unreachable or the entry is missing, the step fails hard and the workflow stops (unless an explicit `fallback-model` input is given). Model selection needs no sync since downstream workflows call this repo's action directly.
 
 ### Central model config
 
@@ -89,7 +89,7 @@ When updating `CHANGELOG.md`:
 
 - **Always run `mise run lint-yaml` after editing any YAML file** — the CI lints YAML and a `syntax error: could not find expected ':'` usually means a `|` block line broke out of the correct indent level
 - **Always run `mise run lint-python` after editing any Python file** — the CI checks Python with ruff
-- Verify with `node --check src/index.js` after changing the action
+- Verify with `node --check github-action/src/index.js` after changing the action (run from `github-action/` as `node --check src/index.js`); `npm test` at the root delegates to `github-action/test/`
 - After changing `openchamber-modelselect/status/src/main.js`, rebuild the
   bundle (`bun run build` in `openchamber-modelselect/`), verify with
   `bun run check`, run the frame tests (`bun run test`), and commit the

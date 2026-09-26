@@ -1,4 +1,13 @@
 ## [Unreleased]
+### Changed
+- Reorganized the repo around components: the select-model action now
+  lives in `github-action/` with its own README (`github-action/README.md`
+  holds the full inputs/outputs/probing reference); the root `action.yml`
+  stays as a thin shim so `uses: dianlight/opencode-modelselect-action@v1`
+  keeps working, and the root README is a general overview linking the
+  three component READMEs (`github-action/`, `plugin/`,
+  `openchamber-modelselect/`)
+
 ### Fixed
 - Corrected fallback `vision` scores in `config/model-scores.yaml` that
   claimed a vision encoder for text-only models (Hugging Face tags +

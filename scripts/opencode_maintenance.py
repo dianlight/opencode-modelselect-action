@@ -42,7 +42,7 @@ LIVEBENCH_PATH = DATA_DIR / "livebench.json"
 AUDIT_RESULTS_PATH = DATA_DIR / "audit_results.json"
 COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # Central model config consumed by downstream workflows at startup
-# (see action.yml / src/index.js). This IS the actual configuration: each
+# (see github-action/action.yml + github-action/src/index.js). This IS the actual configuration: each
 # maintenance run recomputes it and the workflow commits it directly, so the
 # newly computed models immediately become the selection target.
 MODEL_CONFIG_PATH = DATA_DIR / "model-config.json"

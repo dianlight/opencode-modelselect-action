@@ -5,7 +5,7 @@
  * time-based cache (`configRefreshMinutes`, 0 = always refetch,
  * default 1440 = 24h) and resolves go/free/auto tiers.
  *
- * Tier probing mirrors src/index.js (Go usage endpoint + free probe);
+ * Tier probing mirrors github-action/src/index.js (Go usage endpoint + free probe);
  * kept best-effort here so a live-quota failure degrades to the
  * preferred tier instead of failing the session.
  */
