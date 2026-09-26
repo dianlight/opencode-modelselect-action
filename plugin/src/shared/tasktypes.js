@@ -23,6 +23,11 @@ const DEFAULT_TASK_TYPES_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/task-types.json';
 const TASK_TYPES_CACHE_NAME = 'task-types-cache.json';
 const FETCH_TIMEOUT_MS = 10000;
+// Cache schema version. Bump when the normalized entry shape changes so
+// caches written by older plugin code are rejected (and refetched) instead
+// of being trusted until the refresh TTL expires. v2 = entries carry
+// `jev_criteria` + `agent` (v1 files predate them and are unstamped).
+const TASK_TYPES_CACHE_VERSION = 2;
 
 function taskTypesCacheFile(cacheDir) {
   return path.join(cacheDir, TASK_TYPES_CACHE_NAME);
@@ -31,7 +36,10 @@ function taskTypesCacheFile(cacheDir) {
 function readTaskTypesCache(cacheDir) {
   try {
     const raw = JSON.parse(fs.readFileSync(taskTypesCacheFile(cacheDir), 'utf8'));
-    if (raw && typeof raw === 'object' && raw.taskTypes && typeof raw.fetchedAt === 'number') return raw;
+    if (raw && typeof raw === 'object' && raw.taskTypes && typeof raw.fetchedAt === 'number') {
+      if (raw.v !== TASK_TYPES_CACHE_VERSION) return null; // stale schema: refetch
+      return raw;
+    }
   } catch {
     // no usable cache
   }
@@ -40,7 +48,11 @@ function readTaskTypesCache(cacheDir) {
 
 function writeTaskTypesCache(cacheDir, taskTypes) {
   fs.mkdirSync(cacheDir, { recursive: true });
-  fs.writeFileSync(taskTypesCacheFile(cacheDir), JSON.stringify({ fetchedAt: Date.now(), taskTypes }), 'utf8');
+  fs.writeFileSync(
+    taskTypesCacheFile(cacheDir),
+    JSON.stringify({ v: TASK_TYPES_CACHE_VERSION, fetchedAt: Date.now(), taskTypes }),
+    'utf8',
+  );
 }
 
 function isFresh(cached, refreshMinutes) {
@@ -126,5 +138,6 @@ module.exports = {
   loadTaskTypes,
   normalizeTaskTypes,
   taskTypesCacheFile,
+  TASK_TYPES_CACHE_VERSION,
   DEFAULT_TASK_TYPES_URL,
 };

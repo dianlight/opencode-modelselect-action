@@ -9,7 +9,7 @@ const path = require('node:path');
 const { inferTaskType } = require('../src/shared/detect');
 const { normalizeOptions, formatAnnounce, loadConfig, resolveModel, splitModelRef, clearQuotaCache } = require('../src/shared/select');
 const { parseJevAnswer, refineTaskTypeWithJev, buildJevQuestions, jevLabel, DEFAULT_JEV_ENDPOINT } = require('../src/shared/jev');
-const { loadTaskTypes, normalizeTaskTypes, taskTypesCacheFile, DEFAULT_TASK_TYPES_URL } = require('../src/shared/tasktypes');
+const { loadTaskTypes, normalizeTaskTypes, taskTypesCacheFile, TASK_TYPES_CACHE_VERSION, DEFAULT_TASK_TYPES_URL } = require('../src/shared/tasktypes');
 const { seedCache, seedTaskTypes, isolateAuth, writeAuthFile } = require('./helpers');
 
 describe('detect heuristics', () => {
@@ -917,6 +917,40 @@ describe('remote task-types (option B)', () => {
       );
       assert.equal(source, 'cache');
       assert.deepEqual(got, taskTypes);
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('loadTaskTypes refetches a cache written before jev_criteria existed', async () => {
+    // Regression gate for the 24h-TTL deadlock: a cache file written by
+    // pre-jev_criteria plugin code is still "fresh" by fetchedAt, but its
+    // entries carry no criteria — trusting it leaves the OpenChamber sync
+    // with nothing routable. Unstamped (v1) files must be refetched.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-tt-v1-'));
+    const cache = path.join(dir, '.opencode', '.modelselect-cache');
+    fs.mkdirSync(cache, { recursive: true });
+    fs.writeFileSync(
+      taskTypesCacheFile(cache),
+      JSON.stringify({
+        fetchedAt: Date.now(), // fresh: only the missing version may trigger the refetch
+        taskTypes: { plan: { label: 'Plan', description: 'Planning, architecture decisions' } },
+      }),
+    );
+    const remote = {
+      plan: { label: 'Plan', description: 'Planning', jev_criteria: 'Plan work: decide structure.', agent: 'plan' },
+    };
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ 'task-types': remote }) });
+    try {
+      const opts = normalizeOptions({});
+      const { taskTypes: got, source } = await loadTaskTypes(opts, cache);
+      assert.equal(source, 'remote');
+      assert.deepEqual(got, remote);
+      const rewritten = JSON.parse(fs.readFileSync(taskTypesCacheFile(cache), 'utf8'));
+      assert.equal(rewritten.v, TASK_TYPES_CACHE_VERSION);
+      assert.equal(rewritten.taskTypes.plan.jev_criteria, 'Plan work: decide structure.');
     } finally {
       globalThis.fetch = realFetch;
       fs.rmSync(dir, { recursive: true, force: true });

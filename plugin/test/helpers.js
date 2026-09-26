@@ -13,6 +13,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { clearAuthCache } = require('../src/shared/auth');
+const { TASK_TYPES_CACHE_VERSION } = require('../src/shared/tasktypes');
 
 function seedCache(dir, config) {
   const cache = path.join(dir, '.opencode', '.modelselect-cache');
@@ -28,7 +29,7 @@ function seedTaskTypes(dir, taskTypes) {
   fs.mkdirSync(cache, { recursive: true });
   fs.writeFileSync(
     path.join(cache, 'task-types-cache.json'),
-    JSON.stringify({ fetchedAt: Date.now(), taskTypes }),
+    JSON.stringify({ v: TASK_TYPES_CACHE_VERSION, fetchedAt: Date.now(), taskTypes }),
   );
 }
 

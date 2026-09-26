@@ -7,6 +7,11 @@
   categories). A payload with no criteria anywhere, or one that yields no
   category, is now skipped entirely and `routing.json` is left untouched
   until the plugin refreshes its cache
+- Plugin `task-types-cache.json` is now schema-versioned (`v: 2` for the
+  `jev_criteria` + `agent` shape): a cache written by older plugin code is
+  rejected and refetched immediately instead of being trusted until the
+  24h `configRefreshMinutes` TTL expires — trusting it left the
+  OpenChamber sync with nothing routable
 
 ### Added
 - Plugin session continuation: zero-signal turns (short acks like `do it`,
