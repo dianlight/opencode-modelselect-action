@@ -9,6 +9,11 @@
       "openchamber": ">=2.0.0"
     },
     "contributes": {
+      "panel": {
+        "id": "model-select",
+        "name": "Model Select",
+        "icon": "window"
+      },
       "statusSection": {
         "entry": "status/index.html",
         "title": "Model Select",
