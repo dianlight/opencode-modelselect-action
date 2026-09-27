@@ -2,7 +2,7 @@
   "name": "opencode-modelselect-action",
   "version": "1.0.0",
   "private": true,
-  "description": "Opencode Modelselect — preselect the OpenCode model for a task-type and tier from the central model config",
+  "description": "Model routing ecosystem for OpenCode: GitHub Action for CI, live plugin for sessions, OpenChamber status view, and LiveBench-driven model ranking from one central config",
   "main": "src/index.js",
   "engines": {
     "node": ">=20"

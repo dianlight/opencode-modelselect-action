@@ -1,9 +1,10 @@
 name: Opencode Modelselect
 description: >-
-  Preselect the OpenCode model for a task class (task-type) and tier
-  (go/free/auto) from the central model config, before running the OpenCode
-  action. Fails hard when no model can be resolved — a missing config is an
-  error, never a silent fallback.
+  Part of the OpenCode model-routing ecosystem (GitHub Action + live plugin
+  + OpenChamber view + LiveBench ranking). Preselect the OpenCode model for
+  a task class (task-type) and tier (go/free/auto) from the central model
+  config, before running the OpenCode action. Fails hard when no model can
+  be resolved — a missing config is an error, never a silent fallback.
 
 inputs:
   task-type:
