@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-27T05:48:44.228486+00:00",
+  "timestamp": "2026-09-27T06:45:09.752668+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -1410,6 +1410,13 @@
           "blended_cost": 0.45
         },
         {
+          "model": "opencode-go/longcat-2.5-preview-free",
+          "score": 40.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 40.0,
           "input_cost": 0.14,
@@ -1443,13 +1450,6 @@
           "input_cost": 0.3,
           "output_cost": 1.2,
           "blended_cost": 0.525
-        },
-        {
-          "model": "opencode-go/longcat-2.5-preview-free",
-          "score": 30.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
         },
         {
           "model": "opencode-go/hy3",
@@ -1524,6 +1524,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/longcat-2.5-preview-free",
+          "score": 40.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode/mimo-v2.6-flash-free",
           "score": 38.0,
           "input_cost": 0.0,
@@ -1533,13 +1540,6 @@
         {
           "model": "opencode/space-bunny-free",
           "score": 38.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/longcat-2.5-preview-free",
-          "score": 30.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
