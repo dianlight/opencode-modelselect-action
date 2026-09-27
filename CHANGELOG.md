@@ -7,6 +7,21 @@
   keeps working, and the root README is a general overview linking the
   three component READMEs (`github-action/`, `plugin/`,
   `openchamber-modelselect/`)
+- Fixed duplicate rows in the README score table: models listed in both
+  the Zen free catalog and the Go catalog (`longcat-2.5-preview-free`,
+  `space-bunny-free`) appeared twice; `generate_score_reference_table`
+  now dedupes with the Free tier winning, plus a regression test
+- `longcat-2.5-preview-free` fallback `vision` 30→40: image input is
+  confirmed by the vendor changelog and the OpenCode catalog (Inputs
+  Text and Image), so the score follows the bimodal convention (~40+
+  multimodal baseline, conservative — no vision benchmark published yet)
+- The maintenance issue's score-research tasks now tell the agent to use
+  an explicit Secondary Source Protocol instead of an open-ended web
+  search: BenchLM → Artificial Analysis → Hugging Face eval-results,
+  correct only when ≥2 independent sources agree, keep everything on the
+  LiveBench 0–100 scale (never copy raw Terminal-Bench/SWE-bench/GPQA
+  numbers 1:1), and score `vision` bimodally (5.0 text-only vs ~40+
+  with a vision encoder)
 
 ### Fixed
 - Corrected fallback `vision` scores in `config/model-scores.yaml` that

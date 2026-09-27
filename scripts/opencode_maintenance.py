@@ -1944,8 +1944,12 @@ def generate_score_reference_table(
     score divided by blended cost; "—" for free/unknown costs).
     """
     _ = zen_models  # kept for API compatibility
-    all_model_ids = [m["id"] for m in free_models] + [m["id"] for m in go_models]
     free_ids = {m["id"] for m in free_models}
+    # The Go catalog also lists free-tier models: dedupe so each model gets
+    # one row, Free tier winning on overlap.
+    all_model_ids = sorted(
+        set([m["id"] for m in free_models] + [m["id"] for m in go_models])
+    )
     w_in, w_out = cost_blend or DEFAULT_COST_BLEND
 
     # Build a reverse map: model -> list of task types it's best suited for.
@@ -1997,7 +2001,7 @@ def generate_score_reference_table(
         "|-------|------|--------|----------|---------|--------|-----------|--------|----------------------|---------|----------|--------------|-------|",
     ]
 
-    for model_id in sorted(all_model_ids):
+    for model_id in all_model_ids:
         tier = "Free" if model_id in free_ids else "Go (Paid)"
         source = get_model_source(model_id, livebench)
         if source == "livebench":

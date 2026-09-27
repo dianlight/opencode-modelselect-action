@@ -754,3 +754,26 @@ class FallbackModalityMismatchTest(unittest.TestCase):
             aa_fetch=self._both("text-only"),
         )
         self.assertEqual(out, [])
+
+
+class ScoreTableDedupeTest(unittest.TestCase):
+    def _table(self):
+        free = [{"id": "longcat-2.5-preview-free"}, {"id": "only-free"}]
+        go = [
+            {"id": "longcat-2.5-preview-free"},  # Go catalog also lists it
+            {"id": "only-go"},
+        ]
+        return m.generate_score_reference_table({}, free, go)
+
+    def test_overlap_gets_single_row(self):
+        table = self._table()
+        rows = [ln for ln in table.splitlines() if ln.startswith("| `")]
+        ids = [ln.split("`")[1] for ln in rows]
+        self.assertEqual(sorted(ids), ["longcat-2.5-preview-free", "only-free", "only-go"])
+
+    def test_free_tier_wins_on_overlap(self):
+        table = self._table()
+        row = next(
+            ln for ln in table.splitlines() if "`longcat-2.5-preview-free`" in ln
+        )
+        self.assertIn("| Free |", row)

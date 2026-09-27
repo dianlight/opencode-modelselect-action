@@ -82,7 +82,7 @@ model_scores:
     instruction_following: 86.0  # estimate: longcat-2.0 IF 90, free tier reduction
     overall: 55.0             # estimate: no LiveBench/AA data; conservative for preview free tier
     reasoning: 84.0           # estimate: longcat-2.0 reasoning 89, free tier reduction
-    vision: 30.0              # vendor changelog claims image input; no vision benchmark data; conservative
+    vision: 40.0              # image input per vendor changelog + OpenCode catalog (Inputs Text and Image); no vision benchmark, conservative multimodal baseline
   laguna-s-2.1-free:
     coding: 59.0              # SWE-bench Pro 59.4 (poolside/HF/BenchLM agree); T-Bench 70.2, SWE-Multi 78.5
     instruction_following: 54.0

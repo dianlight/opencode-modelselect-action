@@ -141,8 +141,11 @@ jobs:
               lines.append("")
               lines.append(
                   "- [ ] **Search the web for missing score data** — "
-                  "research only: find benchmark scores on the web for each model "
-                  "listed under Models Missing Score Data below and keep them ready. "
+                  "research only: find benchmark scores for each model listed "
+                  "under Models Missing Score Data below using the secondary "
+                  "sources (BenchLM → Artificial Analysis → Hugging Face "
+                  "eval-results; ≥2 agreeing sources required, LiveBench-scale "
+                  "only) and keep them ready. "
                   "No PR is opened by this task alone — the scores are applied by "
                   "the coverage fix on the same branch (check both boxes for the "
                   "full flow)."
@@ -153,8 +156,10 @@ jobs:
               if missing and not stale:
                   lines.append(
                       "- [ ] **Correct the model coverage issues** — "
-                      "search the web for benchmark scores for the models listed "
-                      "under Model Coverage Issues below and add them to "
+                      "research benchmark scores for the models listed "
+                      "under Model Coverage Issues below (secondary sources, "
+                      "BenchLM → Artificial Analysis → Hugging Face eval-results, "
+                      "≥2 agreeing sources, LiveBench-scale only) and add them to "
                       "`config/model-scores.yaml`. "
                       "Opens a PR titled \"Fix model coverage issues\" containing "
                       "only those changes."
@@ -447,6 +452,24 @@ jobs:
             `gh issue view $ISSUE_NUMBER --json body,comments --jq .`
             The checked boxes (`[x]`) and the section headers are the source of truth.
 
+            Secondary Source Protocol (use whenever researching scores for a
+            model missing from `data/livebench.json`):
+            1. Sources in order: `benchlm.ai/models/<slug>` (closest to
+               LiveBench-style aggregates), `artificialanalysis.ai/models/<slug>`,
+               `huggingface.co/api/models/<repo>` (vendor eval-results + modality
+               tags). The HF Open LLM Leaderboard is retired — do not use it.
+               `websearch` may fail with HTTP 400; fetch these URLs directly.
+            2. Correct/insert a value only when ≥2 independent sources agree on
+               it. Single-source values go in marked `# unverified single source`;
+               if no source exists, skip the model and say so in the PR body.
+            3. Every field is LiveBench-scale 0–100. Never copy raw vendor
+               numbers (Terminal-Bench, SWE-bench, GPQA, IFEval/IFBench, HLE)
+               1:1 — discount them against comparable models in
+               `data/livebench.json`.
+            4. `vision` is bimodal: text-only models get `5.0`, models with a
+               vision encoder get ~40+. Confirm modality with both HF tags and
+               the Artificial Analysis page before scoring.
+
             Both tasks below produce a PR with model ranking adjustments in
             `config/model-scores.yaml` (never touch `data/model-config.json` —
             it is auto-committed by the maintenance run itself).
@@ -469,8 +492,9 @@ jobs:
                branch first so a fresh PR is opened
             3. Create a new branch (e.g. `model-coverage-fix`) from main FIRST
             4. On that branch only: remove stale entries now on LiveBench from
-               `config/model-scores.yaml`; for missing models, search the web for
-               benchmark scores and add them (in split mode the research comes
+               `config/model-scores.yaml`; for missing models, apply the
+               Secondary Source Protocol above to research scores and add them
+               (in split mode the research comes
                from the "search-missing-scores" task — same branch, single PR);
                for models listed under Fallback Vision Mismatches, apply the
                suggested `vision` score (both secondary sources already agree)
