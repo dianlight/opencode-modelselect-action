@@ -1,15 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "longcat-2.5-preview-free",
-      "tier": "Free"
-    },
-    {
-      "model": "longcat-2.5-preview-free",
-      "tier": "Free"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [
     {
       "model": "deepseek-flash",

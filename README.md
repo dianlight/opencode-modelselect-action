@@ -65,7 +65,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-27 02:11 UTC**.
+> Last updated: **2026-09-27 05:48 UTC**.
 > LiveBench data: **350 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -76,20 +76,20 @@ automatically at their next run.
 | Task Type | Description | Best Zen | Best Free | Best Go |
 |-----------|-------------|----------|-----------|---------|
 | `plan` (Plan) | Planning, architecture decisions, task decomposition | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
-| `issue-triage` (Issue Triage) | Triage, label, categorize, route issues | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (90.0, $0.3/$1.2) |
+| `issue-triage` (Issue Triage) | Triage, label, categorize, route issues | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
 | `review` (Review) | Review PRs, pull requests, diffs | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `ui-design` (UI Design) | UI design, components, layouts, mockups | `opencode/gpt-6-astra` (86.3, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (68.4, Free) | 🏆 `opencode-go/hy4-preview` (84.0, $0.834/$2.501) |
 | `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
 | `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
-| `docs` (Docs) | Documentation, READMEs, changelogs, docstrings | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (90.0, $0.3/$1.2) |
+| `docs` (Docs) | Documentation, READMEs, changelogs, docstrings | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
 | `debug` (Debug) | Debugging, reproductions, crash and exception triage | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
 | `security` (Security) | Security review, vulnerabilities, hardening | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `code` (Code) | Code generation, implementation, features | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
 | `mechanical-engineer` (Mechanical Engineer) | Mechanical engineering, calculations, CAD, thermodynamics, materials | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `web-search` (Web Search) | Ricerche approfondite sul web, sintesi multi-fonte | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
-| `generic` (Generic) | General Q&A, explanations, analysis, everything else | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (90.0, $0.3/$1.2) |
-| `small-model` (Small Model) | Lightweight utility tasks: commit messages, session titles/renames, summaries | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/muse-spark-1.3-contributor-free` (78.9, Free) | 🏆 `opencode-go/longcat-2.0` (90.0, $0.3/$1.2) |
+| `generic` (Generic) | General Q&A, explanations, analysis, everything else | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
+| `small-model` (Small Model) | Lightweight utility tasks: commit messages, session titles/renames, summaries | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
 
 ### LiveBench Score Reference
 
@@ -127,8 +127,8 @@ automatically at their next run.
 | `kimi-k3` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 69.9 | 87.0 | 72.6 | 74.9 | $3 | $15 | $6 | 13.2 |
 | `ling-3.0-flash-fin-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 48.0 | 48.0 | 5.0 | 50.0 | Free | Free | Free | — |
 | `longcat-2.0` | Go (Paid) | 📋 Fallback | Triage, Docs | 60.0 | 70.0 | 89.0 | 5.0 | 90.0 | $0.3 | $1.2 | $0.525 | 114.3 |
-| `longcat-2.5-preview-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
-| `longcat-2.5-preview-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
+| `longcat-2.5-preview-free` | Free | 📋 Fallback | Triage, Docs | 55.0 | 66.0 | 84.0 | 30.0 | 86.0 | Free | Free | Free | — |
+| `longcat-2.5-preview-free` | Free | 📋 Fallback | Triage, Docs | 55.0 | 66.0 | 84.0 | 30.0 | 86.0 | Free | Free | Free | — |
 | `mimo-v2-omni` | Go (Paid) | 📋 Fallback | Design, Triage | 50.0 | 42.0 | 48.0 | 55.0 | 50.0 | — | — | — | — |
 | `mimo-v2-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 58.4 | 45.5 | 65.8 | 43.6 | 57.8 | — | — | — | — |
 | `mimo-v2.5` | Go (Paid) | 📋 Fallback | Triage, Docs | 62.0 | 60.0 | 64.0 | 58.0 | 65.0 | $0.14 | $0.28 | $0.175 | 354.3 |
