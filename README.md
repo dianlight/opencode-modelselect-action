@@ -66,7 +66,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-09-27 06:45 UTC**.
+> Last updated: **2026-09-28 02:15 UTC**.
 > LiveBench data: **350 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
