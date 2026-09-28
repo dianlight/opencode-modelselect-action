@@ -1,5 +1,15 @@
 ## [Unreleased]
 ### Changed
+- Plugin mode `auto` (v2 only) changed meaning: before every turn the
+  plugin syncs OpenChamber's `~/.config/openchamber/routing.json` from the
+  model/task caches and then acts like `off` — no task resolve, no
+  announce, no status write, no model mutation — so OpenChamber's Jev
+  routing owns the pick. The sync core moved out of the status bundle
+  into a shared dependency-free module (`plugin/src/shared/routing.js`)
+  with an fs adapter for the plugin and a host adapter for the Work
+  Status bundle, which also syncs on refresh as a fallback; the panel's
+  mode hint now reads `routing synced, plugin off`. v1 keeps the old
+  route-until-you-switch behavior.
 - Reorganized the repo around components: the select-model action now
   lives in `github-action/` with its own README (`github-action/README.md`
   holds the full inputs/outputs/probing reference); the root `action.yml`

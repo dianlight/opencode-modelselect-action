@@ -19,14 +19,17 @@
  *   (true|false|null), source, suggestOnly, updatedAt (epoch ms).
  * - Mode file: `<project>/.opencode/.modelselect-cache/mode.json` =
  *   {"mode":"on"|"off"|"auto"}; missing/invalid means "on".
- * - NOTE: skipped auto turns do NOT rewrite the status file, so a stale
- *   file means "last applied pick".
+ * - NOTE: `off`/`auto` turns never rewrite the status file, so a stale
+ *   file means "last applied pick". In `auto` the plugin only refreshes
+ *   routing.json per turn (shared `plugin/src/shared/routing.js`) and
+ *   then hands off to OpenChamber's routing — this view mirrors that.
  *
  * Task-type / model names are read ONLY from the plugin's
  * model-config-cache.json (same directory, relative read). Routing
  * categories sync the same way from task-types-cache.json
  * (`jev_criteria` + `agent`) into the OpenChamber `routing.json`
- * deviations file (see routing-sync.js): `autoPreference` from the
+ * deviations file (shared core `plugin/src/shared/routing.js`, host
+ * adapter in routing-sync.js): `autoPreference` from the
  * modelselect plugin options picks the go/free side, empty criteria are
  * ignored, stale entries are disabled, `agent` is only set when the task
  * type defines one. No model lists are hardcoded here. Remote fallback
@@ -226,7 +229,7 @@ function isStale(status) {
 
 function modeHint(mode) {
   if (mode === 'off') return 'routing paused';
-  if (mode === 'auto') return 'routes until you pick a model';
+  if (mode === 'auto') return 'routing synced, plugin off';
   return 'routes every turn';
 }
 

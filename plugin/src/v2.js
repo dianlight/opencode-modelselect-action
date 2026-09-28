@@ -23,6 +23,11 @@
  *   zero-token visible channel (`context` edits never render), so the
  *   terse line persists+renders (~15 tokens/turn). The prompt hook event
  *   carries no `agent` field — the agent tag is read from prompt mentions.
+ * - Global mode (`<cacheDir>/mode.json`): both hooks first sync
+ *   OpenChamber's `routing.json` (shared `./shared/routing.js`), then
+ *   `on` routes/announces every turn (default), `off` skips everything,
+ *   and `auto` does only that sync and then acts like off — OpenChamber's
+ *   Jev routing owns the pick.
  */
 
 const path = require('node:path');
@@ -37,6 +42,8 @@ const {
 } = require('./shared/continuation');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
 const { readMode, writeStatus } = require('./shared/status');
+const { syncRouting } = require('./shared/routing');
+const { createRoutingIo } = require('./shared/routing-io');
 
 const ID = 'modelselect';
 
@@ -110,6 +117,7 @@ async function setup(ctx) {
   const opts = normalizeOptions(ctx.options ?? {});
   const directory = ctx.location?.directory ?? process.cwd();
   const cacheDir = cacheDirFor(directory);
+  const routingIo = createRoutingIo(directory);
   const repo = detectRepoSignals(scanRepo(directory));
   const prompts = new Map(); // sessionID -> last prompt text
   const applied = new Map(); // sessionID -> "provider/id" already persisted
@@ -247,18 +255,32 @@ async function setup(ctx) {
     }
   }
 
+  // Keep OpenChamber's Jev routing categories (`~/.config/openchamber/
+  // routing.json`) in sync with the plugin caches before every turn, in
+  // every mode — best-effort, never breaks the turn. In `auto` mode this
+  // sync IS the plugin's whole job: the categories just refreshed are what
+  // routes the question, and the plugin then acts like `off`.
+  async function syncRoutingNow() {
+    try {
+      const r = await syncRouting(routingIo);
+      if (r.written && opts.verbose) console.log('[modelselect] routing.json synced');
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] routing sync skipped: ${err?.message ?? err}`);
+    }
+  }
+
   console.log(
     `[modelselect] loaded (tier=${opts.tier} token-source=${opts.tokenSource || 'none'} announce=${opts.announce} verbose=${opts.verbose} suggestOnly=${opts.suggestOnly})`,
   );
 
   await ctx.session.hook('prompt', async (event) => {
     try {
+      // Sync OpenChamber routing before every question, then read the mode.
+      await syncRoutingNow();
       const hookMode = readMode(cacheDir);
-      if (hookMode === 'off') return;
-      // In auto mode the context hook owns every turn after the first: the
-      // prompt hook has no model field to tell a user switch from our own
-      // pick, so announcing later turns could claim a pick we then skip.
-      if (hookMode === 'auto' && event.sessionID && applied.has(event.sessionID)) return;
+      // Only `on` announces: `off` pauses everything; `auto` refreshed
+      // routing.json above and now acts like off (OpenChamber routes).
+      if (hookMode !== 'on') return;
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
       // delivery }. `event.agent` does not exist here — the agent tag comes
       // from prompt mentions (best-effort; undefined when absent).
@@ -275,26 +297,23 @@ async function setup(ctx) {
   await ctx.session.hook('context', async (event) => {
     try {
       const sessionID = event.sessionID;
+      // Sync OpenChamber routing first (fresh categories for this turn),
+      // then apply the mode.
+      await syncRoutingNow();
       const mode = readMode(cacheDir);
       if (mode === 'off') {
         if (opts.verbose) console.log(`[modelselect] mode=off: routing skipped for session=${sessionID}`);
         return;
       }
       if (mode === 'auto') {
-        // Route only unmanaged sessions: an applied entry means we routed
-        // before, so a different live model is someone else's choice.
-        const prev = sessionID ? applied.get(sessionID) : undefined;
-        const cur = event.model;
-        const curKey =
-          cur && typeof cur === 'object' && cur.providerID && cur.id
-            ? `${cur.providerID}/${cur.id}`
-            : null;
-        if (prev && curKey && curKey !== prev) {
-          if (opts.verbose) {
-            console.log(`[modelselect] mode=auto: external model ${curKey} (was ${prev}), skipping session=${sessionID}`);
-          }
-          return;
+        // The sync above refreshed `~/.config/openchamber/routing.json` —
+        // that is the whole job in auto mode: OpenChamber's Jev routing
+        // owns the pick from here, the plugin acts like off (no resolve,
+        // no status write, no announce, no model mutation).
+        if (opts.verbose) {
+          console.log(`[modelselect] mode=auto: routing synced, plugin hands off session=${sessionID}`);
         }
+        return;
       }
       const prompt = prompts.get(sessionID) ?? promptTextFromMessages(event.messages);
       const assistantSnippet = lastAssistantSnippet(event.messages, 1000);

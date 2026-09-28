@@ -48,7 +48,7 @@ Folder/ZIP/URL source.
   control (writes `.opencode/.modelselect-cache/mode.json` via `writeFile`
   and mirrors the value to `host.storage` `modelselect:mode`), with the
   mode hint below (`routes every turn` / `routing paused` /
-  `routes until you pick a model`).
+  `routing synced, plugin off`).
 - Status icons: color-coded glyphs trailing the Tier value (Go auth:
   `✓` ok / `✕` out / `?` unknown) and the Model value (`!` while the
   plugin runs in suggest-only trial mode). Native tooltips don't surface
@@ -58,7 +58,7 @@ Folder/ZIP/URL source.
   label left, right-aligned value) — Task, Tier, Model (`provider/id`,
   mono, truncated with `title` tooltip), Jev, Source. Badges (`mountBadge`) carry `last known` +
   dimming when the pick is older than ~10 min
-  (skipped auto turns don't rewrite the status file, so stale = last
+  (`off`/`auto` turns never rewrite the status file, so stale = last
   applied pick), `unlisted task` when the task is absent from the config
   cache, and `Auto` while the session model is unset.
 - Theme comes from the host (`applyHostReady`); layout CSS uses host
@@ -72,10 +72,19 @@ Status is visible.
 
 ## Routing sync
 
-On every Work Status refresh the view best-effort syncs OpenChamber's Jev
-routing categories (`~/.config/openchamber/routing.json`, stored-deviations
-shape) with the plugin task types — grant the `files` capability (the
-`routing.json` path is declared in `package.json`, re-approve on update).
+The Jev routing categories (`~/.config/openchamber/routing.json`,
+stored-deviations shape) are kept fresh from two places, both best-effort:
+
+- The plugin, before every turn (v2 `prompt` + `context` hooks) — this is
+  what makes `auto` mode work: the sync refreshes the categories, then the
+  plugin acts like `off` and OpenChamber's routing owns the pick.
+- This view, on every Work Status refresh (fallback while the panel is
+  open) — grant the `files` capability (the `routing.json` path is
+  declared in `package.json`, re-approve on update).
+
+The sync logic is one shared module (`plugin/src/shared/routing.js`);
+this bundle wraps it in a host-file adapter
+(`status/src/routing-sync.js`).
 
 - Source: plugin `task-types-cache.json` (`jev_criteria` + `agent`) plus
   `model-config-cache.json` (`go`/`free` per task type).

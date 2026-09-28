@@ -292,7 +292,7 @@ describe('modelselect status frame', () => {
       await frame.ready();
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
       assert.equal(tabs[2].attrs['aria-selected'], 'true');
-      assert.match(textOf(frame.root), /routes until you pick a model/);
+      assert.match(textOf(frame.root), /routing synced, plugin off/);
     } finally {
       frame.close();
     }

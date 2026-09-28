@@ -225,14 +225,23 @@ JSON, or unknown value all mean `"on"` (today's behavior):
 echo '{"mode":"off"}' > <project>/.opencode/.modelselect-cache/mode.json
 ```
 
+Before the mode check on every turn (v2 `prompt` + `context` hooks) the
+plugin best-effort syncs OpenChamber's `~/.config/openchamber/routing.json`
+from the caches above (`src/shared/routing.js`, writes only on diff). The
+write is skipped silently when `~/.config/openchamber` doesn't exist —
+the plugin never creates OpenChamber's config itself.
+
 - `on` — route every turn (default).
 - `off` — skip routing entirely for the turn: no mutation, no
   `switchModel`, no announce line, no status write (one verbose log line
   only).
-- `auto` — route only while the session looks unmanaged: the first turn
-  routes, later turns route only while the live model still matches the
-  last applied pick. If you (or another plugin) switch models mid-session,
-  the plugin steps aside and leaves your choice alone.
+- `auto` — refresh OpenChamber's Jev routing categories
+  (`~/.config/openchamber/routing.json`) from the plugin caches before the
+  turn, then act like `off`: no resolve, no announce, no status write, no
+  model mutation. The freshly synced categories are what route the
+  question — OpenChamber's router picks the model, the plugin stays
+  hands-off. (v2 only; v1 keeps the old route-until-you-switch
+  behavior.)
 
 ## Trial run without side effects
 

@@ -8,7 +8,7 @@ const path = require('node:path');
 
 const { normalizeOptions, resolveModel, clearQuotaCache } = require('../src/shared/select');
 const { sanitizeSessionID, readMode, clearModeCache, writeStatus, statusFile } = require('../src/shared/status');
-const { seedCache, isolateAuth } = require('./helpers');
+const { seedCache, seedTaskTypes, isolateAuth } = require('./helpers');
 
 describe('status file helpers', () => {
   it('sanitizes session IDs to [A-Za-z0-9-_]', () => {
@@ -420,34 +420,108 @@ describe('v2 status + mode', () => {
     }
   });
 
-  it('auto routes the first turn then skips externally changed models', async () => {
+  // The routing sync resolves `~` against the user home, so every test
+  // that can trigger a write points $HOME at a temp dir first — never the
+  // real ~/.config/openchamber/routing.json. The dir is pre-created: the
+  // adapter never mkdirs OpenChamber's config (absent dir = never ran).
+  function isolateHome() {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-home-'));
+    fs.mkdirSync(path.join(home, '.config', 'openchamber'), { recursive: true });
+    const prev = process.env.HOME;
+    process.env.HOME = home;
+    return {
+      home,
+      restore() {
+        if (prev === undefined) delete process.env.HOME;
+        else process.env.HOME = prev;
+        fs.rmSync(home, { recursive: true, force: true });
+      },
+    };
+  }
+
+  it('auto syncs OpenChamber routing, then hands off like off', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-mode-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    seedTaskTypes(dir, {
+      review: { label: 'Review', description: 'Review', jev_criteria: 'Review work: judge diffs.' },
+    });
     seedMode(dir, 'auto');
+    const home = isolateHome();
+    try {
+      const seen = await v2Hooks(dir, {});
+      // Prompt: no announce line — auto is hands-off after the sync.
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff');
+      // Context: syncs routing.json, then acts like off.
+      const ev1 = {
+        sessionID: 's1',
+        agent: 'review',
+        model: { providerID: 'old', id: 'old' },
+        messages: [],
+      };
+      await seen.context(ev1);
+      assert.equal(ev1.model.providerID, 'old');
+      assert.equal(ev1.model.id, 'old');
+      assert.equal(seen.switched, undefined);
+      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
+      // The sync itself did land: fresh category from the plugin caches.
+      const routingFile = path.join(home.home, '.config', 'openchamber', 'routing.json');
+      const routing = JSON.parse(fs.readFileSync(routingFile, 'utf8'));
+      assert.equal(routing.version, 1);
+      assert.equal(routing.categories.review.builtin, false);
+      assert.equal(routing.categories.review.description, 'Review work: judge diffs.');
+      assert.deepEqual(routing.categories.review.model, { providerID: 'f', modelID: 'b' });
+      // Second turn: routing already matches, so no rewrite and still no
+      // routing/announce/status from the plugin.
+      const before = fs.statSync(routingFile).mtimeMs;
+      const e2 = { sessionID: 's1', prompt: 'again' };
+      await seen.prompt(e2);
+      assert.equal(e2.prompt, 'again');
+      const ev2 = {
+        sessionID: 's1',
+        agent: 'review',
+        model: { providerID: 'user', id: 'x' },
+        messages: [],
+      };
+      await seen.context(ev2);
+      assert.equal(ev2.model.providerID, 'user');
+      assert.equal(seen.switches, undefined);
+      assert.equal(fs.statSync(routingFile).mtimeMs, before);
+      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
+    } finally {
+      home.restore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('off also refreshes routing (sync runs before the mode check) but routes nothing', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-mode-'));
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    seedTaskTypes(dir, {
+      review: { label: 'Review', description: 'Review', jev_criteria: 'Review work: judge diffs.' },
+    });
+    seedMode(dir, 'off');
+    const home = isolateHome();
     try {
       const seen = await v2Hooks(dir, {});
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
-      assert.match(e1.prompt, /\[modelselect: task=review tier=free → f\/b/);
-      const ev1 = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      assert.equal(e1.prompt, 'review this diff');
+      const ev1 = {
+        sessionID: 's1',
+        agent: 'review',
+        model: { providerID: 'old', id: 'old' },
+        messages: [],
+      };
       await seen.context(ev1);
-      assert.equal(ev1.model.providerID, 'f');
-      assert.deepEqual(seen.switched, { sessionID: 's1', model: { providerID: 'f', id: 'b' } });
-      // Later prompt turns stay quiet in auto mode (context hook owns them).
-      const e2 = { sessionID: 's1', prompt: 'review this diff' };
-      await seen.prompt(e2);
-      assert.equal(e2.prompt, 'review this diff');
-      // Same model as applied: still managed, routes again.
-      const ev2 = { sessionID: 's1', agent: 'review', model: { providerID: 'f', id: 'b' }, messages: [] };
-      await seen.context(ev2);
-      assert.equal(ev2.model.providerID, 'f');
-      // Externally changed model: skipped, nothing persisted or announced.
-      const ev3 = { sessionID: 's1', agent: 'review', model: { providerID: 'user', id: 'x' }, messages: [] };
-      await seen.context(ev3);
-      assert.equal(ev3.model.providerID, 'user');
-      assert.equal(ev3.model.id, 'x');
-      assert.equal(seen.switches, 1);
+      assert.equal(ev1.model.providerID, 'old');
+      assert.equal(seen.switched, undefined);
+      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
+      const routingFile = path.join(home.home, '.config', 'openchamber', 'routing.json');
+      assert.ok(fs.existsSync(routingFile), 'sync runs before the mode check');
     } finally {
+      home.restore();
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
