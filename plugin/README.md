@@ -212,7 +212,7 @@ best-effort per-session status file next to the caches — it never throws:
   "jev": "pinned",        // off | pinned | <choice>@<conf> | kept:<reason>
   "goOk": null,           // quota probe: true | false | null (no probe ran)
   "think": "high",        // task-type reasoning effort: default | minimal | low | medium | high | xhigh | null
-  "freeExhausted": null,  // 12h free-tier soft-error latch: true | false | null
+  "freeExhausted": null,  // soft-error latch: true | false | null (quota: 12h; rate limit: 1h)
   "source": "cache",      // remote | cache | cache-stale…
   "suggestOnly": false,
   "updatedAt": 1720000000000 // epoch ms
@@ -277,22 +277,23 @@ Zen publishes no free-quota endpoint (upstream
 [anomalyco/opencode#18648](https://github.com/anomalyco/opencode/issues/18648)
 is still open), so exhaustion is detected from the real failed request —
 there is deliberately no probe. When a free-side `primary` model call
-comes back exhausted (402/429, or quota wording in the body — the same
-fingerprints the select-model action's free probe uses), the plugin:
+comes back exhausted (402, 429, quota wording, or the transient message
+“Rate limit exceeded. Please try again later.”), the plugin:
 
-1. registers a 12h latch in
+1. registers a latch in
    `<project>/.opencode/.modelselect-cache/free-quota.json` — while
    fresh, routing sync writes the `go` side of OpenChamber's
    `routing.json` (whatever `autoPreference` says) and `resolveModel`
-   picks `go` (also for a pinned `tier: "free"` when a token exists);
+   picks `go` (also for a pinned `tier: "free"` when a token exists).
+   Spent quota uses a 12h window; transient rate limiting uses a 1h
+   window;
 2. flips the session to its task's `go` model and forces exactly one
    retry, so the turn resumes on the paid alternative — no dummy probe,
    no loop (the flip latches per session and OpenCode's attempt cap
    bounds the rest).
 
-The window runs from the first detection and never extends; exactly 12h
-later the latch expires and the next real failure may register again (the
-"new check"). `off`/`auto` modes and `suggestOnly` still latch + resync
+Each window runs from its first detection and never extends; after it
+expires, the next real failure may register again (the "new check"). `off`/`auto` modes and `suggestOnly` still latch + resync
 routing but never switch the session. The Work Status view shows a
 `free exhausted` badge while the latch is fresh.
 

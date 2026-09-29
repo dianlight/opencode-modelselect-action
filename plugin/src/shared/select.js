@@ -204,7 +204,8 @@ function normalizeThink(v) {
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir }) {
-  // Free-tier soft-error latch (12h, see shared/freequota.js): Zen has no
+  // Free-tier soft-error latch (quota exhaustion uses 12h and transient
+  // rate limiting uses 1h; see shared/freequota.js): Zen has no
   // free-quota endpoint, so a real exhaustion registers there; while the
   // latch is fresh the free side is known-exhausted and the pick falls to
   // `go` (also across routing sync — shared/routing.js reads the file).

@@ -22,6 +22,7 @@ const v2 = require('../src/v2.js');
 const { resolveModel, normalizeOptions, clearQuotaCache } = require('../src/shared/select');
 const { isFreeQuotaFresh, markFreeQuota } = require('../src/shared/freequota');
 const { FREE_QUOTA_TTL_MS } = require('../src/shared/routing');
+const { FREE_RATE_LIMIT_TTL_MS } = require('../src/shared/freequota');
 const { seedCache, isolateAuth } = require('./helpers');
 
 const CACHE = (dir) => path.join(dir, '.opencode', '.modelselect-cache');
@@ -111,11 +112,39 @@ describe('v2 free-tier fail-soft', () => {
       const before = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8'));
       await seen['http.response'](freeResponse('s1'));
       const after = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8'));
-      assert.equal(after.until, before.until, 'the 12h window never extends');
+      assert.equal(after.until, before.until, 'the active window never extends');
       assert.equal(seen.switches.length, 2, 'one flip per session');
       const r2 = retryEvent('s1', { providerID: 'f', id: 'b' }, { retry: false }, 3);
       await seen.retry(r2);
       assert.deepEqual(r2.decision, { retry: false }, 'built-in decision untouched after the arm is spent');
+    } finally {
+      restore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('the requested rate-limit message latches for one hour and flips once', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-rate-'));
+    const restore = isolateAuth(dir);
+    try {
+      const seen = await setupSession(dir);
+      await runTurn(seen);
+      await seen['http.response'](freeResponse('s1', 429, 'Rate limit exceeded. Please try again later.'));
+
+      const entry = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8'));
+      assert.equal(entry.kind, 'rate-limit');
+      assert.equal(entry.until - entry.at, FREE_RATE_LIMIT_TTL_MS);
+      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until - 1), true);
+      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until), false);
+      assert.deepEqual(
+        seen.switches[1],
+        { sessionID: 's1', model: { providerID: 'g', id: 'a' } },
+        'session flipped to the task go model',
+      );
+
+      const retry = retryEvent('s1', { providerID: 'f', id: 'b' });
+      await seen.retry(retry);
+      assert.deepEqual(retry.decision, { retry: true, delay: 0 });
     } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });

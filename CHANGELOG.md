@@ -12,9 +12,9 @@
   writes the resolved walkthrough-task model as
   `walkthroughModelOverride` (Settings → Sessions → Changes
   Walkthrough Model — the per-panel Walkthrough model picker defaults
-  to the small model). Both follow the same go/free preference and 12h
-  free-exhausted latch as the routing categories, write only on diff,
-  and stay silent on failure. The Work Status extension declares the
+  to the small model). Both follow the same go/free preference and
+  active free-tier latch window as the routing categories, write only on
+  diff, and stay silent on failure. The Work Status extension declares the
   three new paths (`modelselect.json`, `settings.json`,
   `preferences.json`) in its `filesystem` allowlist
 - Work Status shows **Agent** and **Think**: the Agent row comes from the
@@ -38,14 +38,16 @@
   (anomalyco/opencode#18648), so exhaustion is detected from the real
   failed request — no dummy probe. The `http.response`/`retry` hooks
   classify free-side 402/429 (plus quota body fingerprints, mirroring
-  the action's free probe) and register a 12h latch in
+  the action's free probe) and register a latch in
   `.opencode/.modelselect-cache/free-quota.json`: while fresh, routing
   sync writes the `go` side of OpenChamber's `routing.json` (whatever
   `autoPreference` says) and `resolveModel` picks `go` (also for a
-  pinned `tier: free` with a token). The failing session flips to its
+  pinned `tier: free` with a token). Spent quota uses a 12h window;
+  transient rate limiting, including “Rate limit exceeded. Please try
+  again later.”, uses a 1h window. The failing session flips to its
   task's go model with exactly one forced retry so the turn resumes on
-  the paid alternative; the window never extends and expires 12h after
-  the first detection, then a new failure checks again. `off`/`auto`
+  the paid alternative; each window never extends and expires after its
+  first detection, then a new failure checks again. `off`/`auto`
   and `suggestOnly` still latch + resync routing but never switch. The
   Work Status view shows a `free exhausted` badge (new `freeExhausted`
   status field)

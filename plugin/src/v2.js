@@ -32,13 +32,14 @@
  *   no free-quota endpoint (anomalyco/opencode#18648), so exhaustion is
  *   detected from the real failed request — no dummy probe. A free-side
  *   `primary` response matching the fingerprints in `./shared/
- *   freequota.js` registers a 12h latch (`.opencode/.modelselect-cache/
- *   free-quota.json`): routing sync + `resolveModel` then prefer `go`,
- *   and the failing session flips to its task's go model with exactly one
- *   forced retry so the turn resumes on the paid alternative. The latch
- *   expires 12h after the first detection (never extended), allowing a new
- *   check; mode `off`/`auto` and `suggestOnly` still latch + resync
- *   routing but never switch the session.
+ *   freequota.js` registers a latch (`.opencode/.modelselect-cache/
+ *   free-quota.json`): spent quota uses 12h, transient rate limiting uses
+ *   1h. Routing sync + `resolveModel` then prefer `go`, and the failing
+ *   session flips to its task's go model with exactly one forced retry so
+ *   the turn resumes on the paid alternative. The latch expires after its
+ *   first-detection window (never extended), allowing a new check; mode
+ *   `off`/`auto` and `suggestOnly` still latch + resync routing but never
+ *   switch the session.
  */
 
 const path = require('node:path');
@@ -56,7 +57,7 @@ const { readMode, writeStatus, statusFile } = require('./shared/status');
 const { syncRouting } = require('./shared/routing');
 const { createRoutingIo } = require('./shared/routing-io');
 const {
-  classifyFreeExhaustion,
+  classifyFreeFailure,
   isFreeModelRef,
   markFreeQuota,
   readModelTable,
@@ -345,15 +346,17 @@ async function setup(ctx) {
     }
   }
 
-  // Register a free-side exhaustion: latch the observation (12h — read by
-  // routing sync + resolveModel), refresh routing.json right away, and on
-  // the first failure per session while mode `on` flip the session to its
-  // go model and arm exactly one forced retry so the turn resumes on the
-  // paid alternative. Zen publishes no free-quota endpoint
+  // Register a free-side exhaustion: latch the observation (quota uses a
+  // 12h window, rate limiting uses a 1h window — read by routing sync +
+  // resolveModel), refresh routing.json right away, and on the first
+  // failure per session while mode `on` flip the session to its go model
+  // and arm exactly one forced retry so the turn resumes on the paid
+  // alternative. Zen publishes no free-quota endpoint
   // (anomalyco/opencode#18648), so the failed real request IS the check.
-  async function noteFreeExhaustion(sessionID, ref, detail) {
+  async function noteFreeExhaustion(sessionID, ref, detail, kind = 'exhaustion') {
     const rid = ref && (ref.id ?? ref.modelID);
     markFreeQuota(cacheDir, {
+      kind,
       model: ref && rid ? `${ref.providerID}/${rid}` : null,
       detail,
     });
@@ -363,7 +366,8 @@ async function setup(ctx) {
     freeFlipped.add(sessionID);
     if (await switchSessionToGo(sessionID)) {
       freeRetry.set(sessionID, Date.now());
-      console.log(`[modelselect] free tier exhausted (${detail}) — session flipped to go`);
+      const cause = kind === 'rate-limit' ? 'rate-limited' : 'exhausted';
+      console.log(`[modelselect] free tier ${cause} (${detail}) — session flipped to go`);
     }
   }
 
@@ -467,16 +471,18 @@ async function setup(ctx) {
     }
   });
 
-  // Fail-soft: classify real free-side failures as exhaustion (Zen has no
-  // quota endpoint to probe — the failed request IS the check; 12h latch
-  // in shared/freequota.js). Only agent-loop (`primary`) traffic flips:
-  // title/compaction/generate calls keep their own models.
+  // Fail-soft: classify real free-side failures (Zen has no quota
+  // endpoint to probe — the failed request IS the check; quota uses a 12h
+  // latch, transient rate limiting uses a 1h latch in shared/freequota.js).
+  // Only agent-loop (`primary`) traffic flips: title/compaction/generate
+  // calls keep their own models.
   await ctx.session.hook('http.response', async (event) => {
     try {
       if (event.kind && event.kind !== 'primary') return;
       const res = event.response;
       if (!res || typeof res.status !== 'number' || res.status < 400) return;
-      if (!classifyFreeExhaustion(res.status, '')) {
+      let outcome = classifyFreeFailure(res.status, '');
+      if (!outcome.exhausted) {
         // Bodies are one-shot streams: clone before reading, never the
         // original response. Only non-obvious statuses need the body.
         let text = '';
@@ -485,11 +491,17 @@ async function setup(ctx) {
         } catch {
           // unreadable body -> status-only classification below
         }
-        if (!classifyFreeExhaustion(res.status, text)) return;
+        outcome = classifyFreeFailure(res.status, text);
+        if (!outcome.exhausted) return;
       }
       const ref = event.model;
       if (!isFreeModelRef(ref, readModelTable(cacheDir))) return;
-      await noteFreeExhaustion(event.sessionID, ref, `http ${res.status}`);
+      await noteFreeExhaustion(
+        event.sessionID,
+        ref,
+        `http ${res.status}`,
+        outcome.rateLimited ? 'rate-limit' : 'exhaustion',
+      );
     } catch (err) {
       if (opts.verbose) console.log(`[modelselect] free-exhaustion check skipped: ${err?.message ?? err}`);
     }
@@ -511,9 +523,15 @@ async function setup(ctx) {
         return;
       }
       const err = event.error;
-      if (!classifyFreeExhaustion(err?.status, err?.message ?? '')) return;
+      const outcome = classifyFreeFailure(err?.status, err?.message ?? '');
+      if (!outcome.exhausted) return;
       if (!isFreeModelRef(event.model, readModelTable(cacheDir))) return;
-      await noteFreeExhaustion(event.sessionID, event.model, `retry ${err?.type ?? 'error'}`);
+      await noteFreeExhaustion(
+        event.sessionID,
+        event.model,
+        `retry ${err?.type ?? 'error'}`,
+        outcome.rateLimited ? 'rate-limit' : 'exhaustion',
+      );
       const now = freeRetry.get(event.sessionID);
       if (now !== undefined && Date.now() - now <= FREE_RETRY_TTL_MS) {
         freeRetry.delete(event.sessionID);

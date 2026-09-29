@@ -65,8 +65,9 @@ Folder/ZIP/URL source.
   dimming when the pick is older than ~10 min
   (`off`/`auto` turns never rewrite the status file, so stale = last
   applied pick), `unlisted task` when the task is absent from the config
-  cache, `free exhausted` while the plugin's 12h free-tier soft-error
-  latch is fresh, and `Auto` while the session model is unset.
+  cache, `free exhausted` while the plugin's free-tier soft-error latch
+  is fresh (12h for spent quota, 1h for transient rate limiting), and
+  `Auto` while the session model is unset.
 - Mode-dependent fields: in `auto`/`off` the status file is stale by
   design (the plugin never rewrites it there), so the whole pick grid
   and all badges are hidden — only the live session Model + Agent and
@@ -112,10 +113,11 @@ this bundle wraps it in a host-file adapter
   (`disabled: true`), never deleted. Writes happen only on diff; all
   failures are silent so the view never breaks.
 - Free-tier latch: while `.opencode/.modelselect-cache/free-quota.json`
-  is fresh (12h, written by the plugin on a real free-side exhaustion —
-  Zen has no free-quota endpoint), the sync forces the `go` side for
-  every category and `fallback`, whatever `autoPreference` says; expiry
-  hands the choice back.
+  is fresh (12h for spent quota or 1h for transient rate limiting,
+  written by the plugin on a real free-side failure — Zen has no
+  free-quota endpoint), the sync forces the `go` side for every category
+  and `fallback`, whatever `autoPreference` says; expiry hands the
+  choice back.
 
 ## External config (`modelselect.json`) + model autoset
 
@@ -142,8 +144,8 @@ optional) holds the global defaults:
   `walkthroughModelOverride` (the Settings → Sessions → Changes
   Walkthrough Model row; the per-panel Walkthrough model picker
   defaults to the small model). Both follow the same go/free
-  preference and 12h latch as the categories, write only on diff, and
-  never touch `variant`.
+  preference and active free-tier latch window as the categories, write
+  only on diff, and never touch `variant`.
 
 ## Fix hint (plugin-missing)
 

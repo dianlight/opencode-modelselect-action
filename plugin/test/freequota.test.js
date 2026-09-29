@@ -4,9 +4,9 @@
  * Free-tier soft-error latch (`src/shared/freequota.js`) + the pure
  * constants it reuses from the routing core: exhaustion fingerprints
  * (mirroring github-action's classifyFreeProbe), free-model detection,
- * and the 12h mark/read semantics — the window runs from the FIRST
- * detection, never extends while fresh, and a new check is only allowed
- * after it expires.
+ * and the first-detection mark/read semantics — a new check is only
+ * allowed after the selected window expires. Spent quota uses 12h;
+ * transient rate limiting uses 1h.
  */
 
 const { describe, it } = require('node:test');
@@ -17,7 +17,10 @@ const path = require('node:path');
 
 const {
   FREE_QUOTA_BASENAME,
+  FREE_RATE_LIMIT_TTL_MS,
+  RATE_LIMIT_MESSAGE_RE,
   classifyFreeExhaustion,
+  classifyFreeFailure,
   isFreeModelRef,
   isFreeQuotaFresh,
   markFreeQuota,
@@ -58,6 +61,20 @@ describe('classifyFreeExhaustion', () => {
     assert.equal(classifyFreeExhaustion(404, 'not found'), false);
     assert.equal(classifyFreeExhaustion(400, 'invalid request'), false);
   });
+
+  it('distinguishes transient rate limiting from spent quota', () => {
+    const message = 'Rate limit exceeded. Please try again later.';
+    assert.match(message, RATE_LIMIT_MESSAGE_RE);
+    assert.deepEqual(classifyFreeFailure(429, ''), { exhausted: true, rateLimited: true });
+    assert.deepEqual(classifyFreeFailure(403, message), { exhausted: true, rateLimited: true });
+    assert.deepEqual(classifyFreeFailure(500, message), { exhausted: true, rateLimited: true });
+    assert.deepEqual(classifyFreeFailure(402, ''), { exhausted: true, rateLimited: false });
+    assert.deepEqual(classifyFreeFailure(403, 'You have exceeded your quota'), {
+      exhausted: true,
+      rateLimited: false,
+    });
+    assert.deepEqual(classifyFreeFailure(200, message), { exhausted: false, rateLimited: false });
+  });
 });
 
 describe('isFreeModelRef', () => {
@@ -95,8 +112,8 @@ describe('isFreeModelRef', () => {
   });
 });
 
-describe('markFreeQuota / freshness (12h window from first detection)', () => {
-  it('registers a fresh latch and never extends the deadline', () => {
+describe('markFreeQuota / freshness (first-detection windows)', () => {
+  it('registers a spent-quota latch and never extends the deadline', () => {
     const dir = tempCache('modelselect-fq-');
     try {
       assert.equal(isFreeQuotaFresh(dir), false, 'no latch -> not fresh');
@@ -105,6 +122,7 @@ describe('markFreeQuota / freshness (12h window from first detection)', () => {
       assert.ok(first);
       assert.equal(first.at, at);
       assert.equal(first.until, at + FREE_QUOTA_TTL_MS);
+      assert.equal(first.kind, 'exhaustion');
       assert.equal(first.model, 'f/b');
       assert.equal(isFreeQuotaFresh(dir, at), true);
 
@@ -116,6 +134,31 @@ describe('markFreeQuota / freshness (12h window from first detection)', () => {
 
       assert.equal(isFreeQuotaFresh(dir, at + FREE_QUOTA_TTL_MS - 1), true);
       assert.equal(isFreeQuotaFresh(dir, at + FREE_QUOTA_TTL_MS), false, 'exactly 12h -> expired');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('uses a one-hour window for a rate-limit signal', () => {
+    const dir = tempCache('modelselect-fq-rate-');
+    try {
+      const at = Date.now();
+      const first = markFreeQuota(
+        dir,
+        { kind: 'rate-limit', model: 'f/b', detail: 'Rate limit exceeded. Please try again later.' },
+        at,
+      );
+      assert.equal(first.kind, 'rate-limit');
+      assert.equal(first.until, at + FREE_RATE_LIMIT_TTL_MS);
+      assert.equal(isFreeQuotaFresh(dir, at + FREE_RATE_LIMIT_TTL_MS - 1), true);
+      assert.equal(isFreeQuotaFresh(dir, at + FREE_RATE_LIMIT_TTL_MS), false, 'exactly 1h -> expired');
+
+      // The first failure controls the active window: a later quota signal
+      // does not lengthen or reclassify it.
+      const later = markFreeQuota(dir, { kind: 'exhaustion', detail: 'quota spent' }, at + 60_000);
+      assert.equal(later.kind, 'rate-limit');
+      assert.equal(later.until, at + FREE_RATE_LIMIT_TTL_MS);
+      assert.equal(later.updatedAt, at + 60_000);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -159,6 +202,7 @@ describe('markFreeQuota / freshness (12h window from first detection)', () => {
     assert.equal(FREE_QUOTA_BASENAME, 'free-quota.json');
     assert.equal(FREE_QUOTA_FILE, '.opencode/.modelselect-cache/free-quota.json');
     assert.equal(FREE_QUOTA_TTL_MS, 12 * 60 * 60 * 1000);
+    assert.equal(FREE_RATE_LIMIT_TTL_MS, 60 * 60 * 1000);
     const dir = tempCache('modelselect-fq-');
     try {
       markFreeQuota(dir, { detail: 'x' });

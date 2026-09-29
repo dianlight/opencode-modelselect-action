@@ -21,7 +21,8 @@
  *   type's reasoning-effort hint
  *   (`default|minimal|low|medium|high|xhigh|null`, normalized
  *   case-insensitively), `freeExhausted` is the free-tier soft-error
- *   latch (`true|false|null`, fresh for 12h — see shared/freequota.js),
+ *   latch (`true|false|null`; 12h for spent quota, 1h for transient
+ *   rate limiting — see shared/freequota.js),
  *   `source` is the config source (`remote|cache|cache-stale…`), and
  *   `updatedAt` is epoch ms.
  *
