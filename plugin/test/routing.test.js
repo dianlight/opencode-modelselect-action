@@ -16,6 +16,8 @@ const path = require('node:path');
 
 const {
   ROUTING_PATH,
+  FREE_QUOTA_FILE,
+  FREE_QUOTA_TTL_MS,
   parseJsonLenient,
   findPluginOptions,
   autoPreferenceOf,
@@ -269,6 +271,42 @@ describe('syncRouting', () => {
     assert.equal(cats.generic.agent, 'mine', 'user agent preserved when no task-type agent');
   });
 
+  it('forces the go side while the free-quota latch is fresh (12h)', async () => {
+    // Fresh latch overrides the default free-first preference…
+    const fresh = fakeIo({
+      ...caches(),
+      [FREE_QUOTA_FILE]: {
+        version: 1,
+        at: Date.now(),
+        until: Date.now() + FREE_QUOTA_TTL_MS,
+        model: 'f/b',
+        detail: 'http 429',
+      },
+    });
+    assert.deepEqual(await syncRouting(fresh), { written: true, settingsWritten: false });
+    assert.deepEqual(fresh.files.get(ROUTING_PATH).categories.review.model, {
+      providerID: 'g',
+      modelID: 'a',
+    });
+
+    // …and an expired latch hands the choice back to the preference.
+    const expired = fakeIo({
+      ...caches(),
+      [FREE_QUOTA_FILE]: {
+        version: 1,
+        at: Date.now() - FREE_QUOTA_TTL_MS - 1,
+        until: Date.now() - 1,
+        model: 'f/b',
+        detail: 'http 429',
+      },
+    });
+    assert.deepEqual(await syncRouting(expired), { written: true, settingsWritten: false });
+    assert.deepEqual(expired.files.get(ROUTING_PATH).categories.review.model, {
+      providerID: 'f',
+      modelID: 'b',
+    });
+  });
+
   it('leaves Small Model + Walkthrough rows alone unless autoset is enabled', async () => {
     const io = fakeIo({
       ...caches(),
@@ -313,6 +351,29 @@ describe('syncRouting', () => {
     // Second sync with everything in place writes nothing.
     const again = await syncRouting(io);
     assert.equal(again.settingsWritten, false);
+  });
+
+  it('autoset follows the go side while the free-quota latch is fresh', async () => {
+    const taskTypes = {
+      ...TASK_TYPES,
+      'small-model': { label: 'Small Model', jev_criteria: 'Trivial work.' },
+    };
+    const modelTable = {
+      ...MODEL_TABLE,
+      'small-model': { go: 'g/s', free: 'f/s' },
+    };
+    const io = fakeIo({
+      ...caches({ taskTypes }),
+      '.opencode/.modelselect-cache/model-config-cache.json': {
+        fetchedAt: 1,
+        config: { 'task-types': modelTable },
+      },
+      '~/.config/openchamber/modelselect.json': { autoSmallModel: true },
+      '~/.config/openchamber/preferences.json': { version: 1, fields: {} },
+      [FREE_QUOTA_FILE]: { version: 1, at: Date.now(), until: Date.now() + FREE_QUOTA_TTL_MS },
+    });
+    await syncRouting(io);
+    assert.equal(io.files.get('~/.config/openchamber/preferences.json').fields.smallModelOverride.value, 'g/s');
   });
 });
 

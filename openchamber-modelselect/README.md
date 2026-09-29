@@ -64,7 +64,8 @@ Folder/ZIP/URL source.
   dimming when the pick is older than ~10 min
   (`off`/`auto` turns never rewrite the status file, so stale = last
   applied pick), `unlisted task` when the task is absent from the config
-  cache, and `Auto` while the session model is unset.
+  cache, `free exhausted` while the plugin's 12h free-tier soft-error
+  latch is fresh, and `Auto` while the session model is unset.
 - Mode-dependent fields: in `auto`/`off` the status file is stale by
   design (the plugin never rewrites it there), so the whole pick grid
   and all badges are hidden — only the live session Model + Agent and
@@ -109,6 +110,11 @@ this bundle wraps it in a host-file adapter
 - Stale entries (stored ids that are no task type) are disabled
   (`disabled: true`), never deleted. Writes happen only on diff; all
   failures are silent so the view never breaks.
+- Free-tier latch: while `.opencode/.modelselect-cache/free-quota.json`
+  is fresh (12h, written by the plugin on a real free-side exhaustion —
+  Zen has no free-quota endpoint), the sync forces the `go` side for
+  every category and `fallback`, whatever `autoPreference` says; expiry
+  hands the choice back.
 
 ## External config (`modelselect.json`) + model autoset
 

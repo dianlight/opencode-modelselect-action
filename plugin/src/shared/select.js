@@ -15,6 +15,7 @@ const path = require('node:path');
 const { TASK_TYPES, normalizeAgentMap } = require('./detect');
 const { DEFAULT_TASK_TYPES_URL } = require('./tasktypes');
 const { resolveToken } = require('./auth');
+const { isFreeQuotaFresh } = require('./freequota');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
@@ -203,10 +204,15 @@ function normalizeThink(v) {
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir }) {
+  // Free-tier soft-error latch (12h, see shared/freequota.js): Zen has no
+  // free-quota endpoint, so a real exhaustion registers there; while the
+  // latch is fresh the free side is known-exhausted and the pick falls to
+  // `go` (also across routing sync — shared/routing.js reads the file).
+  const freeExhausted = isFreeQuotaFresh(cacheDir);
   const { config, source, stale } = await loadConfig(opts, cacheDir);
   const { key, entry } = entryFor(config, taskType);
   if (!key || !entry) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted };
     throw new Error(`No model configured for task-type='${taskType}'.`);
   }
   const go = entry.go || '';
@@ -233,18 +239,24 @@ async function resolveModel({ taskType, opts, cacheDir }) {
     } else {
       if (opts.verbose) console.log(`[modelselect] token source=${opts.tokenSource || 'option'}`);
       goOk = await checkGoQuota(opts.token, opts.usageUrl);
-      if (order[0] === 'free') tier = 'free';
+      if (freeExhausted && go) tier = 'go';
+      else if (order[0] === 'free') tier = 'free';
       else tier = goOk === false ? 'free' : 'go';
       if (tier === 'go' && !go) tier = 'free';
       if (tier === 'free' && !free) tier = 'go';
     }
+  } else if (tier === 'free' && freeExhausted && go && opts.token) {
+    // Pinned free with live evidence it is spent: the pin cannot work
+    // during the latch window — fail soft to `go` (the key is what auths
+    // it; without a token nothing else can work either, keep free).
+    tier = 'go';
   }
   const model = tier === 'go' ? go : free;
   if (!model) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think) };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think) };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted };
 }
 
 /** Split a "provider/model" string. v1 uses modelID, v2 uses id. */

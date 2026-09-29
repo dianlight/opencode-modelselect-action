@@ -40,6 +40,12 @@
  *   picking the `go` or `free` side per the plugin `autoPreference`
  *   (`go-first` vs `free-first`, read from the modelselect plugin options
  *   in the managed/global OpenCode config; default `free-first`).
+ * - Exception: while the free-tier soft-error latch is fresh
+ *   (`free-quota.json`, 12h — written by the plugin on a real free-side
+ *   exhaustion, see `shared/freequota.js`) the side is forced to `go`,
+ *   whatever `autoPreference` says. Zen publishes no free-quota endpoint
+ *   to pre-check, so the routing table follows the observed failure;
+ *   once the latch expires the configured preference takes over again.
  * - `agent` is set only when the task type defines one; otherwise the
  *   user's existing value is left alone (never cleared).
  * - Stale entries (stored ids that are not task types, or ignored ones)
@@ -71,10 +77,27 @@ const GLOBAL_CONFIG_PATHS = [
 ];
 const MODEL_CACHE_FILE = '.opencode/.modelselect-cache/model-config-cache.json';
 const TASK_TYPES_CACHE_FILE = '.opencode/.modelselect-cache/task-types-cache.json';
+// Free-tier soft-error latch written by shared/freequota.js (node side).
+const FREE_QUOTA_FILE = '.opencode/.modelselect-cache/free-quota.json';
+const FREE_QUOTA_TTL_MS = 12 * 60 * 60 * 1000; // fresh for 12h from the first detection
 const CATEGORY_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 function isObject(v) {
   return Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+}
+
+// Free-tier soft-error latch freshness: `at` is the FIRST detection,
+// `until` (= at + 12h) the deadline. Fresh => the free side is known
+// exhausted and every consumer must prefer `go`; after `until` the latch
+// clears and the next real failure may register again. `now` is
+// injectable for tests; defaults to Date.now() so the status bundle
+// (browser) works unchanged.
+function freeQuotaFresh(entry, now) {
+  if (!isObject(entry)) return false;
+  const at = Number(entry.at);
+  const until = Number(entry.until);
+  if (!Number.isFinite(at) || !Number.isFinite(until) || until <= at) return false;
+  return until > (now === undefined ? Date.now() : now);
 }
 
 // Lenient JSON parse: plain JSON first, then a string-aware comment
@@ -433,6 +456,7 @@ function syncRouting(io, opts) {
     readFirst(io, [MODEL_CACHE_FILE]),
     readFirst(io, [TASK_TYPES_CACHE_FILE]),
     readFirst(io, [ROUTING_PATH]),
+    readFirst(io, [FREE_QUOTA_FILE]),
     readFirst(io, [MODELSELECT_CONFIG_PATH]),
     readFirst(io, [SETTINGS_PATH]),
     readFirst(io, [PREFERENCES_PATH])
@@ -443,7 +467,13 @@ function syncRouting(io, opts) {
       const modelCache = parts[1];
       const ttCache = parts[2];
       const routing = parts[3];
-      const preference = autoPreferenceOf(findPluginOptions(managed));
+      // Fresh free-tier soft-error latch: the free side is known
+      // exhausted, so the table routes to `go` until the 12h window
+      // closes; expiry hands the choice back to the configured
+      // preference (a later failure re-registers the latch).
+      const preference = freeQuotaFresh(parts[4], now)
+        ? 'go-first'
+        : autoPreferenceOf(findPluginOptions(managed));
       const msConfig = normalizeModelselectConfig(parts[5]);
       let modelTable = null;
       if (modelCache && isObject(modelCache.config)) {
@@ -562,6 +592,9 @@ module.exports = {
   GLOBAL_CONFIG_PATHS,
   MODEL_CACHE_FILE,
   TASK_TYPES_CACHE_FILE,
+  FREE_QUOTA_FILE,
+  FREE_QUOTA_TTL_MS,
+  freeQuotaFresh,
   parseJsonLenient,
   findPluginOptions,
   autoPreferenceOf,

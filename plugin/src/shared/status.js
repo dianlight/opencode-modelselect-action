@@ -13,16 +13,17 @@
  * - Status file: `<cacheDir>/status-<sessionID>.json` (sessionID sanitized
  *   to `[A-Za-z0-9-_]`, best-effort, never throws — including suggestOnly
  *   runs). Schema:
- *   `{ sessionID, taskType, tier, model, jev, goOk, think, source,
- *      suggestOnly, updatedAt }`
+ *   `{ sessionID, taskType, tier, model, jev, goOk, think, freeExhausted,
+ *      source, suggestOnly, updatedAt }`
  *   where `model` is `"provider/id"`, `jev` is `off|pinned|<choice>@<conf>`
  *   or `kept:<reason>`, `goOk` is the last quota-probe result
  *   (`true|false|null` when unknown / no probe ran), `think` is the task
  *   type's reasoning-effort hint
  *   (`default|minimal|low|medium|high|xhigh|null`, normalized
- *   case-insensitively), `source` is the
- *   config source (`remote|cache|cache-stale…`), and `updatedAt` is epoch
- *   ms.
+ *   case-insensitively), `freeExhausted` is the free-tier soft-error
+ *   latch (`true|false|null`, fresh for 12h — see shared/freequota.js),
+ *   `source` is the config source (`remote|cache|cache-stale…`), and
+ *   `updatedAt` is epoch ms.
  *
  * Zero dependencies, Node >= 20.
  */
@@ -124,6 +125,7 @@ function writeStatus(cacheDir, sessionID, fields = {}) {
         .includes(String(fields.think ?? '').toLowerCase())
         ? String(fields.think).toLowerCase()
         : null,
+      freeExhausted: typeof fields.freeExhausted === 'boolean' ? fields.freeExhausted : null,
       source: String(fields.source ?? ''),
       suggestOnly: Boolean(fields.suggestOnly ?? false),
       updatedAt: Date.now(),

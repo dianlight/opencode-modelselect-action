@@ -28,6 +28,17 @@
  *   `on` routes/announces every turn (default), `off` skips everything,
  *   and `auto` does only that sync and then acts like off — OpenChamber's
  *   Jev routing owns the pick.
+ * - Free-tier fail-soft (`http.response` + `retry` hooks): Zen publishes
+ *   no free-quota endpoint (anomalyco/opencode#18648), so exhaustion is
+ *   detected from the real failed request — no dummy probe. A free-side
+ *   `primary` response matching the fingerprints in `./shared/
+ *   freequota.js` registers a 12h latch (`.opencode/.modelselect-cache/
+ *   free-quota.json`): routing sync + `resolveModel` then prefer `go`,
+ *   and the failing session flips to its task's go model with exactly one
+ *   forced retry so the turn resumes on the paid alternative. The latch
+ *   expires 12h after the first detection (never extended), allowing a new
+ *   check; mode `off`/`auto` and `suggestOnly` still latch + resync
+ *   routing but never switch the session.
  */
 
 const path = require('node:path');
@@ -40,12 +51,21 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce } = require('./shared/select');
-const { readMode, writeStatus } = require('./shared/status');
+const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce, loadConfig } = require('./shared/select');
+const { readMode, writeStatus, statusFile } = require('./shared/status');
 const { syncRouting } = require('./shared/routing');
 const { createRoutingIo } = require('./shared/routing-io');
+const {
+  classifyFreeExhaustion,
+  isFreeModelRef,
+  markFreeQuota,
+  readModelTable,
+} = require('./shared/freequota');
 
 const ID = 'modelselect';
+// Forced-retry arm window: a retry follows its failure within seconds, so
+// an arm older than this (consumed late) is stale and must not fire.
+const FREE_RETRY_TTL_MS = 60 * 1000;
 
 function cacheDirFor(directory) {
   return path.join(String(directory || process.cwd()), '.opencode', '.modelselect-cache');
@@ -123,6 +143,8 @@ async function setup(ctx) {
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
+  const freeFlipped = new Set(); // sessions already flipped to go (process lifetime)
+  const freeRetry = new Map(); // sessionID -> armedAt (epoch ms): one forced retry
 
   // Resolve task-type with continuation: zero-signal turns (acks like
   // "do it" / "sì, procedi", answers after a question, any language)
@@ -269,6 +291,82 @@ async function setup(ctx) {
     }
   }
 
+  // Last known task for a session: the per-turn status file first (mode
+  // `on` rewrites it every turn), then the continuation history. Returns
+  // `{ taskType, prev }` where `prev` is the parsed status (or null).
+  function sessionTask(sessionID) {
+    try {
+      const fs = require('node:fs');
+      const st = JSON.parse(fs.readFileSync(statusFile(cacheDir, sessionID), 'utf8'));
+      const t = st && typeof st.taskType === 'string' ? st.taskType : '';
+      if (t) return { taskType: t, prev: st };
+    } catch {
+      // missing/unusable status -> fall back to history
+    }
+    const h = sessionID && history.get(sessionID);
+    return h && h.task ? { taskType: h.task, prev: null } : null;
+  }
+
+  // Flip a session to the configured `go` model for its task type
+  // (fail-soft after free-tier exhaustion). Best-effort: returns true only
+  // when a go model was found and the switch persisted; also refreshes the
+  // status file so the Work Status view reflects tier=go + the latch.
+  async function switchSessionToGo(sessionID) {
+    try {
+      const where = sessionTask(sessionID);
+      if (!where) return false;
+      const { config } = await loadConfig(opts, cacheDir);
+      const table = config && (config['task-types'] ?? config.task_types);
+      const name = Object.keys(table || {}).find((k) => k.toLowerCase() === where.taskType.toLowerCase());
+      const entry = name ? table[name] : null;
+      if (!entry || !entry.go) {
+        if (opts.verbose) console.log(`[modelselect] free exhausted but no go model for task=${where.taskType}`);
+        return false;
+      }
+      const ref = splitModelRef(entry.go);
+      await ctx.session.switchModel({ sessionID, model: { providerID: ref.providerID, id: ref.id } });
+      applied.set(sessionID, `${ref.providerID}/${ref.id}`);
+      const prev = where.prev || {};
+      writeStatus(cacheDir, sessionID ?? 'default', {
+        taskType: prev.taskType ?? where.taskType,
+        tier: 'go',
+        model: `${ref.providerID}/${ref.id}`,
+        jev: prev.jev ?? null,
+        goOk: prev.goOk ?? null,
+        think: prev.think ?? null,
+        freeExhausted: true,
+        source: prev.source ?? '',
+        suggestOnly: opts.suggestOnly,
+      });
+      return true;
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] free-exhaustion flip skipped: ${err?.message ?? err}`);
+      return false;
+    }
+  }
+
+  // Register a free-side exhaustion: latch the observation (12h — read by
+  // routing sync + resolveModel), refresh routing.json right away, and on
+  // the first failure per session while mode `on` flip the session to its
+  // go model and arm exactly one forced retry so the turn resumes on the
+  // paid alternative. Zen publishes no free-quota endpoint
+  // (anomalyco/opencode#18648), so the failed real request IS the check.
+  async function noteFreeExhaustion(sessionID, ref, detail) {
+    const rid = ref && (ref.id ?? ref.modelID);
+    markFreeQuota(cacheDir, {
+      model: ref && rid ? `${ref.providerID}/${rid}` : null,
+      detail,
+    });
+    await syncRoutingNow();
+    if (!sessionID || freeFlipped.has(sessionID)) return;
+    if (readMode(cacheDir) !== 'on' || opts.suggestOnly) return;
+    freeFlipped.add(sessionID);
+    if (await switchSessionToGo(sessionID)) {
+      freeRetry.set(sessionID, Date.now());
+      console.log(`[modelselect] free tier exhausted (${detail}) — session flipped to go`);
+    }
+  }
+
   console.log(
     `[modelselect] loaded (tier=${opts.tier} token-source=${opts.tokenSource || 'none'} announce=${opts.announce} verbose=${opts.verbose} suggestOnly=${opts.suggestOnly})`,
   );
@@ -334,6 +432,7 @@ async function setup(ctx) {
         jev,
         goOk: picked.goOk ?? null,
         think: picked.think ?? null,
+        freeExhausted: picked.freeExhausted ?? null,
         source: picked.source,
         suggestOnly: opts.suggestOnly,
       });
@@ -365,6 +464,63 @@ async function setup(ctx) {
       if (opts.verbose) console.log(`[modelselect] task=${picked.taskType} tier=${picked.tier} model=${key} jev=${jev}`);
     } catch (err) {
       console.error(`[modelselect] keeping current model: ${err?.message ?? err}`);
+    }
+  });
+
+  // Fail-soft: classify real free-side failures as exhaustion (Zen has no
+  // quota endpoint to probe — the failed request IS the check; 12h latch
+  // in shared/freequota.js). Only agent-loop (`primary`) traffic flips:
+  // title/compaction/generate calls keep their own models.
+  await ctx.session.hook('http.response', async (event) => {
+    try {
+      if (event.kind && event.kind !== 'primary') return;
+      const res = event.response;
+      if (!res || typeof res.status !== 'number' || res.status < 400) return;
+      if (!classifyFreeExhaustion(res.status, '')) {
+        // Bodies are one-shot streams: clone before reading, never the
+        // original response. Only non-obvious statuses need the body.
+        let text = '';
+        try {
+          text = await res.clone().text();
+        } catch {
+          // unreadable body -> status-only classification below
+        }
+        if (!classifyFreeExhaustion(res.status, text)) return;
+      }
+      const ref = event.model;
+      if (!isFreeModelRef(ref, readModelTable(cacheDir))) return;
+      await noteFreeExhaustion(event.sessionID, ref, `http ${res.status}`);
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] free-exhaustion check skipped: ${err?.message ?? err}`);
+    }
+  });
+
+  // Exactly one forced retry per flip so the session resumes on the go
+  // model; the arm is consumed once (60s TTL) and OpenCode's built-in
+  // attempt cap bounds anything else — this can never loop. Also the
+  // fallback when a failure arrives without a response we classified.
+  await ctx.session.hook('retry', async (event) => {
+    try {
+      const armedAt = freeRetry.get(event.sessionID);
+      if (armedAt !== undefined) {
+        freeRetry.delete(event.sessionID);
+        if (Date.now() - armedAt <= FREE_RETRY_TTL_MS) {
+          event.decision = { retry: true, delay: 0 };
+          if (opts.verbose) console.log(`[modelselect] retrying on go after free exhaustion session=${event.sessionID}`);
+        }
+        return;
+      }
+      const err = event.error;
+      if (!classifyFreeExhaustion(err?.status, err?.message ?? '')) return;
+      if (!isFreeModelRef(event.model, readModelTable(cacheDir))) return;
+      await noteFreeExhaustion(event.sessionID, event.model, `retry ${err?.type ?? 'error'}`);
+      const now = freeRetry.get(event.sessionID);
+      if (now !== undefined && Date.now() - now <= FREE_RETRY_TTL_MS) {
+        freeRetry.delete(event.sessionID);
+        event.decision = { retry: true, delay: 0 };
+      }
+    } catch {
+      // never break the session
     }
   });
 }

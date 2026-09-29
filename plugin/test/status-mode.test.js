@@ -43,6 +43,7 @@ describe('status file helpers', () => {
       const raw = JSON.parse(fs.readFileSync(statusFile(cacheDir, 's1'), 'utf8'));
       assert.deepEqual(raw, payload);
       assert.deepEqual(Object.keys(raw).sort(), [
+        'freeExhausted',
         'goOk',
         'jev',
         'model',
@@ -61,6 +62,7 @@ describe('status file helpers', () => {
       assert.equal(raw.jev, 'pinned');
       assert.equal(raw.goOk, null);
       assert.equal(raw.think, 'high');
+      assert.equal(raw.freeExhausted, null);
       assert.equal(raw.source, 'cache');
       assert.equal(raw.suggestOnly, false);
       assert.equal(typeof raw.updatedAt, 'number');

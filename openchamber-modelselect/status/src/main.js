@@ -17,7 +17,8 @@
  *   sessionID sanitized to [A-Za-z0-9-_] (128 cap, empty -> "default").
  *   Fields: sessionID, taskType, tier, model ("provider/id"), jev, goOk
  *   (true|false|null), think (default|minimal|low|medium|high|xhigh|null),
- *   source, suggestOnly,
+ *   freeExhausted
+ *   (true|false|null, 12h free-tier latch), source, suggestOnly,
  *   updatedAt (epoch ms).
  * - Mode file: `<project>/.opencode/.modelselect-cache/mode.json` =
  *   {"mode":"on"|"off"|"auto"}; missing/invalid means the global
@@ -407,6 +408,8 @@ function renderBadges(root, status, stale, autoSession, unlisted) {
   } else {
     if (stale) add('last known', 'warning');
     if (unlisted) add('unlisted task', 'warning');
+    // 12h free-tier soft-error latch (plugin/src/shared/freequota.js).
+    if (status.freeExhausted) add('free exhausted', 'warning');
   }
   if (autoSession) add('Auto', 'info');
   if (any) root.appendChild(wrap);

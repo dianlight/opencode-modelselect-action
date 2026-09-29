@@ -265,6 +265,30 @@ describe('modelselect status frame', () => {
     }
   });
 
+  it('shows the free-exhausted badge while the 12h latch is fresh', async () => {
+    const status = JSON.stringify({
+      sessionID: 'ses_1', taskType: 'debug', tier: 'go',
+      model: 'opencode-go/m-plan', jev: 'off', goOk: true, think: null,
+      freeExhausted: true, source: 'cache', suggestOnly: false,
+      updatedAt: Date.now(),
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, status],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.match(txt, /Tier go/);
+      assert.match(txt, /free exhausted/);
+    } finally {
+      frame.close();
+    }
+  });
+
   it('mode switch writes mode.json', async () => {
     const frame = loadFrame({
       files: new Map([[`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS]]),

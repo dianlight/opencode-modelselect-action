@@ -212,6 +212,7 @@ best-effort per-session status file next to the caches — it never throws:
   "jev": "pinned",        // off | pinned | <choice>@<conf> | kept:<reason>
   "goOk": null,           // quota probe: true | false | null (no probe ran)
   "think": "high",        // task-type reasoning effort: low | medium | high | null
+  "freeExhausted": null,  // 12h free-tier soft-error latch: true | false | null
   "source": "cache",      // remote | cache | cache-stale…
   "suggestOnly": false,
   "updatedAt": 1720000000000 // epoch ms
@@ -267,8 +268,33 @@ writes the resolved `walkthroughModelTask` model as
 `walkthroughModelOverride` (the Settings → Sessions → Changes
 Walkthrough Model row — the per-panel Walkthrough model picker defaults
 to the small model, so keeping the small override fresh covers it too).
-Both follow the same go/free preference as the routing categories, and
-both write only on diff.
+Both follow the same go/free preference (and the 12h free-exhausted
+latch) as the routing categories, and both write only on diff.
+
+## Free-tier fail-soft (v2)
+
+Zen publishes no free-quota endpoint (upstream
+[anomalyco/opencode#18648](https://github.com/anomalyco/opencode/issues/18648)
+is still open), so exhaustion is detected from the real failed request —
+there is deliberately no probe. When a free-side `primary` model call
+comes back exhausted (402/429, or quota wording in the body — the same
+fingerprints the select-model action's free probe uses), the plugin:
+
+1. registers a 12h latch in
+   `<project>/.opencode/.modelselect-cache/free-quota.json` — while
+   fresh, routing sync writes the `go` side of OpenChamber's
+   `routing.json` (whatever `autoPreference` says) and `resolveModel`
+   picks `go` (also for a pinned `tier: "free"` when a token exists);
+2. flips the session to its task's `go` model and forces exactly one
+   retry, so the turn resumes on the paid alternative — no dummy probe,
+   no loop (the flip latches per session and OpenCode's attempt cap
+   bounds the rest).
+
+The window runs from the first detection and never extends; exactly 12h
+later the latch expires and the next real failure may register again (the
+"new check"). `off`/`auto` modes and `suggestOnly` still latch + resync
+routing but never switch the session. The Work Status view shows a
+`free exhausted` badge while the latch is fresh.
 
 ## Trial run without side effects
 
