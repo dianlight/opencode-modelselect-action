@@ -211,7 +211,7 @@ best-effort per-session status file next to the caches — it never throws:
   "model": "opencode/muse-spark-free", // "provider/id"
   "jev": "pinned",        // off | pinned | <choice>@<conf> | kept:<reason>
   "goOk": null,           // quota probe: true | false | null (no probe ran)
-  "think": "high",        // task-type reasoning effort: low | medium | high | null
+  "think": "high",        // task-type reasoning effort: default | minimal | low | medium | high | xhigh | null
   "freeExhausted": null,  // 12h free-tier soft-error latch: true | false | null
   "source": "cache",      // remote | cache | cache-stale…
   "suggestOnly": false,

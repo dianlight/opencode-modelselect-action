@@ -59,8 +59,9 @@ Folder/ZIP/URL source.
 - Key list (`ms-grid`): one row per field in Turn-stats style (muted
   label left, right-aligned value) — Task, Agent (live session
   snapshot), Tier, Model (`provider/id`, mono, truncated with `title`
-  tooltip), Think (task-type reasoning effort: `low`/`medium`/`high`
-  from the status file), Jev, Source. Badges (`mountBadge`) carry `last known` +
+  tooltip), Think (task-type reasoning effort:
+  `default`/`minimal`/`low`/`medium`/`high`/`xhigh` from the status file,
+  shown capitalized), Jev, Source. Badges (`mountBadge`) carry `last known` +
   dimming when the pick is older than ~10 min
   (`off`/`auto` turns never rewrite the status file, so stale = last
   applied pick), `unlisted task` when the task is absent from the config

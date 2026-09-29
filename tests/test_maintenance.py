@@ -689,6 +689,9 @@ class ModelConfigThinkTest(unittest.TestCase):
                     {"name": "docs", "think": "HIGH"},
                     {"name": "plan"},  # absent -> null
                     {"name": "generic", "think": "extreme"},  # invalid -> null
+                    {"name": "plan-x", "think": "xhigh"},
+                    {"name": "small-x", "think": "minimal"},
+                    {"name": "generic-x", "think": "default"},
                 ],
                 tmp,
             )
@@ -697,13 +700,16 @@ class ModelConfigThinkTest(unittest.TestCase):
         self.assertEqual(types["docs"]["think"], "high")
         self.assertIsNone(types["plan"]["think"])
         self.assertIsNone(types["generic"]["think"])
+        self.assertEqual(types["plan-x"]["think"], "xhigh")
+        self.assertEqual(types["small-x"]["think"], "minimal")
+        self.assertEqual(types["generic-x"]["think"], "default")
 
     def test_yaml_think_values_are_valid(self):
         cfg = m.load_yaml(ROOT / "config" / "task-types.yaml")
         for t in cfg.get("task_types", []):
             self.assertIn(
                 str(t.get("think") or "").lower(),
-                {"low", "medium", "high"},
+                {"default", "minimal", "low", "medium", "high", "xhigh"},
                 f"{t['name']} missing/invalid think",
             )
 

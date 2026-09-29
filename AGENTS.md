@@ -45,7 +45,7 @@ The select-model action (canonical `github-action/action.yml` + `github-action/s
 
 ### Central model config
 
-`data/model-config.json` is the **actual configuration**, keyed by task-type only (`task-types.<name>.{go,free,think}`, where `think` is the low|medium|high reasoning-effort hint fed from `config/task-types.yaml`), consumed by every OpenCode step at startup via the select-model action (`model: ${{ steps.resolve.outputs.model }}`).
+`data/model-config.json` is the **actual configuration**, keyed by task-type only (`task-types.<name>.{go,free,think}`, where `think` is the default|minimal|low|medium|high|xhigh reasoning-effort hint fed from `config/task-types.yaml`), consumed by every OpenCode step at startup via the select-model action (`model: ${{ steps.resolve.outputs.model }}`).
 
 The maintenance script recomputes the config each run and the workflow commits `data/model-config.json` directly, so the new models immediately become the selection target. The maintenance issue checkboxes are only for model ranking adjustments (`config/model-scores.yaml` PRs): checking a box makes OpenCode open a PR (assigned to the repo owner, superseding any existing one), and each audit run closes any open maintenance issue and opens a fresh one.
 

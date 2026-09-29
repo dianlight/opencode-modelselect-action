@@ -19,11 +19,13 @@
   `preferences.json`) in its `filesystem` allowlist
 - Work Status shows **Agent** and **Think**: the Agent row comes from the
   live session snapshot, Think from the new `think` field in the plugin
-  status file. `config/task-types.yaml` gains a per-type `think`
-  (low|medium|high) reasoning-effort hint; `generate_model_config`
-  publishes it into `data/model-config.json` (`task-types.<name>.think`),
-  `resolveModel` returns it per pick, and `writeStatus` normalizes it into
-  the status schema (`low|medium|high|null`) — v1 `statusFields` and the
+  status file (shown capitalized, e.g. `High`). `config/task-types.yaml`
+  gains a per-type `think`
+  (default|minimal|low|medium|high|xhigh) reasoning-effort hint;
+  `generate_model_config` publishes it into `data/model-config.json`
+  (`task-types.<name>.think`), `resolveModel` returns it per pick, and
+  `writeStatus` normalizes it into the status schema
+  (default|minimal|low|medium|high|xhigh|null) — v1 `statusFields` and the
   v2 context hook both pass it through, with tests and a committed
   `data/model-config.json` hand-injection matching the generator output
 - Mode-dependent Work Status fields: in `auto`/`off` the status file is
