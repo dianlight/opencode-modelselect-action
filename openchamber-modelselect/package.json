@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@openchamber/sdk": "2.0.3"
+    "@openchamber/sdk": "2.0.4"
   },
   "scripts": {
     "build": "openchamber-guest-bundle status/src/main.js status/main.js",
