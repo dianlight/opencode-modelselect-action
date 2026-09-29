@@ -211,6 +211,7 @@ best-effort per-session status file next to the caches — it never throws:
   "model": "opencode/muse-spark-free", // "provider/id"
   "jev": "pinned",        // off | pinned | <choice>@<conf> | kept:<reason>
   "goOk": null,           // quota probe: true | false | null (no probe ran)
+  "think": "high",        // task-type reasoning effort: low | medium | high | null
   "source": "cache",      // remote | cache | cache-stale…
   "suggestOnly": false,
   "updatedAt": 1720000000000 // epoch ms
@@ -219,10 +220,25 @@ best-effort per-session status file next to the caches — it never throws:
 
 The global mode file `<project>/.opencode/.modelselect-cache/mode.json`
 (`{"mode": "on"|"off"|"auto"}`) controls routing; a missing file, bad
-JSON, or unknown value all mean `"on"` (today's behavior):
+JSON, or unknown value falls back to the external
+`~/.config/openchamber/modelselect.json` `mode` when readable and valid,
+else `"auto"` (default):
 
 ```sh
 echo '{"mode":"off"}' > <project>/.opencode/.modelselect-cache/mode.json
+```
+
+The external file (`~/.config/openchamber/modelselect.json`, user-editable)
+holds the global defaults plus the autoset flags:
+
+```json
+{
+  "mode": "auto",
+  "autoSmallModel": false,
+  "autoWalkthroughModel": false,
+  "smallModelTask": "small-model",
+  "walkthroughModelTask": "review"
+}
 ```
 
 Before the mode check on every turn (v2 `prompt` + `context` hooks) the
@@ -231,7 +247,7 @@ from the caches above (`src/shared/routing.js`, writes only on diff). The
 write is skipped silently when `~/.config/openchamber` doesn't exist —
 the plugin never creates OpenChamber's config itself.
 
-- `on` — route every turn (default).
+- `on` — route every turn.
 - `off` — skip routing entirely for the turn: no mutation, no
   `switchModel`, no announce line, no status write (one verbose log line
   only).
@@ -241,7 +257,18 @@ the plugin never creates OpenChamber's config itself.
   model mutation. The freshly synced categories are what route the
   question — OpenChamber's router picks the model, the plugin stays
   hands-off. (v2 only; v1 keeps the old route-until-you-switch
-  behavior.)
+  behavior.) This is the default.
+
+When `autoSmallModel` is true the sync also writes the resolved
+`smallModelTask` model into OpenChamber's `settings.json` +
+`preferences.json` as `smallModelOverride` (with
+`smallModelUseDefault: false`); when `autoWalkthroughModel` is true it
+writes the resolved `walkthroughModelTask` model as
+`walkthroughModelOverride` (the Settings → Sessions → Changes
+Walkthrough Model row — the per-panel Walkthrough model picker defaults
+to the small model, so keeping the small override fresh covers it too).
+Both follow the same go/free preference as the routing categories, and
+both write only on diff.
 
 ## Trial run without side effects
 

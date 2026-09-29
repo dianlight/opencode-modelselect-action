@@ -195,12 +195,18 @@ function clearQuotaCache() {
   noTokenHinted = false;
 }
 
+/** Coerce a config `think` value to a known effort level, else null. */
+function normalizeThink(v) {
+  const s = String(v ?? '').toLowerCase();
+  return ['default', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(s) ? s : null;
+}
+
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir }) {
   const { config, source, stale } = await loadConfig(opts, cacheDir);
   const { key, entry } = entryFor(config, taskType);
   if (!key || !entry) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null };
     throw new Error(`No model configured for task-type='${taskType}'.`);
   }
   const go = entry.go || '';
@@ -235,10 +241,10 @@ async function resolveModel({ taskType, opts, cacheDir }) {
   }
   const model = tier === 'go' ? go : free;
   if (!model) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think) };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think) };
 }
 
 /** Split a "provider/model" string. v1 uses modelID, v2 uses id. */

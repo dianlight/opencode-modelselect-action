@@ -28,9 +28,16 @@ const {
   mergeCategories,
   findPluginOptions,
   autoPreferenceOf,
+  normalizeModelselectConfig,
+  pickSideRef,
+  mergeSettingsOverrides,
+  mergePreferencesOverrides,
   splitModelRef,
   parseJsonLenient,
   ROUTING_PATH,
+  MODELSELECT_CONFIG_PATH,
+  SETTINGS_PATH,
+  PREFERENCES_PATH,
 } = routingShared;
 
 // Host adapter: logical `~/...`/relative paths are passed through to the
@@ -78,7 +85,14 @@ export {
   mergeCategories,
   findPluginOptions,
   autoPreferenceOf,
+  normalizeModelselectConfig,
+  pickSideRef,
+  mergeSettingsOverrides,
+  mergePreferencesOverrides,
   splitModelRef,
   parseJsonLenient,
   ROUTING_PATH,
+  MODELSELECT_CONFIG_PATH,
+  SETTINGS_PATH,
+  PREFERENCES_PATH,
 };

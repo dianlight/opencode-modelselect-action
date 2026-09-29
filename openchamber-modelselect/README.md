@@ -20,7 +20,9 @@ Settings → Extensions → install from Folder / ZIP / URL pointing at
 Grant the `files` capability when prompted (status + mode files live
 under the project; the installed-check reads the three global config
 paths declared in `package.json`, including the OpenChamber managed
-config).
+config; the routing sync additionally reads
+`~/.config/openchamber/modelselect.json` and — only when autoset is
+enabled there — reads/writes `settings.json` + `preferences.json`).
 
 ## Build and test
 
@@ -55,12 +57,20 @@ Folder/ZIP/URL source.
   in the sandboxed frame, so clicking an icon shows the explanation in a
   host toast instead.
 - Key list (`ms-grid`): one row per field in Turn-stats style (muted
-  label left, right-aligned value) — Task, Tier, Model (`provider/id`,
-  mono, truncated with `title` tooltip), Jev, Source. Badges (`mountBadge`) carry `last known` +
+  label left, right-aligned value) — Task, Agent (live session
+  snapshot), Tier, Model (`provider/id`, mono, truncated with `title`
+  tooltip), Think (task-type reasoning effort: `low`/`medium`/`high`
+  from the status file), Jev, Source. Badges (`mountBadge`) carry `last known` +
   dimming when the pick is older than ~10 min
   (`off`/`auto` turns never rewrite the status file, so stale = last
   applied pick), `unlisted task` when the task is absent from the config
   cache, and `Auto` while the session model is unset.
+- Mode-dependent fields: in `auto`/`off` the status file is stale by
+  design (the plugin never rewrites it there), so the whole pick grid
+  and all badges are hidden — only the live session Model + Agent and
+  the mode hint are shown. `on` renders the full grid above. Missing
+  mode storage means `auto` (the plugin default): a fresh install shows
+  the live grid until the user picks `on`.
 - Theme comes from the host (`applyHostReady`); layout CSS uses host
   tokens with system fallbacks, matching other panels.
 
@@ -99,6 +109,34 @@ this bundle wraps it in a host-file adapter
 - Stale entries (stored ids that are no task type) are disabled
   (`disabled: true`), never deleted. Writes happen only on diff; all
   failures are silent so the view never breaks.
+
+## External config (`modelselect.json`) + model autoset
+
+`~/.config/openchamber/modelselect.json` (user-editable, all keys
+optional) holds the global defaults:
+
+```json
+{
+  "mode": "auto",
+  "autoSmallModel": false,
+  "autoWalkthroughModel": false,
+  "smallModelTask": "small-model",
+  "walkthroughModelTask": "review"
+}
+```
+
+- `mode` is the fallback when the per-project
+  `.opencode/.modelselect-cache/mode.json` is missing or invalid;
+  unknown values mean `"auto"`.
+- `autoSmallModel: true` writes the resolved `smallModelTask` model
+  into `settings.json` + `preferences.json` as `smallModelOverride`
+  (with `smallModelUseDefault: false`); `autoWalkthroughModel: true`
+  writes the resolved `walkthroughModelTask` model as
+  `walkthroughModelOverride` (the Settings → Sessions → Changes
+  Walkthrough Model row; the per-panel Walkthrough model picker
+  defaults to the small model). Both follow the same go/free
+  preference and 12h latch as the categories, write only on diff, and
+  never touch `variant`.
 
 ## Fix hint (plugin-missing)
 

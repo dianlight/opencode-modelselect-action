@@ -19,6 +19,10 @@ const {
   parseJsonLenient,
   findPluginOptions,
   autoPreferenceOf,
+  normalizeModelselectConfig,
+  pickSideRef,
+  mergeSettingsOverrides,
+  mergePreferencesOverrides,
   splitModelRef,
   buildDesired,
   mergeCategories,
@@ -94,6 +98,37 @@ describe('routing core helpers', () => {
     assert.deepEqual(findPluginOptions(null), {});
   });
 
+  it('normalizeModelselectConfig defaults to auto/off-off autoset', () => {
+    assert.deepEqual(normalizeModelselectConfig(null), {
+      mode: 'auto',
+      autoSmallModel: false,
+      autoWalkthroughModel: false,
+      smallModelTask: 'small-model',
+      walkthroughModelTask: 'review',
+    });
+    assert.equal(normalizeModelselectConfig({ mode: 'ON' }).mode, 'on');
+    assert.equal(normalizeModelselectConfig({ mode: 'sometimes' }).mode, 'auto');
+    const flags = normalizeModelselectConfig({ autoSmallModel: true, 'auto-walkthrough-model': true });
+    assert.equal(flags.autoSmallModel, true);
+    assert.equal(flags.autoWalkthroughModel, true);
+  });
+
+  it('pickSideRef + merge helpers behave', () => {
+    assert.equal(pickSideRef(MODEL_TABLE, 'review', 'free-first'), 'f/b');
+    assert.equal(pickSideRef(MODEL_TABLE, 'REVIEW', 'go-first'), 'g/a');
+    assert.equal(pickSideRef(MODEL_TABLE, 'missing', 'free-first'), null);
+    assert.equal(mergeSettingsOverrides(null, { a: 1 }), null);
+    assert.equal(mergeSettingsOverrides({ a: 1 }, { a: 1 }), null);
+    assert.deepEqual(mergeSettingsOverrides({ a: 1 }, { a: 2 }), { a: 2 });
+    const prefs = mergePreferencesOverrides(null, { smallModelOverride: 'f/s' }, 7);
+    assert.equal(prefs.fields.smallModelOverride.value, 'f/s');
+    assert.equal(
+      mergePreferencesOverrides(prefs, { smallModelOverride: 'f/s' }, 8),
+      null,
+      'no diff -> null',
+    );
+  });
+
   it('splitModelRef parses provider/model and rejects junk', () => {
     assert.deepEqual(splitModelRef('a/b'), { providerID: 'a', modelID: 'b' });
     assert.equal(splitModelRef('nope'), null);
@@ -155,7 +190,7 @@ describe('syncRouting', () => {
   it('writes categories + generic fallback on first sync', async () => {
     const io = fakeIo(caches());
     const r = await syncRouting(io);
-    assert.deepEqual(r, { written: true });
+    assert.deepEqual(r, { written: true, settingsWritten: false });
     assert.deepEqual(io.writes, [ROUTING_PATH]);
     const routing = io.files.get(ROUTING_PATH);
     assert.equal(routing.version, 1);
@@ -171,7 +206,7 @@ describe('syncRouting', () => {
       [ROUTING_PATH]: first.files.get(ROUTING_PATH),
     });
     const r = await syncRouting(second);
-    assert.deepEqual(r, { written: false });
+    assert.deepEqual(r, { written: false, settingsWritten: false });
     assert.equal(second.writes.length, 0);
   });
 
@@ -191,25 +226,26 @@ describe('syncRouting', () => {
 
   it('skips unusable payloads (no criteria anywhere) and empty results', async () => {
     const noCriteria = fakeIo(caches({ taskTypes: { review: { label: 'R', jev_criteria: '' } } }));
-    assert.deepEqual(await syncRouting(noCriteria), { written: false });
+    assert.deepEqual(await syncRouting(noCriteria), { written: false, settingsWritten: false });
     assert.equal(noCriteria.writes.length, 0);
 
     const noModelTable = fakeIo({
       '.opencode/.modelselect-cache/task-types-cache.json': { taskTypes: TASK_TYPES },
     });
-    assert.deepEqual(await syncRouting(noModelTable), { written: false });
+    assert.deepEqual(await syncRouting(noModelTable), { written: false, settingsWritten: false });
   });
 
   it('never rejects: bad io and write failures resolve { written: false }', async () => {
-    assert.deepEqual(await syncRouting(null), { written: false });
+    assert.deepEqual(await syncRouting(null), { written: false, settingsWritten: false });
     assert.deepEqual(await syncRouting({ readJson: () => Promise.reject(new Error('boom')) }), {
       written: false,
+      settingsWritten: false,
     });
     const failing = {
       ...fakeIo(caches()),
       writeJson: () => Promise.reject(new Error('denied')),
     };
-    assert.deepEqual(await syncRouting(failing), { written: false });
+    assert.deepEqual(await syncRouting(failing), { written: false, settingsWritten: false });
   });
 
   it('keeps the user agent only when the task type defines one', async () => {
@@ -231,6 +267,52 @@ describe('syncRouting', () => {
     const cats = io.files.get(ROUTING_PATH).categories;
     assert.equal(cats.review.agent, 'review');
     assert.equal(cats.generic.agent, 'mine', 'user agent preserved when no task-type agent');
+  });
+
+  it('leaves Small Model + Walkthrough rows alone unless autoset is enabled', async () => {
+    const io = fakeIo({
+      ...caches(),
+      [ROUTING_PATH]: { version: 1, categories: {} },
+      '~/.config/openchamber/preferences.json': { version: 1, fields: {} },
+    });
+    const r = await syncRouting(io);
+    assert.equal(r.settingsWritten, false);
+    assert.ok(!io.writes.includes('~/.config/openchamber/preferences.json'));
+    assert.ok(!io.writes.includes('~/.config/openchamber/settings.json'));
+  });
+
+  it('autosets smallModelOverride + walkthroughModelOverride from the resolved side', async () => {
+    const taskTypes = {
+      ...TASK_TYPES,
+      'small-model': { label: 'Small Model', jev_criteria: 'Trivial work.' },
+    };
+    const modelTable = {
+      ...MODEL_TABLE,
+      'small-model': { go: 'g/s', free: 'f/s' },
+    };
+    const io = fakeIo({
+      ...caches({ taskTypes }),
+      '.opencode/.modelselect-cache/model-config-cache.json': {
+        fetchedAt: 1,
+        config: { 'task-types': modelTable },
+      },
+      '~/.config/openchamber/modelselect.json': { autoSmallModel: true, autoWalkthroughModel: true },
+      '~/.config/openchamber/settings.json': { themeId: 'x' },
+      '~/.config/openchamber/preferences.json': { version: 1, fields: {} },
+    });
+    const r = await syncRouting(io);
+    assert.equal(r.settingsWritten, true);
+    const prefs = io.files.get('~/.config/openchamber/preferences.json');
+    assert.equal(prefs.fields.smallModelOverride.value, 'f/s');
+    assert.equal(prefs.fields.smallModelUseDefault.value, false);
+    assert.equal(prefs.fields.walkthroughModelOverride.value, 'f/b');
+    const settings = io.files.get('~/.config/openchamber/settings.json');
+    assert.equal(settings.smallModelOverride, 'f/s');
+    assert.equal(settings.smallModelUseDefault, false);
+    assert.equal(settings.walkthroughModelOverride, 'f/b');
+    // Second sync with everything in place writes nothing.
+    const again = await syncRouting(io);
+    assert.equal(again.settingsWritten, false);
   });
 });
 
@@ -262,9 +344,9 @@ describe('routing io adapter', () => {
       );
       // No mkdir in the adapter: an absent ~/.config/openchamber means
       // OpenChamber never ran here, so the sync stays silent (ENOENT).
-      assert.deepEqual(await syncRouting(io), { written: false }, 'no dir -> no write');
+      assert.deepEqual(await syncRouting(io), { written: false, settingsWritten: false }, 'no dir -> no write');
       fs.mkdirSync(path.join(home, '.config', 'openchamber'), { recursive: true });
-      assert.deepEqual(await syncRouting(io), { written: true });
+      assert.deepEqual(await syncRouting(io), { written: true, settingsWritten: false });
       const written = JSON.parse(
         fs.readFileSync(path.join(home, '.config', 'openchamber', 'routing.json'), 'utf8'),
       );

@@ -50,6 +50,9 @@ MODEL_CONFIG_PATH = DATA_DIR / "model-config.json"
 # (see plugin/src/shared/tasktypes.js, option B: standalone file with its
 # own parallel cache, generated from config/task-types.yaml).
 TASK_TYPES_JSON_PATH = DATA_DIR / "task-types.json"
+# Valid reasoning-effort values published as `task-types.<name>.think`
+# (mirrored by plugin/src/shared/select.js `normalizeThink`).
+_THINK_LEVELS = ("default", "minimal", "low", "medium", "high", "xhigh")
 
 # --- Constants ---
 ZEN_URL = "https://opencode.ai/zen/v1/models"
@@ -804,6 +807,7 @@ def generate_model_config(
     for tt in task_types:
         name = tt["name"]
         priority = tt.get("priority", "overall")
+        think = str(tt.get("think") or "").strip().lower()
         best_free, best_go = get_best_models_for_task(
             name, free_models, go_models, livebench, task_types,
             price_lookup, blend, threshold_pct,
@@ -814,6 +818,11 @@ def generate_model_config(
         task_map[name] = {
             "go": _add_model_prefix(best_go, go_ids) if best_go else None,
             "free": _add_model_prefix(best_free, go_ids) if best_free else None,
+            # Reasoning-effort hint (default|minimal|low|medium|high|xhigh)
+            # for the plugin status file and the OpenChamber Work Status
+            # view. Invalid or missing values publish as null (rendered
+            # as "—").
+            "think": think if think in _THINK_LEVELS else None,
             # Full best-to-worst ranking per tier so the select-model action
             # can walk down to a cheaper fit when `max-cost` filters the pick.
             "go_ranked": _rank_models_for_config(

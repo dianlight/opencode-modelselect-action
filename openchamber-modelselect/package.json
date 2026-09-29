@@ -35,7 +35,10 @@
         "~/.config/opencode/opencode.json",
         "~/.config/opencode/opencode.jsonc",
         "~/.config/openchamber/opencode.managed.json",
-        "~/.config/openchamber/routing.json"
+        "~/.config/openchamber/routing.json",
+        "~/.config/openchamber/modelselect.json",
+        "~/.config/openchamber/settings.json",
+        "~/.config/openchamber/preferences.json"
       ]
     }
   }

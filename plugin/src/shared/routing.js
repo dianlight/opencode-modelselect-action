@@ -16,6 +16,25 @@
  * - Work Status bundle (openchamber-modelselect/status/src/routing-sync.js)
  *   — host `readFile`/`writeFile` adapter, sync runs on every refresh.
  *
+ * Global modelselect config (solution 3: external file, user-editable):
+ * - `~/.config/openchamber/modelselect.json` =
+ *   `{ "mode": "on"|"off"|"auto" (default "auto"),
+ *      "autoSmallModel": bool (default false),
+ *      "autoWalkthroughModel": bool (default false),
+ *      "smallModelTask": "small-model",
+ *      "walkthroughModelTask": "review" }`
+ *   Missing/unreadable/unparseable means all defaults. Unknown `mode`
+ *   values mean `"auto"`.
+ * - When `autoSmallModel` is true the sync also writes the resolved small
+ *   task model into OpenChamber's `settings.json` (flat legacy copy) +
+ *   `preferences.json` (profile `{ version: 1, fields }` shape) as
+ *   `smallModelOverride` (+ `smallModelUseDefault: false`); when
+ *   `autoWalkthroughModel` is true it writes `walkthroughModelOverride`
+ *   (the Settings → Sessions → Changes Walkthrough Model row; the
+ *   per-panel "Walkthrough model" picker defaults to the small model, so
+ *   keeping the small override fresh covers it). Writes happen only on
+ *   diff; all failures are silent so the view never breaks.
+ *
  * Rules:
  * - Category + fallback models come from the plugin's model-config cache,
  *   picking the `go` or `free` side per the plugin `autoPreference`
@@ -42,6 +61,9 @@
  */
 
 const ROUTING_PATH = '~/.config/openchamber/routing.json';
+const MODELSELECT_CONFIG_PATH = '~/.config/openchamber/modelselect.json';
+const SETTINGS_PATH = '~/.config/openchamber/settings.json';
+const PREFERENCES_PATH = '~/.config/openchamber/preferences.json';
 const GLOBAL_CONFIG_PATHS = [
   '~/.config/openchamber/opencode.managed.json',
   '~/.config/opencode/opencode.json',
@@ -147,6 +169,120 @@ function autoPreferenceOf(options) {
     (options && (options.autoPreference || options['auto-preference'])) || 'free-first'
   ).toLowerCase().trim();
   return p === 'go-first' ? 'go-first' : 'free-first';
+}
+
+// Global modelselect config (`~/.config/openchamber/modelselect.json`,
+// solution 3 external file). Missing/unusable -> all defaults; unknown
+// `mode` -> `"auto"`. Accepts kebab-case aliases for the auto flags.
+function normalizeModelselectConfig(raw) {
+  const src = isObject(raw) ? raw : {};
+  const m = String(src.mode ?? 'auto').toLowerCase().trim();
+  const mode = m === 'on' || m === 'off' || m === 'auto' ? m : 'auto';
+  const boolOf = (v) => v === true || String(v ?? '').toLowerCase().trim() === 'true';
+  const autoSmallModel = boolOf(
+    src.autoSmallModel ?? src['auto-small-model'] ?? src.autosetSmallModel ?? src['autoset-small-model'] ?? false,
+  );
+  const autoWalkthroughModel = boolOf(
+    src.autoWalkthroughModel ??
+      src['auto-walkthrough-model'] ??
+      src.autosetWalkthroughModel ??
+      src.autoChangesWalkthroughModel ??
+      false,
+  );
+  const smallTask = String(src.smallModelTask ?? src['small-model-task'] ?? 'small-model')
+    .toLowerCase()
+    .trim();
+  const walkTask = String(
+    src.walkthroughModelTask ??
+      src['walkthrough-model-task'] ??
+      src.changesWalkthroughModelTask ??
+      'review',
+  )
+    .toLowerCase()
+    .trim();
+  return {
+    mode,
+    autoSmallModel,
+    autoWalkthroughModel,
+    smallModelTask: smallTask || 'small-model',
+    walkthroughModelTask: walkTask || 'review',
+  };
+}
+
+// Pick the `provider/model` string for one task type under a preference,
+// falling back to the other side when the preferred one is unconfigured.
+// Returns the `"provider/model"` string or null.
+function pickSideRef(modelTable, taskName, preference) {
+  const table = isObject(modelTable) ? modelTable : null;
+  if (!table) return null;
+  const want = String(taskName ?? '').toLowerCase().trim();
+  if (!want) return null;
+  const key = Object.keys(table).filter((k) => String(k).toLowerCase() === want)[0];
+  const entry = key ? table[key] : null;
+  if (!isObject(entry)) return null;
+  const side = preference === 'go-first' ? entry.go : entry.free;
+  const ref = splitModelRef(side) || splitModelRef(entry.free) || splitModelRef(entry.go);
+  if (!ref) return null;
+  return `${ref.providerID}/${ref.modelID}`;
+}
+
+// Merge autoset values into a decoded OpenChamber `settings.json` (flat
+// object). Returns the next object, or null when nothing changed. A
+// missing/unusable stored doc means "no write" — the server owns that file.
+function mergeSettingsOverrides(stored, updates) {
+  if (!isObject(stored) || !isObject(updates)) return null;
+  const keys = Object.keys(updates);
+  if (!keys.length) return null;
+  let changed = false;
+  const next = {};
+  for (const k in stored) next[k] = stored[k];
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    if (next[k] !== updates[k]) {
+      next[k] = updates[k];
+      changed = true;
+    }
+  }
+  return changed ? next : null;
+}
+
+// Merge autoset values into a decoded `preferences.json`
+// (`{ version: 1, fields: { key: { value, updatedAt, surfaces? } } }`).
+// Preserves every other field (including `surfaces`). Returns the next doc,
+// or null when nothing changed. A missing doc is created with just our keys;
+// an unusable (non-object) doc means "no write".
+function mergePreferencesOverrides(stored, updates, now) {
+  if (!isObject(updates) || !Object.keys(updates).length) return null;
+  if (stored === null || stored === undefined) {
+    const fields = {};
+    const keys = Object.keys(updates);
+    for (let i = 0; i < keys.length; i++) {
+      fields[keys[i]] = { value: updates[keys[i]], updatedAt: now };
+    }
+    return { version: 1, fields };
+  }
+  if (!isObject(stored)) return null;
+  const storedFields = isObject(stored.fields) ? stored.fields : {};
+  let changed = false;
+  const fields = {};
+  for (const k in storedFields) fields[k] = storedFields[k];
+  const keys = Object.keys(updates);
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    const cur = isObject(fields[k]) ? fields[k].value : undefined;
+    if (cur !== updates[k]) {
+      const nextEntry = { value: updates[k], updatedAt: now };
+      if (isObject(fields[k]) && fields[k].surfaces !== undefined) nextEntry.surfaces = fields[k].surfaces;
+      fields[k] = nextEntry;
+      changed = true;
+    }
+  }
+  if (!changed) return null;
+  const next = {};
+  for (const k in stored) next[k] = stored[k];
+  next.fields = fields;
+  if (next.version === undefined) next.version = 1;
+  return next;
 }
 
 function splitModelRef(model) {
@@ -283,16 +419,23 @@ function readFirst(io, paths) {
 }
 
 // Best-effort sync: reads caches + routing.json through the IO adapter,
-// writes back only on diff. Resolves { written: boolean } and never rejects.
-function syncRouting(io) {
+// writes back only on diff. When the global modelselect config enables the
+// autoset flags, the resolved small/walkthrough models are also merged into
+// OpenChamber's settings.json + preferences.json (diff-only). Resolves
+// { written, settingsWritten } and never rejects.
+function syncRouting(io, opts) {
   if (!io || typeof io.readJson !== 'function' || typeof io.writeJson !== 'function') {
-    return Promise.resolve({ written: false });
+    return Promise.resolve({ written: false, settingsWritten: false });
   }
+  const now = opts && Number.isFinite(opts.now) ? opts.now : Date.now();
   const chain = Promise.all([
     readFirst(io, GLOBAL_CONFIG_PATHS),
     readFirst(io, [MODEL_CACHE_FILE]),
     readFirst(io, [TASK_TYPES_CACHE_FILE]),
-    readFirst(io, [ROUTING_PATH])
+    readFirst(io, [ROUTING_PATH]),
+    readFirst(io, [MODELSELECT_CONFIG_PATH]),
+    readFirst(io, [SETTINGS_PATH]),
+    readFirst(io, [PREFERENCES_PATH])
   ]);
   return chain.then((parts) => {
     try {
@@ -301,6 +444,7 @@ function syncRouting(io) {
       const ttCache = parts[2];
       const routing = parts[3];
       const preference = autoPreferenceOf(findPluginOptions(managed));
+      const msConfig = normalizeModelselectConfig(parts[5]);
       let modelTable = null;
       if (modelCache && isObject(modelCache.config)) {
         modelTable = modelCache.config['task-types'] || modelCache.config.task_types || null;
@@ -315,16 +459,16 @@ function syncRouting(io) {
           taskTypes = ttCache;
         }
       }
-      if (!isObject(taskTypes) || !isObject(modelTable)) return { written: false };
+      if (!isObject(taskTypes) || !isObject(modelTable)) return { written: false, settingsWritten: false };
       const built = buildDesired(taskTypes, modelTable, preference);
       // A payload with no criteria anywhere is unrecognised (stale cache
       // written before jev_criteria existed): leave routing alone rather
       // than disable every stored category as stale.
-      if (built.unusable) return { written: false };
+      if (built.unusable) return { written: false, settingsWritten: false };
       // Also skip when the payload yields no category: with an empty
       // desired set every stored id looks stale, so a write could only
       // ever disable.
-      if (!Object.keys(built.desired).length) return { written: false };
+      if (!Object.keys(built.desired).length) return { written: false, settingsWritten: false };
       const stored = isObject(routing) ? routing : {};
       const nextCats = mergeCategories(stored.categories, built.desired, built.ignored);
       // Fallback follows `generic` under the same preference.
@@ -336,33 +480,95 @@ function syncRouting(io) {
         if (curFb && curFb.variant !== undefined) wantFb.variant = curFb.variant;
         if (stableStringify(wantFb) !== stableStringify(curFb)) nextFallback = wantFb;
       }
-      if (nextCats === null && nextFallback === null) return { written: false };
-      const next = {};
-      for (const sk in stored) next[sk] = stored[sk];
-      if (next.version === undefined) next.version = 1;
-      if (nextCats !== null) next.categories = nextCats;
-      if (nextFallback !== null) next.fallback = nextFallback;
-      return Promise.resolve(io.writeJson(ROUTING_PATH, next)).then(
-        () => ({ written: true }),
-        () => ({ written: false })
-      );
+      // Autoset: resolved task models follow the same preference/latch
+      // into OpenChamber's Small Model + Changes Walkthrough rows.
+      let settingsUpdates = null;
+      if (msConfig.autoSmallModel || msConfig.autoWalkthroughModel) {
+        settingsUpdates = {};
+        if (msConfig.autoSmallModel) {
+          const smallRef = pickSideRef(modelTable, msConfig.smallModelTask, preference);
+          if (smallRef) {
+            settingsUpdates.smallModelUseDefault = false;
+            settingsUpdates.smallModelOverride = smallRef;
+          }
+        }
+        if (msConfig.autoWalkthroughModel) {
+          const walkRef = pickSideRef(modelTable, msConfig.walkthroughModelTask, preference);
+          if (walkRef) settingsUpdates.walkthroughModelOverride = walkRef;
+        }
+        if (!Object.keys(settingsUpdates).length) settingsUpdates = null;
+      }
+      const routingDirty = nextCats !== null || nextFallback !== null;
+      const writeRouting = routingDirty
+        ? (function () {
+            const next = {};
+            for (const sk in stored) next[sk] = stored[sk];
+            if (next.version === undefined) next.version = 1;
+            if (nextCats !== null) next.categories = nextCats;
+            if (nextFallback !== null) next.fallback = nextFallback;
+            return Promise.resolve(io.writeJson(ROUTING_PATH, next)).then(
+              () => true,
+              () => false,
+            );
+          })()
+        : Promise.resolve(false);
+      const writeSettings = settingsUpdates
+        ? (function () {
+            const nextSettings = mergeSettingsOverrides(isObject(parts[6]) ? parts[6] : null, settingsUpdates);
+            const nextPrefs = mergePreferencesOverrides(
+              parts[7] === undefined ? null : parts[7],
+              settingsUpdates,
+              now,
+            );
+            const jobs = [];
+            if (nextSettings !== null) {
+              jobs.push(
+                Promise.resolve(io.writeJson(SETTINGS_PATH, nextSettings)).then(
+                  () => true,
+                  () => false,
+                ),
+              );
+            }
+            if (nextPrefs !== null) {
+              jobs.push(
+                Promise.resolve(io.writeJson(PREFERENCES_PATH, nextPrefs)).then(
+                  () => true,
+                  () => false,
+                ),
+              );
+            }
+            if (!jobs.length) return Promise.resolve(false);
+            return Promise.all(jobs).then((flags) => flags.some(Boolean));
+          })()
+        : Promise.resolve(false);
+      return Promise.all([writeRouting, writeSettings]).then((flags) => ({
+        written: flags[0],
+        settingsWritten: flags[1],
+      }));
     } catch (e) {
-      return { written: false };
+      return { written: false, settingsWritten: false };
     }
   }).then(
     (r) => r,
-    () => ({ written: false })
+    () => ({ written: false, settingsWritten: false })
   );
 }
 
 module.exports = {
   ROUTING_PATH,
+  MODELSELECT_CONFIG_PATH,
+  SETTINGS_PATH,
+  PREFERENCES_PATH,
   GLOBAL_CONFIG_PATHS,
   MODEL_CACHE_FILE,
   TASK_TYPES_CACHE_FILE,
   parseJsonLenient,
   findPluginOptions,
   autoPreferenceOf,
+  normalizeModelselectConfig,
+  pickSideRef,
+  mergeSettingsOverrides,
+  mergePreferencesOverrides,
   splitModelRef,
   buildDesired,
   mergeCategories,

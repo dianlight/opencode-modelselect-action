@@ -662,6 +662,63 @@ class TaskTypesJsonTest(unittest.TestCase):
                 self.assertTrue(entry["description"], f"{name} missing description")
 
 
+class ModelConfigThinkTest(unittest.TestCase):
+    """generate_model_config publishes the per-task-type `think` hint."""
+
+    def _generate(self, task_types, tmp):
+        import json
+
+        with patch.object(m, "MODEL_CONFIG_PATH", Path(tmp) / "model-config.json"):
+            m.generate_model_config(
+                free_models=[{"id": "f-a"}],
+                go_models=[{"id": "g-a"}],
+                livebench={"models": {}},
+                task_types=task_types,
+                threshold_pct=5,
+                go_ids={"g-a"},
+            )
+            return json.loads((Path(tmp) / "model-config.json").read_text())
+
+    def test_publishes_valid_think_and_nulls_invalid(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self._generate(
+                [
+                    {"name": "code", "think": "medium"},
+                    {"name": "docs", "think": "HIGH"},
+                    {"name": "plan"},  # absent -> null
+                    {"name": "generic", "think": "extreme"},  # invalid -> null
+                ],
+                tmp,
+            )
+        types = data["task-types"]
+        self.assertEqual(types["code"]["think"], "medium")
+        self.assertEqual(types["docs"]["think"], "high")
+        self.assertIsNone(types["plan"]["think"])
+        self.assertIsNone(types["generic"]["think"])
+
+    def test_yaml_think_values_are_valid(self):
+        cfg = m.load_yaml(ROOT / "config" / "task-types.yaml")
+        for t in cfg.get("task_types", []):
+            self.assertIn(
+                str(t.get("think") or "").lower(),
+                {"low", "medium", "high"},
+                f"{t['name']} missing/invalid think",
+            )
+
+    def test_model_config_matches_yaml_think(self):
+        """The committed data/model-config.json carries every yaml think value."""
+        import json
+
+        cfg = m.load_yaml(ROOT / "config" / "task-types.yaml")
+        yaml_think = {t["name"]: str(t.get("think")).lower() for t in cfg.get("task_types", [])}
+        data = json.loads((ROOT / "data" / "model-config.json").read_text())
+        self.assertEqual(set(data["task-types"]), set(yaml_think))
+        for name, think in yaml_think.items():
+            self.assertEqual(data["task-types"][name].get("think"), think, name)
+
+
 class HfModalityTest(unittest.TestCase):
     def test_multimodal_tags(self):
         self.assertEqual(

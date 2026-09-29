@@ -22,6 +22,13 @@ function seedCache(dir, config) {
     path.join(cache, 'model-config-cache.json'),
     JSON.stringify({ fetchedAt: Date.now(), config }),
   );
+  // Hook tests assume routing is active: pin mode "on" unless the test
+  // overwrites mode.json afterwards (the product default is "auto").
+  // Never clobber an existing mode file (off/auto tests seed first).
+  const modeFile = path.join(cache, 'mode.json');
+  if (!fs.existsSync(modeFile)) {
+    fs.writeFileSync(modeFile, JSON.stringify({ mode: 'on' }));
+  }
 }
 
 function seedTaskTypes(dir, taskTypes) {

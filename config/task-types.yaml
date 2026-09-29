@@ -3,6 +3,9 @@
 # `name` is the kebab-case key used in data/model-config.json and the
 # select-model action (`task-type` input, matched case-insensitively).
 # `label` is the human-readable display name used in README tables.
+# `think` is the reasoning-effort hint (default|minimal|low|medium|high|xhigh)
+# published into data/model-config.json and written into the plugin status
+# file, so the OpenChamber Work Status view can show the pick's effort level.
 
 task_types:
   - name: "plan"
@@ -12,6 +15,7 @@ task_types:
     agent: "plan"
     relevant_subscores: ["reasoning", "instruction_following"]
     priority: "reasoning"
+    think: "xhigh"
 
   - name: "issue-triage"
     label: "Issue Triage"
@@ -19,6 +23,7 @@ task_types:
     jev_criteria: "Triage work: read an issue, decide what it is, how urgent it is, where it belongs and what happens next."
     relevant_subscores: ["instruction_following", "speed"]
     priority: "instruction_following"
+    think: "low"
 
   - name: "review"
     label: "Review"
@@ -27,6 +32,7 @@ task_types:
     agent: "plan"
     relevant_subscores: ["reasoning"]
     priority: "reasoning"
+    think: "high"
 
   - name: "ui-design"
     label: "UI Design"
@@ -36,6 +42,7 @@ task_types:
     relevant_subscores: ["vision", "coding"]
     priority: "vision"
     requires_vision: true
+    think: "medium"
 
   - name: "ui-testing"
     label: "UI Testing"
@@ -44,6 +51,7 @@ task_types:
     agent: "build"
     relevant_subscores: ["coding"]
     priority: "coding"
+    think: "medium"
 
   - name: "api-testing"
     label: "API Testing"
@@ -52,6 +60,7 @@ task_types:
     agent: "build"
     relevant_subscores: ["coding", "reasoning"]
     priority: "coding"
+    think: "medium"
 
   - name: "docs"
     label: "Docs"
@@ -59,6 +68,7 @@ task_types:
     jev_criteria: "Documentation work: explain, summarize or document behavior in READMEs, changelogs and docstrings."
     relevant_subscores: ["instruction_following"]
     priority: "instruction_following"
+    think: "low"
 
   - name: "debug"
     label: "Debug"
@@ -67,6 +77,7 @@ task_types:
     agent: "build"
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
+    think: "high"
 
   - name: "refactor"
     label: "Refactor"
@@ -75,6 +86,7 @@ task_types:
     agent: "build"
     relevant_subscores: ["coding"]
     priority: "coding"
+    think: "medium"
 
   - name: "security"
     label: "Security"
@@ -82,6 +94,7 @@ task_types:
     jev_criteria: "Security work: spot vulnerabilities, judge exploitability and the hardening needed."
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
+    think: "high"
 
   - name: "code"
     label: "Code"
@@ -90,6 +103,7 @@ task_types:
     agent: "build"
     relevant_subscores: ["coding"]
     priority: "coding"
+    think: "medium"
 
   - name: "mechanical-engineer"
     label: "Mechanical Engineer"
@@ -97,6 +111,7 @@ task_types:
     jev_criteria: "Mechanical engineering work: calculations, CAD, thermodynamics and material decisions."
     relevant_subscores: ["reasoning", "coding"]
     priority: "reasoning"
+    think: "xhigh"
 
   - name: "web-search"
     label: "Web Search"
@@ -105,6 +120,7 @@ task_types:
     agent: "plan"
     relevant_subscores: ["reasoning", "instruction_following"]
     priority: "reasoning"
+    think: "medium"
 
   - name: "generic"
     label: "Generic"
@@ -112,6 +128,7 @@ task_types:
     jev_criteria: "General work: explanations, analysis and Q&A not covered by other categories."
     relevant_subscores: ["instruction_following", "reasoning"]
     priority: "instruction_following"
+    think: "default"
 
   - name: "small-model"
     label: "Small Model"
@@ -119,6 +136,7 @@ task_types:
     jev_criteria: "Trivial mechanical work: commit messages, session titles and renames, short summaries with no design judgement."
     relevant_subscores: ["instruction_following", "speed"]
     priority: "instruction_following"
+    think: "minimal"
 
 # Free-first policy: if free model scores within this % of best paid, prefer free
 free_first_threshold_pct: 5

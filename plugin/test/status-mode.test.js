@@ -35,6 +35,7 @@ describe('status file helpers', () => {
         model: 'f/b',
         jev: 'pinned',
         goOk: null,
+        think: 'high',
         source: 'cache',
         suggestOnly: false,
       });
@@ -49,6 +50,7 @@ describe('status file helpers', () => {
         'source',
         'suggestOnly',
         'taskType',
+        'think',
         'tier',
         'updatedAt',
       ]);
@@ -58,6 +60,7 @@ describe('status file helpers', () => {
       assert.equal(raw.model, 'f/b');
       assert.equal(raw.jev, 'pinned');
       assert.equal(raw.goOk, null);
+      assert.equal(raw.think, 'high');
       assert.equal(raw.source, 'cache');
       assert.equal(raw.suggestOnly, false);
       assert.equal(typeof raw.updatedAt, 'number');
@@ -70,9 +73,16 @@ describe('status file helpers', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-status-'));
     try {
       const cacheDir = path.join(dir, '.opencode', '.modelselect-cache');
-      const payload = writeStatus(cacheDir, '../evil/x y!', { model: 'f/b', goOk: 'yes', suggestOnly: 1 });
+      const payload = writeStatus(cacheDir, '../evil/x y!', { model: 'f/b', goOk: 'yes', suggestOnly: 1, think: 'extreme' });
       assert.equal(payload.goOk, null);
       assert.equal(payload.suggestOnly, true);
+      assert.equal(payload.think, null);
+      const upper = writeStatus(cacheDir, 's2', { model: 'f/b', think: 'MEDIUM' });
+      assert.equal(upper.think, 'medium');
+      const xhigh = writeStatus(cacheDir, 's3', { model: 'f/b', think: 'XHIGH' });
+      assert.equal(xhigh.think, 'xhigh');
+      const def = writeStatus(cacheDir, 's4', { model: 'f/b', think: 'DEFAULT' });
+      assert.equal(def.think, 'default');
       assert.equal(payload.sessionID, '../evil/x y!');
       assert.ok(fs.existsSync(path.join(cacheDir, 'status-___evil_x_y_.json')));
       assert.deepEqual(fs.readdirSync(dir), ['.opencode']);
@@ -101,19 +111,46 @@ describe('mode file', () => {
     return cache;
   }
 
-  it('defaults to on when missing, invalid, or unknown', () => {
+  it('defaults to auto when missing, invalid, or unknown', () => {
     clearModeCache();
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-mode-'));
+    const restoreHome = (() => {
+      const saved = process.env.HOME;
+      process.env.HOME = dir;
+      return () => {
+        if (saved === undefined) delete process.env.HOME;
+        else process.env.HOME = saved;
+      };
+    })();
     try {
-      assert.equal(readMode(path.join(dir, '.opencode', '.modelselect-cache')), 'on');
-      assert.equal(readMode(seedMode(dir, 'not json{')), 'on');
+      assert.equal(readMode(path.join(dir, '.opencode', '.modelselect-cache')), 'auto');
+      assert.equal(readMode(seedMode(dir, 'not json{')), 'auto');
       clearModeCache();
-      assert.equal(readMode(seedMode(dir, {})), 'on');
+      assert.equal(readMode(seedMode(dir, {})), 'auto');
       clearModeCache();
-      assert.equal(readMode(seedMode(dir, { mode: 'sometimes' })), 'on');
+      assert.equal(readMode(seedMode(dir, { mode: 'sometimes' })), 'auto');
       clearModeCache();
-      assert.equal(readMode(seedMode(dir, { mode: 42 })), 'on');
+      assert.equal(readMode(seedMode(dir, { mode: 42 })), 'auto');
     } finally {
+      restoreHome();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('falls back to the global modelselect.json mode when the cache file is missing', () => {
+    clearModeCache();
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-mode-global-'));
+    const saved = process.env.HOME;
+    process.env.HOME = dir;
+    try {
+      const cfg = path.join(dir, '.config', 'openchamber');
+      fs.mkdirSync(cfg, { recursive: true });
+      fs.writeFileSync(path.join(cfg, 'modelselect.json'), JSON.stringify({ mode: 'off' }));
+      assert.equal(readMode(path.join(dir, '.opencode', '.modelselect-cache')), 'off');
+    } finally {
+      if (saved === undefined) delete process.env.HOME;
+      else process.env.HOME = saved;
+      clearModeCache();
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
@@ -157,6 +194,38 @@ describe('resolveModel goOk', () => {
       assert.equal(auto.goOk, null);
     } finally {
       restoreAuth();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('carries think from the config entry (invalid/absent -> null)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-think-'));
+    seedCache(dir, {
+      'task-types': {
+        code: { go: 'g/a', free: 'f/b', think: 'high' },
+        docs: { go: 'g/a', free: 'f/b', think: 'extreme' },
+        plan: { go: 'g/a', free: 'f/b' },
+        'small-model': { go: 'g/a', free: 'f/b', think: 'minimal' },
+      },
+    });
+    try {
+      const cacheDir = path.join(dir, '.opencode', '.modelselect-cache');
+      const opts = normalizeOptions({ tier: 'free' });
+      const withThink = await resolveModel({ taskType: 'code', opts, cacheDir });
+      assert.equal(withThink.think, 'high');
+      const invalid = await resolveModel({ taskType: 'docs', opts, cacheDir });
+      assert.equal(invalid.think, null);
+      const absent = await resolveModel({ taskType: 'plan', opts, cacheDir });
+      assert.equal(absent.think, null);
+      const minimal = await resolveModel({ taskType: 'small-model', opts, cacheDir });
+      assert.equal(minimal.think, 'minimal');
+      const fallback = await resolveModel({
+        taskType: 'nope',
+        opts: normalizeOptions({ tier: 'free', fallbackModel: 'g/fallback' }),
+        cacheDir,
+      });
+      assert.equal(fallback.think, null);
+    } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
@@ -209,7 +278,7 @@ describe('v1 status + mode', () => {
   it('writes the status file on every routed turn', async () => {
     const v1 = require('../src/v1.js');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-status-'));
-    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'high' } } });
     try {
       const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
       const t = v1Turn('s1', ['old', 'old']);
@@ -221,6 +290,7 @@ describe('v1 status + mode', () => {
       assert.equal(raw.model, 'f/b');
       assert.equal(raw.jev, 'pinned');
       assert.equal(raw.goOk, null);
+      assert.equal(raw.think, 'high');
       assert.equal(raw.source, 'cache');
       assert.equal(raw.suggestOnly, false);
       assert.equal(typeof raw.updatedAt, 'number');
@@ -357,7 +427,7 @@ describe('v2 status + mode', () => {
 
   it('writes the status file on context routing, incl. suggestOnly', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-status-'));
-    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'high' } } });
     try {
       const seen = await v2Hooks(dir, {});
       await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
@@ -371,6 +441,7 @@ describe('v2 status + mode', () => {
       assert.equal(raw.model, 'f/b');
       assert.equal(raw.jev, 'pinned');
       assert.equal(raw.goOk, null);
+      assert.equal(raw.think, 'high');
       assert.equal(raw.source, 'cache');
       assert.equal(raw.suggestOnly, false);
       assert.equal(typeof raw.updatedAt, 'number');

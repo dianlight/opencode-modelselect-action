@@ -209,16 +209,19 @@ function loadFrame({ files, session }) {
 const DEBUG_STATUS = JSON.stringify({
   sessionID: 'ses_1', taskType: 'debug', tier: 'free',
   model: 'opencode/muse-spark-1.3-contributor-free',
-  jev: 'debug@0.61', goOk: true, source: 'cache',
+  jev: 'debug@0.61', goOk: true, think: 'high', source: 'cache',
   suggestOnly: true, updatedAt: Date.now(),
 });
 
-const AUTO_SESSION = { id: 'ses_1', title: 't', busy: false, model: '' };
+const AUTO_SESSION = { id: 'ses_1', title: 't', busy: false, model: '', agent: 'build' };
 
 describe('modelselect status frame', () => {
   it('connects to the host and renders the per-session pick', async () => {
     const frame = loadFrame({
-      files: new Map([[`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS]]),
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+      ]),
       session: AUTO_SESSION,
     });
     try {
@@ -231,8 +234,10 @@ describe('modelselect status frame', () => {
       await frame.ready();
       const txt = textOf(frame.root);
       assert.match(txt, /Task debug/);
+      assert.match(txt, /Agent build/); // from the live session snapshot
       assert.match(txt, /Tier free/);
       assert.match(txt, /Model opencode\/muse-spark-1\.3-contributor-free/);
+      assert.match(txt, /Think High/); // from the status file, capitalized
       assert.match(txt, /Jev debug@0\.61/);
       assert.match(txt, /Source cache/);
       assert.doesNotMatch(txt, /suggest-only/); // now an icon, not a text badge
@@ -249,7 +254,7 @@ describe('modelselect status frame', () => {
       icons[0].click(); // toast path must not throw
       await frame.settle();
 
-      // Mode defaults to on (no mode.json): On selected, "routes every turn".
+      // Mode pinned to on: On selected, "routes every turn".
       // The mode switch is SDK kit tabs (role=tab + aria-selected).
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
       assert.equal(tabs.map((b) => textOf(b)).join(','), 'On,Off,Auto');
@@ -274,7 +279,16 @@ describe('modelselect status frame', () => {
       const write = frame.writes.find((w) => w.path === `${STATUS_DIR}/mode.json`);
       assert.ok(write, 'expected a mode.json write');
       assert.equal(write.content, JSON.stringify({ mode: 'off' }));
-      assert.match(textOf(frame.root), /routing paused/);
+      const offTxt = textOf(frame.root);
+      assert.match(offTxt, /routing paused/);
+      // off: the stale pick is fully hidden — live Model + Agent only.
+      assert.match(offTxt, /Agent build/);
+      assert.match(offTxt, /Model/);
+      assert.doesNotMatch(offTxt, /Task debug/);
+      assert.doesNotMatch(offTxt, /Think/);
+      assert.doesNotMatch(offTxt, /Jev/);
+      assert.doesNotMatch(offTxt, /Source cache/);
+      assert.doesNotMatch(offTxt, /Tier/);
     } finally {
       frame.close();
     }
@@ -292,7 +306,36 @@ describe('modelselect status frame', () => {
       await frame.ready();
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
       assert.equal(tabs[2].attrs['aria-selected'], 'true');
-      assert.match(textOf(frame.root), /routing synced, plugin off/);
+      const txt = textOf(frame.root);
+      assert.match(txt, /routing synced, plugin off/);
+      // auto: stale pick hidden — live Model + Agent only.
+      assert.match(txt, /Agent build/);
+      assert.doesNotMatch(txt, /Task debug/);
+      assert.doesNotMatch(txt, /Think/);
+      assert.doesNotMatch(txt, /Jev debug@0\.61/);
+      assert.doesNotMatch(txt, /Source cache/);
+      assert.doesNotMatch(txt, /Tier free/);
+      assert.doesNotMatch(txt, /last known/); // no badges in auto/off
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('mode defaults to auto when nothing is stored', async () => {
+    const frame = loadFrame({
+      files: new Map([[`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS]]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
+      assert.equal(tabs[2].attrs['aria-selected'], 'true');
+      const txt = textOf(frame.root);
+      assert.match(txt, /routing synced, plugin off/);
+      // auto: stale pick hidden — live Model + Agent only.
+      assert.match(txt, /Agent build/);
+      assert.doesNotMatch(txt, /Task debug/);
+      assert.doesNotMatch(txt, /Tier free/);
     } finally {
       frame.close();
     }

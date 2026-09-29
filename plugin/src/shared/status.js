@@ -5,17 +5,22 @@
  *
  * - Mode file: `<cacheDir>/mode.json` = `{"mode":"on"|"off"|"auto"}`.
  *   Missing file, unreadable file, bad JSON, or an unknown value all fall
- *   back to `"on"` (today's behavior). Reads are guarded by a tiny
- *   `{ mtimeMs, size }` cache so the file is only re-parsed when it
- *   changes; the file is tiny so a stale/missing read just means `on`.
+ *   back to the global `~/.config/openchamber/modelselect.json` `mode`
+ *   (when readable and valid), else `"auto"` (default). Reads are guarded
+ *   by a tiny `{ mtimeMs, size }` cache so the file is only re-parsed when
+ *   it changes; the file is tiny so a stale/missing read just means the
+ *   default.
  * - Status file: `<cacheDir>/status-<sessionID>.json` (sessionID sanitized
  *   to `[A-Za-z0-9-_]`, best-effort, never throws — including suggestOnly
  *   runs). Schema:
- *   `{ sessionID, taskType, tier, model, jev, goOk, source, suggestOnly,
- *      updatedAt }`
+ *   `{ sessionID, taskType, tier, model, jev, goOk, think, source,
+ *      suggestOnly, updatedAt }`
  *   where `model` is `"provider/id"`, `jev` is `off|pinned|<choice>@<conf>`
  *   or `kept:<reason>`, `goOk` is the last quota-probe result
- *   (`true|false|null` when unknown / no probe ran), `source` is the
+ *   (`true|false|null` when unknown / no probe ran), `think` is the task
+ *   type's reasoning-effort hint
+ *   (`default|minimal|low|medium|high|xhigh|null`, normalized
+ *   case-insensitively), `source` is the
  *   config source (`remote|cache|cache-stale…`), and `updatedAt` is epoch
  *   ms.
  *
@@ -46,8 +51,26 @@ function statusFile(cacheDir, sessionID) {
 }
 
 /**
+ * Read the global default mode from `~/.config/openchamber/modelselect.json`.
+ * Never throws — anything unusable means null (caller falls back to "auto").
+ */
+function readGlobalDefaultMode(home) {
+  try {
+    const os = require('node:os');
+    const base = home || os.homedir();
+    const file = require('node:path').join(String(base), '.config', 'openchamber', 'modelselect.json');
+    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const m = typeof raw?.mode === 'string' ? raw.mode.toLowerCase().trim() : '';
+    if (VALID_MODES.includes(m)) return m;
+  } catch {
+    // missing/unreadable/invalid = no global default
+  }
+  return null;
+}
+
+/**
  * Read the global routing mode. Never throws — anything unusable means
- * `"on"` (current behavior).
+ * the global default, else `"auto"`.
  */
 function readMode(cacheDir) {
   try {
@@ -57,23 +80,23 @@ function readMode(cacheDir) {
       const st = fs.statSync(file);
       stamp = `${st.mtimeMs}:${st.size}`;
     } catch {
-      return 'on'; // missing/unstatable = on
+      return readGlobalDefaultMode() || 'auto'; // missing/unstatable = global default, else auto
     }
     const key = String(cacheDir);
     const cached = modeCache.get(key);
     if (cached && cached.stamp === stamp) return cached.mode;
-    let mode = 'on';
+    let mode = readGlobalDefaultMode() || 'auto';
     try {
       const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
       const m = typeof raw?.mode === 'string' ? raw.mode.toLowerCase().trim() : '';
       if (VALID_MODES.includes(m)) mode = m;
     } catch {
-      mode = 'on'; // bad JSON = on
+      mode = readGlobalDefaultMode() || 'auto'; // bad JSON = global default, else auto
     }
     modeCache.set(key, { stamp, mode });
     return mode;
   } catch {
-    return 'on';
+    return 'auto';
   }
 }
 
@@ -97,6 +120,10 @@ function writeStatus(cacheDir, sessionID, fields = {}) {
       model: fields.model ?? null,
       jev: fields.jev ?? null,
       goOk: typeof fields.goOk === 'boolean' ? fields.goOk : null,
+      think: ['default', 'minimal', 'low', 'medium', 'high', 'xhigh']
+        .includes(String(fields.think ?? '').toLowerCase())
+        ? String(fields.think).toLowerCase()
+        : null,
       source: String(fields.source ?? ''),
       suggestOnly: Boolean(fields.suggestOnly ?? false),
       updatedAt: Date.now(),
@@ -111,6 +138,7 @@ function writeStatus(cacheDir, sessionID, fields = {}) {
 module.exports = {
   sanitizeSessionID,
   readMode,
+  readGlobalDefaultMode,
   clearModeCache,
   writeStatus,
   modeFile,

@@ -333,6 +333,7 @@ async function setup(ctx) {
         model: picked.model,
         jev,
         goOk: picked.goOk ?? null,
+        think: picked.think ?? null,
         source: picked.source,
         suggestOnly: opts.suggestOnly,
       });

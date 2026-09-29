@@ -22,10 +22,10 @@
     line-height: 1;
     cursor: pointer;
   }
-  .ms-ico.go-ok { color: var(--status-success, var(--oc-success, #1e7e34)); }
-  .ms-ico.go-out { color: var(--status-error, var(--oc-error, #b3261e)); }
+  .ms-ico.go-ok { color: var(--success-text, var(--oc-success-text, #1e7e34)); }
+  .ms-ico.go-out { color: var(--error-text, var(--oc-error-text, #b3261e)); }
   .ms-ico.go-unknown { color: var(--surface-muted-foreground, var(--oc-muted, GrayText)); }
-  .ms-ico.suggest { color: var(--status-warning, var(--oc-warning, #b7791f)); }
+  .ms-ico.suggest { color: var(--warning-text, var(--oc-warning-text, #b7791f)); }
   .ms-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .ms-title { font-weight: 600; font-size: 12px; white-space: nowrap; }
   .ms-tabs { min-width: 0; }
@@ -69,8 +69,8 @@
     font-size: 12px;
     color: var(--surface-muted-foreground, var(--oc-muted, GrayText));
   }
-  .ms-error { color: var(--status-error, var(--oc-error, #b3261e)); font-size: 12px; }
-  @media (prefers-color-scheme: dark) { .ms-error { color: var(--status-error, var(--oc-error, #f2b8b5)); } }
+  .ms-error { color: var(--error-text, var(--oc-error-text, #b3261e)); font-size: 12px; }
+  @media (prefers-color-scheme: dark) { .ms-error { color: var(--error-text, var(--oc-error-text, #f2b8b5)); } }
   .ms-fallback-badge {
     display: inline-block;
     padding: 0 7px;

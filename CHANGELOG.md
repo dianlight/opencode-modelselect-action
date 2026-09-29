@@ -1,4 +1,38 @@
 ## [Unreleased]
+### Added
+- External modelselect config (`~/.config/openchamber/modelselect.json`,
+  user-editable): `{ "mode", "autoSmallModel", "autoWalkthroughModel",
+  "smallModelTask" ("small-model"), "walkthroughModelTask" ("review") }`.
+  The default mode is now `auto` (was `on`): a missing/invalid
+  per-project `mode.json` falls back to the external `mode`, else
+  `auto`. When `autoSmallModel` is on, the routing sync writes the
+  resolved small-task model into OpenChamber's `settings.json` +
+  `preferences.json` as `smallModelOverride` (with
+  `smallModelUseDefault: false`); when `autoWalkthroughModel` is on it
+  writes the resolved walkthrough-task model as
+  `walkthroughModelOverride` (Settings → Sessions → Changes
+  Walkthrough Model — the per-panel Walkthrough model picker defaults
+  to the small model). Both follow the same go/free preference as the
+  routing categories, write only on diff,
+  and stay silent on failure. The Work Status extension declares the
+  three new paths (`modelselect.json`, `settings.json`,
+  `preferences.json`) in its `filesystem` allowlist
+- Work Status shows **Agent** and **Think**: the Agent row comes from the
+  live session snapshot, Think from the new `think` field in the plugin
+  status file. `config/task-types.yaml` gains a per-type `think`
+  (low|medium|high) reasoning-effort hint; `generate_model_config`
+  publishes it into `data/model-config.json` (`task-types.<name>.think`),
+  `resolveModel` returns it per pick, and `writeStatus` normalizes it into
+  the status schema (`low|medium|high|null`) — v1 `statusFields` and the
+  v2 context hook both pass it through, with tests and a committed
+  `data/model-config.json` hand-injection matching the generator output
+- Mode-dependent Work Status fields: in `auto`/`off` the status file is
+  stale by design (never rewritten outside `on`), so the panel now hides
+  the whole pick grid (Task, Tier, Jev, Source, Think + all badges) and
+  shows only the live session Model + Agent plus the mode hint. `on`
+  keeps the full grid: Task, Agent, Tier, Model, Think, Jev, Source +
+  badges
+
 ### Changed
 - Plugin mode `auto` (v2 only) changed meaning: before every turn the
   plugin syncs OpenChamber's `~/.config/openchamber/routing.json` from the
@@ -34,6 +68,13 @@
   with a vision encoder)
 
 ### Fixed
+- Work Status indicator colors now use the text-safe theme tokens
+  (`--success-text`/`--error-text`/`--warning-text` with the `--oc-*`
+  aliases, same fallback pattern as the other panels) instead of the
+  saturated `--status-success`/`--status-error`/`--status-warning`
+  badges, which were unreadable against the panel background; the
+  `.ms-error` fix-hint rule got the same treatment, and the muted
+  `go-unknown` token stays as-is
 - Corrected fallback `vision` scores in `config/model-scores.yaml` that
   claimed a vision encoder for text-only models (Hugging Face tags +
   Artificial Analysis page agree): `mimo-v2.5-pro` 55→5, `longcat-2.0`

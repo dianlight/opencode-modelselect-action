@@ -32,6 +32,7 @@ function statusFields(picked, jev, suggestOnly) {
     model: picked.model,
     jev,
     goOk: picked.goOk ?? null,
+    think: picked.think ?? null,
     source: picked.source,
     suggestOnly,
   };

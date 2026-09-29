@@ -16,9 +16,19 @@
  * - Status file: `<project>/.opencode/.modelselect-cache/status-<sessionID>.json`
  *   sessionID sanitized to [A-Za-z0-9-_] (128 cap, empty -> "default").
  *   Fields: sessionID, taskType, tier, model ("provider/id"), jev, goOk
- *   (true|false|null), source, suggestOnly, updatedAt (epoch ms).
+ *   (true|false|null), think (default|minimal|low|medium|high|xhigh|null),
+ *   source, suggestOnly,
+ *   updatedAt (epoch ms).
  * - Mode file: `<project>/.opencode/.modelselect-cache/mode.json` =
- *   {"mode":"on"|"off"|"auto"}; missing/invalid means "on".
+ *   {"mode":"on"|"off"|"auto"}; missing/invalid means the global
+ *   `~/.config/openchamber/modelselect.json` mode when readable and valid,
+ *   else "auto" (default).
+ * - Mode-dependent rendering: `on` shows the full pick grid (Task, Agent,
+ *   Tier, Model, Think, Jev, Source) + state badges from the status file
+ *   (Agent comes from the live session snapshot). `auto`/`off` never
+ *   rewrite the status file, so it is stale there — those modes hide the
+ *   whole pick and badges and only show the live session Model + Agent
+ *   plus the mode hint.
  * - NOTE: `off`/`auto` turns never rewrite the status file, so a stale
  *   file means "last applied pick". In `auto` the plugin only refreshes
  *   routing.json per turn (shared `plugin/src/shared/routing.js`) and
@@ -44,6 +54,7 @@ var host = connectHost();
 
 var CACHE_DIR = '.opencode/.modelselect-cache';
 var MODE_FILE = CACHE_DIR + '/mode.json';
+var MODELSELECT_CONFIG_FILE = '~/.config/openchamber/modelselect.json';
 var CONFIG_CACHE_FILE = CACHE_DIR + '/model-config-cache.json';
 var STORAGE_MODE_KEY = 'modelselect:mode';
 var STALE_MS = 10 * 60 * 1000;
@@ -63,7 +74,7 @@ var GLOBAL_CONFIG_PATHS = [
 ];
 
 var currentSession = null;
-var currentMode = 'on';
+var currentMode = 'auto';
 var modeBusy = false;
 
 function $(id) { return document.getElementById(id); }
@@ -106,6 +117,28 @@ function isAutoSession(snap) {
   var m = modelOf(snap);
   if (!m || !m.trim()) return true;
   return AUTO_MODEL_RE.test(m.trim());
+}
+
+// The selected agent from the live session snapshot: a plain string, or an
+// object with name/id (tolerated without assuming a fixed shape).
+function agentOf(snap) {
+  if (!snap || typeof snap !== 'object') return '';
+  var a = snap.agent;
+  if (typeof a === 'string') return a;
+  if (a && typeof a === 'object') {
+    var n = a.name || a.id;
+    if (typeof n === 'string') return n;
+  }
+  return '';
+}
+
+// Display a Think effort level ("high" -> "High"); empty/null renders '—'.
+// Values are lowercase in the status file (plugin-normalized), only the
+// label is capitalized here.
+function capitalize(v) {
+  var s = v == null ? '' : String(v);
+  if (!s) return '—';
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function toPromise(fn) {
@@ -176,17 +209,38 @@ function loadStatus(sessionID) {
 
 function loadMode() {
   return existsPath(MODE_FILE).then(function (exists) {
-    if (!exists) return 'on'; // missing = on (plugin contract)
-    return readJson(MODE_FILE).then(
-      function (data) {
-        var m = (data && typeof data.mode === 'string') ? data.mode.toLowerCase().trim() : '';
-        return VALID_MODES.indexOf(m) !== -1 ? m : 'on';
-      },
-      function () { return 'on'; } // bad JSON = on (plugin contract)
-    );
+    if (exists) {
+      return readJson(MODE_FILE).then(
+        function (data) {
+          var m = (data && typeof data.mode === 'string') ? data.mode.toLowerCase().trim() : '';
+          if (VALID_MODES.indexOf(m) !== -1) return m;
+          return loadGlobalDefaultMode();
+        },
+        function () { return loadGlobalDefaultMode(); } // bad JSON = global default, else auto
+      );
+    }
+    return loadGlobalDefaultMode(); // missing = global default, else auto
   }).then(
     function (m) { return m; },
-    function () { return 'on'; }
+    function () { return 'auto'; }
+  );
+}
+
+// Global default mode from the external modelselect config
+// (`~/.config/openchamber/modelselect.json`, solution 3 file). Anything
+// unusable means "auto".
+function loadGlobalDefaultMode() {
+  return toPromise(function () { return host.readFile(MODELSELECT_CONFIG_FILE); }).then(
+    function (res) {
+      try {
+        var data = JSON.parse(String(res && res.content));
+        var m = (data && typeof data.mode === 'string') ? data.mode.toLowerCase().trim() : '';
+        return VALID_MODES.indexOf(m) !== -1 ? m : 'auto';
+      } catch (e) {
+        return 'auto';
+      }
+    },
+    function () { return 'auto'; }
   );
 }
 
@@ -365,13 +419,27 @@ function renderStatusGrid(root, status, knownTypes, autoSession) {
   var grid = document.createElement('div');
   grid.className = 'ms-grid' + (stale ? ' stale' : '');
   field(grid, 'Task', (status && status.taskType) || '—');
+  field(grid, 'Agent', agentOf(currentSession) || '—');
   field(grid, 'Tier', (status && status.tier) || '—', false, status && goIcon(status.goOk));
   field(grid, 'Model', (status && status.model) || '—', true,
     status && status.suggestOnly ? suggestIcon() : null);
+  field(grid, 'Think', capitalize(status && status.think));
   field(grid, 'Jev', (status && status.jev) || '—', true);
   field(grid, 'Source', (status && status.source) || '—');
   root.appendChild(grid);
   renderBadges(root, status, stale, autoSession, unlisted);
+}
+
+// auto/off: the status file is never rewritten in these modes, so it is
+// stale by design — hide the whole pick grid and badges and show only the
+// live session snapshot (Model + Agent). The mode hint under the header
+// carries the rest.
+function renderLiveGrid(root) {
+  var grid = document.createElement('div');
+  grid.className = 'ms-grid';
+  field(grid, 'Model', modelOf(currentSession) || '—', true);
+  field(grid, 'Agent', agentOf(currentSession) || '—');
+  root.appendChild(grid);
 }
 
 function renderFixBanner(root, err) {
@@ -411,19 +479,19 @@ function render(state) {
   }
 
   var autoSession = isAutoSession(currentSession);
-  if (!state.status || !state.status.found) {
-    var err = (state.status && (state.status.readErr || state.status.statErr)) || null;
-    if (!state.globalEntry.entry) {
-      renderFixBanner(shell, err);
-    } else {
-      renderStatusGrid(shell, null, state.knownTypes, autoSession);
-    }
-    renderHeader(shell, currentMode);
-    fitHeight();
-    return;
+  var statusFound = Boolean(state.status && state.status.found);
+  var err = (state.status && (state.status.readErr || state.status.statErr)) || null;
+  var liveOnly = currentMode === 'auto' || currentMode === 'off';
+  if (!statusFound && !state.globalEntry.entry) {
+    // Plugin-missing banner is mode-independent (kept in every mode).
+    renderFixBanner(shell, err);
+  } else if (liveOnly) {
+    renderLiveGrid(shell);
+  } else if (statusFound) {
+    renderStatusGrid(shell, state.status.data, state.knownTypes, autoSession);
+  } else {
+    renderStatusGrid(shell, null, state.knownTypes, autoSession);
   }
-
-  renderStatusGrid(shell, state.status.data, state.knownTypes, autoSession);
   renderHeader(shell, currentMode);
   fitHeight();
 }
