@@ -8,9 +8,14 @@
  *
  * - `host.readFile(path)` -> `{ content }` promise for
  *   `~/.config/openchamber/routing.json` (stored-deviations shape), the
- *   plugin's model-config/task-types caches (project-relative), and the
- *   managed/global OpenCode config (for `autoPreference`).
+ *   plugin's model-config/task-types caches (project-relative), the
+ *   managed/global OpenCode config (for `autoPreference`), and the
+ *   free-tier latch (`free-quota.json`, project-relative).
  * - `host.writeFile(path, text)` writes back only when something changed.
+ *
+ * Re-exports `FREE_QUOTA_FILE` + `freeQuotaFresh` from the shared core so
+ * the status view can render the free-tier suspension countdown from the
+ * same latch the sync consumes.
  *
  * Failures are silent: sync is best-effort and must never break the
  * status view. See the shared module header for the category rules
@@ -34,10 +39,12 @@ const {
   mergePreferencesOverrides,
   splitModelRef,
   parseJsonLenient,
+  freeQuotaFresh,
   ROUTING_PATH,
   MODELSELECT_CONFIG_PATH,
   SETTINGS_PATH,
   PREFERENCES_PATH,
+  FREE_QUOTA_FILE,
 } = routingShared;
 
 // Host adapter: logical `~/...`/relative paths are passed through to the
@@ -91,8 +98,10 @@ export {
   mergePreferencesOverrides,
   splitModelRef,
   parseJsonLenient,
+  freeQuotaFresh,
   ROUTING_PATH,
   MODELSELECT_CONFIG_PATH,
   SETTINGS_PATH,
   PREFERENCES_PATH,
+  FREE_QUOTA_FILE,
 };

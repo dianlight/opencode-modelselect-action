@@ -599,4 +599,102 @@ describe('modelselect status frame', () => {
       frame.close();
     }
   });
+
+  it('shows the free-tier suspension countdown while the latch is fresh', async () => {
+    const latch = JSON.stringify({
+      version: 1, at: Date.now(), until: Date.now() + (2 * 60 * 60 * 1000 + 15 * 60 * 1000),
+      kind: 'exhaustion', model: 'opencode/m-free',
+      detail: 'quota spent', updatedAt: Date.now(),
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/free-quota.json`, latch],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.match(txt, /Free tier exhausted/);
+      assert.match(txt, /retry in 2h 15m/);
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('shows the rate-limit suspension countdown for a rate-limit latch', async () => {
+    const latch = JSON.stringify({
+      version: 1, at: Date.now(), until: Date.now() + 30 * 60 * 1000,
+      kind: 'rate-limit', model: 'opencode/m-free',
+      detail: 'Rate limit exceeded. Please try again later.', updatedAt: Date.now(),
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/free-quota.json`, latch],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.match(txt, /Rate limited/);
+      assert.match(txt, /retry in \d+m \d+s/);
+      assert.doesNotMatch(txt, /Free tier exhausted/);
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('hides the suspension row when the latch expired', async () => {
+    const latch = JSON.stringify({
+      version: 1, at: Date.now() - 13 * 60 * 60 * 1000, until: Date.now() - 60 * 1000,
+      kind: 'exhaustion', model: 'opencode/m-free',
+      detail: 'quota spent', updatedAt: Date.now(),
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/free-quota.json`, latch],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.doesNotMatch(txt, /retry in/);
+      assert.doesNotMatch(txt, /Free tier exhausted/);
+      assert.doesNotMatch(txt, /Rate limited/);
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('shows the suspension countdown in auto mode too', async () => {
+    const latch = JSON.stringify({
+      version: 1, at: Date.now(), until: Date.now() + 45 * 60 * 1000,
+      kind: 'exhaustion', model: null, detail: 'quota spent', updatedAt: Date.now(),
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'auto' })],
+        [`${STATUS_DIR}/free-quota.json`, latch],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.match(txt, /Free tier exhausted/);
+      assert.match(txt, /retry in/);
+      assert.doesNotMatch(txt, /Task debug/); // auto still hides the pick
+    } finally {
+      frame.close();
+    }
+  });
 });

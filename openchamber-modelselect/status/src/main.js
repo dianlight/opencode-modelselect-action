@@ -20,6 +20,13 @@
  *   freeExhausted
  *   (true|false|null, 12h free-tier latch), source, suggestOnly,
  *   updatedAt (epoch ms).
+ * - Free-tier latch: `<project>/.opencode/.modelselect-cache/free-quota.json`
+ *   = `{ version, at, until, kind, model, detail, updatedAt }` where `kind`
+ *   is `exhaustion` (spent quota, 12h window) or `rate-limit` (transient
+ *   rate limiting, 1h window) and `until` is the retry time (epoch ms).
+ *   Rendered mode-independently as a live countdown while fresh
+ *   (shared `plugin/src/shared/routing.js` `freeQuotaFresh`); hidden when
+ *   missing or expired.
  * - Mode file: `<project>/.opencode/.modelselect-cache/mode.json` =
  *   {"mode":"on"|"off"|"auto"}; missing/invalid means the global
  *   `~/.config/openchamber/modelselect.json` mode when readable and valid,
@@ -49,7 +56,7 @@
  */
 import { connectHost } from '@openchamber/sdk';
 import { applyHostReady, mountBadge, mountBanner, mountTabs } from '@openchamber/sdk/ui';
-import { syncRouting } from './routing-sync.js';
+import { syncRouting, FREE_QUOTA_FILE, freeQuotaFresh } from './routing-sync.js';
 
 var host = connectHost();
 
@@ -77,6 +84,11 @@ var GLOBAL_CONFIG_PATHS = [
 var currentSession = null;
 var currentMode = 'auto';
 var modeBusy = false;
+// Live countdown handle for the free-tier suspension row (setTimeout
+// chain — setInterval is not assumed in the guest frame). Cleared on
+// every render; expiry triggers a refresh so the row disappears and the
+// routing sync can flip back to the configured preference.
+var freeQuotaTimer = null;
 
 function $(id) { return document.getElementById(id); }
 
@@ -277,6 +289,35 @@ function loadKnownTaskTypes() {
   );
 }
 
+// Free-tier soft-error latch (`free-quota.json`, written by
+// plugin/src/shared/freequota.js on a real free-side failure). Never
+// rejects — missing/unreadable means "no suspension".
+function loadFreeQuota() {
+  return existsPath(FREE_QUOTA_FILE).then(function (exists) {
+    if (!exists) return { found: false };
+    return readJson(FREE_QUOTA_FILE).then(
+      function (data) { return { found: true, data: data }; },
+      function () { return { found: false }; }
+    );
+  }).then(
+    function (r) { return r; },
+    function () { return { found: false }; }
+  );
+}
+
+// Human-readable remaining time: "2h 15m" over an hour, "5m 30s" over a
+// minute, "42s" below it. Seconds are dropped at hour scale so the row
+// stays compact; the minute flip still ticks live.
+function formatCountdown(ms) {
+  var s = Math.max(0, Math.ceil(ms / 1000));
+  var h = Math.floor(s / 3600);
+  var m = Math.floor((s % 3600) / 60);
+  var sec = s % 60;
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + sec + 's';
+  return sec + 's';
+}
+
 function isStale(status) {
   return Boolean(status && typeof status.updatedAt === 'number' &&
     (Date.now() - status.updatedAt) > STALE_MS);
@@ -445,6 +486,59 @@ function renderLiveGrid(root) {
   root.appendChild(grid);
 }
 
+// Free-tier suspension row, rendered mode-independently while the latch
+// is fresh: "Free tier exhausted — retry in 2h 15m" for spent quota or
+// "Rate limited — retry in 5m 30s" for transient rate limiting. The
+// countdown ticks live (setTimeout chain); on expiry it refreshes so the
+// row disappears. Hidden entirely when no latch exists or it expired.
+// Clicking the row toasts the latch detail (model + reason), since native
+// title tooltips don't surface in the sandboxed frame.
+function renderFreeQuota(root, entry) {
+  if (!entry || !freeQuotaFresh(entry)) return;
+  var rateLimited = entry.kind === 'rate-limit';
+  var row = document.createElement('div');
+  row.className = 'ms-freequota' + (rateLimited ? ' rate-limit' : ' exhausted');
+  var label = document.createElement('span');
+  label.className = 'ms-fq-label';
+  label.appendChild(text(rateLimited ? 'Rate limited' : 'Free tier exhausted'));
+  var count = document.createElement('span');
+  count.className = 'ms-fq-count';
+  row.appendChild(label);
+  row.appendChild(count);
+  root.appendChild(row);
+
+  var detail = String((entry && entry.detail) || '').trim();
+  var model = String((entry && entry.model) || '').trim();
+  var tip = (model ? model + ' — ' : '') + (detail || 'free tier temporarily unavailable');
+  row.setAttribute('title', tip);
+  row.addEventListener('click', function () {
+    toPromise(function () {
+      return host.toast({ kind: 'warning', message: tip });
+    }).then(noop, noop);
+  });
+
+  var until = Number(entry.until);
+  var tick = function () {
+    freeQuotaTimer = null;
+    var left = until - Date.now();
+    if (left <= 0) {
+      refresh(); // latch just expired — hide the row, re-sync routing
+      return;
+    }
+    while (count.firstChild) count.removeChild(count.firstChild);
+    count.appendChild(text('retry in ' + formatCountdown(left)));
+    fitHeight();
+    try {
+      freeQuotaTimer = setTimeout(tick, 1000);
+      // Don't hold the host/test process open for the next tick.
+      if (freeQuotaTimer && typeof freeQuotaTimer.unref === 'function') {
+        try { freeQuotaTimer.unref(); } catch (e) { /* best-effort */ }
+      }
+    } catch (e) { /* one-shot countdown is fine without timers */ }
+  };
+  tick();
+}
+
 function renderFixBanner(root, err) {
   try {
     mountBanner(root, {
@@ -466,6 +560,11 @@ function renderFixBanner(root, err) {
 
 function render(state) {
   var root = $('root');
+  // Stop the previous countdown before rebuilding the DOM it writes to.
+  if (freeQuotaTimer !== null) {
+    try { clearTimeout(freeQuotaTimer); } catch (e) { /* best-effort */ }
+    freeQuotaTimer = null;
+  }
   while (root.firstChild) root.removeChild(root.firstChild);
   var shell = document.createElement('div');
   shell.className = 'ms';
@@ -476,6 +575,7 @@ function render(state) {
     note.className = 'ms-note';
     note.appendChild(text('No active session — open a session to see the model pick.'));
     shell.appendChild(note);
+    renderFreeQuota(shell, state.freeQuota && state.freeQuota.data);
     renderHeader(shell, currentMode);
     fitHeight();
     return;
@@ -495,6 +595,9 @@ function render(state) {
   } else {
     renderStatusGrid(shell, null, state.knownTypes, autoSession);
   }
+  // Free-tier suspension is global (not per-session/mode): always last
+  // before the mode switch, whenever the latch is fresh.
+  renderFreeQuota(shell, state.freeQuota && state.freeQuota.data);
   renderHeader(shell, currentMode);
   fitHeight();
 }
@@ -530,10 +633,10 @@ function refresh() {
   var run = function () {
     refreshQueued = false;
     var sid = sessionIDOf(currentSession) || 'default';
-    Promise.all([loadStatus(sid), loadMode(), loadGlobalEntry(), loadKnownTaskTypes()]).then(
+    Promise.all([loadStatus(sid), loadMode(), loadGlobalEntry(), loadKnownTaskTypes(), loadFreeQuota()]).then(
       function (parts) {
         currentMode = parts[1] || 'on';
-        render({ status: parts[0], globalEntry: parts[2], knownTypes: parts[3] });
+        render({ status: parts[0], globalEntry: parts[2], knownTypes: parts[3], freeQuota: parts[4] });
         // Best-effort routing sync: never blocks or breaks the view.
         try {
           var sync = syncRouting(host);
@@ -541,7 +644,7 @@ function refresh() {
         } catch (e) { /* sync is best-effort */ }
       },
       function () {
-        render({ status: { found: false }, globalEntry: { checked: false, entry: false }, knownTypes: [] });
+        render({ status: { found: false }, globalEntry: { checked: false, entry: false }, knownTypes: [], freeQuota: { found: false } });
       }
     );
   };

@@ -65,6 +65,32 @@
   .ms-grid.stale .ms-grid, .ms-grid.stale { opacity: 0.55; }
   .ms-badges { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
   .ms-badges:empty { display: none; }
+  .ms-freequota {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--warning-text, var(--oc-warning-text, #b7791f));
+    cursor: pointer;
+  }
+  .ms-fq-label {
+    flex: 0 0 auto;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--warning-text, var(--oc-warning-text, #b7791f));
+    white-space: nowrap;
+  }
+  .ms-fq-count {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.875rem;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
   .ms-note {
     font-size: 12px;
     color: var(--surface-muted-foreground, var(--oc-muted, GrayText));
