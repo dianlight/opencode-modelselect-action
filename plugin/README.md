@@ -274,25 +274,40 @@ The startup log names the outcome (`host=standalone/default`,
 session. Detection only gates the virtual model below — per-turn routing
 always keys off the session's actual model, never the host.
 
-## Virtual model `modelselect/auto` (standalone only)
+## Virtual model `opencode/auto` (standalone only)
 
-When the host resolves standalone, the plugin registers a virtual model
-`modelselect/auto` (provider `modelselect`, name “ModelSelect”) in the
-model picker. Selecting it makes the session route like mode `on` on
-every turn — the picker *is* the switch:
+When the host resolves standalone, the plugin appends an `auto` entry to
+the real `opencode` provider's inventory (existing models preserved, the
+entry never duplicated). Selecting it makes the session route like mode
+`on` on every turn — the picker *is* the switch:
 
-- the in-flight `event.model` is mutated to the resolved pick per turn;
-- `switchModel` is never called, so the session stays on
-  `modelselect/auto` and keeps re-routing (no persist, no stickiness to
-  the resolved model);
+- the in-flight `event.model` is mutated to the resolved pick per turn
+  (bookkeeping for logs/announce/status);
+- the `http.request` overlay writes the decided model into the outgoing
+  body per physical attempt — this is what actually routes, because
+  dispatch reads the persisted session model and `event.model` mutation
+  is cosmetic. It resolves on the spot when no pick exists yet and
+  re-resolves under a fresh exhaustion latch, so armed retries carry a
+  live decision too;
+- `switchModel` is never called for same-provider picks, so the session
+  stays on `opencode/auto` and keeps re-routing (no persist, no
+  stickiness to the resolved model). Cross-provider picks cannot be
+  overlaid (the endpoint stays pinned to the session model) and persist
+  instead — the session then leaves virtual mode and routes normally;
 - `mode.json` is bypassed — a virtual pick routes in `on`, `off` and
   `auto`;
 - free-tier exhaustion arms the forced retry and re-points the retry
-  event at the `go` model in place instead of flipping the session.
+  event at the `go` model in place instead of flipping the session;
+- `title`/`compaction`/`generate` requests follow the session's last
+  resolved pick (resolving one on the spot when no primary turn has run
+  yet — the raw virtual entry must never dispatch).
 
-Under OpenChamber the provider is not registered: the host owns the
-model there, and a fake provider entry would only clutter its picker
-(mode `auto` hands off to OpenChamber's router instead).
+It must live on the real driver: OpenCode pins the dispatch endpoint to
+the session model, so a standalone fake provider could never serve turns
+(`package: ""` is rejected at load, a cloned real driver fails
+load-time model validation). Under OpenChamber nothing is registered:
+the host owns the model there, and a virtual entry would only clutter
+its picker (mode `auto` hands off to OpenChamber's router instead).
 
 Known first-turn gap: the announce line for a virtual pick starts from
 turn 2 — the prompt hook runs before the context hook marks the session

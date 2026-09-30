@@ -17,13 +17,24 @@
   diff, and stay silent on failure. The Work Status extension declares the
   three new paths (`modelselect.json`, `settings.json`,
   `preferences.json`) in its `filesystem` allowlist
-- Virtual model `modelselect/auto` (standalone hosts only): registered
-  through `ctx.provider.transform` when the host resolves standalone;
-  selecting it routes every turn like mode `on` but never calls
-  `switchModel`, so the session stays virtual and keeps re-routing —
-  `mode.json` is bypassed, and free-tier exhaustion only arms the retry
-  (re-pointing the retry event at the `go` model in place) instead of
-  flipping the session. Under OpenChamber the provider is not registered
+- Virtual model `opencode/auto` (standalone hosts only): an `auto`
+  entry appended to the real `opencode` provider's inventory (existing
+  models preserved, never duplicated) through `ctx.provider.transform`
+  when the host resolves standalone; selecting it routes every turn like
+  mode `on` but never calls `switchModel`, so the session stays virtual
+  and keeps re-routing — `mode.json` is bypassed, and free-tier
+  exhaustion only arms the retry (re-pointing the retry event at the
+  `go` model in place) instead of flipping the session. Title/compaction/
+  generate requests follow the session's last resolved pick (resolving
+  one on the spot when no primary has run yet). Dispatch itself goes
+  through an `http.request` body overlay per attempt (mutating
+  `event.model` is cosmetic — dispatch reads the persisted session
+  model), which also re-resolves under a fresh exhaustion latch. It must
+  live on the real driver — a standalone fake provider can never serve
+  turns (dispatch stays pinned to the session model; proven by live smoke
+  test). Cross-provider picks persist instead of overlaying (same
+  pinning) — the session then leaves virtual mode. Under
+  OpenChamber nothing is registered
 - `/modelselect` chat command: with no argument it reports the global
   mode, the host + source for the session and its pick (virtual or
   persisted) via a synthetic message (steered-prompt fallback);

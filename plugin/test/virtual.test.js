@@ -1,15 +1,22 @@
 'use strict';
 
 /**
- * v2 virtual model (`modelselect/auto`) + `/modelselect` command.
+ * v2 virtual model (`opencode/auto`) + `/modelselect` command.
  *
  * - Registration is standalone-only (option → env → session map decide
  *   the host) and uses literal @opencode/schema shapes.
  * - A virtual pick routes like mode `on` in every mode, mutates the
  *   in-flight ref, and never persists (switchModel must never fire —
- *   otherwise the session would stop re-routing).
+ *   otherwise the session would stop re-routing). Title/compaction/
+ *   generate requests follow the session's last resolved pick (the raw
+ *   virtual ref has no dispatchable driver).
  * - Free-exhaustion on a virtual session arms the forced retry and
  *   re-points the retry event in place instead of flipping the session.
+ * - The `http.request` overlay is what actually routes virtual sessions:
+ *   `event.model` mutation is cosmetic (dispatch reads the persisted
+ *   session model), so the overlay writes the decided model into the
+ *   outgoing body per attempt — resolving on the spot when no pick
+ *   exists and re-resolving under a fresh exhaustion latch.
  * - The command prints status / writes the mode, preferring synthetic
  *   output (no model turn).
  */
@@ -24,7 +31,7 @@ const v2 = require('../src/v2.js');
 const { seedCache, isolateAuth } = require('./helpers');
 const { SESSION_MAP_FILE } = require('../src/shared/host');
 const { clearModeCache, readMode } = require('../src/shared/status');
-const { isFreeQuotaFresh } = require('../src/shared/freequota');
+const { isFreeQuotaFresh, markFreeQuota } = require('../src/shared/freequota');
 
 const CACHE = (dir) => path.join(dir, '.opencode', '.modelselect-cache');
 
@@ -80,10 +87,29 @@ async function setupV2(dir, options = {}, features = {}) {
     },
   };
   if (features.provider !== false) {
+    // Mock live `opencode` inventory (mirrors the ProviderRecord shape);
+    // `features.providerGet === false` simulates a host with no readable
+    // `opencode` inventory (registration must skip); `features.liveModels`
+    // seeds pre-existing models (idempotency assertions).
+    const LIVE_MODELS = features.liveModels || [
+      { id: 'x', modelID: 'x', providerID: 'opencode', name: 'X' },
+    ];
     fakeCtx.provider = {
       async transform(cb) {
         const added = [];
-        cb({ add: (x) => added.push(x) });
+        const editor = { add: (x) => added.push(x) };
+        if (features.providerGet !== false) {
+          editor.get = (id) =>
+            id === 'opencode'
+              ? { provider: { id: 'opencode' }, models: new Map(LIVE_MODELS.map((m) => [m.id, m])) }
+              : undefined;
+          editor.models = {
+            set: (providerID, models) => {
+              seen.modelsSet = { providerID, models };
+            },
+          };
+        }
+        cb(editor);
         seen.providerAdded = added;
       },
     };
@@ -117,22 +143,20 @@ function withIsolation(envValue) {
 }
 
 describe('virtual model registration', () => {
-  it('registers modelselect/auto with schema literal shapes when standalone', async () => {
+  it('appends opencode/auto to the live provider inventory when standalone', async () => {
     const iso = withIsolation(undefined);
     try {
       const seen = await setupV2(iso.dir);
       assert.ok(seen.providerAdded, 'provider transform ran');
-      assert.equal(seen.providerAdded.length, 1);
-      assert.deepEqual(seen.providerAdded[0].info, {
-        id: 'modelselect',
-        name: 'ModelSelect',
-        activation: 'enabled',
-        package: '',
-      });
-      const m = seen.providerAdded[0].models[0];
+      assert.deepEqual(seen.providerAdded, [], 'no standalone fake provider');
+      assert.ok(seen.modelsSet, 'inventory replaced');
+      assert.equal(seen.modelsSet.providerID, 'opencode');
+      assert.equal(seen.modelsSet.models.length, 2, 'existing models preserved + auto appended');
+      assert.equal(seen.modelsSet.models[0].id, 'x');
+      const m = seen.modelsSet.models[1];
       assert.equal(m.id, 'auto');
       assert.equal(m.modelID, 'auto');
-      assert.equal(m.providerID, 'modelselect');
+      assert.equal(m.providerID, 'opencode');
       assert.equal(m.name.length > 0, true);
       assert.deepEqual(m.capabilities, { tools: true, input: ['text', 'image'], output: ['text'] });
       assert.deepEqual(m.variants, []);
@@ -143,6 +167,36 @@ describe('virtual model registration', () => {
       assert.deepEqual(m.limit, { context: 200000, output: 32000 });
       assert.ok(seen.commandDef, 'command registered');
       assert.equal(seen.commandDef.name, 'modelselect');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('skips registration when no live opencode inventory is readable', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupV2(iso.dir, {}, { providerGet: false });
+      assert.deepEqual(seen.providerAdded, [], 'no fake provider ever');
+      assert.equal(seen.modelsSet, undefined, 'inventory untouched without a live record');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('never duplicates an existing auto entry (transform replays must be idempotent)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupV2(iso.dir, {}, {
+        liveModels: [
+          { id: 'x', modelID: 'x', providerID: 'opencode', name: 'X' },
+          { id: 'auto', modelID: 'auto', providerID: 'opencode', name: 'Old auto' },
+        ],
+      });
+      assert.ok(seen.modelsSet, 'inventory replaced');
+      const autos = seen.modelsSet.models.filter((m) => m.id === 'auto');
+      assert.equal(autos.length, 1, 'exactly one auto entry');
+      assert.equal(autos[0].name, 'Auto (modelselect routes every turn)', 'ours wins');
+      assert.equal(seen.modelsSet.models[0].id, 'x', 'other models preserved');
     } finally {
       iso.restore();
     }
@@ -164,7 +218,7 @@ describe('virtual model registration', () => {
     try {
       writeMap(iso.dir, { ses_old: Date.now() - 31 * 24 * 60 * 60 * 1000 });
       const seen = await setupV2(iso.dir);
-      assert.ok(seen.providerAdded, 'stale map -> standalone -> registered');
+      assert.ok(seen.modelsSet, 'stale map -> standalone -> registered');
     } finally {
       iso.restore();
     }
@@ -174,7 +228,7 @@ describe('virtual model registration', () => {
     let iso = withIsolation('1'); // env says OpenChamber
     try {
       const seen = await setupV2(iso.dir, { openchamber: 'off' });
-      assert.ok(seen.providerAdded, "option 'off' forces standalone despite env");
+      assert.ok(seen.modelsSet, "option 'off' forces standalone despite env");
     } finally {
       iso.restore();
     }
@@ -194,7 +248,7 @@ describe('virtual model registration', () => {
     try {
       writeMap(iso.dir, { ses_x: Date.now() });
       const seen = await setupV2(iso.dir);
-      assert.ok(seen.providerAdded, "env '0' forces standalone despite map");
+      assert.ok(seen.modelsSet, "env '0' forces standalone despite map");
     } finally {
       iso.restore();
     }
@@ -295,7 +349,7 @@ describe('virtual routing', () => {
       seedMode(iso.dir, 'off'); // virtual picks must ignore the mode
       const seen = await setupV2(iso.dir);
 
-      const e1 = { sessionID: 's1', model: { providerID: 'modelselect', id: 'auto' }, messages: [], agent: 'review' };
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
       await seen.context(e1);
       assert.equal(e1.model.providerID, 'f', 'in-flight ref mutated to the real model');
       assert.equal(e1.model.id, 'b');
@@ -307,10 +361,50 @@ describe('virtual routing', () => {
 
       // Turn 2 still starts from the virtual pick: the session model was
       // never switched away, so it re-routes every turn.
-      const e2 = { sessionID: 's1', model: { providerID: 'modelselect', id: 'auto' }, messages: [], agent: 'review' };
+      const e2 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
       await seen.context(e2);
       assert.equal(e2.model.id, 'b');
       assert.deepEqual(seen.switches, [], 'still no persistence on turn 2');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('aux requests (title/compaction/generate) follow the last virtual pick', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'g/a', free: 'f/b' }, generic: { go: 'g/a', free: 'f/b' } },
+      });
+      seedMode(iso.dir, 'off');
+      const seen = await setupV2(iso.dir);
+
+      // No primary turn yet (title usually runs first): the aux hook
+      // resolves a pick on the spot and stamps the event for consistency
+      // (the `http.request` overlay below is what reaches the wire).
+      const early = { sessionID: 's9', model: { providerID: 'opencode', id: 'auto' } };
+      await seen.title(early);
+      assert.equal(early.model.providerID, 'f', 'resolved on the spot');
+      assert.equal(early.model.id, 'b');
+
+      // Primary turn resolves f/b…
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.equal(e1.model.id, 'b');
+
+      // …and aux requests now follow it on the event (the overlay below
+      // is what reaches the wire).
+      for (const name of ['title', 'compaction', 'generate']) {
+        const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' } };
+        await seen[name](e);
+        assert.equal(e.model.providerID, 'f', `${name} re-pointed`);
+        assert.equal(e.model.id, 'b', `${name} re-pointed`);
+      }
+
+      // Non-virtual sessions keep their own models here.
+      const other = { sessionID: 's2', model: { providerID: 'opencode', id: 'x' } };
+      await seen.title(other);
+      assert.equal(other.model.id, 'x');
     } finally {
       iso.restore();
     }
@@ -321,7 +415,7 @@ describe('virtual routing', () => {
     try {
       seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
       const seen = await setupV2(iso.dir, { suggestOnly: true });
-      const e = { sessionID: 's1', model: { providerID: 'modelselect', id: 'auto' }, messages: [], agent: 'review' };
+      const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
       const origLog = console.log;
       console.log = () => {};
       try {
@@ -346,7 +440,7 @@ describe('virtual routing', () => {
       seedMode(iso.dir, 'off'); // virtual bypasses the mode gate here too
       const seen = await setupV2(iso.dir);
 
-      const e = { sessionID: 's1', model: { providerID: 'modelselect', id: 'auto' }, messages: [], agent: 'review' };
+      const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
       await seen.context(e);
       assert.deepEqual(seen.switches, [], 'precondition: still virtual');
 
@@ -385,7 +479,7 @@ describe('virtual routing', () => {
       await seen.prompt(p1);
       assert.equal(p1.prompt.text, 'review this diff', 'no announce before the context hook marks the session');
 
-      const e = { sessionID: 's1', model: { providerID: 'modelselect', id: 'auto' }, messages: [], agent: 'review' };
+      const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
       await seen.context(e);
       assert.equal(e.model.id, 'b');
 
@@ -394,6 +488,153 @@ describe('virtual routing', () => {
       await seen.prompt(p2);
       assert.match(p2.prompt.text, /\[modelselect: task=review tier=free/);
       assert.match(p2.prompt.text, /f\/b/);
+    } finally {
+      iso.restore();
+    }
+  });
+});
+
+describe('virtual dispatch overlay', () => {
+  const URL = 'https://opencode.ai/inference/openai/v1/chat/completions';
+  // Same-provider seeds: the overlay can only rewrite the body when the
+  // pick lives on the session model's provider (the endpoint is pinned).
+  const SAME = {
+    'task-types': {
+      review: { go: 'opencode/gc', free: 'opencode/fc' },
+      generic: { go: 'opencode/gc', free: 'opencode/fc' },
+    },
+  };
+
+  function httpEvent(sessionID, providerID, id, bodyModel, kind = 'primary') {
+    return {
+      sessionID,
+      model: { providerID, id },
+      kind,
+      request: new Request(URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: bodyModel, messages: [] }),
+      }),
+    };
+  }
+
+  async function bodyOf(event) {
+    return JSON.parse(await event.request.text());
+  }
+
+  it('rewrites the outgoing body model for a virtual session (no persistence)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, SAME);
+      seedMode(iso.dir, 'off'); // virtual bypasses the mode
+      const seen = await setupV2(iso.dir);
+
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.equal(e1.model.id, 'fc');
+
+      const h = httpEvent('s1', 'opencode', 'auto', 'auto');
+      await seen['http.request'](h);
+      assert.equal((await bodyOf(h)).model, 'fc', 'the wire carries the pick');
+      assert.deepEqual(seen.switches, [], 'the session stays virtual');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('resolves on the spot when no primary turn has run yet (title-first)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, SAME);
+      const seen = await setupV2(iso.dir);
+
+      const h = httpEvent('s9', 'opencode', 'auto', 'auto', 'title');
+      await seen['http.request'](h);
+      assert.equal((await bodyOf(h)).model, 'fc', 'title carries a live pick, never the raw ref');
+      assert.deepEqual(seen.switches, []);
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('re-resolves under a fresh exhaustion latch (armed retries stay live)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, SAME);
+      seedMode(iso.dir, 'off');
+      const seen = await setupV2(iso.dir, { token: 'sk-test' });
+
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.equal(e1.model.id, 'fc');
+
+      markFreeQuota(CACHE(iso.dir), { model: 'opencode/fc', detail: 'http 402' });
+      assert.equal(isFreeQuotaFresh(CACHE(iso.dir)), true, 'precondition: latch fresh');
+
+      const h = httpEvent('s1', 'opencode', 'auto', 'auto');
+      await seen['http.request'](h);
+      assert.equal((await bodyOf(h)).model, 'gc', 'stale free pick refreshed to go');
+      assert.deepEqual(seen.switches, [], 'still virtual: same provider');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('persists + unmarks on cross-provider picks (endpoint is pinned)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+      seedMode(iso.dir, 'off');
+      const seen = await setupV2(iso.dir);
+
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+
+      const h = httpEvent('s1', 'opencode', 'auto', 'auto');
+      await seen['http.request'](h);
+      assert.deepEqual(
+        seen.switches,
+        [{ sessionID: 's1', model: { providerID: 'f', id: 'b' } }],
+        'cross-provider pick persists: the session leaves virtual mode',
+      );
+      assert.equal((await bodyOf(h)).model, 'auto', 'in-flight body untouched');
+
+      // After the persist the session dispatches its real model: skipped.
+      const h2 = httpEvent('s1', 'f', 'b', 'b');
+      await seen['http.request'](h2);
+      assert.equal((await bodyOf(h2)).model, 'b');
+      assert.equal(seen.switches.length, 1, 'no repeat persist');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('leaves non-virtual sessions and foreign bodies alone, never throws', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, SAME);
+      const seen = await setupV2(iso.dir);
+
+      const other = httpEvent('s2', 'opencode', 'x', 'x');
+      await seen['http.request'](other);
+      assert.equal((await bodyOf(other)).model, 'x');
+
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      const foreign = httpEvent('s1', 'opencode', 'auto', 'zzz');
+      await seen['http.request'](foreign);
+      assert.equal((await bodyOf(foreign)).model, 'zzz', 'only the virtual id is rewritten');
+
+      const noReq = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, kind: 'primary' };
+      await seen['http.request'](noReq);
+      const garbage = {
+        sessionID: 's1',
+        model: { providerID: 'opencode', id: 'auto' },
+        kind: 'primary',
+        request: new Request(URL, { method: 'POST', body: 'not json{' }),
+      };
+      await seen['http.request'](garbage);
+      assert.deepEqual(seen.switches, []);
     } finally {
       iso.restore();
     }

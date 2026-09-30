@@ -44,14 +44,20 @@
  *   `MODELSELECT_OPENCHAMBER` env → extension-written session map →
  *   standalone. Drives virtual-model registration and the `/modelselect`
  *   status line only; per-turn routing keys off `event.model` directly.
- * - Virtual model `modelselect/auto` (standalone host only): a pick that
- *   routes exactly like mode `on` but never persists — the in-flight
- *   `event.model` is mutated in place per turn and `switchModel` is
- *   skipped, so the session stays on the virtual pick and re-routes every
- *   turn (the model picker IS the switch; `mode.json` is bypassed).
+ * - Virtual model `opencode/auto` (standalone host only): an `auto`
+ *   entry appended to the real `opencode` provider's inventory — a pick
+ *   that routes exactly like mode `on` but never persists. The session
+ *   stays on `opencode/auto` (the model picker IS the switch;
+ *   `mode.json` is bypassed) while the `http.request` overlay writes the
+ *   resolved pick into the outgoing body per physical attempt — mutating
+ *   `event.model` is cosmetic (dispatch reads the persisted session
+ *   model; proven live), so the overlay is what actually routes.
  *   Free-exhaustion on a virtual session arms the forced retry without
  *   `switchSessionToGo` (persisting go would unstick the virtual pick);
- *   the retry hook re-points `event.model` in place instead.
+ *   the armed retry re-resolves through the same overlay, where the
+ *   fresh latch prefers go. Cross-provider picks cannot be overlaid (the
+ *   endpoint stays pinned to the session model) and persist instead —
+ *   the session then leaves virtual mode and routes normally.
  * - `/modelselect` chat command (`ctx.command.transform`): no argument
  *   prints mode + host + last pick; `on|off|auto` writes the mode via
  *   `shared/status.js writeMode`. Output prefers `ctx.session.synthetic`
@@ -79,22 +85,27 @@ const { createRoutingIo } = require('./shared/routing-io');
 const {
   classifyFreeFailure,
   isFreeModelRef,
+  isFreeQuotaFresh,
   markFreeQuota,
   readModelTable,
 } = require('./shared/freequota');
 
 const ID = 'modelselect';
-// Virtual model: `modelselect/auto` — registered standalone-only, routes
+// Virtual model: `opencode/auto` — an `auto` entry appended to the REAL
+// `opencode` provider's inventory, standalone-only. Selecting it routes
 // like mode `on` but never persists (see header).
+const VIRTUAL_PROVIDER = 'opencode';
 const VIRTUAL_MODEL = 'auto';
-const VIRTUAL_REF = `${ID}/${VIRTUAL_MODEL}`;
+const VIRTUAL_REF = `${VIRTUAL_PROVIDER}/${VIRTUAL_MODEL}`;
 // Forced-retry arm window: a retry follows its failure within seconds, so
 // an arm older than this (consumed late) is stale and must not fire.
 const FREE_RETRY_TTL_MS = 60 * 1000;
 
-/** Is this Model.Ref the virtual `modelselect/auto` pick? */
+/** Is this Model.Ref the virtual `opencode/auto` pick? */
 function isVirtualRef(ref) {
-  return Boolean(ref && typeof ref === 'object' && ref.providerID === ID && ref.id === VIRTUAL_MODEL);
+  return Boolean(
+    ref && typeof ref === 'object' && ref.providerID === VIRTUAL_PROVIDER && ref.id === VIRTUAL_MODEL,
+  );
 }
 
 function cacheDirFor(directory) {
@@ -180,47 +191,55 @@ async function setup(ctx) {
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
   const freeFlipped = new Set(); // sessions already flipped to go (process lifetime)
   const freeRetry = new Map(); // sessionID -> armedAt (epoch ms): one forced retry
-  const virtualSessions = new Set(); // sessions whose current model is modelselect/auto
+  const virtualSessions = new Set(); // sessions whose current model is opencode/auto
+  const lastVirtualPick = new Map(); // sessionID -> { providerID, id }: last resolved pick, for aux requests
 
-  // Virtual model `modelselect/auto`: registered only when the host
-  // resolves standalone — under OpenChamber the host owns the model and a
-  // fake provider entry would only clutter its picker. The literal shapes
-  // mirror @opencode/schema's `Provider.Info.empty(id)` =
-  // `{ id, name: id, activation: "auto", package: "" }` and
-  // `Model.Info.default(providerID, id)` (capabilities default
-  // `{ tools: true, input: ["text","image"], output: ["text"] }`, limits
-  // 200k/32k) — copied here because the package is zero-dependency.
-  // activation "enabled" forces the provider on (its `package` has no
-  // driver, but dispatch never reaches it: the context hook rewrites the
-  // ref before the request goes out). Failures only log: the rest of the
-  // plugin works without it.
+  // Virtual model `opencode/auto`: an `auto` entry appended to the REAL
+  // `opencode` provider's inventory, standalone-only (under OpenChamber
+  // the host owns the model and a virtual entry would only clutter its
+  // picker). A standalone fake provider cannot work: the dispatch driver
+  // stays pinned to the session model (verified live — mutating
+  // `event.model` renames the model but does not move the endpoint), so a
+  // session on a fake provider can never reach a real endpoint, while a
+  // fake model id on a real driver dies at load-time validation
+  // (`UnsupportedPackageError` for `package: ""`, `Model is unavailable`
+  // for a cloned real driver). Sitting on the real driver, the virtual
+  // pick dispatches exactly like a turn-1 non-virtual route (proven live)
+  // and the context hook re-routes it every turn since `switchModel` is
+  // never called for it. The model literal mirrors @opencode/schema's
+  // `Model.Info.default(providerID, id)` — copied here because the
+  // package is zero-dependency. If a real `opencode/auto` model ever
+  // ships, selecting it simply gets always-route behavior.
+  // Existing inventory is preserved (and an existing `auto` entry is
+  // never duplicated — the transform replays, and double registration
+  // must stay idempotent). No `opencode` provider (or no models editor)
+  // means no virtual model: failures only log, the rest of the plugin
+  // works without it.
   let virtualRegistered = false;
   if (host.host === 'standalone' && typeof ctx.provider?.transform === 'function') {
     try {
       await ctx.provider.transform((editor) => {
-        editor.add({
-          info: {
-            id: ID,
-            name: 'ModelSelect',
-            activation: 'enabled',
-            package: '',
+        if (typeof editor.get !== 'function' || !editor.models || typeof editor.models.set !== 'function') return;
+        const live = editor.get(VIRTUAL_PROVIDER);
+        if (!live) return;
+        const current = live.models instanceof Map ? [...live.models.values()] : [];
+        const rest = current.filter((m) => !m || m.id !== VIRTUAL_MODEL);
+        editor.models.set(VIRTUAL_PROVIDER, [
+          ...rest,
+          {
+            id: VIRTUAL_MODEL,
+            modelID: VIRTUAL_MODEL,
+            providerID: VIRTUAL_PROVIDER,
+            name: 'Auto (modelselect routes every turn)',
+            capabilities: { tools: true, input: ['text', 'image'], output: ['text'] },
+            variants: [],
+            time: { released: 0 },
+            cost: [],
+            status: 'active',
+            enabled: true,
+            limit: { context: 200000, output: 32000 },
           },
-          models: [
-            {
-              id: VIRTUAL_MODEL,
-              modelID: VIRTUAL_MODEL,
-              providerID: ID,
-              name: 'Auto (modelselect routes every turn)',
-              capabilities: { tools: true, input: ['text', 'image'], output: ['text'] },
-              variants: [],
-              time: { released: 0 },
-              cost: [],
-              status: 'active',
-              enabled: true,
-              limit: { context: 200000, output: 32000 },
-            },
-          ],
-        });
+        ]);
       });
       virtualRegistered = true;
     } catch (err) {
@@ -517,7 +536,7 @@ async function setup(ctx) {
   }
 
   // Virtual free-exhaustion recovery: the session must STAY on
-  // modelselect/auto, so instead of persisting go we re-point the retry
+  // opencode/auto, so instead of persisting go we re-point the retry
   // event's model ref in place (same runtime-mutable pattern the context
   // hook uses; the type is compile-time readonly). Best-effort: if the ref
   // is not a writable object the armed retry still runs and attempt 2
@@ -542,7 +561,7 @@ async function setup(ctx) {
   // resolveModel), refresh routing.json right away, and on the first
   // failure per session while mode `on` (or on a virtual pick, which
   // bypasses the mode) recover: non-virtual sessions flip to their task's
-  // go model, virtual sessions stay on modelselect/auto and only arm the
+  // go model, virtual sessions stay on opencode/auto and only arm the
   // forced retry. Zen publishes no free-quota endpoint
   // (anomalyco/opencode#18648), so the failed real request IS the check.
   async function noteFreeExhaustion(sessionID, ref, detail, kind = 'exhaustion') {
@@ -604,7 +623,7 @@ async function setup(ctx) {
   await ctx.session.hook('context', async (event) => {
     try {
       const sessionID = event.sessionID;
-      // Track the virtual pick BEFORE any mode gate: `modelselect/auto`
+      // Track the virtual pick BEFORE any mode gate: `opencode/auto`
       // bypasses mode.json entirely (the picker is the switch), and the
       // free-exhaustion paths consult virtualSessions because their
       // http/retry events carry the post-mutation (real) model ref.
@@ -664,16 +683,23 @@ async function setup(ctx) {
         console.log(
           `[modelselect] (suggest-only) task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current} jev=${jev}`,
         );
+        // Still record the pick: aux requests (title/…) on a virtual
+        // session need a dispatchable ref even in trial mode.
+        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id });
         return;
       }
-      // 1. In-flight turn: mutate Model.Ref fields in place.
+      // 1. In-flight turn: mutate Model.Ref fields in place (bookkeeping
+      // for logs/announce/status — the wire is decided by the
+      // `http.request` overlay for virtual sessions and by persistence
+      // for the rest).
       if (event.model && typeof event.model === 'object') {
         event.model.providerID = ref.providerID;
         event.model.id = ref.id;
       }
+      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id });
       // 2. Future turns: persist like the model picker does (best-effort).
       //    NEVER for virtual sessions: switchModel would replace
-      //    modelselect/auto and the pick would stop re-routing.
+      //    opencode/auto and the pick would stop re-routing.
       if (!virtual && sessionID && applied.get(sessionID) !== key) {
         try {
           await ctx.session.switchModel({ sessionID, model: { providerID: ref.providerID, id: ref.id } });
@@ -692,11 +718,131 @@ async function setup(ctx) {
     }
   });
 
+  // Auxiliary requests (title/compaction/generate) bypass the `context`
+  // hook. They still get the session's resolved pick stamped on
+  // `event.model` for consistency, but that mutation is cosmetic — what
+  // actually routes virtual sessions is the `http.request` overlay below.
+  // The on-the-spot resolve primes `lastVirtualPick` for title-first
+  // sessions. Non-virtual sessions keep their own models here, as before.
+  for (const aux of ['title', 'compaction', 'generate']) {
+    await ctx.session.hook(aux, async (event) => {
+      try {
+        const sessionID = event.sessionID;
+        if (!sessionID || !isVirtualRef(event.model)) return;
+        let pick = lastVirtualPick.get(sessionID);
+        if (!pick) {
+          const { taskType } = await resolveTask({
+            sessionID,
+            text: prompts.get(sessionID) ?? '',
+            files: [],
+            agent: undefined,
+            assistantSnippet: '',
+          });
+          const picked = await resolveModel({ taskType, opts, cacheDir });
+          const ref = splitModelRef(picked.model);
+          pick = { providerID: ref.providerID, id: ref.id };
+          lastVirtualPick.set(sessionID, pick);
+        }
+        if (event.model && typeof event.model === 'object') {
+          event.model.providerID = pick.providerID;
+          event.model.id = pick.id;
+        }
+      } catch {
+        // never break the session
+      }
+    });
+  }
+
+  // Virtual dispatch overlay: `event.model` mutation is cosmetic — the
+  // outgoing request carries the persisted session model (proven live:
+  // primaries showed the resolved pick in hooks yet the wire still sent
+  // `auto`). For virtual sessions, write the decided model into the
+  // outgoing body here, where it actually takes effect ("raw HTTP body
+  // overlays apply after protocol lowering"). The session stays on
+  // `opencode/auto`; only the wire sees the pick. Resolves on the spot
+  // when no pick exists yet and re-resolves when the stored pick just
+  // hit a fresh exhaustion latch, so every physical attempt (including
+  // armed retries, which do not re-run the context hook) carries a live
+  // decision. Same-provider only: the endpoint stays pinned to the
+  // session model, so cross-provider picks persist instead (the session
+  // then leaves virtual mode and routes normally). Non-virtual sessions
+  // are untouched.
+  async function overlayVirtualBody(event) {
+    try {
+      const sessionID = event.sessionID;
+      if (!sessionID) return;
+      const sessionModel = event.model && typeof event.model === 'object' ? event.model : null;
+      if (!virtualSessions.has(sessionID) && !isVirtualRef(sessionModel)) return;
+      let pick = lastVirtualPick.get(sessionID);
+      if (
+        !pick ||
+        (isFreeModelRef(pick, readModelTable(cacheDir)) && isFreeQuotaFresh(cacheDir, Date.now()))
+      ) {
+        const where = sessionTask(sessionID);
+        const { taskType } = where
+          ? { taskType: where.taskType }
+          : await resolveTask({
+              sessionID,
+              text: prompts.get(sessionID) ?? '',
+              files: [],
+              agent: undefined,
+              assistantSnippet: '',
+            });
+        const picked = await resolveModel({ taskType, opts, cacheDir });
+        const ref = splitModelRef(picked.model);
+        pick = { providerID: ref.providerID, id: ref.id };
+        lastVirtualPick.set(sessionID, pick);
+      }
+      if (!sessionModel || pick.providerID !== sessionModel.providerID) {
+        try {
+          await ctx.session.switchModel({ sessionID, model: { providerID: pick.providerID, id: pick.id } });
+          applied.set(sessionID, `${pick.providerID}/${pick.id}`);
+          virtualSessions.delete(sessionID);
+          if (opts.verbose) {
+            console.log(
+              `[modelselect] virtual pick is cross-provider — persisted ${pick.providerID}/${pick.id}, leaving virtual mode`,
+            );
+          }
+        } catch (err) {
+          if (opts.verbose) console.log(`[modelselect] virtual persist skipped: ${err?.message ?? err}`);
+        }
+        return;
+      }
+      const req = event.request;
+      if (!req || typeof req.clone !== 'function') return;
+      let text;
+      try {
+        text = await req.clone().text();
+      } catch {
+        return;
+      }
+      let body;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        return;
+      }
+      if (!body || typeof body !== 'object' || body.model !== VIRTUAL_MODEL) return;
+      body.model = pick.id;
+      try {
+        event.request = new Request(req, { body: JSON.stringify(body) });
+      } catch {
+        return;
+      }
+      if (opts.verbose) {
+        console.log(`[modelselect] virtual overlay → ${pick.providerID}/${pick.id} (kind=${event.kind || '-'})`);
+      }
+    } catch {
+      // never break the session
+    }
+  }
+  await ctx.session.hook('http.request', overlayVirtualBody);
+
   // Fail-soft: classify real free-side failures (Zen has no quota
   // endpoint to probe — the failed request IS the check; quota uses a 12h
   // latch, transient rate limiting uses a 1h latch in shared/freequota.js).
   // Only agent-loop (`primary`) traffic flips: title/compaction/generate
-  // calls keep their own models.
+  // calls on non-virtual sessions keep their own models.
   await ctx.session.hook('http.response', async (event) => {
     try {
       if (event.kind && event.kind !== 'primary') return;
@@ -768,3 +914,4 @@ async function setup(ctx) {
 
 module.exports = { id: ID, setup };
 module.exports.default = module.exports;
+
