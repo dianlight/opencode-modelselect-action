@@ -108,6 +108,27 @@ function clearModeCache() {
 }
 
 /**
+ * Write the global routing mode (`/modelselect` command path). Validates
+ * against VALID_MODES, creates the cache dir, and lets the next readMode
+ * re-stat (the mtime+size stamp invalidates itself; clearModeCache is a
+ * belt-and-braces for same-millisecond rewrites). Best-effort: never
+ * throws, returns true on success / false otherwise.
+ */
+function writeMode(cacheDir, mode) {
+  try {
+    const m = String(mode ?? '').toLowerCase().trim();
+    if (!VALID_MODES.includes(m)) return false;
+    const dir = String(cacheDir);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(modeFile(dir), JSON.stringify({ mode: m }), 'utf8');
+    clearModeCache();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Write the per-session status file. Best-effort: never throws, returns
  * the payload on success and null on failure.
  */
@@ -143,6 +164,7 @@ module.exports = {
   readMode,
   readGlobalDefaultMode,
   clearModeCache,
+  writeMode,
   writeStatus,
   modeFile,
   statusFile,

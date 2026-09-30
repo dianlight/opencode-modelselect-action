@@ -1,6 +1,6 @@
 'use strict';
 
-// Root entrypoint: v2 ignores package.json `main` and loads `/index.js`,
-// while v1 follows `main` -> src/v1.js. Re-export the v2 definition here
-// so one package entry serves both hosts.
+// Root entrypoint: v2 ignores package.json `main` and loads `/index.js`.
+// `main` points here too so package consumers resolve the same v2
+// definition — the v1 `server()` entry was removed (v2-only package).
 module.exports = require('./src/v2.js');

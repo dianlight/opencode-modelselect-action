@@ -2,7 +2,8 @@
 
 Work Status section for the modelselect plugin: shows the plugin's
 per-session pick (task, tier, model, Jev reason, Go quota, config source)
-plus the global on/off/auto mode switch.
+plus the global on/off/auto mode switch, and records session activity
+into the host-detection session map the plugin reads.
 
 Status-only extension: no panel, no background service, no commands.
 Source is `status/src/main.js` (ESM, imports `connectHost` from
@@ -10,19 +11,23 @@ Source is `status/src/main.js` (ESM, imports `connectHost` from
 bundle built with `bun run build` — never edit it by hand.
 
 Requires OpenChamber >= 2.0 (web/desktop only; the status iframe needs
-a web view).
+a web view). The session map it writes is what lets the plugin detect
+OpenChamber hosting even for sessions driven from the mobile app (which
+loads no extensions — same server, same project).
 
 ## Install
 
 Settings → Extensions → install from Folder / ZIP / URL pointing at
 `openchamber-modelselect/`.
 
-Grant the `files` capability when prompted (status + mode files live
-under the project; the installed-check reads the three global config
-paths declared in `package.json`, including the OpenChamber managed
-config; the routing sync additionally reads
-`~/.config/openchamber/modelselect.json` and — only when autoset is
-enabled there — reads/writes `settings.json` + `preferences.json`).
+Grant the `files` and `sessions` capabilities when prompted (status,
+mode and session-map files live under the project; the `sessions`
+capability feeds the map's deleted/archived pruning; the
+installed-check reads the three global config paths declared in
+`package.json`, including the OpenChamber managed config; the routing
+sync additionally reads `~/.config/openchamber/modelselect.json` and —
+only when autoset is enabled there — reads/writes `settings.json` +
+`preferences.json`).
 
 ## Build and test
 
@@ -88,12 +93,33 @@ Status is visible.
 The Jev routing categories (`~/.config/openchamber/routing.json`,
 stored-deviations shape) are kept fresh from two places, both best-effort:
 
-- The plugin, before every turn (v2 `prompt` + `context` hooks) — this is
-  what makes `auto` mode work: the sync refreshes the categories, then the
-  plugin acts like `off` and OpenChamber's routing owns the pick.
+- The plugin, before every turn (the `prompt` + `context` hooks) — this
+  is what makes `auto` mode work: the sync refreshes the categories, then
+  the plugin acts like `off` and OpenChamber's routing owns the pick.
 - This view, on every Work Status refresh (fallback while the panel is
   open) — grant the `files` capability (the `routing.json` path is
   declared in `package.json`, re-approve on update).
+
+## Session map (host detection)
+
+This view is the **sole writer** of
+`.opencode/.modelselect-cache/openchamber-sessions.json`
+(`{version:1, sessions:{<sessionID>: lastSeenEpochMs}}`), the evidence
+file the plugin reads to detect OpenChamber hosting (see
+`plugin/README.md`, Host detection). Behavior:
+
+- the active session is touched on ready and on session updates,
+  throttled to at most one write per 60s per entry;
+- every write age-prunes entries older than 30 days (same window as the
+  plugin read — keep `SESSION_MAP_TTL_MS` in sync with
+  `plugin/src/shared/host.js`);
+- ready `onSessions` workspace snapshots (needs the `sessions`
+  capability) prune archived (`archivedAt` set) and deleted (absent)
+  sessions; when no subscription can be established, the age prune on
+  every write is the backstop;
+- all writes are serialized, fire-and-forget and never throw.
+
+The plugin only ever reads this file.
 
 The sync logic is one shared module (`plugin/src/shared/routing.js`);
 this bundle wraps it in a host-file adapter

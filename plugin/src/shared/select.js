@@ -22,18 +22,26 @@ const DEFAULT_CONFIG_URL =
 const DEFAULT_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
 const FETCH_TIMEOUT_MS = 10000;
 
-function normalizeOptions(raw = {}) {
+function normalizeOptions(raw = {}, env = process.env) {
   const tier = String(raw.tier ?? 'auto').toLowerCase();
   if (!['go', 'free', 'auto'].includes(tier)) throw new Error(`Invalid tier '${raw.tier}'.`);
   const announce = String(raw.announce ?? 'switch').toLowerCase();
   if (!['switch', 'always', 'off'].includes(announce)) throw new Error(`Invalid announce '${raw.announce}'.`);
   const preference = String(raw.autoPreference ?? raw['auto-preference'] ?? 'free-first').toLowerCase();
+  // Host detection force: 'auto' (default, detect) | 'on' (always
+  // OpenChamber) | 'off' (always standalone). The `MODELSELECT_OPENCHAMBER`
+  // env is read later by shared/host.js resolveHost — kept out of the
+  // option so option/env/map precedence stays in one place.
+  const openchamber = String(raw.openchamber ?? raw['open-chamber'] ?? 'auto').toLowerCase().trim();
+  if (!['auto', 'on', 'off'].includes(openchamber)) {
+    throw new Error(`Invalid openchamber '${raw.openchamber ?? raw['open-chamber']}'.`);
+  }
   // Option > OPENCODE_API_KEY > the opencode / opencode-go key in OpenCode's
   // auth store (see auth.js: GUI hosts like OpenChamber start their own
   // OpenCode server without the shell env, but /connect already wrote the key
   // to auth.json). `tokenSource` is for verbose diagnostics only — never log
   // the token itself.
-  const { token, source: tokenSource } = resolveToken(raw);
+  const { token, source: tokenSource } = resolveToken(raw, env);
   let refresh = raw.configRefreshMinutes ?? raw.refreshMinutes ?? 1440;
   refresh = Number(refresh);
   if (!Number.isFinite(refresh) || refresh < 0) throw new Error('configRefreshMinutes must be >= 0.');
@@ -57,6 +65,7 @@ function normalizeOptions(raw = {}) {
     ),
     fallbackModel: String(raw.fallbackModel ?? raw['fallback-model'] ?? '').trim(),
     maxCost: raw.maxCost ?? raw['max-cost'] ?? '',
+    openchamber,
     token,
     tokenSource,
     usageUrl: String(raw.usageUrl ?? raw['usage-url'] ?? DEFAULT_USAGE_URL),

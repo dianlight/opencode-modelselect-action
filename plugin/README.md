@@ -1,12 +1,10 @@
 # opencode-modelselect-plugin
 
 Auto-select the OpenCode model from project signals, prompt text and agent tag.
-One package serves both hosts: v1 follows `package.json` `main` → `src/v1.js`
-(`server()`), v2 ignores `main` and loads the package root `/index.js` (the
-v2 `{ id, setup }` definition).
+OpenCode v2 only: the package root `/index.js` loads the v2 `{ id, setup }`
+definition (`src/v2.js`); the v1 `server()` entry was removed.
 
-Zero dependencies, Node >= 20. Requires OpenCode v1 >= 1.18.29
-(object-form plugins) or OpenCode v2.
+Zero dependencies, Node >= 20. Requires OpenCode v2.
 
 ## Install
 
@@ -30,23 +28,6 @@ npm install opencode-modelselect-plugin
   ]
 }
 ```
-
-```jsonc
-// opencode.json / opencode.jsonc — OpenCode v1 (key is singular "plugin")
-{
-  // from npm:
-  // "plugin": ["opencode-modelselect-plugin"]
-  // ...with options (tuple form):
-  // "plugin": [["opencode-modelselect-plugin", { "tier": "auto", "taskType": "auto" }]]
-  // ...or from a local checkout (v1 loads .opencode/plugin/):
-  "plugin": [["./plugin", { "tier": "auto", "taskType": "auto" }]]
-}
-```
-
-Differences between v1 and v2 setup: only the config key (`plugin` vs
-`plugins`, tuple vs object entry) and the local directory (`.opencode/plugin/`
-vs `.opencode/plugins/`). The package itself serves both hosts with no code
-changes.
 
 ### OpenChamber
 
@@ -85,7 +66,8 @@ env, so the plugin reads the key from OpenCode's `auth.json` instead — see
   "jevEndpoint": "https://opencode.ai/zen/v1/systemone",
   "jevToken": "",             // falls back to token / OPENCODE_API_KEY / auth.json
   "continuation": true,       // zero-signal turns inherit the previous task
-  "historyChars": 2000        // max chars of previous prompt kept for continuation
+  "historyChars": 2000,       // max chars of previous prompt kept for continuation
+  "openchamber": "auto"       // host detection: auto (detect) | on | off
 }
 ```
 
@@ -103,26 +85,22 @@ env, so the plugin reads the key from OpenCode's `auth.json` instead — see
 | `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
 | `verbose` | `false` | Log each selection (`task/tier/model`). |
 | `suggestOnly` | `false` | Trial mode: resolve task-type/tier/model as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) task=… tier=… would-select=… current=…`, even with `verbose: false`. Accepts `suggest-only` / `suggest_only` as aliases. |
-| `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model jev=…]`; `→` becomes `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. The trailing `jev=` segment tells why the task is what it is: `off` (Jev disabled), `pinned` (fixed `taskType`), `<choice>@<conf>` (Jev decided, e.g. `review@0.95`), or `kept:<reason>` (`no-token`, `error`, `lowconf`, `unknown`, `empty` — heuristic kept). v1 pushes a zero-token `ignored:true` part; v2 appends a terse line to the prompt (~15 tokens/turn). |
+| `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model jev=…]`; `→` becomes `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. The trailing `jev=` segment tells why the task is what it is: `off` (Jev disabled), `pinned` (fixed `taskType`), `<choice>@<conf>` (Jev decided, e.g. `review@0.95`), or `kept:<reason>` (`no-token`, `error`, `lowconf`, `unknown`, `empty` — heuristic kept). Appends a terse line to the prompt (~15 tokens/turn). |
 | `jevModel` | `""` | Optional Jev refinement (`jev-1.13` / `jev-1.13-free`, aliases `jev-model` / `typesafe-model`): when set, a `choice` question is POSTed to `jevEndpoint` with the prompt as state; a confident answer overrides the heuristic task-type. The choice criteria (and accepted answers) come from the remote task-type list (`taskTypesUrl`), never a hardcoded map — the static list is only an offline fallback. Empty (default) disables Jev entirely — no network call. |
 | `jevThreshold` | `0.6` | Minimum Jev `confidence` (0..1) to accept the answer; below it the heuristic wins. |
 | `jevEndpoint` | `https://opencode.ai/zen/v1/systemone` | SystemOne endpoint for the Jev call. |
 | `jevToken` | `""` | Auth for the Jev call; falls back to `token` / `OPENCODE_API_KEY` / `auth.json`. Never logged. |
 | `continuation` | `true` | Zero-signal turns (acks like `do it` / `sì, procedi`, answers after a question, any language or length) inherit the previous substantive turn's task instead of falling to `generic`. The ack match (IT+EN) is only a second opinion — the score decides. Set `false` to disable. |
-| `historyChars` | `2000` | Max chars of the previous substantive prompt kept per session for continuation (also fed to Jev as `Previous: … / Current: …` context, plus the last assistant snippet on v2). Accepts `history-chars` alias. |
+| `historyChars` | `2000` | Max chars of the previous substantive prompt kept per session for continuation (also fed to Jev as `Previous: … / Current: …` context, plus the last assistant snippet). Accepts `history-chars` alias. |
+| `openchamber` | `auto` | Host detection force for the virtual model and the `/modelselect` host line: `auto` detects via `MODELSELECT_OPENCHAMBER` env (`1|true|on|yes` / `0|false|off|no`), then the OpenChamber session map (below); `on` / `off` force a host. Accepts the `open-chamber` alias. See [Host detection](#host-detection-opencode-vs-standalone). |
 
 ## How it routes (verified against SDK types)
 
-- v1 (`@opencode-ai/plugin` 1.18.x): `chat.params` output has no model
-  field, so routing happens in `chat.message` by mutating
-  `output.message.model.providerID`/`modelID` in place. The mutation lasts
-  one turn, so the choice is kept sticky per session and re-applied on
-  every message.
-- v2 (`@opencode/plugin` 2.0.x): `Model.Ref` is `{ providerID, id }`
-  (not `modelID`). The `context` hook mutates those fields in place for
-  the in-flight turn and calls `ctx.session.switchModel` to persist the
-  choice like the model picker does. `title`/`compaction`/`generate`
-  requests are deliberately left alone so cheap auxiliary calls stay cheap.
+- `Model.Ref` is `{ providerID, id }`. The `context` hook mutates those
+  fields in place for the in-flight turn and calls
+  `ctx.session.switchModel` to persist the choice like the model picker
+  does. `title`/`compaction`/`generate` requests are deliberately left
+  alone so cheap auxiliary calls stay cheap.
 
 Scores each task-type from prompt (50) + touched files (25) + repo
 structure (15) + agent tag (10); highest wins, ties go to `generic`
@@ -197,7 +175,7 @@ model (the error is logged, not fatal).
 
 ## Status & mode
 
-Each routed turn (both hosts, including `suggestOnly` runs) writes a
+Each routed turn (including `suggestOnly` runs) writes a
 best-effort per-session status file next to the caches — it never throws:
 
 `<project>/.opencode/.modelselect-cache/status-<sessionID>.json`
@@ -242,7 +220,7 @@ holds the global defaults plus the autoset flags:
 }
 ```
 
-Before the mode check on every turn (v2 `prompt` + `context` hooks) the
+Before the mode check on every turn (the `prompt` + `context` hooks) the
 plugin best-effort syncs OpenChamber's `~/.config/openchamber/routing.json`
 from the caches above (`src/shared/routing.js`, writes only on diff). The
 write is skipped silently when `~/.config/openchamber` doesn't exist —
@@ -257,8 +235,7 @@ the plugin never creates OpenChamber's config itself.
   turn, then act like `off`: no resolve, no announce, no status write, no
   model mutation. The freshly synced categories are what route the
   question — OpenChamber's router picks the model, the plugin stays
-  hands-off. (v2 only; v1 keeps the old route-until-you-switch
-  behavior.) This is the default.
+  hands-off. This is the default.
 
 When `autoSmallModel` is true the sync also writes the resolved
 `smallModelTask` model into OpenChamber's `settings.json` +
@@ -271,7 +248,71 @@ to the small model, so keeping the small override fresh covers it too).
 Both follow the same go/free preference (and the 12h free-exhausted
 latch) as the routing categories, and both write only on diff.
 
-## Free-tier fail-soft (v2)
+## Host detection (OpenCode vs standalone)
+
+The plugin needs to know whether its OpenCode server is serving an
+OpenChamber client (web/desktop/mobile app) or a standalone session (TUI,
+`opencode run`, SDK embeds). Detection order — the first decisive source
+wins:
+
+1. the `openchamber` option — `on` forces OpenChamber, `off` forces
+   standalone, `auto` (default) falls through;
+2. the `MODELSELECT_OPENCHAMBER` env — `1|true|on|yes` / `0|false|off|no`;
+3. the session map —
+   `<project>/.opencode/.modelselect-cache/openchamber-sessions.json`,
+   `{version:1, sessions:{<sessionID>: lastSeenEpochMs}}`, written only by
+   the Work Status extension (single writer: the extension writes, the
+   plugin reads). A fresh entry (≤ 30 days old) means an OpenChamber
+   client has used this project. This is the mobile-proof signal:
+   extensions do not load on the mobile app, but the web/desktop session
+   records its activity into the same map file (same server, same
+   project);
+4. otherwise — standalone.
+
+The startup log names the outcome (`host=standalone/default`,
+`host=openchamber/session-map`, …) and `/modelselect` re-reports it per
+session. Detection only gates the virtual model below — per-turn routing
+always keys off the session's actual model, never the host.
+
+## Virtual model `modelselect/auto` (standalone only)
+
+When the host resolves standalone, the plugin registers a virtual model
+`modelselect/auto` (provider `modelselect`, name “ModelSelect”) in the
+model picker. Selecting it makes the session route like mode `on` on
+every turn — the picker *is* the switch:
+
+- the in-flight `event.model` is mutated to the resolved pick per turn;
+- `switchModel` is never called, so the session stays on
+  `modelselect/auto` and keeps re-routing (no persist, no stickiness to
+  the resolved model);
+- `mode.json` is bypassed — a virtual pick routes in `on`, `off` and
+  `auto`;
+- free-tier exhaustion arms the forced retry and re-points the retry
+  event at the `go` model in place instead of flipping the session.
+
+Under OpenChamber the provider is not registered: the host owns the
+model there, and a fake provider entry would only clutter its picker
+(mode `auto` hands off to OpenChamber's router instead).
+
+Known first-turn gap: the announce line for a virtual pick starts from
+turn 2 — the prompt hook runs before the context hook marks the session
+(pinned by a test).
+
+## `/modelselect` command
+
+A chat command (registered via `ctx.command.transform`):
+
+- `/modelselect` — status: global mode, host + source for this session,
+  the session's pick (virtual or persisted), and the last routed pick
+  from the status file. Output goes through a synthetic message (no
+  model turn, no tokens), falling back to a steered prompt.
+- `/modelselect on|off|auto` — writes the mode file (the same file the
+  OpenChamber switch uses) and echoes the new mode.
+
+The command word is optional: `modelselect off` and a bare `off` behave
+the same.
+
+## Free-tier fail-soft
 
 Zen publishes no free-quota endpoint (upstream
 [anomalyco/opencode#18648](https://github.com/anomalyco/opencode/issues/18648)
@@ -287,10 +328,12 @@ comes back exhausted (402, 429, quota wording, or the transient message
    picks `go` (also for a pinned `tier: "free"` when a token exists).
    Spent quota uses a 12h window; transient rate limiting uses a 1h
    window;
-2. flips the session to its task's `go` model and forces exactly one
-   retry, so the turn resumes on the paid alternative — no dummy probe,
-   no loop (the flip latches per session and OpenCode's attempt cap
-   bounds the rest).
+2. forces exactly one retry of the turn on its task's `go` model — no
+   dummy probe, no loop (the flip latches per session and OpenCode's
+   attempt cap bounds the rest). On a virtual `modelselect/auto` session
+   the flip is skipped (the session must keep re-routing): the plugin
+   only arms the retry and re-points the retry event at the `go` model
+   in place.
 
 Each window runs from its first detection and never extends; after it
 expires, the next real failure may register again (the "new check"). `off`/`auto` modes and `suggestOnly` still latch + resync
@@ -313,13 +356,6 @@ line per turn:
 }
 ```
 
-```jsonc
-// opencode.json / opencode.jsonc — OpenCode v1
-{
-  "plugin": [["./plugin", { "suggestOnly": true, "tier": "auto" }]]
-}
-```
-
 Watch the OpenCode logs for lines like
 `[modelselect] (suggest-only) task=review tier=free would-select=opencode/… current=…`.
 Compare `would-select` with `current` over a few real sessions; when the
@@ -335,17 +371,14 @@ path:
 ```jsonc
 // OpenCode v2 (key is plural "plugins"; also loads .opencode/plugins/)
 { "plugins": [{ "package": "/abs/path/to/opencode-modelselect-action/plugin", "options": { "tier": "auto", "verbose": true } }] }
-// OpenCode v1 (key is singular "plugin", tuple form; loads .opencode/plugin/)
-{ "plugin": [["/abs/path/to/opencode-modelselect-action/plugin", { "tier": "auto", "verbose": true }]] }
 ```
 
 OpenCode loads the plugin at startup, so restart (or reload) OpenCode
-after every code change — there is no hot reload. The package serves both
-hosts from one codebase: v1 follows `package.json` `main` → `src/v1.js`
-(`server()`), v2 ignores `main` and loads the package root `/index.js`
-(the `{ id, setup }` definition in `src/v2.js`); shared logic lives in
-`src/shared/` (`detect.js` for task-type heuristics, `select.js` for
-options, config cache and tier resolution).
+after every code change — there is no hot reload. The package root
+`/index.js` is the v2 `{ id, setup }` definition (`src/v2.js`); shared
+logic lives in `src/shared/` (`detect.js` for task-type heuristics,
+`select.js` for options, config cache and tier resolution, `host.js` for
+host detection and the session-map read).
 
 Suggested debug setup while developing: `verbose: true` to see each pick,
 `taskType` pinned to skip inference when testing tier/config changes,
@@ -363,6 +396,7 @@ in `src/shared/detect.js` with a case in `plugin/test/plugin.test.js`; a
 new option goes through `normalizeOptions` in `src/shared/select.js`
 (including its aliases/defaults) plus docs in the Options table above and
 tests. Keep the routing constraints verified against the SDK types:
-mutate `providerID`/`id` (v2) or `providerID`/`modelID` (v1) in place,
-never reassign the model object; keep stickiness per session; leave
-`title`/`compaction`/`generate` requests on their own models.
+mutate `providerID`/`id` in place, never reassign the model object; keep
+stickiness per session; leave `title`/`compaction`/`generate` requests on
+their own models (virtual `modelselect/auto` sessions excepted — they
+never persist).

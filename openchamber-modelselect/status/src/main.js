@@ -31,6 +31,17 @@
  *   {"mode":"on"|"off"|"auto"}; missing/invalid means the global
  *   `~/.config/openchamber/modelselect.json` mode when readable and valid,
  *   else "auto" (default).
+ * - Session map (host-detection evidence; single writer: this extension)
+ *   — `<project>/.opencode/.modelselect-cache/openchamber-sessions.json` =
+ *   `{version:1, sessions:{<sessionID>: lastSeenEpochMs}}`. Touched for
+ *   the active session on ready / session updates (throttled: at most one
+ *   write per 60s per entry), age-pruned on every write (30d — keep in
+ *   sync with the plugin read window in plugin/src/shared/host.js), and
+ *   prune-updated from ready `onSessions` workspace snapshots (archived
+ *   or deleted sessions removed; needs the `sessions` capability). The
+ *   plugin only reads it: a fresh entry marks the project as
+ *   OpenChamber-hosted — the mobile-proof signal, since this extension
+ *   runs on web/desktop while the app drives the same server and project.
  * - Mode-dependent rendering: `on` shows the full pick grid (Task, Agent,
  *   Tier, Model, Think, Jev, Source) + state badges from the status file
  *   (Agent comes from the live session snapshot). `auto`/`off` never
@@ -62,6 +73,13 @@ var host = connectHost();
 
 var CACHE_DIR = '.opencode/.modelselect-cache';
 var MODE_FILE = CACHE_DIR + '/mode.json';
+var SESSION_MAP_FILE = CACHE_DIR + '/openchamber-sessions.json';
+// Age window for session-map entries — must match the plugin read window
+// (plugin/src/shared/host.js SESSION_MAP_TTL_MS).
+var SESSION_MAP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+// Throttle: an entry fresher than this needs no rewrite unless a prune
+// removes something (detection only needs "recently seen", not live).
+var SESSION_MAP_TOUCH_MIN_MS = 60 * 1000;
 var MODELSELECT_CONFIG_FILE = '~/.config/openchamber/modelselect.json';
 var CONFIG_CACHE_FILE = CACHE_DIR + '/model-config-cache.json';
 var STORAGE_MODE_KEY = 'modelselect:mode';
@@ -84,6 +102,12 @@ var GLOBAL_CONFIG_PATHS = [
 var currentSession = null;
 var currentMode = 'auto';
 var modeBusy = false;
+// Session-map state: read-modify-writes serialize on this chain so
+// concurrent touches cannot lose entries, and the prune subscription is
+// resolved once per open directory (denied/missing workspace access is
+// swallowed — the 30d age prune on write is the backstop).
+var sessionMapChain = Promise.resolve();
+var sessionPruneDirectory = null;
 // Live countdown handle for the free-tier suspension row (setTimeout
 // chain — setInterval is not assumed in the guest frame). Cleared on
 // every render; expiry triggers a refresh so the row disappears and the
@@ -303,6 +327,111 @@ function loadFreeQuota() {
     function (r) { return r; },
     function () { return { found: false }; }
   );
+}
+
+// --- session map (host-detection evidence) ------------------------------
+// Single writer for SESSION_MAP_FILE = `{version:1, sessions:{<id>:
+// lastSeenEpochMs}}`. The plugin only reads it (shared/host.js): a fresh
+// entry marks the project as OpenChamber-hosted, which drives its
+// virtual-model registration and /modelselect host line.
+
+function sessionsOf(data) {
+  return data && data.sessions && typeof data.sessions === 'object' ? data.sessions : {};
+}
+
+// Drop entries older than the TTL (and non-numeric junk) — same window
+// as the plugin read. Returns how many were removed.
+function pruneSessionMapByAge(sessions, now) {
+  var removed = 0;
+  Object.keys(sessions).forEach(function (id) {
+    var seen = sessions[id];
+    if (typeof seen !== 'number' || !Number.isFinite(seen) || now - seen > SESSION_MAP_TTL_MS) {
+      delete sessions[id];
+      removed += 1;
+    }
+  });
+  return removed;
+}
+
+function writeSessionMap(sessions) {
+  return toPromise(function () {
+    return host.writeFile(SESSION_MAP_FILE, JSON.stringify({ version: 1, sessions: sessions }));
+  }).then(noop, noop);
+}
+
+function readSessionMap() {
+  return readJson(SESSION_MAP_FILE).then(sessionsOf, function () { return {}; });
+}
+
+// Touch the active session: age-prune first, then stamp `sid` with now —
+// unless it is already fresher than the throttle and nothing was pruned
+// (then the file is left alone). Serialized on sessionMapChain; never
+// rejects, runs fire-and-forget from ready/session events.
+function touchSessionMap(sessionID) {
+  var sid = sessionID || sessionIDOf(currentSession) || '';
+  if (!sid) return;
+  sessionMapChain = sessionMapChain.then(function () {
+    return readSessionMap().then(function (sessions) {
+      var now = Date.now();
+      var removed = pruneSessionMapByAge(sessions, now);
+      var stored = sessions[sid];
+      if (!removed && typeof stored === 'number' && now - stored < SESSION_MAP_TOUCH_MIN_MS) return;
+      sessions[sid] = now;
+      return writeSessionMap(sessions);
+    });
+  }).catch(noop);
+}
+
+// Ready `onSessions` snapshots prune map entries whose session was
+// archived (`archivedAt` set) or deleted (absent from the snapshot); the
+// active session is always kept. Nothing to remove means no write.
+// Without a subscription (workspace access denied or unavailable) the
+// age prune on every touch still cleans the file.
+function pruneSessionMap(snapshot) {
+  if (!snapshot || snapshot.kind !== 'sessions' || snapshot.state !== 'ready' ||
+      !Array.isArray(snapshot.sessions)) return;
+  var keep = {};
+  var drop = {};
+  snapshot.sessions.forEach(function (rec) {
+    if (!rec || typeof rec.id !== 'string') return;
+    if (rec.archivedAt !== null && rec.archivedAt !== undefined) drop[rec.id] = true;
+    else keep[rec.id] = true;
+  });
+  var active = sessionIDOf(currentSession) || '';
+  sessionMapChain = sessionMapChain.then(function () {
+    return readSessionMap().then(function (sessions) {
+      var removed = pruneSessionMapByAge(sessions, Date.now());
+      Object.keys(sessions).forEach(function (id) {
+        if (id === active) return; // the live session is evidence by itself
+        if (drop[id] || !keep[id]) {
+          delete sessions[id];
+          removed += 1;
+        }
+      });
+      if (!removed) return;
+      return writeSessionMap(sessions);
+    });
+  }).catch(noop);
+}
+
+// Resolve the open project and subscribe to its `onSessions` snapshots
+// for pruning. Workspace access may be denied (NOT_GRANTED) or missing
+// (older hosts, tests) — fire and forget, resolved once per directory:
+// when no subscription runs, the 30d age prune on every write is the
+// backstop.
+function subscribeSessionPrune(directory) {
+  if (!directory || sessionPruneDirectory === directory) return;
+  sessionPruneDirectory = directory;
+  toPromise(function () { return host.listProjects(); }).then(function (snap) {
+    var projects = (snap && snap.projects) || [];
+    for (var i = 0; i < projects.length; i += 1) {
+      var p = projects[i];
+      if (p && p.id && p.directory === directory) {
+        return toPromise(function () { return host.onSessions(p.id, pruneSessionMap); });
+      }
+    }
+    return null;
+  }).then(noop, noop);
 }
 
 // Human-readable remaining time: "2h 15m" over an hour, "5m 30s" over a
@@ -660,6 +789,8 @@ function mount() {
         if (ctx && ctx.theme) applyHostReady(ctx, document.documentElement);
       } catch (e) { /* theme is best-effort */ }
       if (ctx && ctx.session) currentSession = ctx.session;
+      if (ctx) subscribeSessionPrune(ctx.directory);
+      touchSessionMap();
       refresh();
     });
   } catch (e) {
@@ -679,9 +810,18 @@ function mount() {
   try {
     host.onSession(function (snap) {
       currentSession = snap || null;
+      touchSessionMap();
       refresh();
     });
   } catch (e) { /* session updates are best-effort */ }
+  try {
+    // Re-resolve the prune subscription when the open project changes.
+    // The ready message also emits through this listener; the same
+    // directory is a no-op (subscribeSessionPrune resolves once per dir).
+    host.onDirectory(function (directory) {
+      subscribeSessionPrune(directory);
+    });
+  } catch (e) { /* workspace subscriptions are best-effort */ }
   refresh();
 }
 

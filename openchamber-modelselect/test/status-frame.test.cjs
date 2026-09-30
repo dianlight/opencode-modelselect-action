@@ -94,7 +94,7 @@ function findAll(root, pred, out) {
 }
 
 // --- fake guest frame ------------------------------------------------------
-function loadFrame({ files, session }) {
+function loadFrame({ files, session, projects, sessionsSnapshot }) {
   const code = readFileSync(BUNDLE, 'utf8');
   const sent = [];
   const writes = [];
@@ -176,6 +176,27 @@ function loadFrame({ files, session }) {
         writes.push({ path: m.payload.path, content: m.payload.content });
         files.set(m.payload.path, m.payload.content);
         ok(m.id, { written: true });
+      } else if (m.type === 'workspace-read') {
+        const q = m.payload || {};
+        if (q.kind === 'projects') {
+          ok(m.id, projects || { kind: 'projects', state: 'ready', projects: [] });
+        } else if (q.kind === 'sessions' && sessionsSnapshot) {
+          ok(m.id, sessionsSnapshot);
+        } else {
+          err(m.id, 'NOT_FOUND');
+        }
+      } else if (m.type === 'workspace-subscribe') {
+        ok(m.id, {});
+        // Real hosts push the current snapshot after a subscribe.
+        const q = m.payload && m.payload.query;
+        if (sessionsSnapshot && q && q.kind === 'sessions') {
+          deliver({
+            channel: 'openchamber.sdk', v: 1, type: 'workspace',
+            payload: { subscriptionId: m.payload.subscriptionId, snapshot: sessionsSnapshot },
+          });
+        }
+      } else if (m.type === 'workspace-unsubscribe') {
+        ok(m.id, {});
       } else if (m.type === 'resize' || m.type === 'storage' || m.type === 'toast') {
         ok(m.id, {});
       }
@@ -693,6 +714,97 @@ describe('modelselect status frame', () => {
       assert.match(txt, /Free tier exhausted/);
       assert.match(txt, /retry in/);
       assert.doesNotMatch(txt, /Task debug/); // auto still hides the pick
+    } finally {
+      frame.close();
+    }
+  });
+
+  // --- session map (host-detection evidence for the plugin) --------------
+
+  it('upserts the active session into the host-detection session map', async () => {
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      await frame.settle();
+      const write = frame.writes.find((w) => w.path === `${STATUS_DIR}/openchamber-sessions.json`);
+      assert.ok(write, 'expected a session-map write');
+      const map = JSON.parse(write.content);
+      assert.equal(map.version, 1);
+      assert.equal(typeof map.sessions.ses_1, 'number');
+      assert.ok(Date.now() - map.sessions.ses_1 < 5000, 'lastSeen is current');
+      assert.deepEqual(Object.keys(map.sessions), ['ses_1']);
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('prunes stale, archived and deleted sessions from the map', async () => {
+    const now = Date.now();
+    const seeded = {
+      version: 1,
+      sessions: {
+        ses_1: now - 10000,       // active: re-stamped by the touch
+        ses_live: now - 2000,     // live in the snapshot: kept untouched
+        ses_arch: now - 3000,     // archived in the snapshot: pruned
+        ses_dead: now - 4000,     // absent from the snapshot: pruned
+        ses_old: now - 31 * 24 * 60 * 60 * 1000, // >30d: age-pruned
+      },
+    };
+    const rec = (id, archivedAt) => ({
+      id, title: 't', projectId: 'p1', directory: '/project', parentId: null,
+      createdAt: 0, updatedAt: 0, archivedAt, worktree: null,
+      activity: 'idle', outcome: null, items: [],
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/openchamber-sessions.json`, JSON.stringify(seeded)],
+      ]),
+      session: AUTO_SESSION,
+      projects: {
+        kind: 'projects', state: 'ready',
+        projects: [{ id: 'p1', name: 'P', directory: '/project' }],
+      },
+      sessionsSnapshot: {
+        kind: 'sessions', state: 'ready', projectId: 'p1', coverage: [],
+        sessions: [rec('ses_1', null), rec('ses_live', null), rec('ses_arch', now - 100)],
+      },
+    });
+    try {
+      await frame.ready();
+      await frame.settle();
+      const writes = frame.writes.filter((w) => w.path === `${STATUS_DIR}/openchamber-sessions.json`);
+      assert.ok(writes.length >= 1, 'expected a session-map write');
+      const map = JSON.parse(writes[writes.length - 1].content);
+      assert.deepEqual(Object.keys(map.sessions).sort(), ['ses_1', 'ses_live']);
+      assert.equal(map.sessions.ses_live, now - 2000, 'live entries keep their lastSeen');
+      assert.ok(map.sessions.ses_1 >= now - 10000, 'active session re-stamped');
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('skips the map write when the entry is fresh and nothing needs pruning', async () => {
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/openchamber-sessions.json`, JSON.stringify({ version: 1, sessions: { ses_1: Date.now() } })],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      await frame.settle();
+      const writes = frame.writes.filter((w) => w.path === `${STATUS_DIR}/openchamber-sessions.json`);
+      assert.equal(writes.length, 0, 'fresh entry + nothing to prune = no rewrite');
     } finally {
       frame.close();
     }

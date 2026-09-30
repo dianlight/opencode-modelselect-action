@@ -17,6 +17,31 @@
   diff, and stay silent on failure. The Work Status extension declares the
   three new paths (`modelselect.json`, `settings.json`,
   `preferences.json`) in its `filesystem` allowlist
+- Virtual model `modelselect/auto` (standalone hosts only): registered
+  through `ctx.provider.transform` when the host resolves standalone;
+  selecting it routes every turn like mode `on` but never calls
+  `switchModel`, so the session stays virtual and keeps re-routing —
+  `mode.json` is bypassed, and free-tier exhaustion only arms the retry
+  (re-pointing the retry event at the `go` model in place) instead of
+  flipping the session. Under OpenChamber the provider is not registered
+- `/modelselect` chat command: with no argument it reports the global
+  mode, the host + source for the session and its pick (virtual or
+  persisted) via a synthetic message (steered-prompt fallback);
+  `on|off|auto` writes `mode.json`. The command word is optional
+  (`modelselect off` behaves like `off`)
+- Host detection (`plugin/src/shared/host.js`) + session map: the
+  plugin resolves OpenChamber vs standalone from the new `openchamber`
+  option (`auto` default, `on`/`off` force, `open-chamber` alias) → the
+  `MODELSELECT_OPENCHAMBER` env → the session map
+  `.opencode/.modelselect-cache/openchamber-sessions.json`
+  (`{version:1, sessions:{<sessionID>: lastSeenEpochMs}}`, fresh ≤ 30d
+  entries only) → standalone; the startup log and `/modelselect` report
+  the outcome. The Work Status extension is the map's sole writer (touch
+  throttled to 60s per entry, 30d age prune, deleted/archived prune from
+  ready `onSessions` snapshots — new `sessions` capability, extension
+  0.1.4), which keeps OpenChamber detectable for sessions driven from
+  the mobile app (extensions never load there, but the same
+  server/project records the activity)
 - Work Status shows **Agent** and **Think**: the Agent row comes from the
   live session snapshot, Think from the new `think` field in the plugin
   status file (shown capitalized, e.g. `High`). `config/task-types.yaml`
@@ -53,6 +78,9 @@
   status field)
 
 ### Changed
+- Plugin startup log now reports host detection and the virtual model:
+  `loaded (tier=… host=<host>/<source> virtual=on|off …)` (was
+  `loaded (tier=…)`)
 - Plugin mode `auto` (v2 only) changed meaning: before every turn the
   plugin syncs OpenChamber's `~/.config/openchamber/routing.json` from the
   model/task caches and then acts like `off` — no task resolve, no
@@ -85,6 +113,12 @@
   LiveBench 0–100 scale (never copy raw Terminal-Bench/SWE-bench/GPQA
   numbers 1:1), and score `vision` bimodally (5.0 text-only vs ~40+
   with a vision encoder)
+
+### Removed
+- v1 plugin entry (OpenCode 1.x): `src/v1.js` (`server()`), the
+  `package.json` `main` wiring it relied on, its docs and its tests are
+  gone — the package is OpenCode v2-only (`main` → `./index.js` →
+  `src/v2.js`)
 
 ### Fixed
 - Work Status indicator colors now use the text-safe theme tokens

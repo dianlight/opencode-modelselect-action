@@ -40,6 +40,25 @@
  *   first-detection window (never extended), allowing a new check; mode
  *   `off`/`auto` and `suggestOnly` still latch + resync routing but never
  *   switch the session.
+ * - Host detection (`./shared/host.js`): explicit `openchamber` option →
+ *   `MODELSELECT_OPENCHAMBER` env → extension-written session map →
+ *   standalone. Drives virtual-model registration and the `/modelselect`
+ *   status line only; per-turn routing keys off `event.model` directly.
+ * - Virtual model `modelselect/auto` (standalone host only): a pick that
+ *   routes exactly like mode `on` but never persists — the in-flight
+ *   `event.model` is mutated in place per turn and `switchModel` is
+ *   skipped, so the session stays on the virtual pick and re-routes every
+ *   turn (the model picker IS the switch; `mode.json` is bypassed).
+ *   Free-exhaustion on a virtual session arms the forced retry without
+ *   `switchSessionToGo` (persisting go would unstick the virtual pick);
+ *   the retry hook re-points `event.model` in place instead.
+ * - `/modelselect` chat command (`ctx.command.transform`): no argument
+ *   prints mode + host + last pick; `on|off|auto` writes the mode via
+ *   `shared/status.js writeMode`. Output prefers `ctx.session.synthetic`
+ *   (no model turn) with `ctx.session.prompt` as fallback.
+ *
+ * v2-only: the v1 `server()` entry was removed — this package now requires
+ * OpenCode v2.
  */
 
 const path = require('node:path');
@@ -53,7 +72,8 @@ const {
   truncate,
 } = require('./shared/continuation');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce, loadConfig } = require('./shared/select');
-const { readMode, writeStatus, statusFile } = require('./shared/status');
+const { readMode, writeMode, writeStatus, statusFile } = require('./shared/status');
+const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
 const { syncRouting } = require('./shared/routing');
 const { createRoutingIo } = require('./shared/routing-io');
 const {
@@ -64,9 +84,18 @@ const {
 } = require('./shared/freequota');
 
 const ID = 'modelselect';
+// Virtual model: `modelselect/auto` — registered standalone-only, routes
+// like mode `on` but never persists (see header).
+const VIRTUAL_MODEL = 'auto';
+const VIRTUAL_REF = `${ID}/${VIRTUAL_MODEL}`;
 // Forced-retry arm window: a retry follows its failure within seconds, so
 // an arm older than this (consumed late) is stale and must not fire.
 const FREE_RETRY_TTL_MS = 60 * 1000;
+
+/** Is this Model.Ref the virtual `modelselect/auto` pick? */
+function isVirtualRef(ref) {
+  return Boolean(ref && typeof ref === 'object' && ref.providerID === ID && ref.id === VIRTUAL_MODEL);
+}
 
 function cacheDirFor(directory) {
   return path.join(String(directory || process.cwd()), '.opencode', '.modelselect-cache');
@@ -135,17 +164,149 @@ function agentFromPrompt(prompt) {
 }
 
 async function setup(ctx) {
-  const opts = normalizeOptions(ctx.options ?? {});
+  const opts = normalizeOptions(ctx.options ?? {}, process.env);
   const directory = ctx.location?.directory ?? process.cwd();
   const cacheDir = cacheDirFor(directory);
   const routingIo = createRoutingIo(directory);
   const repo = detectRepoSignals(scanRepo(directory));
+  const host = resolveHost({
+    options: opts,
+    env: process.env,
+    hasSessionHit: () => sessionMapAnyHit(cacheDir),
+  });
   const prompts = new Map(); // sessionID -> last prompt text
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
   const freeFlipped = new Set(); // sessions already flipped to go (process lifetime)
   const freeRetry = new Map(); // sessionID -> armedAt (epoch ms): one forced retry
+  const virtualSessions = new Set(); // sessions whose current model is modelselect/auto
+
+  // Virtual model `modelselect/auto`: registered only when the host
+  // resolves standalone — under OpenChamber the host owns the model and a
+  // fake provider entry would only clutter its picker. The literal shapes
+  // mirror @opencode/schema's `Provider.Info.empty(id)` =
+  // `{ id, name: id, activation: "auto", package: "" }` and
+  // `Model.Info.default(providerID, id)` (capabilities default
+  // `{ tools: true, input: ["text","image"], output: ["text"] }`, limits
+  // 200k/32k) — copied here because the package is zero-dependency.
+  // activation "enabled" forces the provider on (its `package` has no
+  // driver, but dispatch never reaches it: the context hook rewrites the
+  // ref before the request goes out). Failures only log: the rest of the
+  // plugin works without it.
+  let virtualRegistered = false;
+  if (host.host === 'standalone' && typeof ctx.provider?.transform === 'function') {
+    try {
+      await ctx.provider.transform((editor) => {
+        editor.add({
+          info: {
+            id: ID,
+            name: 'ModelSelect',
+            activation: 'enabled',
+            package: '',
+          },
+          models: [
+            {
+              id: VIRTUAL_MODEL,
+              modelID: VIRTUAL_MODEL,
+              providerID: ID,
+              name: 'Auto (modelselect routes every turn)',
+              capabilities: { tools: true, input: ['text', 'image'], output: ['text'] },
+              variants: [],
+              time: { released: 0 },
+              cost: [],
+              status: 'active',
+              enabled: true,
+              limit: { context: 200000, output: 32000 },
+            },
+          ],
+        });
+      });
+      virtualRegistered = true;
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] virtual model registration skipped: ${err?.message ?? err}`);
+    }
+  }
+
+  // `/modelselect` chat command: no argument prints status (mode, host +
+  // source, virtual pick, last pick); `on|off|auto` writes the mode.
+  // Output prefers `ctx.session.synthetic` (renders without a model turn —
+  // a status read must not cost tokens) and falls back to
+  // `ctx.session.prompt` if the host rejects synthetic messages. Never
+  // throws: failures only log.
+  async function runModelselectCommand({ sessionID, prompt, delivery }) {
+    const text = promptTextFromPrompt(prompt);
+    const tokens = text.trim().split(/\s+/).filter(Boolean);
+    if (tokens[0] && tokens[0].toLowerCase() === ID) tokens.shift(); // tolerate the command word
+    const arg = (tokens[0] ?? '').toLowerCase();
+    const lines = [];
+    if (arg === 'on' || arg === 'off' || arg === 'auto') {
+      lines.push(
+        writeMode(cacheDir, arg) ? `[modelselect] mode \u2192 ${arg}` : '[modelselect] mode change failed (want on, off or auto)',
+      );
+    } else if (arg) {
+      lines.push(`[modelselect] unknown argument '${tokens[0]}' — use on, off or auto`);
+    } else {
+      lines.push(`[modelselect] mode=${readMode(cacheDir)}`);
+      // Per-session host view: option/env still win, the session-map leg
+      // checks THIS session (setup only knew "any fresh entry").
+      const now = resolveHost({
+        options: opts,
+        env: process.env,
+        hasSessionHit: () => sessionMapHit(cacheDir, sessionID),
+      });
+      lines.push(`[modelselect] host=${now.host} (source=${now.source})`);
+      if (sessionID) {
+        lines.push(
+          virtualSessions.has(sessionID)
+            ? `[modelselect] session pick=${VIRTUAL_REF} (re-routes every turn)`
+            : '[modelselect] session pick=persisted (not virtual)',
+        );
+      }
+      try {
+        const fs = require('node:fs');
+        const st = JSON.parse(fs.readFileSync(statusFile(cacheDir, sessionID), 'utf8'));
+        const age = typeof st.updatedAt === 'number' ? Math.round((Date.now() - st.updatedAt) / 1000) : null;
+        lines.push(
+          `[modelselect] last task=${st.taskType ?? '?'} tier=${st.tier ?? '?'} model=${st.model ?? '?'}` +
+            `${age === null ? '' : ` (${age}s ago)`}`,
+        );
+      } catch {
+        lines.push('[modelselect] last: no status yet');
+      }
+    }
+    const out = lines.join('\n');
+    try {
+      await ctx.session.synthetic({ sessionID, text: out });
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] synthetic output failed: ${err?.message ?? err}`);
+      try {
+        await ctx.session.prompt({ sessionID, text: out, delivery: delivery === 'queue' ? 'queue' : 'steer' });
+      } catch (err2) {
+        console.error(`[modelselect] command output failed: ${err2?.message ?? err2}`);
+      }
+    }
+  }
+
+  if (typeof ctx.command?.transform === 'function') {
+    try {
+      await ctx.command.transform((editor) => {
+        editor.add({
+          name: ID,
+          description: 'Show modelselect status or set the routing mode (on|off|auto)',
+          execute: async (input) => {
+            try {
+              await runModelselectCommand(input);
+            } catch (err) {
+              console.error(`[modelselect] command failed: ${err?.message ?? err}`);
+            }
+          },
+        });
+      });
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] command registration skipped: ${err?.message ?? err}`);
+    }
+  }
 
   // Resolve task-type with continuation: zero-signal turns (acks like
   // "do it" / "sì, procedi", answers after a question, any language)
@@ -308,23 +469,32 @@ async function setup(ctx) {
     return h && h.task ? { taskType: h.task, prev: null } : null;
   }
 
+  // Configured `go` model for a session's last known task: null when the
+  // task or its go side is missing. Shared by the non-virtual flip and
+  // the virtual retry re-point.
+  async function goRefForSession(sessionID) {
+    const where = sessionTask(sessionID);
+    if (!where) return null;
+    const { config } = await loadConfig(opts, cacheDir);
+    const table = config && (config['task-types'] ?? config.task_types);
+    const name = Object.keys(table || {}).find((k) => k.toLowerCase() === where.taskType.toLowerCase());
+    const entry = name ? table[name] : null;
+    if (!entry || !entry.go) {
+      if (opts.verbose) console.log(`[modelselect] free exhausted but no go model for task=${where.taskType}`);
+      return null;
+    }
+    return { ref: splitModelRef(entry.go), where };
+  }
+
   // Flip a session to the configured `go` model for its task type
   // (fail-soft after free-tier exhaustion). Best-effort: returns true only
   // when a go model was found and the switch persisted; also refreshes the
   // status file so the Work Status view reflects tier=go + the latch.
   async function switchSessionToGo(sessionID) {
     try {
-      const where = sessionTask(sessionID);
-      if (!where) return false;
-      const { config } = await loadConfig(opts, cacheDir);
-      const table = config && (config['task-types'] ?? config.task_types);
-      const name = Object.keys(table || {}).find((k) => k.toLowerCase() === where.taskType.toLowerCase());
-      const entry = name ? table[name] : null;
-      if (!entry || !entry.go) {
-        if (opts.verbose) console.log(`[modelselect] free exhausted but no go model for task=${where.taskType}`);
-        return false;
-      }
-      const ref = splitModelRef(entry.go);
+      const found = await goRefForSession(sessionID);
+      if (!found) return false;
+      const { ref, where } = found;
       await ctx.session.switchModel({ sessionID, model: { providerID: ref.providerID, id: ref.id } });
       applied.set(sessionID, `${ref.providerID}/${ref.id}`);
       const prev = where.prev || {};
@@ -346,12 +516,34 @@ async function setup(ctx) {
     }
   }
 
+  // Virtual free-exhaustion recovery: the session must STAY on
+  // modelselect/auto, so instead of persisting go we re-point the retry
+  // event's model ref in place (same runtime-mutable pattern the context
+  // hook uses; the type is compile-time readonly). Best-effort: if the ref
+  // is not a writable object the armed retry still runs and attempt 2
+  // re-resolves through the context hook, where the fresh latch prefers
+  // go. Never throws.
+  async function rePointRetryToGo(event) {
+    try {
+      const found = await goRefForSession(event.sessionID);
+      if (!found || !event.model || typeof event.model !== 'object') return;
+      event.model.providerID = found.ref.providerID;
+      event.model.id = found.ref.id;
+      if (opts.verbose) {
+        console.log(`[modelselect] virtual retry re-pointed to ${found.ref.providerID}/${found.ref.id}`);
+      }
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] virtual retry re-point skipped: ${err?.message ?? err}`);
+    }
+  }
+
   // Register a free-side exhaustion: latch the observation (quota uses a
   // 12h window, rate limiting uses a 1h window — read by routing sync +
   // resolveModel), refresh routing.json right away, and on the first
-  // failure per session while mode `on` flip the session to its go model
-  // and arm exactly one forced retry so the turn resumes on the paid
-  // alternative. Zen publishes no free-quota endpoint
+  // failure per session while mode `on` (or on a virtual pick, which
+  // bypasses the mode) recover: non-virtual sessions flip to their task's
+  // go model, virtual sessions stay on modelselect/auto and only arm the
+  // forced retry. Zen publishes no free-quota endpoint
   // (anomalyco/opencode#18648), so the failed real request IS the check.
   async function noteFreeExhaustion(sessionID, ref, detail, kind = 'exhaustion') {
     const rid = ref && (ref.id ?? ref.modelID);
@@ -362,17 +554,26 @@ async function setup(ctx) {
     });
     await syncRoutingNow();
     if (!sessionID || freeFlipped.has(sessionID)) return;
-    if (readMode(cacheDir) !== 'on' || opts.suggestOnly) return;
+    const virtual = virtualSessions.has(sessionID);
+    if ((readMode(cacheDir) !== 'on' && !virtual) || opts.suggestOnly) return;
     freeFlipped.add(sessionID);
+    const cause = kind === 'rate-limit' ? 'rate-limited' : 'exhausted';
+    if (virtual) {
+      // Never switchModel here: persisting go would unstick the virtual
+      // pick (the session must keep re-routing every turn). Arm the one
+      // forced retry; the retry hook re-points event.model in place.
+      freeRetry.set(sessionID, Date.now());
+      console.log(`[modelselect] free tier ${cause} (${detail}) — virtual session stays on ${VIRTUAL_REF}, retry armed`);
+      return;
+    }
     if (await switchSessionToGo(sessionID)) {
       freeRetry.set(sessionID, Date.now());
-      const cause = kind === 'rate-limit' ? 'rate-limited' : 'exhausted';
       console.log(`[modelselect] free tier ${cause} (${detail}) — session flipped to go`);
     }
   }
 
   console.log(
-    `[modelselect] loaded (tier=${opts.tier} token-source=${opts.tokenSource || 'none'} announce=${opts.announce} verbose=${opts.verbose} suggestOnly=${opts.suggestOnly})`,
+    `[modelselect] loaded (tier=${opts.tier} host=${host.host}/${host.source} virtual=${virtualRegistered ? 'on' : 'off'} token-source=${opts.tokenSource || 'none'} announce=${opts.announce} verbose=${opts.verbose} suggestOnly=${opts.suggestOnly})`,
   );
 
   await ctx.session.hook('prompt', async (event) => {
@@ -382,7 +583,11 @@ async function setup(ctx) {
       const hookMode = readMode(cacheDir);
       // Only `on` announces: `off` pauses everything; `auto` refreshed
       // routing.json above and now acts like off (OpenChamber routes).
-      if (hookMode !== 'on') return;
+      // Virtual sessions bypass the mode (the picker is the switch) — they
+      // announce like `on`. First turn on a virtual pick can miss this
+      // (the prompt hook runs before the context hook marks the session);
+      // the announce then lands on the next turn instead.
+      if (hookMode !== 'on' && !virtualSessions.has(event.sessionID)) return;
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
       // delivery }. `event.agent` does not exist here — the agent tag comes
       // from prompt mentions (best-effort; undefined when absent).
@@ -399,15 +604,25 @@ async function setup(ctx) {
   await ctx.session.hook('context', async (event) => {
     try {
       const sessionID = event.sessionID;
+      // Track the virtual pick BEFORE any mode gate: `modelselect/auto`
+      // bypasses mode.json entirely (the picker is the switch), and the
+      // free-exhaustion paths consult virtualSessions because their
+      // http/retry events carry the post-mutation (real) model ref.
+      const virtual = isVirtualRef(event.model);
+      if (sessionID) {
+        if (virtual) virtualSessions.add(sessionID);
+        else virtualSessions.delete(sessionID);
+      }
       // Sync OpenChamber routing first (fresh categories for this turn),
-      // then apply the mode.
+      // then apply the mode — unless this turn is the virtual pick, which
+      // routes like `on` in every mode.
       await syncRoutingNow();
       const mode = readMode(cacheDir);
-      if (mode === 'off') {
+      if (!virtual && mode === 'off') {
         if (opts.verbose) console.log(`[modelselect] mode=off: routing skipped for session=${sessionID}`);
         return;
       }
-      if (mode === 'auto') {
+      if (!virtual && mode === 'auto') {
         // The sync above refreshed `~/.config/openchamber/routing.json` —
         // that is the whole job in auto mode: OpenChamber's Jev routing
         // owns the pick from here, the plugin acts like off (no resolve,
@@ -457,7 +672,9 @@ async function setup(ctx) {
         event.model.id = ref.id;
       }
       // 2. Future turns: persist like the model picker does (best-effort).
-      if (sessionID && applied.get(sessionID) !== key) {
+      //    NEVER for virtual sessions: switchModel would replace
+      //    modelselect/auto and the pick would stop re-routing.
+      if (!virtual && sessionID && applied.get(sessionID) !== key) {
         try {
           await ctx.session.switchModel({ sessionID, model: { providerID: ref.providerID, id: ref.id } });
           applied.set(sessionID, key);
@@ -465,7 +682,11 @@ async function setup(ctx) {
           if (opts.verbose) console.log(`[modelselect] switchModel skipped: ${err?.message ?? err}`);
         }
       }
-      if (opts.verbose) console.log(`[modelselect] task=${picked.taskType} tier=${picked.tier} model=${key} jev=${jev}`);
+      if (opts.verbose) {
+        console.log(
+          `[modelselect] task=${picked.taskType} tier=${picked.tier} model=${key} jev=${jev}${virtual ? ` (virtual ${VIRTUAL_REF})` : ''}`,
+        );
+      }
     } catch (err) {
       console.error(`[modelselect] keeping current model: ${err?.message ?? err}`);
     }
@@ -517,6 +738,7 @@ async function setup(ctx) {
       if (armedAt !== undefined) {
         freeRetry.delete(event.sessionID);
         if (Date.now() - armedAt <= FREE_RETRY_TTL_MS) {
+          if (virtualSessions.has(event.sessionID)) await rePointRetryToGo(event);
           event.decision = { retry: true, delay: 0 };
           if (opts.verbose) console.log(`[modelselect] retrying on go after free exhaustion session=${event.sessionID}`);
         }
@@ -535,6 +757,7 @@ async function setup(ctx) {
       const now = freeRetry.get(event.sessionID);
       if (now !== undefined && Date.now() - now <= FREE_RETRY_TTL_MS) {
         freeRetry.delete(event.sessionID);
+        if (virtualSessions.has(event.sessionID)) await rePointRetryToGo(event);
         event.decision = { retry: true, delay: 0 };
       }
     } catch {

@@ -28,11 +28,13 @@ propagate with no sync and no edits.
   budgets and fail-closed behavior.
 - **Modelselect Plugin** routes the model live inside OpenCode sessions,
   inferring the task-type from project signals, prompt text and agent tag.
-  See the component README for install (v1/v2/OpenChamber), options, token
-  resolution and trial runs.
+  OpenCode v2 only. See the component README for install (v2/OpenChamber),
+  options, host detection, the `modelselect/auto` virtual model, the
+  `/modelselect` command, token resolution and trial runs.
 - **OpenChamber Status View** shows the plugin's per-session pick plus the
-  global on/off/auto mode switch in the Work Status panel. See the
-  component README for install, build and test.
+  global on/off/auto mode switch in the Work Status panel, and records
+  session activity into the host-detection session map the plugin reads.
+  See the component README for install, build and test.
 
 ## Quick start
 

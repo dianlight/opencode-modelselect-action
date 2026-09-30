@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { normalizeOptions, resolveModel, clearQuotaCache } = require('../src/shared/select');
-const { sanitizeSessionID, readMode, clearModeCache, writeStatus, statusFile } = require('../src/shared/status');
+const { sanitizeSessionID, readMode, clearModeCache, writeMode, writeStatus, statusFile } = require('../src/shared/status');
 const { seedCache, seedTaskTypes, isolateAuth } = require('./helpers');
 
 describe('status file helpers', () => {
@@ -175,6 +175,26 @@ describe('mode file', () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('writeMode persists valid modes and rejects invalid ones', () => {
+    clearModeCache();
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-mode-write-'));
+    try {
+      const cache = path.join(dir, '.opencode', '.modelselect-cache');
+      assert.equal(writeMode(cache, 'off'), true);
+      assert.equal(readMode(cache), 'off');
+      assert.equal(writeMode(cache, 'ON'), true, 'case-insensitive');
+      assert.equal(readMode(cache), 'on');
+      assert.equal(writeMode(cache, 'sometimes'), false);
+      assert.equal(writeMode(cache, undefined), false);
+      assert.equal(writeMode(cache, { mode: 'off' }), false);
+      assert.equal(readMode(cache), 'on', 'rejected writes leave the mode alone');
+      assert.deepEqual(JSON.parse(fs.readFileSync(path.join(cache, 'mode.json'), 'utf8')), { mode: 'on' });
+    } finally {
+      clearModeCache();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('resolveModel goOk', () => {
@@ -250,145 +270,6 @@ describe('resolveModel goOk', () => {
       assert.equal(model, 'f/b');
     } finally {
       globalThis.fetch = realFetch;
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-});
-
-describe('v1 status + mode', () => {
-  function seedMode(dir, mode) {
-    const cache = path.join(dir, '.opencode', '.modelselect-cache');
-    fs.mkdirSync(cache, { recursive: true });
-    fs.writeFileSync(path.join(cache, 'mode.json'), JSON.stringify({ mode }));
-    return cache;
-  }
-
-  function cacheOf(dir) {
-    return path.join(dir, '.opencode', '.modelselect-cache');
-  }
-
-  function v1Turn(sessionID, model) {
-    return {
-      input: { sessionID, messageID: 'm' },
-      output: {
-        parts: [{ type: 'text', text: 'review this diff' }],
-        message: { model: { providerID: model[0], modelID: model[1] } },
-      },
-    };
-  }
-
-  it('writes the status file on every routed turn', async () => {
-    const v1 = require('../src/v1.js');
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-status-'));
-    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'high' } } });
-    try {
-      const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
-      const t = v1Turn('s1', ['old', 'old']);
-      await hooks['chat.message'](t.input, t.output);
-      const raw = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
-      assert.equal(raw.sessionID, 's1');
-      assert.equal(raw.taskType, 'review');
-      assert.equal(raw.tier, 'free');
-      assert.equal(raw.model, 'f/b');
-      assert.equal(raw.jev, 'pinned');
-      assert.equal(raw.goOk, null);
-      assert.equal(raw.think, 'high');
-      assert.equal(raw.source, 'cache');
-      assert.equal(raw.suggestOnly, false);
-      assert.equal(typeof raw.updatedAt, 'number');
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it('suggestOnly writes status without touching the model', async () => {
-    const v1 = require('../src/v1.js');
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-status-'));
-    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-    try {
-      const hooks = await v1.server(
-        { directory: dir },
-        { tier: 'free', taskType: 'review', suggestOnly: true },
-      );
-      const origLog = console.log;
-      console.log = () => {};
-      const t = v1Turn('s1', ['old', 'old']);
-      try {
-        await hooks['chat.message'](t.input, t.output);
-      } finally {
-        console.log = origLog;
-      }
-      assert.equal(t.output.message.model.providerID, 'old');
-      const raw = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
-      assert.equal(raw.suggestOnly, true);
-      assert.equal(raw.model, 'f/b');
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it('off skips routing, announce, and status entirely', async () => {
-    const v1 = require('../src/v1.js');
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-mode-'));
-    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-    seedMode(dir, 'off');
-    clearModeCache();
-    try {
-      const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
-      const t = v1Turn('s1', ['old', 'old']);
-      await hooks['chat.message'](t.input, t.output);
-      assert.equal(t.output.message.model.providerID, 'old');
-      assert.equal(t.output.message.model.modelID, 'old');
-      assert.equal(t.output.parts.length, 1);
-      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it('invalid mode falls back to on', async () => {
-    const v1 = require('../src/v1.js');
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-mode-'));
-    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-    const cache = seedMode(dir, 'sometimes');
-    fs.writeFileSync(path.join(cache, 'mode.json'), 'broken{');
-    clearModeCache();
-    try {
-      const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
-      const t = v1Turn('s1', ['old', 'old']);
-      await hooks['chat.message'](t.input, t.output);
-      assert.equal(t.output.message.model.providerID, 'f');
-      assert.ok(fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it('auto routes unmanaged turns and skips externally changed models', async () => {
-    const v1 = require('../src/v1.js');
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v1-mode-'));
-    seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-    seedMode(dir, 'auto');
-    clearModeCache();
-    try {
-      const hooks = await v1.server({ directory: dir }, { tier: 'free', taskType: 'review' });
-      const t1 = v1Turn('s1', ['old', 'old']);
-      await hooks['chat.message'](t1.input, t1.output);
-      assert.equal(t1.output.message.model.providerID, 'f');
-      const afterFirst = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
-      // Same model as applied: still managed, routes again.
-      const t2 = v1Turn('s1', ['f', 'b']);
-      await hooks['chat.message'](t2.input, t2.output);
-      assert.equal(t2.output.message.model.providerID, 'f');
-      // Externally changed model: skipped, nothing touched or announced.
-      const t3 = v1Turn('s1', ['user', 'x']);
-      await hooks['chat.message'](t3.input, t3.output);
-      assert.equal(t3.output.message.model.providerID, 'user');
-      assert.equal(t3.output.message.model.modelID, 'x');
-      assert.equal(t3.output.parts.length, 1);
-      const afterSkip = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
-      assert.equal(afterSkip.model, afterFirst.model);
-    } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
