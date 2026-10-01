@@ -674,3 +674,169 @@ describe('virtual dispatch overlay', () => {
     }
   });
 });
+
+describe('dual virtual anchors (opencode/auto + opencode-go/auto)', () => {
+  const URL = 'https://opencode.ai/inference/openai/v1/chat/completions';
+  const CROSS = {
+    'task-types': {
+      review: { go: 'opencode-go/a', free: 'opencode/b' },
+      generic: { go: 'opencode-go/a', free: 'opencode/b' },
+    },
+  };
+
+  function httpEvent(sessionID, providerID, id, bodyModel, kind = 'primary') {
+    return {
+      sessionID,
+      model: { providerID, id },
+      kind,
+      request: new Request(URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: bodyModel, messages: [] }),
+      }),
+    };
+  }
+
+  async function bodyOf(event) {
+    return JSON.parse(await event.request.text());
+  }
+
+  async function setupDual(dir, options = {}) {
+    seedCache(dir, CROSS);
+    const seen = { switches: [], synthetics: [], promptsOut: [] };
+    const fakeCtx = {
+      options: { tier: 'free', taskType: 'review', token: 'tok', ...options },
+      location: { directory: dir },
+      session: {
+        async hook(name, cb) {
+          seen[name] = cb;
+        },
+        async switchModel(input) {
+          seen.switches.push(input);
+        },
+      },
+      provider: {
+        async transform(cb) {
+          const sets = {};
+          const editor = {
+            get: (id) => {
+              if (id !== 'opencode' && id !== 'opencode-go') return undefined;
+              return { provider: { id }, models: new Map([['x', { id: 'x', modelID: 'x', providerID: id }]]) };
+            },
+            models: {
+              set: (providerID, models) => {
+                sets[providerID] = models;
+              },
+            },
+          };
+          cb(editor);
+          seen.sets = sets;
+        },
+      },
+    };
+    await v2.setup(fakeCtx);
+    return seen;
+  }
+
+  it('registers auto on both providers', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupDual(iso.dir);
+      assert.ok(seen.sets.opencode.some((m) => m.id === 'auto' && m.providerID === 'opencode'));
+      assert.ok(seen.sets['opencode-go'].some((m) => m.id === 'auto' && m.providerID === 'opencode-go'));
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('context hops the anchor pre-dispatch and stays virtual (free → go)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupDual(iso.dir);
+      markFreeQuota(CACHE(iso.dir), { model: 'opencode/b', detail: 'http 429' });
+      const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e);
+      assert.deepEqual(
+        seen.switches,
+        [{ sessionID: 's1', model: { providerID: 'opencode-go', id: 'auto' } }],
+        'anchor hops, real pick never persisted',
+      );
+      // Retried dispatch now leaves on the right endpoint: same-provider overlay.
+      const h = httpEvent('s1', 'opencode-go', 'auto', 'auto');
+      await seen['http.request'](h);
+      assert.equal((await bodyOf(h)).model, 'a', 'wire carries the go pick');
+      assert.equal(seen.switches.length, 1, 'no persist-real fallback: still virtual');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('retry hops the anchor and stays virtual on free exhaustion', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupDual(iso.dir);
+      const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e);
+      assert.deepEqual(seen.switches, [], 'same-provider free pick: no hop yet');
+      const r = {
+        sessionID: 's1',
+        model: { providerID: 'opencode', id: 'b' },
+        error: { type: 'rate_limit', message: '429 too many requests', status: 429 },
+        attempt: 2,
+        decision: { retry: false },
+      };
+      await seen.retry(r);
+      assert.deepEqual(r.decision, { retry: true, delay: 0 });
+      assert.deepEqual(r.model, { providerID: 'opencode-go', id: 'a' }, 'retry re-pointed to go');
+      assert.deepEqual(
+        seen.switches,
+        [{ sessionID: 's1', model: { providerID: 'opencode-go', id: 'auto' } }],
+        'anchor hops, session stays virtual',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('overlay hops the anchor instead of persisting the real pick', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupDual(iso.dir);
+      const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e);
+      markFreeQuota(CACHE(iso.dir), { model: 'opencode/b', detail: 'http 429' });
+      const h = httpEvent('s1', 'opencode', 'auto', 'auto');
+      await seen['http.request'](h);
+      assert.deepEqual(
+        seen.switches,
+        [{ sessionID: 's1', model: { providerID: 'opencode-go', id: 'auto' } }],
+        'anchor hop, never persist-real',
+      );
+      assert.equal((await bodyOf(h)).model, 'auto', 'pinned in-flight body untouched');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('hops back when the latch expires (go → free)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupDual(iso.dir);
+      markFreeQuota(CACHE(iso.dir), { model: 'opencode/b', detail: 'http 429' });
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.equal(seen.switches.length, 1, 'precondition: hopped to go anchor');
+      // Latch expired: drop it and re-resolve from the go anchor.
+      fs.rmSync(path.join(CACHE(iso.dir), 'free-quota.json'), { force: true });
+      const e2 = { sessionID: 's1', model: { providerID: 'opencode-go', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e2);
+      assert.deepEqual(
+        seen.switches[1],
+        { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' } },
+        'anchor hops back to the free provider',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+});

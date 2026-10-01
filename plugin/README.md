@@ -221,11 +221,11 @@ while the router sync is ON. The write is skipped silently when
 `~/.config/openchamber` doesn't exist — the plugin never creates
 OpenChamber's config itself.
 
-Routing itself is now keyed off the session's model, not a mode: the virtual
-model `opencode/auto` (below) is the switch. Only sessions on that ref route
-(announce + status + overlay); every other model is the user's hands-off
-choice. The router sync merely decides whether OpenChamber's `routing.json`
-stays refreshed.
+Routing itself is now keyed off the session's model, not a mode: the
+virtual `auto` anchors (below) are the switch. Only sessions on one of
+those refs route (announce + status + overlay); every other model is the
+user's hands-off choice. The router sync merely decides whether
+OpenChamber's `routing.json` stays refreshed.
 
 When `autoSmallModel` is true the sync also writes the resolved
 `smallModelTask` model into OpenChamber's `settings.json` +
@@ -266,13 +266,13 @@ session. Detection only feeds that status line — per-turn routing always
 keys off the session's actual model, and the virtual model below
 registers in every host.
 
-## Virtual model `opencode/auto`
+## Virtual models `opencode/auto` + `opencode-go/auto`
 
 The plugin appends an `auto` entry to
-the real `opencode` provider's inventory in every host (existing models
-preserved, the
-entry never duplicated). Selecting it makes the session route like mode
-`on` on every turn — the picker *is* the switch:
+each real provider inventory (`opencode` + `opencode-go`) in every host
+(existing models preserved, the
+entry never duplicated). Selecting either makes the session route like
+mode `on` on every turn — the picker *is* the switch:
 
 - the in-flight `event.model` is mutated to the resolved pick per turn
   (bookkeeping for logs/announce/status);
@@ -282,12 +282,13 @@ entry never duplicated). Selecting it makes the session route like mode
   is cosmetic. It resolves on the spot when no pick exists yet and
   re-resolves under a fresh exhaustion latch, so armed retries carry a
   live decision too;
-- `switchModel` is never called for same-provider picks, so the session
-  stays on `opencode/auto` and keeps re-routing (no persist, no
-  stickiness to the resolved model). Cross-provider picks cannot be
-  overlaid (the endpoint stays pinned to the session model) and persist
-  instead — the session then leaves virtual mode and the plugin hands
-  off;
+- same-provider picks never call `switchModel`, and cross-provider picks
+  (e.g. free `opencode/longcat-2.5-preview-free` → paid
+  `opencode-go/longcat-2.0`) hop the anchor
+  (`opencode/auto` ↔ `opencode-go/auto`) instead of persisting the real
+  model — the session stays virtual and keeps re-routing, hopping back
+  when the latch expires. Only picks on a provider without a virtual
+  anchor persist the real model and leave virtual mode;
 - there is no mode gate — a virtual pick routes every turn regardless of
   the router-sync toggle (the toggle only gates the `routing.json`
   refresh);
@@ -300,10 +301,10 @@ entry never duplicated). Selecting it makes the session route like mode
 It must live on the real driver: OpenCode pins the dispatch endpoint to
 the session model, so a standalone fake provider could never serve turns
 (`package: ""` is rejected at load, a cloned real driver fails
-load-time model validation). The entry registers under OpenChamber too —
-it is the always-visible "this session routes every turn" pick. Its
-`limit` is the max live `opencode` context/output floored at a large
-fallback (2M context / 128k output): the session stays on `auto`, so
+load-time model validation). The entries register under OpenChamber too —
+they are the always-visible "this session routes every turn" picks. Each
+`limit` is the max live context/output of its own provider floored at a
+large fallback (2M context / 128k output): the session stays on `auto`, so
 OpenCode compacts off the virtual window — a small window would compact
 early and risk dispatching the raw `auto` id (`invalid model`).
 
