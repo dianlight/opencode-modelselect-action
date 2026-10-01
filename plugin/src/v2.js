@@ -488,9 +488,11 @@ async function setup(ctx) {
     return h && h.task ? { taskType: h.task, prev: null } : null;
   }
 
-  // Configured `go` model for a session's last known task: null when the
-  // task or its go side is missing. Shared by the non-virtual flip and
-  // the virtual retry re-point.
+  // Paid `go` model for a session's last known task: null when the task
+  // has no paid alternative. `entry.go` itself is often free by the
+  // free-first policy, so the first paid `go_ranked` row wins — otherwise
+  // the flip would re-select the exhausted tier. Shared by the
+  // non-virtual flip and the virtual retry re-point.
   async function goRefForSession(sessionID) {
     const where = sessionTask(sessionID);
     if (!where) return null;
@@ -498,11 +500,22 @@ async function setup(ctx) {
     const table = config && (config['task-types'] ?? config.task_types);
     const name = Object.keys(table || {}).find((k) => k.toLowerCase() === where.taskType.toLowerCase());
     const entry = name ? table[name] : null;
-    if (!entry || !entry.go) {
+    if (!entry) {
       if (opts.verbose) console.log(`[modelselect] free exhausted but no go model for task=${where.taskType}`);
       return null;
     }
-    return { ref: splitModelRef(entry.go), where };
+    let picked = null;
+    try {
+      const { firstPaidModel } = require('./shared/routing');
+      picked = firstPaidModel(entry) || entry.go;
+    } catch {
+      picked = entry.go;
+    }
+    if (!picked) {
+      if (opts.verbose) console.log(`[modelselect] free exhausted but no go model for task=${where.taskType}`);
+      return null;
+    }
+    return { ref: splitModelRef(picked), where };
   }
 
   // Flip a session to the configured `go` model for its task type

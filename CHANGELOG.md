@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.4.0]
 ### Added
 - External modelselect config (`~/.config/openchamber/modelselect.json`,
   user-editable): `{ "mode", "autoSmallModel", "autoWalkthroughModel",
@@ -164,6 +166,12 @@
   rejected and refetched immediately instead of being trusted until the
   24h `configRefreshMinutes` TTL expires — trusting it left the
   OpenChamber sync with nothing routable
+- Free-tier failover no longer re-selects the exhausted tier: `entry.go`
+  is often itself a free model by the free-first policy, so while the
+  free-quota latch is fresh the routing sync, `resolveModel`, the session
+  flip and the virtual retry re-point now prefer the first paid
+  (`non-free`) row of `go_ranked` (best-to-worst). Entries with no paid
+  alternative keep the stored value instead of writing a free model
 
 ### Added
 - Plugin session continuation: zero-signal turns (short acks like `do it`,

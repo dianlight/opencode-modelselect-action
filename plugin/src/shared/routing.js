@@ -237,8 +237,12 @@ function normalizeModelselectConfig(raw) {
 
 // Pick the `provider/model` string for one task type under a preference,
 // falling back to the other side when the preferred one is unconfigured.
-// Returns the `"provider/model"` string or null.
-function pickSideRef(modelTable, taskName, preference) {
+// When `avoidFree` is true (fresh free-quota latch) a free `go` value is
+// skipped in favour of the first paid model in `go_ranked`; null is
+// returned when no paid alternative exists so callers preserve the stored
+// value instead of writing a free model. Returns the `"provider/model"`
+// string or null.
+function pickSideRef(modelTable, taskName, preference, avoidFree = false) {
   const table = isObject(modelTable) ? modelTable : null;
   if (!table) return null;
   const want = String(taskName ?? '').toLowerCase().trim();
@@ -246,6 +250,14 @@ function pickSideRef(modelTable, taskName, preference) {
   const key = Object.keys(table).filter((k) => String(k).toLowerCase() === want)[0];
   const entry = key ? table[key] : null;
   if (!isObject(entry)) return null;
+  if (avoidFree) {
+    const paid = firstPaidModel(entry);
+    if (paid) {
+      const paidRef = splitModelRef(paid);
+      if (paidRef) return `${paidRef.providerID}/${paidRef.modelID}`;
+    }
+    return null;
+  }
   const side = preference === 'go-first' ? entry.go : entry.free;
   const ref = splitModelRef(side) || splitModelRef(entry.free) || splitModelRef(entry.go);
   if (!ref) return null;
@@ -318,6 +330,40 @@ function splitModelRef(model) {
   return { providerID: s.slice(0, i), modelID: s.slice(i + 1) };
 }
 
+// True when a `"provider/model"` string routes to the free tier: the
+// `opencode` provider, a `-free` suffix on either provider (paid mirrors
+// like `opencode-go/longcat-2.5-preview-free` share the free quota), or
+// the suffix-less `big-pickle` free model.
+function isFreeModelString(s) {
+  const str = String(s ?? '').trim();
+  if (!str) return false;
+  if (/big-pickle$/i.test(str)) return true;
+  const ref = splitModelRef(str);
+  if (!ref) return /-free$/i.test(str);
+  if (/-free$/i.test(ref.modelID)) return true;
+  return String(ref.providerID).toLowerCase() === 'opencode';
+}
+
+// First paid model for an entry: `go` when it is not free, else the first
+// non-free row of `go_ranked` (best-to-worst). Null when the entry has no
+// paid alternative (e.g. `go == free` by the free-first policy with no
+// ranked paid row). Used while the free-quota latch is fresh so a
+// `go-first` failover never re-selects a free model.
+function firstPaidModel(entry) {
+  if (!isObject(entry)) return null;
+  if (typeof entry.go === 'string' && entry.go.trim() && !isFreeModelString(entry.go)) {
+    return entry.go.trim();
+  }
+  const ranked = Array.isArray(entry.go_ranked) ? entry.go_ranked : null;
+  if (ranked) {
+    for (const row of ranked) {
+      const m = row && typeof row.model === 'string' ? row.model.trim() : '';
+      if (m && !isFreeModelString(m)) return m;
+    }
+  }
+  return null;
+}
+
 // Build the desired user categories from the task-type map
 // ({ name: { label, jev_criteria, agent? } }) and the model-config table
 // ({ name: { go, free } }). Returns { desired, ignored, unusable } where
@@ -325,7 +371,10 @@ function splitModelRef(model) {
 // the ids with an empty criteria, and `unusable` flags a payload that
 // carries no criteria at all (pre-jev_criteria cache or a shape change):
 // there the "everything else is stale" rule would wipe the whole list.
-function buildDesired(taskTypes, modelTable, preference) {
+// When `avoidFree` is true (fresh free-quota latch) categories resolve to
+// the first paid model; entries with no paid alternative omit `model` so
+// the merge preserves the stored value instead of writing a free model.
+function buildDesired(taskTypes, modelTable, preference, avoidFree = false) {
   const desired = {};
   const ignored = [];
   let withCriteria = 0;
@@ -348,9 +397,14 @@ function buildDesired(taskTypes, modelTable, preference) {
       (k) => String(k).toLowerCase() === id
     )[0];
     const entry = tableKey ? modelTable[tableKey] : null;
-    const side = preference === 'go-first' ? (entry && entry.go) : (entry && entry.free);
-    // Fall back to the other side when the preferred one is unconfigured.
-    const ref = splitModelRef(side) || splitModelRef(entry && entry.free) || splitModelRef(entry && entry.go);
+    let ref = null;
+    if (avoidFree) {
+      ref = splitModelRef(firstPaidModel(entry));
+    } else {
+      const side = preference === 'go-first' ? (entry && entry.go) : (entry && entry.free);
+      // Fall back to the other side when the preferred one is unconfigured.
+      ref = splitModelRef(side) || splitModelRef(entry && entry.free) || splitModelRef(entry && entry.go);
+    }
     if (ref) cat.model = ref;
     const agent = String(meta.agent || '').trim();
     if (agent) cat.agent = agent;
@@ -471,12 +525,15 @@ function syncRouting(io, opts) {
       const ttCache = parts[2];
       const routing = parts[3];
       // Fresh free-tier soft-error latch: the free side is known
-      // exhausted, so the table routes to `go` until the 12h window
+      // exhausted, so the table routes to paid models until the window
       // closes; expiry hands the choice back to the configured
-      // preference (a later failure re-registers the latch).
-      const preference = freeQuotaFresh(parts[4], now)
-        ? 'go-first'
-        : autoPreferenceOf(findPluginOptions(managed));
+      // preference (a later failure re-registers the latch). Paid means
+      // the first non-free `go_ranked` row — `entry.go` itself is often
+      // free by the free-first policy, which would otherwise re-select
+      // the exhausted tier.
+      const latchFresh = freeQuotaFresh(parts[4], now);
+      const preference = latchFresh ? 'go-first' : autoPreferenceOf(findPluginOptions(managed));
+      const avoidFree = latchFresh;
       const msConfig = normalizeModelselectConfig(parts[5]);
       let modelTable = null;
       if (modelCache && isObject(modelCache.config)) {
@@ -493,7 +550,7 @@ function syncRouting(io, opts) {
         }
       }
       if (!isObject(taskTypes) || !isObject(modelTable)) return { written: false, settingsWritten: false };
-      const built = buildDesired(taskTypes, modelTable, preference);
+      const built = buildDesired(taskTypes, modelTable, preference, avoidFree);
       // A payload with no criteria anywhere is unrecognised (stale cache
       // written before jev_criteria existed): leave routing alone rather
       // than disable every stored category as stale.
@@ -519,14 +576,14 @@ function syncRouting(io, opts) {
       if (msConfig.autoSmallModel || msConfig.autoWalkthroughModel) {
         settingsUpdates = {};
         if (msConfig.autoSmallModel) {
-          const smallRef = pickSideRef(modelTable, msConfig.smallModelTask, preference);
+          const smallRef = pickSideRef(modelTable, msConfig.smallModelTask, preference, avoidFree);
           if (smallRef) {
             settingsUpdates.smallModelUseDefault = false;
             settingsUpdates.smallModelOverride = smallRef;
           }
         }
         if (msConfig.autoWalkthroughModel) {
-          const walkRef = pickSideRef(modelTable, msConfig.walkthroughModelTask, preference);
+          const walkRef = pickSideRef(modelTable, msConfig.walkthroughModelTask, preference, avoidFree);
           if (walkRef) settingsUpdates.walkthroughModelOverride = walkRef;
         }
         if (!Object.keys(settingsUpdates).length) settingsUpdates = null;
@@ -606,6 +663,8 @@ module.exports = {
   mergeSettingsOverrides,
   mergePreferencesOverrides,
   splitModelRef,
+  isFreeModelString,
+  firstPaidModel,
   buildDesired,
   mergeCategories,
   stableStringify,

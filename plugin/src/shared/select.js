@@ -16,6 +16,7 @@ const { TASK_TYPES, normalizeAgentMap } = require('./detect');
 const { DEFAULT_TASK_TYPES_URL } = require('./tasktypes');
 const { resolveToken } = require('./auth');
 const { isFreeQuotaFresh } = require('./freequota');
+const { isFreeModelString, firstPaidModel } = require('./routing');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
@@ -261,7 +262,18 @@ async function resolveModel({ taskType, opts, cacheDir }) {
     // it; without a token nothing else can work either, keep free).
     tier = 'go';
   }
-  const model = tier === 'go' ? go : free;
+  // Fresh latch means the free side is exhausted, but `go` is often free
+  // itself by the free-first policy — that would re-select the spent tier.
+  // Prefer the first paid `go_ranked` row instead (best-to-worst).
+  let model = tier === 'go' ? go : free;
+  if (freeExhausted) {
+    const paid = firstPaidModel(entry);
+    const canUsePaid = Boolean(opts.token) || tier === 'go';
+    if (paid && canUsePaid && isFreeModelString(model)) {
+      tier = 'go';
+      model = paid;
+    }
+  }
   if (!model) {
     if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
