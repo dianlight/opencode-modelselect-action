@@ -13,19 +13,18 @@
  *
  * Consumers (both inject an IO adapter, no built-ins required here):
  * - plugin (src/v2.js): `shared/routing-io.js` — plain fs, `~` resolved
- *   against the user home; sync runs per turn before the mode check.
+ *   against the user home; sync runs per turn before the routing gate.
  * - Work Status bundle (openchamber-modelselect/status/src/routing-sync.js)
  *   — host `readFile`/`writeFile` adapter, sync runs on every refresh.
  *
  * Global modelselect config (solution 3: external file, user-editable):
  * - `~/.config/openchamber/modelselect.json` =
- *   `{ "mode": "on"|"off"|"auto" (default "auto"),
- *      "autoSmallModel": bool (default false),
+ *   `{ "autoSmallModel": bool (default false),
  *      "autoWalkthroughModel": bool (default false),
  *      "smallModelTask": "small-model",
  *      "walkthroughModelTask": "review" }`
- *   Missing/unreadable/unparseable means all defaults. Unknown `mode`
- *   values mean `"auto"`.
+ *   Missing/unreadable/unparseable means all defaults. The on/off/auto
+ *   `mode` key is gone (the virtual model is the routing switch now).
  * - When `autoSmallModel` is true the sync also writes the resolved small
  *   task model into OpenChamber's `settings.json` (flat legacy copy) +
  *   `preferences.json` (profile `{ version: 1, fields }` shape) as
@@ -193,12 +192,11 @@ function autoPreferenceOf(options) {
 }
 
 // Global modelselect config (`~/.config/openchamber/modelselect.json`,
-// solution 3 external file). Missing/unusable -> all defaults; unknown
-// `mode` -> `"auto"`. Accepts kebab-case aliases for the auto flags.
+// solution 3 external file). Missing/unusable -> all defaults. The
+// on/off/auto `mode` key is gone (the virtual model is the routing
+// switch now). Accepts kebab-case aliases for the auto flags.
 function normalizeModelselectConfig(raw) {
   const src = isObject(raw) ? raw : {};
-  const m = String(src.mode ?? 'auto').toLowerCase().trim();
-  const mode = m === 'on' || m === 'off' || m === 'auto' ? m : 'auto';
   const boolOf = (v) => v === true || String(v ?? '').toLowerCase().trim() === 'true';
   const autoSmallModel = boolOf(
     src.autoSmallModel ?? src['auto-small-model'] ?? src.autosetSmallModel ?? src['autoset-small-model'] ?? false,
@@ -222,7 +220,6 @@ function normalizeModelselectConfig(raw) {
     .toLowerCase()
     .trim();
   return {
-    mode,
     autoSmallModel,
     autoWalkthroughModel,
     smallModelTask: smallTask || 'small-model',

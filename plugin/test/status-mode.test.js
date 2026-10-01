@@ -3,11 +3,11 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const os = require('os');
 const path = require('node:path');
 
 const { normalizeOptions, resolveModel, clearQuotaCache } = require('../src/shared/select');
-const { sanitizeSessionID, readMode, clearModeCache, writeMode, writeStatus, statusFile } = require('../src/shared/status');
+const { sanitizeSessionID, readRoutingSync, writeRoutingSync, writeStatus, statusFile, routingSyncFile } = require('../src/shared/status');
 const { seedCache, seedTaskTypes, isolateAuth } = require('./helpers');
 
 describe('status file helpers', () => {
@@ -105,93 +105,54 @@ describe('status file helpers', () => {
   });
 });
 
-describe('mode file', () => {
-  function seedMode(dir, body) {
+describe('router-sync file', () => {
+  function seedSync(dir, body) {
     const cache = path.join(dir, '.opencode', '.modelselect-cache');
     fs.mkdirSync(cache, { recursive: true });
-    fs.writeFileSync(path.join(cache, 'mode.json'), typeof body === 'string' ? body : JSON.stringify(body));
+    fs.writeFileSync(routingSyncFile(cache), typeof body === 'string' ? body : JSON.stringify(body));
     return cache;
   }
 
-  it('defaults to auto when missing, invalid, or unknown', () => {
-    clearModeCache();
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-mode-'));
-    const restoreHome = (() => {
-      const saved = process.env.HOME;
-      process.env.HOME = dir;
-      return () => {
-        if (saved === undefined) delete process.env.HOME;
-        else process.env.HOME = saved;
-      };
-    })();
+  it('defaults to ON when missing, invalid, or a non-boolean sync', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-sync-'));
     try {
-      assert.equal(readMode(path.join(dir, '.opencode', '.modelselect-cache')), 'auto');
-      assert.equal(readMode(seedMode(dir, 'not json{')), 'auto');
-      clearModeCache();
-      assert.equal(readMode(seedMode(dir, {})), 'auto');
-      clearModeCache();
-      assert.equal(readMode(seedMode(dir, { mode: 'sometimes' })), 'auto');
-      clearModeCache();
-      assert.equal(readMode(seedMode(dir, { mode: 42 })), 'auto');
-    } finally {
-      restoreHome();
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it('falls back to the global modelselect.json mode when the cache file is missing', () => {
-    clearModeCache();
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-mode-global-'));
-    const saved = process.env.HOME;
-    process.env.HOME = dir;
-    try {
-      const cfg = path.join(dir, '.config', 'openchamber');
-      fs.mkdirSync(cfg, { recursive: true });
-      fs.writeFileSync(path.join(cfg, 'modelselect.json'), JSON.stringify({ mode: 'off' }));
-      assert.equal(readMode(path.join(dir, '.opencode', '.modelselect-cache')), 'off');
-    } finally {
-      if (saved === undefined) delete process.env.HOME;
-      else process.env.HOME = saved;
-      clearModeCache();
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it('reads on/off/auto (case-insensitive) and tracks rewrites', () => {
-    clearModeCache();
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-mode-'));
-    try {
-      assert.equal(readMode(seedMode(dir, { mode: 'off' })), 'off');
-      clearModeCache();
-      assert.equal(readMode(seedMode(dir, { mode: 'auto' })), 'auto');
-      clearModeCache();
-      assert.equal(readMode(seedMode(dir, { mode: 'ON' })), 'on');
-      const cache = seedMode(dir, { mode: 'off' });
-      clearModeCache();
-      assert.equal(readMode(cache), 'off');
-      fs.writeFileSync(path.join(cache, 'mode.json'), JSON.stringify({ mode: 'on' }));
-      assert.equal(readMode(cache), 'on');
+      const cacheDir = path.join(dir, '.opencode', '.modelselect-cache');
+      fs.mkdirSync(cacheDir, { recursive: true });
+      assert.equal(readRoutingSync(cacheDir), true, 'missing file -> ON');
+      assert.equal(readRoutingSync(seedSync(dir, 'not json{')), true, 'bad JSON -> ON');
+      assert.equal(readRoutingSync(seedSync(dir, {})), true, 'empty object -> ON');
+      assert.equal(readRoutingSync(seedSync(dir, { sync: 'yes' })), true, 'non-boolean -> ON');
+      assert.equal(readRoutingSync(seedSync(dir, { sync: 1 })), true, 'non-boolean -> ON');
+      assert.equal(readRoutingSync(seedSync(dir, { garbage: true })), true, 'no sync key -> ON');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it('writeMode persists valid modes and rejects invalid ones', () => {
-    clearModeCache();
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-mode-write-'));
+  it('reads sync=false as OFF', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-sync-'));
+    try {
+      assert.equal(readRoutingSync(seedSync(dir, { sync: false })), false);
+      assert.equal(readRoutingSync(seedSync(dir, { sync: false, extra: 'x' })), false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('writeRoutingSync persists a boolean and rejects non-booleans', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-sync-write-'));
     try {
       const cache = path.join(dir, '.opencode', '.modelselect-cache');
-      assert.equal(writeMode(cache, 'off'), true);
-      assert.equal(readMode(cache), 'off');
-      assert.equal(writeMode(cache, 'ON'), true, 'case-insensitive');
-      assert.equal(readMode(cache), 'on');
-      assert.equal(writeMode(cache, 'sometimes'), false);
-      assert.equal(writeMode(cache, undefined), false);
-      assert.equal(writeMode(cache, { mode: 'off' }), false);
-      assert.equal(readMode(cache), 'on', 'rejected writes leave the mode alone');
-      assert.deepEqual(JSON.parse(fs.readFileSync(path.join(cache, 'mode.json'), 'utf8')), { mode: 'on' });
+      assert.equal(writeRoutingSync(cache, false), true);
+      assert.equal(readRoutingSync(cache), false);
+      assert.equal(writeRoutingSync(cache, true), true);
+      assert.equal(readRoutingSync(cache), true);
+      assert.equal(writeRoutingSync(cache, 'on'), false, 'string rejected');
+      assert.equal(writeRoutingSync(cache, undefined), false, 'undefined rejected');
+      assert.equal(writeRoutingSync(cache, { sync: false }), false, 'object rejected');
+      assert.equal(readRoutingSync(cache), true, 'rejected writes leave the switch alone');
+      assert.deepEqual(JSON.parse(fs.readFileSync(routingSyncFile(cache), 'utf8')), { sync: true });
     } finally {
-      clearModeCache();
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
@@ -275,21 +236,13 @@ describe('resolveModel goOk', () => {
   });
 });
 
-describe('v2 status + mode', () => {
-  function seedMode(dir, mode) {
-    const cache = path.join(dir, '.opencode', '.modelselect-cache');
-    fs.mkdirSync(cache, { recursive: true });
-    fs.writeFileSync(path.join(cache, 'mode.json'), JSON.stringify({ mode }));
-    return cache;
-  }
-
+describe('v2 routing + sync', () => {
   function cacheOf(dir) {
     return path.join(dir, '.opencode', '.modelselect-cache');
   }
 
   async function v2Hooks(dir, opts) {
     const v2 = require('../src/v2.js');
-    clearModeCache();
     const seen = {};
     const fakeCtx = {
       options: { tier: 'free', taskType: 'review', ...opts },
@@ -308,13 +261,17 @@ describe('v2 status + mode', () => {
     return seen;
   }
 
-  it('writes the status file on context routing, incl. suggestOnly', async () => {
+  // The virtual model is the routing switch: only sessions on opencode/auto
+  // route. Non-virtual sessions are the user's hands-off choice.
+  const VIRTUAL = { providerID: 'opencode', id: 'auto' };
+
+  it('writes the status file on context routing (virtual session), incl. suggestOnly', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-status-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'high' } } });
     try {
       const seen = await v2Hooks(dir, {});
       await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
-      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(event);
       assert.equal(event.model.providerID, 'f');
       const raw = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
@@ -334,7 +291,7 @@ describe('v2 status + mode', () => {
       try {
         const seen2 = await v2Hooks(dir2, { suggestOnly: true });
         await seen2.prompt({ sessionID: 's1', prompt: 'review this diff' });
-        const ev2 = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+        const ev2 = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
         const origLog = console.log;
         console.log = () => {};
         try {
@@ -342,7 +299,8 @@ describe('v2 status + mode', () => {
         } finally {
           console.log = origLog;
         }
-        assert.equal(ev2.model.providerID, 'old');
+        assert.equal(ev2.model.providerID, 'opencode', 'suggestOnly never mutates the model');
+        assert.equal(ev2.model.id, 'auto');
         const raw2 = JSON.parse(fs.readFileSync(path.join(cacheOf(dir2), 'status-s1.json'), 'utf8'));
         assert.equal(raw2.suggestOnly, true);
         assert.equal(raw2.model, 'f/b');
@@ -354,21 +312,20 @@ describe('v2 status + mode', () => {
     }
   });
 
-  it('off skips prompt announce, mutation, persistence, and status', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-mode-'));
+  it('non-virtual sessions are hands-off: no announce, mutation, persistence, or status', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-novirt-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-    seedMode(dir, 'off');
     try {
       const seen = await v2Hooks(dir, {});
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
-      assert.equal(e1.prompt, 'review this diff');
+      assert.equal(e1.prompt, 'review this diff', 'non-virtual prompt untouched');
       const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
       await seen.context(event);
       assert.equal(event.model.providerID, 'old');
       assert.equal(event.model.id, 'old');
       assert.equal(seen.switched, undefined);
-      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
+      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')), 'no status for non-virtual');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -393,35 +350,31 @@ describe('v2 status + mode', () => {
     };
   }
 
-  it('auto routes like on (announce + mutate + status) and still syncs OpenChamber routing', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-mode-'));
+  it('virtual session routes (announce + mutate + status) and still syncs OpenChamber routing', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-route-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     seedTaskTypes(dir, {
       review: { label: 'Review', description: 'Review', jev_criteria: 'Review work: judge diffs.' },
     });
-    seedMode(dir, 'auto');
     const home = isolateHome();
     try {
       const seen = await v2Hooks(dir, {});
-      // Prompt: auto announces like on — no OpenChamber hand-off anymore.
+      // Context first to mark the session virtual + route; then prompt announces.
+      const ev0 = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
+      await seen.context(ev0);
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
       assert.match(
         typeof e1.prompt === 'string' ? e1.prompt : String(e1.prompt && e1.prompt.text),
         /\[modelselect: task=review tier=free → f\/b/,
-        'auto announces the pick',
+        'virtual session announces the pick',
       );
-      // Context: routes + persists + writes the status file.
-      const ev1 = {
-        sessionID: 's1',
-        agent: 'review',
-        model: { providerID: 'old', id: 'old' },
-        messages: [],
-      };
+      // Context: routes + mutates in place + writes the status file.
+      const ev1 = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(ev1);
       assert.equal(ev1.model.providerID, 'f');
       assert.equal(ev1.model.id, 'b');
-      assert.equal(seen.switches, 1, 'the pick is persisted like mode on');
+      assert.equal(seen.switches, undefined, 'virtual sessions never persist via switchModel');
       const raw = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
       assert.equal(raw.model, 'f/b');
       // The courtesy sync still landed: fresh category from the caches.
@@ -437,31 +390,24 @@ describe('v2 status + mode', () => {
     }
   });
 
-  it('off also refreshes routing (sync runs before the mode check) but routes nothing', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-mode-'));
+  it('router-sync OFF skips the OpenChamber sync but still routes virtual sessions', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-syncoff-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-    seedTaskTypes(dir, {
-      review: { label: 'Review', description: 'Review', jev_criteria: 'Review work: judge diffs.' },
-    });
-    seedMode(dir, 'off');
     const home = isolateHome();
     try {
+      // Router sync off: write the switch file before setup.
+      const cacheDir = cacheOf(dir);
+      fs.mkdirSync(cacheDir, { recursive: true });
+      fs.writeFileSync(path.join(cacheDir, 'routing-sync.json'), JSON.stringify({ sync: false }));
       const seen = await v2Hooks(dir, {});
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
-      assert.equal(e1.prompt, 'review this diff');
-      const ev1 = {
-        sessionID: 's1',
-        agent: 'review',
-        model: { providerID: 'old', id: 'old' },
-        messages: [],
-      };
+      const ev1 = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(ev1);
-      assert.equal(ev1.model.providerID, 'old');
-      assert.equal(seen.switched, undefined);
-      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
+      assert.equal(ev1.model.providerID, 'f', 'routing still happens for virtual sessions');
+      assert.ok(fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')), 'status still written');
       const routingFile = path.join(home.home, '.config', 'openchamber', 'routing.json');
-      assert.ok(fs.existsSync(routingFile), 'sync runs before the mode check');
+      assert.ok(!fs.existsSync(routingFile), 'sync skipped while router-sync is off');
     } finally {
       home.restore();
       fs.rmSync(dir, { recursive: true, force: true });

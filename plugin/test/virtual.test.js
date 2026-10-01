@@ -6,11 +6,11 @@
  * - Registration is unconditional (every host: option → env → session
  *   map only decide the displayed host) and uses literal @opencode/schema
  *   shapes.
- * - A virtual pick routes like mode `on` in every mode, mutates the
- *   in-flight ref, and never persists (switchModel must never fire —
- *   otherwise the session would stop re-routing). Title/compaction/
- *   generate requests follow the session's last resolved pick (the raw
- *   virtual ref has no dispatchable driver).
+ * - A virtual pick is the routing switch (the on/off/auto modes are gone):
+ *   routes every turn, mutates the in-flight ref, and never persists
+ *   (switchModel must never fire — otherwise the session would stop
+ *   re-routing). Title/compaction/generate requests follow the session's
+ *   last resolved pick (the raw virtual ref has no dispatchable driver).
  * - Free-exhaustion on a virtual session arms the forced retry and
  *   re-points the retry event in place instead of flipping the session.
  * - The `http.request` overlay is what actually routes virtual sessions:
@@ -18,8 +18,8 @@
  *   session model), so the overlay writes the decided model into the
  *   outgoing body per attempt — resolving on the spot when no pick
  *   exists and re-resolving under a fresh exhaustion latch.
- * - The command prints status / writes the mode, preferring synthetic
- *   output (no model turn).
+ * - The command prints status / toggles the router sync (`sync on|off`),
+ *   preferring synthetic output (no model turn).
  */
 
 const { describe, it } = require('node:test');
@@ -31,7 +31,7 @@ const path = require('node:path');
 const v2 = require('../src/v2.js');
 const { seedCache, isolateAuth } = require('./helpers');
 const { SESSION_MAP_FILE } = require('../src/shared/host');
-const { clearModeCache, readMode } = require('../src/shared/status');
+const { readRoutingSync } = require('../src/shared/status');
 const { isFreeQuotaFresh, markFreeQuota } = require('../src/shared/freequota');
 
 const CACHE = (dir) => path.join(dir, '.opencode', '.modelselect-cache');
@@ -56,11 +56,7 @@ function writeMap(dir, sessions) {
   fs.writeFileSync(path.join(CACHE(dir), SESSION_MAP_FILE), JSON.stringify({ version: 1, sessions }));
 }
 
-function seedMode(dir, mode) {
-  fs.mkdirSync(CACHE(dir), { recursive: true });
-  fs.writeFileSync(path.join(CACHE(dir), 'mode.json'), JSON.stringify({ mode }));
-  clearModeCache();
-}
+// seedMode removed with the on/off/auto modes; virtual routing is unconditional.
 
 /**
  * Boot v2 with a fake ctx. `features.syntheticError` makes synthetic
@@ -266,16 +262,15 @@ describe('virtual model registration', () => {
 });
 
 describe('/modelselect command', () => {
-  it('prints mode, host/source and a no-status hint via synthetic output', async () => {
+  it('prints routing-sync, host/source and a no-status hint via synthetic output', async () => {
     const iso = withIsolation(undefined);
     try {
-      seedMode(iso.dir, 'auto');
       const seen = await setupV2(iso.dir);
       await seen.commandDef.execute({ sessionID: 's1', prompt: { text: '' }, delivery: 'steer' });
       assert.equal(seen.synthetics.length, 1);
       assert.equal(seen.promptsOut.length, 0, 'status reads never cost a model turn');
       const text = seen.synthetics[0].text;
-      assert.match(text, /mode=auto/);
+      assert.match(text, /routing-sync=on/);
       assert.match(text, /host=standalone \(source=default\)/);
       assert.match(text, /pick=persisted/);
       assert.match(text, /no status yet/);
@@ -296,19 +291,18 @@ describe('/modelselect command', () => {
     }
   });
 
-  it('on|off|auto argument writes mode.json (command word tolerated)', async () => {
+  it('sync on|off argument writes routing-sync.json', async () => {
     const iso = withIsolation(undefined);
     try {
-      seedMode(iso.dir, 'auto');
       const seen = await setupV2(iso.dir);
 
-      await seen.commandDef.execute({ sessionID: 's1', prompt: { text: 'modelselect off' }, delivery: 'steer' });
-      assert.equal(readMode(CACHE(iso.dir)), 'off');
-      assert.match(seen.synthetics[0].text, /mode . off/);
+      await seen.commandDef.execute({ sessionID: 's1', prompt: { text: 'modelselect sync off' }, delivery: 'steer' });
+      assert.equal(readRoutingSync(CACHE(iso.dir)), false);
+      assert.match(seen.synthetics[0].text, /router sync → off/);
 
-      await seen.commandDef.execute({ sessionID: 's1', prompt: 'auto', delivery: 'steer' });
-      assert.equal(readMode(CACHE(iso.dir)), 'auto');
-      assert.match(seen.synthetics[1].text, /mode . auto/);
+      await seen.commandDef.execute({ sessionID: 's1', prompt: { text: 'modelselect sync on' }, delivery: 'steer' });
+      assert.equal(readRoutingSync(CACHE(iso.dir)), true);
+      assert.match(seen.synthetics[1].text, /router sync → on/);
     } finally {
       iso.restore();
     }
@@ -317,11 +311,10 @@ describe('/modelselect command', () => {
   it('rejects unknown arguments with usage text', async () => {
     const iso = withIsolation(undefined);
     try {
-      seedMode(iso.dir, 'on');
       const seen = await setupV2(iso.dir);
       await seen.commandDef.execute({ sessionID: 's1', prompt: 'banana', delivery: 'steer' });
-      assert.match(seen.synthetics[0].text, /unknown argument 'banana' — use on, off or auto/);
-      assert.equal(readMode(CACHE(iso.dir)), 'on', 'mode untouched');
+      assert.match(seen.synthetics[0].text, /unknown argument 'banana' — use sync on or sync off/);
+      assert.equal(readRoutingSync(CACHE(iso.dir)), true, 'routing-sync untouched');
     } finally {
       iso.restore();
     }
@@ -330,12 +323,11 @@ describe('/modelselect command', () => {
   it('falls back to a steered prompt when synthetic delivery fails', async () => {
     const iso = withIsolation(undefined);
     try {
-      seedMode(iso.dir, 'auto');
       const seen = await setupV2(iso.dir, {}, { syntheticError: true });
       await seen.commandDef.execute({ sessionID: 's1', prompt: '', delivery: 'queue' });
       assert.equal(seen.synthetics.length, 0);
       assert.equal(seen.promptsOut.length, 1);
-      assert.match(seen.promptsOut[0].text, /mode=auto/);
+      assert.match(seen.promptsOut[0].text, /routing-sync=on/);
       assert.equal(seen.promptsOut[0].delivery, 'queue');
     } finally {
       iso.restore();
@@ -344,11 +336,10 @@ describe('/modelselect command', () => {
 });
 
 describe('virtual routing', () => {
-  it('mutates the in-flight ref and never persists, bypassing mode=off', async () => {
+  it('mutates the in-flight ref and never persists', async () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-      seedMode(iso.dir, 'off'); // virtual picks must ignore the mode
       const seen = await setupV2(iso.dir);
 
       const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
@@ -378,7 +369,6 @@ describe('virtual routing', () => {
       seedCache(iso.dir, {
         'task-types': { review: { go: 'g/a', free: 'f/b' }, generic: { go: 'g/a', free: 'f/b' } },
       });
-      seedMode(iso.dir, 'off');
       const seen = await setupV2(iso.dir);
 
       // No primary turn yet (title usually runs first): the aux hook
@@ -439,7 +429,6 @@ describe('virtual routing', () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-      seedMode(iso.dir, 'off'); // virtual bypasses the mode gate here too
       const seen = await setupV2(iso.dir);
 
       const e = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
@@ -468,15 +457,14 @@ describe('virtual routing', () => {
     }
   });
 
-  it('announce gate: virtual sessions announce even in mode=off (from turn 2)', async () => {
+  it('announce gate: virtual sessions announce (from turn 2, after context marks them)', async () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-      seedMode(iso.dir, 'off');
       const seen = await setupV2(iso.dir);
 
       // First prompt: session not yet marked virtual (prompt runs before
-      // context) and mode is off -> no announce. Documented first-turn gap.
+      // context) -> no announce. Documented first-turn gap.
       const p1 = { sessionID: 's1', prompt: { text: 'review this diff' } };
       await seen.prompt(p1);
       assert.equal(p1.prompt.text, 'review this diff', 'no announce before the context hook marks the session');
@@ -485,7 +473,7 @@ describe('virtual routing', () => {
       await seen.context(e);
       assert.equal(e.model.id, 'b');
 
-      // Next prompt: session is marked virtual -> announces like mode on.
+      // Next prompt: session is marked virtual -> announces.
       const p2 = { sessionID: 's1', prompt: { text: 'review this diff again' } };
       await seen.prompt(p2);
       assert.match(p2.prompt.text, /\[modelselect: task=review tier=free/);
@@ -528,7 +516,6 @@ describe('virtual dispatch overlay', () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, SAME);
-      seedMode(iso.dir, 'off'); // virtual bypasses the mode
       const seen = await setupV2(iso.dir);
 
       const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
@@ -563,7 +550,6 @@ describe('virtual dispatch overlay', () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, SAME);
-      seedMode(iso.dir, 'off');
       const seen = await setupV2(iso.dir, { token: 'sk-test' });
 
       const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
@@ -586,7 +572,6 @@ describe('virtual dispatch overlay', () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
-      seedMode(iso.dir, 'off');
       const seen = await setupV2(iso.dir);
 
       const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };

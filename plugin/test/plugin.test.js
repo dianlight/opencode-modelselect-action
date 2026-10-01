@@ -275,15 +275,21 @@ describe('v2 announce', () => {
     return seen;
   }
 
+  // The virtual model is the routing switch: only sessions on opencode/auto
+  // route + announce. A context call marks the session virtual first; the
+  // prompt hook then announces (first real turn misses this and lands on the
+  // next turn — hence context-before-prompt here).
+  const VIRTUAL = { providerID: 'opencode', id: 'auto' };
+
   it('switch mode appends once and dedups the second identical turn', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-ann-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     try {
       const seen = await v2Hooks(dir, {});
+      await seen.context({ sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] });
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
       assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free → f/b jev=pinned]');
-      await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
       const e2 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e2);
       assert.equal(e2.prompt, 'review this diff', 'identical second turn emits nothing');
@@ -297,9 +303,9 @@ describe('v2 announce', () => {
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     try {
       const seen = await v2Hooks(dir, { announce: 'always' });
+      await seen.context({ sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] });
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
-      await seen.context({ sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] });
       const e2 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e2);
       assert.match(e1.prompt, /\[modelselect: task=review tier=free → f\/b jev=pinned\]/);
@@ -309,18 +315,18 @@ describe('v2 announce', () => {
     }
   });
 
-  it('off mode leaves the prompt untouched with routing intact', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-off-'));
+  it('announce off leaves the prompt untouched but routing still happens', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-annoff-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     try {
       const seen = await v2Hooks(dir, { announce: 'off' });
-      const e1 = { sessionID: 's1', prompt: 'review this diff' };
-      await seen.prompt(e1);
-      assert.equal(e1.prompt, 'review this diff');
-      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(event);
       assert.equal(event.model.providerID, 'f');
       assert.equal(event.model.id, 'b');
+      const e1 = { sessionID: 's1', prompt: 'review this diff' };
+      await seen.prompt(e1);
+      assert.equal(e1.prompt, 'review this diff', 'announce off appends nothing');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -331,12 +337,13 @@ describe('v2 announce', () => {
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     try {
       const seen = await v2Hooks(dir, { suggestOnly: true });
+      await seen.context({ sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] });
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
       assert.equal(e1.prompt, 'review this diff\n[modelselect: task=review tier=free would use f/b jev=pinned]');
-      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(event);
-      assert.equal(event.model.providerID, 'old');
+      assert.equal(event.model.providerID, 'opencode', 'suggestOnly never mutates the model');
       assert.equal(seen.switched, undefined);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -348,6 +355,10 @@ describe('v2 announce', () => {
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     try {
       const seen = await v2Hooks(dir, {});
+      // Mark the session virtual first so the prompt hook attempts the
+      // announce (and fails on the frozen prompt) instead of bailing at the
+      // virtual gate.
+      await seen.context({ sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] });
       const errs = [];
       const origErr = console.error;
       console.error = (...args) => errs.push(args.join(' '));
@@ -356,7 +367,7 @@ describe('v2 announce', () => {
       } finally {
         console.error = origErr;
       }
-      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(event);
       assert.equal(event.model.providerID, 'f');
       assert.equal(event.model.id, 'b');
@@ -405,11 +416,18 @@ describe('v2 prompt shape (PromptInput.Prompt)', () => {
     }
   });
 
+  // The virtual model is the routing switch: only sessions on opencode/auto
+  // route + announce. A context call marks the session virtual first; the
+  // prompt hook then announces (first real turn misses this and lands on the
+  // next turn — hence context-before-prompt here).
+  const VIRTUAL = { providerID: 'opencode', id: 'auto' };
+
   it('appends the announce line to prompt.text', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-shape-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     try {
       const { seen } = await v2Hooks(dir, {});
+      await seen.context({ sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] });
       const e1 = { sessionID: 's1', messageID: 'm1', prompt: { text: 'review this diff' } };
       await seen.prompt(e1);
       assert.equal(e1.prompt.text, 'review this diff\n[modelselect: task=review tier=free → f/b jev=pinned]');
@@ -428,6 +446,7 @@ describe('v2 prompt shape (PromptInput.Prompt)', () => {
     });
     try {
       const { seen } = await v2Hooks(dir, { taskType: 'auto', agentTaskMap: { writer: 'docs' } });
+      await seen.context({ sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] });
       const e1 = {
         sessionID: 's1',
         messageID: 'm1',
@@ -450,18 +469,22 @@ describe('v2 prompt shape (PromptInput.Prompt)', () => {
     try {
       const { seen } = await v2Hooks(dir, {});
       await seen.prompt({ sessionID: 's1', messageID: 'm1', prompt: { text: 'review this diff' } });
-      const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+      const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(event);
       assert.equal(event.model.providerID, 'f');
       assert.equal(event.model.id, 'b');
-      assert.deepEqual(seen.switched, { sessionID: 's1', model: { providerID: 'f', id: 'b' } });
+      assert.equal(seen.switched, undefined, 'virtual pick never persists');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });
 describe('v2 routing hooks', () => {
-  it('mutates event.model in place and persists via switchModel', async () => {
+  // The virtual model is the routing switch: only sessions on opencode/auto
+  // route. Non-virtual sessions are the user's hands-off choice.
+  const VIRTUAL = { providerID: 'opencode', id: 'auto' };
+
+  it('mutates event.model in place and never persists (virtual pick)', async () => {
     const v2 = require('../src/v2.js');
     assert.equal(v2.id, 'modelselect');
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-'));
@@ -482,14 +505,11 @@ describe('v2 routing hooks', () => {
     await v2.setup(fakeCtx);
     assert.ok(seen.prompt && seen.context, 'registers prompt + context hooks');
     await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
-    const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+    const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
     await seen.context(event);
     assert.equal(event.model.providerID, 'f');
     assert.equal(event.model.id, 'b');
-    assert.deepEqual(seen.switched, {
-      sessionID: 's1',
-      model: { providerID: 'f', id: 'b' },
-    });
+    assert.equal(seen.switched, undefined, 'virtual pick never persists');
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -517,7 +537,7 @@ describe('v2 routing hooks', () => {
     };
     await v2.setup(fakeCtx);
     await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
-    const event = { sessionID: 's1', agent: 'writer', model: { providerID: 'old', id: 'old' }, messages: [] };
+    const event = { sessionID: 's1', agent: 'writer', model: { ...VIRTUAL }, messages: [] };
     await seen.context(event);
     assert.equal(event.model.providerID, 'f');
     assert.equal(event.model.id, 'doc');
@@ -543,7 +563,7 @@ describe('v2 routing hooks', () => {
     };
     await v2.setup(fakeCtx);
     await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
-    const event = { sessionID: 's1', agent: 'review', model: { providerID: 'old', id: 'old' }, messages: [] };
+    const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
     const lines = [];
     const origLog = console.log;
     console.log = (...args) => lines.push(args.join(' '));
@@ -552,10 +572,10 @@ describe('v2 routing hooks', () => {
     } finally {
       console.log = origLog;
     }
-    assert.equal(event.model.providerID, 'old');
-    assert.equal(event.model.id, 'old');
+    assert.equal(event.model.providerID, 'opencode', 'suggestOnly never mutates the model');
+    assert.equal(event.model.id, 'auto');
     assert.equal(seen.switched, undefined);
-    assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b.*current=old\/old/);
+    assert.match(lines.join('\n'), /\(suggest-only\).*would-select=f\/b.*current=opencode\/auto/);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
@@ -919,6 +939,7 @@ describe('jev announce label', () => {
         },
       };
       await v2.setup(fakeCtx);
+      await seen.context({ sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [] });
       const e1 = { sessionID: 's1', prompt: 'ciao, controlla questo lavoro' };
       await seen.prompt(e1);
       assert.match(e1.prompt, /task=review.*jev=review@0\.95/);
@@ -944,6 +965,7 @@ describe('jev announce label', () => {
         },
       };
       await v2.setup(fakeCtx);
+      await seen.context({ sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [] });
       const e1 = { sessionID: 's1', prompt: 'ciao' };
       await seen.prompt(e1);
       assert.match(e1.prompt, /task=generic.*jev=kept:no-token/);
@@ -983,6 +1005,7 @@ describe('jev announce label', () => {
         },
       };
       await v2.setup(fakeCtx);
+      await seen.context({ sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [] });
       const e1 = { sessionID: 's1', prompt: 'review this diff please' };
       await seen.prompt(e1);
       assert.equal(sawAuth, 'Bearer sk-store');
@@ -1078,12 +1101,13 @@ describe('continuation (short acks inherit previous task)', () => {
         },
       };
       await v2.setup(fakeCtx);
+      const VIRTUAL = { providerID: 'opencode', id: 'auto' };
       await seen.prompt({ sessionID: 's1', prompt: 'review this pull request diff' });
-      const e1 = { sessionID: 's1', model: { providerID: 'old', id: 'old' }, messages: [] };
+      const e1 = { sessionID: 's1', model: { ...VIRTUAL }, messages: [], agent: 'review' };
       await seen.context(e1);
       assert.equal(e1.model.id, 'b');
       await seen.prompt({ sessionID: 's1', prompt: 'sì, procedi pure' });
-      const e2 = { sessionID: 's1', model: { providerID: 'old', id: 'old' }, messages: [] };
+      const e2 = { sessionID: 's1', model: { ...VIRTUAL }, messages: [], agent: 'review' };
       await seen.context(e2);
       assert.equal(e2.model.id, 'b', 'Italian ack stays on review, not generic');
     } finally {

@@ -1,5 +1,19 @@
 ## [Unreleased]
 ### Changed
+- The on/off/auto modes are gone — the virtual `opencode/auto` model is
+  the routing switch now: the plugin routes ONLY sessions whose model is
+  that ref (announce, status, overlay, free-exhaustion retry); any other
+  model is the user's hands-off choice. The global `mode.json` and the
+  external `~/.config/openchamber/modelselect.json` `mode` key are no
+  longer read. A new per-project `routing-sync.json` (`{"sync":true}`,
+  default ON) gates the per-turn `~/.config/openchamber/routing.json`
+  refresh via the `/modelselect sync on|off` command; free-exhaustion
+  latches + refreshes routing always (while sync is on) but only arms the
+  forced retry for virtual sessions. The Work Status view's On/Off/Auto
+  tabs became a two-state "Auto-update router" toggle, and the pick grid
+  is shown only for auto-ish sessions (empty/unset model = OpenChamber
+  auto, or `opencode/auto`); other sessions show the live Model + Agent
+  only.
 - Mode `auto` no longer depends on OpenChamber: the plugin resolves and
   routes the pick itself in `auto` (identical to `on` — announce, status,
   persistence), instead of syncing `routing.json` and handing off to

@@ -241,7 +241,7 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
       ]),
       session: AUTO_SESSION,
     });
@@ -275,12 +275,12 @@ describe('modelselect status frame', () => {
       icons[0].click(); // toast path must not throw
       await frame.settle();
 
-      // Mode pinned to on: On selected, "routes every turn".
-      // The mode switch is SDK kit tabs (role=tab + aria-selected).
+      // Router sync pinned on: On selected, "routing.json refreshes every turn".
+      // The switch is SDK kit tabs (role=tab + aria-selected), now On/Off only.
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
-      assert.equal(tabs.map((b) => textOf(b)).join(','), 'On,Off,Auto');
+      assert.equal(tabs.map((b) => textOf(b)).join(','), 'On,Off');
       assert.equal(tabs[0].attrs['aria-selected'], 'true');
-      assert.match(txt, /routes every turn/);
+      assert.match(txt, /routing\.json refreshes every turn/);
     } finally {
       frame.close();
     }
@@ -296,7 +296,7 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, status],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
       ]),
       session: AUTO_SESSION,
     });
@@ -310,7 +310,7 @@ describe('modelselect status frame', () => {
     }
   });
 
-  it('mode switch writes mode.json', async () => {
+  it('router-sync switch writes routing-sync.json', async () => {
     const frame = loadFrame({
       files: new Map([[`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS]]),
       session: AUTO_SESSION,
@@ -321,49 +321,44 @@ describe('modelselect status frame', () => {
       assert.equal(off.length, 1);
       off[0].click();
       await frame.settle();
-      const write = frame.writes.find((w) => w.path === `${STATUS_DIR}/mode.json`);
-      assert.ok(write, 'expected a mode.json write');
-      assert.equal(write.content, JSON.stringify({ mode: 'off' }));
+      const write = frame.writes.find((w) => w.path === `${STATUS_DIR}/routing-sync.json`);
+      assert.ok(write, 'expected a routing-sync.json write');
+      assert.equal(write.content, JSON.stringify({ sync: false }));
       const offTxt = textOf(frame.root);
-      assert.match(offTxt, /routing paused/);
-      // off: the stale pick is fully hidden — live Model + Agent only.
+      assert.match(offTxt, /router update paused/);
+      // The router-sync toggle only gates the routing.json refresh; the pick
+      // grid is shown for any auto session regardless of sync state.
+      assert.match(offTxt, /Task debug/);
       assert.match(offTxt, /Agent build/);
-      assert.match(offTxt, /Model/);
-      assert.doesNotMatch(offTxt, /Task debug/);
-      assert.doesNotMatch(offTxt, /Think/);
-      assert.doesNotMatch(offTxt, /Jev/);
-      assert.doesNotMatch(offTxt, /Source cache/);
-      assert.doesNotMatch(offTxt, /Tier/);
     } finally {
       frame.close();
     }
   });
 
-  it('reads a stored auto mode', async () => {
+  it('reads a stored router-sync off', async () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'auto' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: false })],
       ]),
       session: AUTO_SESSION,
     });
     try {
       await frame.ready();
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
-      assert.equal(tabs[2].attrs['aria-selected'], 'true');
+      assert.equal(tabs[1].attrs['aria-selected'], 'true');
       const txt = textOf(frame.root);
-      assert.match(txt, /plugin routes \(auto\)/);
-      // auto routes like on now: the full pick grid is shown.
+      assert.match(txt, /router update paused/);
+      // auto session: the pick grid is shown regardless of sync state.
       assert.match(txt, /Task debug/);
       assert.match(txt, /Agent build/);
       assert.match(txt, /Tier free/);
-      assert.doesNotMatch(txt, /routing synced/);
     } finally {
       frame.close();
     }
   });
 
-  it('mode defaults to auto when nothing is stored', async () => {
+  it('router-sync defaults to on when nothing is stored', async () => {
     const frame = loadFrame({
       files: new Map([[`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS]]),
       session: AUTO_SESSION,
@@ -371,9 +366,9 @@ describe('modelselect status frame', () => {
     try {
       await frame.ready();
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
-      assert.equal(tabs[2].attrs['aria-selected'], 'true');
+      assert.equal(tabs[0].attrs['aria-selected'], 'true');
       const txt = textOf(frame.root);
-      assert.match(txt, /plugin routes \(auto\)/);
+      assert.match(txt, /routing\.json refreshes every turn/);
       assert.match(txt, /Task debug/);
       assert.match(txt, /Tier free/);
     } finally {
@@ -625,8 +620,9 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
         [`${STATUS_DIR}/free-quota.json`, latch],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
       ]),
       session: AUTO_SESSION,
     });
@@ -649,8 +645,9 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
         [`${STATUS_DIR}/free-quota.json`, latch],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
       ]),
       session: AUTO_SESSION,
     });
@@ -674,8 +671,9 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
         [`${STATUS_DIR}/free-quota.json`, latch],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
       ]),
       session: AUTO_SESSION,
     });
@@ -690,7 +688,7 @@ describe('modelselect status frame', () => {
     }
   });
 
-  it('shows the suspension countdown in auto mode too', async () => {
+  it('shows the suspension countdown for an auto session', async () => {
     const latch = JSON.stringify({
       version: 1, at: Date.now(), until: Date.now() + 45 * 60 * 1000,
       kind: 'exhaustion', model: null, detail: 'quota spent', updatedAt: Date.now(),
@@ -698,7 +696,7 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'auto' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
         [`${STATUS_DIR}/free-quota.json`, latch],
       ]),
       session: AUTO_SESSION,
@@ -708,7 +706,7 @@ describe('modelselect status frame', () => {
       const txt = textOf(frame.root);
       assert.match(txt, /Free tier exhausted/);
       assert.match(txt, /retry in/);
-      assert.match(txt, /Task debug/); // auto routes like on: the pick is live
+      assert.match(txt, /Task debug/); // auto session: the pick is always shown
     } finally {
       frame.close();
     }
@@ -731,7 +729,7 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
         [`${STATUS_DIR}/free-quota.json`, latch],
       ]),
       session: AUTO_SESSION,
@@ -754,7 +752,7 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
       ]),
       session: AUTO_SESSION,
     });
@@ -793,7 +791,7 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
         [`${STATUS_DIR}/openchamber-sessions.json`, JSON.stringify(seeded)],
       ]),
       session: AUTO_SESSION,
@@ -824,7 +822,7 @@ describe('modelselect status frame', () => {
     const frame = loadFrame({
       files: new Map([
         [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
-        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
         [`${STATUS_DIR}/openchamber-sessions.json`, JSON.stringify({ version: 1, sessions: { ses_1: Date.now() } })],
       ]),
       session: AUTO_SESSION,

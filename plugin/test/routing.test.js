@@ -100,16 +100,19 @@ describe('routing core helpers', () => {
     assert.deepEqual(findPluginOptions(null), {});
   });
 
-  it('normalizeModelselectConfig defaults to auto/off-off autoset', () => {
+  it('normalizeModelselectConfig defaults to off-off autoset (mode key is gone)', () => {
     assert.deepEqual(normalizeModelselectConfig(null), {
-      mode: 'auto',
       autoSmallModel: false,
       autoWalkthroughModel: false,
       smallModelTask: 'small-model',
       walkthroughModelTask: 'review',
     });
-    assert.equal(normalizeModelselectConfig({ mode: 'ON' }).mode, 'on');
-    assert.equal(normalizeModelselectConfig({ mode: 'sometimes' }).mode, 'auto');
+    // The on/off/auto `mode` key is gone: the virtual model is the routing
+    // switch now, so a stray `mode` in the external config is ignored.
+    assert.deepEqual(
+      normalizeModelselectConfig({ mode: 'ON', autoSmallModel: true }),
+      { autoSmallModel: true, autoWalkthroughModel: false, smallModelTask: 'small-model', walkthroughModelTask: 'review' },
+    );
     const flags = normalizeModelselectConfig({ autoSmallModel: true, 'auto-walkthrough-model': true });
     assert.equal(flags.autoSmallModel, true);
     assert.equal(flags.autoWalkthroughModel, true);
@@ -423,8 +426,8 @@ describe('routing io adapter', () => {
   it('resolves ~ against the home and project-relative paths against the project', () => {
     assert.equal(resolveLogicalPath('/p', '/h', ROUTING_PATH), path.join('/h', '.config/openchamber/routing.json'));
     assert.equal(
-      resolveLogicalPath('/p', '/h', '.opencode/.modelselect-cache/mode.json'),
-      path.join('/p', '.opencode/.modelselect-cache/mode.json'),
+      resolveLogicalPath('/p', '/h', '.opencode/.modelselect-cache/routing-sync.json'),
+      path.join('/p', '.opencode/.modelselect-cache/routing-sync.json'),
     );
   });
 

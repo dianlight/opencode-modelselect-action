@@ -1,15 +1,15 @@
 'use strict';
 
 /**
- * Shared per-session status reporting + global mode switch.
+ * Shared per-session status reporting + router-sync switch.
  *
- * - Mode file: `<cacheDir>/mode.json` = `{"mode":"on"|"off"|"auto"}`.
- *   Missing file, unreadable file, bad JSON, or an unknown value all fall
- *   back to the global `~/.config/openchamber/modelselect.json` `mode`
- *   (when readable and valid), else `"auto"` (default). Reads are guarded
- *   by a tiny `{ mtimeMs, size }` cache so the file is only re-parsed when
- *   it changes; the file is tiny so a stale/missing read just means the
- *   default.
+ * - Router-sync file: `<cacheDir>/routing-sync.json` = `{"sync":true|false}`.
+ *   Default ON: a missing file, unreadable file, bad JSON, or a non-boolean
+ *   `sync` all fall back to `true` — only an explicit `false` pauses the
+ *   plugin's per-turn `~/.config/openchamber/routing.json` refresh (lets a
+ *   user freeze OpenChamber's Jev routing table). No global fallback: the
+ *   external `~/.config/openchamber/modelselect.json` `mode` key is gone
+ *   with the on/off/auto modes.
  * - Status file: `<cacheDir>/status-<sessionID>.json` (sessionID sanitized
  *   to `[A-Za-z0-9-_]`, best-effort, never throws — including suggestOnly
  *   runs). Schema:
@@ -32,20 +32,14 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const VALID_MODES = ['on', 'off', 'auto'];
-
-// cacheDir -> { stamp, mode }; stamp covers mtime + size so a rewrite in
-// the same millisecond still invalidates.
-const modeCache = new Map();
-
 /** Sanitize a session ID for use in a file name: [A-Za-z0-9-_], max 128. */
 function sanitizeSessionID(id) {
   const clean = String(id ?? 'default').replace(/[^A-Za-z0-9-_]/g, '_').slice(0, 128);
   return clean || 'default';
 }
 
-function modeFile(cacheDir) {
-  return path.join(String(cacheDir), 'mode.json');
+function routingSyncFile(cacheDir) {
+  return path.join(String(cacheDir), 'routing-sync.json');
 }
 
 function statusFile(cacheDir, sessionID) {
@@ -53,75 +47,32 @@ function statusFile(cacheDir, sessionID) {
 }
 
 /**
- * Read the global default mode from `~/.config/openchamber/modelselect.json`.
- * Never throws — anything unusable means null (caller falls back to "auto").
+ * Read the router-sync switch. Default ON — anything unusable (missing,
+ * unreadable, bad JSON, non-boolean `sync`) means `true`; only an explicit
+ * `false` pauses the per-turn routing.json refresh. Never throws, no
+ * mtime cache (the file is tiny and read at most a couple of times per
+ * turn).
  */
-function readGlobalDefaultMode(home) {
+function readRoutingSync(cacheDir) {
   try {
-    const os = require('node:os');
-    const base = home || os.homedir();
-    const file = require('node:path').join(String(base), '.config', 'openchamber', 'modelselect.json');
-    const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const m = typeof raw?.mode === 'string' ? raw.mode.toLowerCase().trim() : '';
-    if (VALID_MODES.includes(m)) return m;
+    const raw = JSON.parse(fs.readFileSync(routingSyncFile(cacheDir), 'utf8'));
+    return Boolean(raw) && raw.sync === false ? false : true;
   } catch {
-    // missing/unreadable/invalid = no global default
-  }
-  return null;
-}
-
-/**
- * Read the global routing mode. Never throws — anything unusable means
- * the global default, else `"auto"`.
- */
-function readMode(cacheDir) {
-  try {
-    const file = modeFile(cacheDir);
-    let stamp = null;
-    try {
-      const st = fs.statSync(file);
-      stamp = `${st.mtimeMs}:${st.size}`;
-    } catch {
-      return readGlobalDefaultMode() || 'auto'; // missing/unstatable = global default, else auto
-    }
-    const key = String(cacheDir);
-    const cached = modeCache.get(key);
-    if (cached && cached.stamp === stamp) return cached.mode;
-    let mode = readGlobalDefaultMode() || 'auto';
-    try {
-      const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
-      const m = typeof raw?.mode === 'string' ? raw.mode.toLowerCase().trim() : '';
-      if (VALID_MODES.includes(m)) mode = m;
-    } catch {
-      mode = readGlobalDefaultMode() || 'auto'; // bad JSON = global default, else auto
-    }
-    modeCache.set(key, { stamp, mode });
-    return mode;
-  } catch {
-    return 'auto';
+    return true;
   }
 }
 
-/** Clear the mode mtime cache (tests / long-lived hosts after writes). */
-function clearModeCache() {
-  modeCache.clear();
-}
-
 /**
- * Write the global routing mode (`/modelselect` command path). Validates
- * against VALID_MODES, creates the cache dir, and lets the next readMode
- * re-stat (the mtime+size stamp invalidates itself; clearModeCache is a
- * belt-and-braces for same-millisecond rewrites). Best-effort: never
- * throws, returns true on success / false otherwise.
+ * Write the router-sync switch (`/modelselect sync on|off` path). Validates
+ * a boolean, creates the cache dir. Best-effort: never throws, returns
+ * true on success / false otherwise.
  */
-function writeMode(cacheDir, mode) {
+function writeRoutingSync(cacheDir, sync) {
   try {
-    const m = String(mode ?? '').toLowerCase().trim();
-    if (!VALID_MODES.includes(m)) return false;
+    if (typeof sync !== 'boolean') return false;
     const dir = String(cacheDir);
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(modeFile(dir), JSON.stringify({ mode: m }), 'utf8');
-    clearModeCache();
+    fs.writeFileSync(routingSyncFile(dir), JSON.stringify({ sync }), 'utf8');
     return true;
   } catch {
     return false;
@@ -161,11 +112,9 @@ function writeStatus(cacheDir, sessionID, fields = {}) {
 
 module.exports = {
   sanitizeSessionID,
-  readMode,
-  readGlobalDefaultMode,
-  clearModeCache,
-  writeMode,
+  readRoutingSync,
+  writeRoutingSync,
+  routingSyncFile,
   writeStatus,
-  modeFile,
   statusFile,
 };

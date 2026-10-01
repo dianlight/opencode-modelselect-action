@@ -22,13 +22,9 @@ function seedCache(dir, config) {
     path.join(cache, 'model-config-cache.json'),
     JSON.stringify({ fetchedAt: Date.now(), config }),
   );
-  // Hook tests assume routing is active: pin mode "on" unless the test
-  // overwrites mode.json afterwards (the product default is "auto").
-  // Never clobber an existing mode file (off/auto tests seed first).
-  const modeFile = path.join(cache, 'mode.json');
-  if (!fs.existsSync(modeFile)) {
-    fs.writeFileSync(modeFile, JSON.stringify({ mode: 'on' }));
-  }
+  // The router-sync switch is ON by default; tests that want it off seed
+  // routing-sync.json themselves before setup. The virtual model is the
+  // routing switch, so there is no global mode file to pin here.
 }
 
 function seedTaskTypes(dir, taskTypes) {

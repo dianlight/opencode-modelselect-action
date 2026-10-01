@@ -4,11 +4,11 @@
  *   bun install && bunx openchamber-guest-bundle status/src/main.js status/main.js
  * and commit the bundle (index.html loads ../main.js).
  *
- * Surfaces the modelselect plugin's per-session pick plus the global
- * on/off/auto mode switch inside the Work Status section.
+ * Surfaces the modelselect plugin's per-session pick plus the
+ * auto-update router on/off switch inside the Work Status section.
  *
  * Layout follows the SDK UI kit standard (like other panels): host theme
- * via applyHostReady, mountTabs for the mode switch, mountBadge for state,
+ * via applyHostReady, mountTabs for the router-sync switch, mountBadge for state,
  * mountBanner for the plugin-missing error, and a header + key grid for
  * the pick itself.
  *
@@ -30,10 +30,9 @@
  *   mode-independently as ONE live countdown row per freshly latched
  *   model (shared `plugin/src/shared/routing.js` `latchEntries` +
  *   `freeQuotaFresh`); hidden when missing or expired.
- * - Mode file: `<project>/.opencode/.modelselect-cache/mode.json` =
- *   {"mode":"on"|"off"|"auto"}; missing/invalid means the global
- *   `~/.config/openchamber/modelselect.json` mode when readable and valid,
- *   else "auto" (default).
+ * - Router-sync file: `<project>/.opencode/.modelselect-cache/routing-sync.json` =
+ *   {"sync":true|false}; missing/invalid means the plugin's per-turn
+ *   routing.json refresh stays ON — only an explicit `false` pauses it.
  * - Session map (host-detection evidence; single writer: this extension)
  *   — `<project>/.opencode/.modelselect-cache/openchamber-sessions.json` =
  *   `{version:1, sessions:{<sessionID>: lastSeenEpochMs}}`. Touched for
@@ -45,16 +44,18 @@
  *   plugin only reads it: a fresh entry marks the project as
  *   OpenChamber-hosted — the mobile-proof signal, since this extension
  *   runs on web/desktop while the app drives the same server and project.
- * - Mode-dependent rendering: `on`/`auto` show the full pick grid (Task,
- *   Agent, Tier, Model, Think, Jev, Source) + state badges from the
- *   status file (Agent comes from the live session snapshot) — the
- *   plugin routes in both modes. `off` never rewrites the status file,
- *   so it is stale there — that mode hides the whole pick and badges and
- *   only shows the live session Model + Agent plus the mode hint.
- * - NOTE: the plugin no longer hands off to OpenChamber in `auto`: it
- *   routes the pick itself (only `off` pauses it) and refreshes
- *   routing.json per turn as a courtesy (shared
- *   `plugin/src/shared/routing.js`) — this view mirrors that.
+ * - Session-dependent rendering: a session whose model is empty/unset
+ *   (OpenChamber auto) or the virtual `opencode/auto` pick shows the full
+ *   pick grid (Task, Agent, Tier, Model, Think, Jev, Source) + state
+ *   badges from the status file (Agent comes from the live session
+ *   snapshot) — the plugin routes only virtual sessions now. Any other
+ *   model is the user's hands-off choice, so its row shows only the live
+ *   session Model + Agent. A missing plugin shows the fix banner instead.
+ * - NOTE: the plugin routes only virtual (`opencode/auto`) sessions and
+ *   refreshes routing.json per turn as a courtesy (shared
+ *   `plugin/src/shared/routing.js`) while the router sync is on — this
+ *   view mirrors that. The on/off/auto modes are gone; the router-sync
+ *   switch replaces them.
  *
  * Task-type / model names are read ONLY from the plugin's
  * model-config-cache.json (same directory, relative read). Routing
@@ -75,7 +76,7 @@ import { syncRouting, FREE_QUOTA_FILE, freeQuotaFresh, latchEntries } from './ro
 var host = connectHost();
 
 var CACHE_DIR = '.opencode/.modelselect-cache';
-var MODE_FILE = CACHE_DIR + '/mode.json';
+var ROUTING_SYNC_FILE = CACHE_DIR + '/routing-sync.json';
 var SESSION_MAP_FILE = CACHE_DIR + '/openchamber-sessions.json';
 // Age window for session-map entries — must match the plugin read window
 // (plugin/src/shared/host.js SESSION_MAP_TTL_MS).
@@ -85,7 +86,7 @@ var SESSION_MAP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 var SESSION_MAP_TOUCH_MIN_MS = 60 * 1000;
 var MODELSELECT_CONFIG_FILE = '~/.config/openchamber/modelselect.json';
 var CONFIG_CACHE_FILE = CACHE_DIR + '/model-config-cache.json';
-var STORAGE_MODE_KEY = 'modelselect:mode';
+var STORAGE_SYNC_KEY = 'modelselect:sync';
 var STALE_MS = 10 * 60 * 1000;
 var MIN_HEIGHT = 24;
 var MAX_HEIGHT = 320;
@@ -93,7 +94,6 @@ var MAX_HEIGHT = 320;
 // picked a model — that is OpenChamber Auto. Hardening for explicit
 // auto-ish sentinel values.
 var AUTO_MODEL_RE = /^(auto|default|unset)/i;
-var VALID_MODES = ['on', 'off', 'auto'];
 // Includes the OpenChamber managed config: OpenChamber runs its own
 // OpenCode server that ignores the global opencode.json(c).
 var GLOBAL_CONFIG_PATHS = [
@@ -103,8 +103,8 @@ var GLOBAL_CONFIG_PATHS = [
 ];
 
 var currentSession = null;
-var currentMode = 'auto';
-var modeBusy = false;
+var currentSync = true;
+var syncBusy = false;
 // Session-map state: read-modify-writes serialize on this chain so
 // concurrent touches cannot lose entries, and the prune subscription is
 // resolved once per open directory (denied/missing workspace access is
@@ -157,7 +157,11 @@ function modelOf(snap) {
 function isAutoSession(snap) {
   var m = modelOf(snap);
   if (!m || !m.trim()) return true;
-  return AUTO_MODEL_RE.test(m.trim());
+  m = m.trim();
+  // The virtual model `opencode/auto` IS the plugin's routing switch: a
+  // session on it routes every turn, so its row shows the full pick grid.
+  if (m === 'opencode/auto') return true;
+  return AUTO_MODEL_RE.test(m);
 }
 
 // The selected agent from the live session snapshot: a plain string, or an
@@ -248,40 +252,22 @@ function loadStatus(sessionID) {
   });
 }
 
-function loadMode() {
-  return existsPath(MODE_FILE).then(function (exists) {
+// Router-sync switch: default ON — a missing/unreadable file, bad JSON, or
+// a non-boolean `sync` all mean the plugin's per-turn routing.json refresh
+// stays on; only an explicit `false` pauses it. No global fallback
+// (`modelselect.json` `mode` key is gone with the on/off/auto modes).
+function loadRoutingSync() {
+  return existsPath(ROUTING_SYNC_FILE).then(function (exists) {
     if (exists) {
-      return readJson(MODE_FILE).then(
-        function (data) {
-          var m = (data && typeof data.mode === 'string') ? data.mode.toLowerCase().trim() : '';
-          if (VALID_MODES.indexOf(m) !== -1) return m;
-          return loadGlobalDefaultMode();
-        },
-        function () { return loadGlobalDefaultMode(); } // bad JSON = global default, else auto
+      return readJson(ROUTING_SYNC_FILE).then(
+        function (data) { return !(data && data.sync === false); },
+        function () { return true; } // bad JSON = default on
       );
     }
-    return loadGlobalDefaultMode(); // missing = global default, else auto
+    return true; // missing = default on
   }).then(
-    function (m) { return m; },
-    function () { return 'auto'; }
-  );
-}
-
-// Global default mode from the external modelselect config
-// (`~/.config/openchamber/modelselect.json`, solution 3 file). Anything
-// unusable means "auto".
-function loadGlobalDefaultMode() {
-  return toPromise(function () { return host.readFile(MODELSELECT_CONFIG_FILE); }).then(
-    function (res) {
-      try {
-        var data = JSON.parse(String(res && res.content));
-        var m = (data && typeof data.mode === 'string') ? data.mode.toLowerCase().trim() : '';
-        return VALID_MODES.indexOf(m) !== -1 ? m : 'auto';
-      } catch (e) {
-        return 'auto';
-      }
-    },
-    function () { return 'auto'; }
+    function (v) { return v; },
+    function () { return true; }
   );
 }
 
@@ -456,10 +442,8 @@ function isStale(status) {
     (Date.now() - status.updatedAt) > STALE_MS);
 }
 
-function modeHint(mode) {
-  if (mode === 'off') return 'routing paused';
-  if (mode === 'auto') return 'plugin routes (auto)';
-  return 'routes every turn';
+function syncHint(sync) {
+  return sync ? 'routing.json refreshes every turn' : 'router update paused';
 }
 
 function badge(root, label, tone) {
@@ -474,43 +458,43 @@ function badge(root, label, tone) {
   }
 }
 
-function renderHeader(root, mode) {
+function renderHeader(root, sync) {
   var head = document.createElement('div');
   head.className = 'ms-head';
   var title = document.createElement('span');
   title.className = 'ms-title';
-  title.appendChild(text('Mode'));
+  title.appendChild(text('Auto-update router'));
   head.appendChild(title);
   var tabsSlot = document.createElement('div');
   tabsSlot.className = 'ms-tabs';
   head.appendChild(tabsSlot);
   root.appendChild(head);
+  var activeId = sync ? 'on' : 'off';
   try {
     mountTabs(tabsSlot, {
       items: [
         { id: 'on', label: 'On' },
-        { id: 'off', label: 'Off' },
-        { id: 'auto', label: 'Auto' }
+        { id: 'off', label: 'Off' }
       ],
-      activeId: mode,
+      activeId: activeId,
       trackBackground: true,
-      onChange: function (next) { setMode(next); }
+      onChange: function (next) { setRoutingSync(next === 'on'); }
     });
   } catch (e) {
     // Kit fallback: native buttons keep the switch usable.
-    VALID_MODES.forEach(function (m) {
+    ['on', 'off'].forEach(function (m) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'ms-fallback-tab' + (m === mode ? ' on' : '');
-      btn.appendChild(text(m === 'on' ? 'On' : m === 'off' ? 'Off' : 'Auto'));
-      btn.disabled = modeBusy;
-      btn.addEventListener('click', function () { setMode(m); });
+      btn.className = 'ms-fallback-tab' + (m === activeId ? ' on' : '');
+      btn.appendChild(text(m === 'on' ? 'On' : 'Off'));
+      btn.disabled = syncBusy;
+      btn.addEventListener('click', function () { setRoutingSync(m === 'on'); });
       tabsSlot.appendChild(btn);
     });
   }
   var hint = document.createElement('div');
   hint.className = 'ms-hint';
-  hint.appendChild(text(modeHint(mode)));
+  hint.appendChild(text(syncHint(sync)));
   root.appendChild(hint);
 }
 
@@ -727,7 +711,7 @@ function render(state) {
     note.appendChild(text('No active session — open a session to see the model pick.'));
     shell.appendChild(note);
     renderFreeQuota(shell, state.freeQuota && state.freeQuota.data);
-    renderHeader(shell, currentMode);
+    renderHeader(shell, currentSync);
     fitHeight();
     return;
   }
@@ -735,11 +719,13 @@ function render(state) {
   var autoSession = isAutoSession(currentSession);
   var statusFound = Boolean(state.status && state.status.found);
   var err = (state.status && (state.status.readErr || state.status.statErr)) || null;
-  var liveOnly = currentMode === 'off';
+  // Pick grid (status badges) only for auto sessions — the plugin routes
+  // those. Any other model is the user's hands-off choice: live grid only.
+  var showLiveGrid = !autoSession;
   if (!statusFound && !state.globalEntry.entry) {
-    // Plugin-missing banner is mode-independent (kept in every mode).
+    // Plugin-missing banner is session-mode-independent (kept for all).
     renderFixBanner(shell, err);
-  } else if (liveOnly) {
+  } else if (showLiveGrid) {
     renderLiveGrid(shell);
   } else if (statusFound) {
     renderStatusGrid(shell, state.status.data, state.knownTypes, autoSession);
@@ -747,33 +733,33 @@ function render(state) {
     renderStatusGrid(shell, null, state.knownTypes, autoSession);
   }
   // Free-tier suspension is global (not per-session/mode): always last
-  // before the mode switch, whenever the latch is fresh.
+  // before the router-sync switch, whenever the latch is fresh.
   renderFreeQuota(shell, state.freeQuota && state.freeQuota.data);
-  renderHeader(shell, currentMode);
+  renderHeader(shell, currentSync);
   fitHeight();
 }
 
-function setMode(mode) {
-  if (VALID_MODES.indexOf(mode) === -1 || modeBusy) return;
-  modeBusy = true;
-  currentMode = mode;
+function setRoutingSync(sync) {
+  if (syncBusy) return;
+  syncBusy = true;
+  currentSync = sync;
   refresh();
   toPromise(function () {
-    return host.writeFile(MODE_FILE, JSON.stringify({ mode: mode }));
+    return host.writeFile(ROUTING_SYNC_FILE, JSON.stringify({ sync: sync }));
   }).then(
-    function () { mirrorMode(mode); },
+    function () { mirrorSync(sync); },
     function () { /* keep optimistic UI; next mount re-reads */ }
   ).then(function () {
-    modeBusy = false;
+    syncBusy = false;
     refresh();
   });
 }
 
-function mirrorMode(mode) {
+function mirrorSync(sync) {
   try {
     var store = host && host.storage;
     if (!store || typeof store.set !== 'function') return;
-    Promise.resolve(store.set(STORAGE_MODE_KEY, mode)).then(noop, noop);
+    Promise.resolve(store.set(STORAGE_SYNC_KEY, sync)).then(noop, noop);
   } catch (e) { /* storage mirror is best-effort */ }
 }
 
@@ -784,9 +770,9 @@ function refresh() {
   var run = function () {
     refreshQueued = false;
     var sid = sessionIDOf(currentSession) || 'default';
-    Promise.all([loadStatus(sid), loadMode(), loadGlobalEntry(), loadKnownTaskTypes(), loadFreeQuota()]).then(
+    Promise.all([loadStatus(sid), loadRoutingSync(), loadGlobalEntry(), loadKnownTaskTypes(), loadFreeQuota()]).then(
       function (parts) {
-        currentMode = parts[1] || 'on';
+        currentSync = parts[1];
         render({ status: parts[0], globalEntry: parts[2], knownTypes: parts[3], freeQuota: parts[4] });
         // Best-effort routing sync: never blocks or breaks the view.
         try {

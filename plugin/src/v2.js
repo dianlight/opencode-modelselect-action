@@ -23,13 +23,15 @@
  *   zero-token visible channel (`context` edits never render), so the
  *   terse line persists+renders (~15 tokens/turn). The prompt hook event
  *   carries no `agent` field — the agent tag is read from prompt mentions.
- * - Global mode (`<cacheDir>/mode.json`): both hooks first sync
- *   OpenChamber's `routing.json` (shared `./shared/routing.js`, best-effort
- *   — a machine without `~/.config/openchamber` is a silent no-op), then
- *   `on` and `auto` route/announce every turn (the plugin picks the model
- *   itself in both; `auto` is the default) and `off` skips everything.
- *   The plugin no longer depends on OpenChamber: routing.json is only
- *   kept in sync so an installed OpenChamber follows along.
+ * - Routing switch = the virtual model; router sync = its own toggle: both
+ *   hooks first sync OpenChamber's `routing.json` (shared
+ *   `./shared/routing.js`, best-effort — a machine without
+ *   `~/.config/openchamber` is a silent no-op) unless the router-sync
+ *   switch is off (`<cacheDir>/routing-sync.json`, default on), then only
+ *   sessions on `opencode/auto` route/announce — any other model is the
+ *   user's hands-off choice (no announce, status, or switchModel). The
+ *   plugin no longer depends on OpenChamber: routing.json is only kept in
+ *   sync so an installed OpenChamber follows along.
  * - Free-tier fail-soft (`http.response` + `retry` hooks): Zen publishes
  *   no free-quota endpoint (anomalyco/opencode#18648), so exhaustion is
  *   detected from the real failed request — no dummy probe. A free-side
@@ -41,31 +43,34 @@
  *   `go` for tasks on that model, and the failing session flips to its
  *   task's go model with exactly one forced retry so the turn resumes on
  *   the paid alternative. The latch expires after its first-detection
- *   window (never extended), allowing a new check; mode `off` and
- *   `suggestOnly` still latch + resync routing but never switch the
- *   session.
+ *   window (never extended), allowing a new check; non-virtual sessions
+ *   and `suggestOnly` still latch + resync routing (while the router sync
+ *   is on) but never switch the session.
  * - Host detection (`./shared/host.js`): explicit `openchamber` option →
  *   `MODELSELECT_OPENCHAMBER` env → extension-written session map →
  *   standalone. Display/status only (`/modelselect`); per-turn routing
  *   keys off `event.model` directly and the virtual model registers in
  *   every host.
  * - Virtual model `opencode/auto` (every host): an `auto`
- *   entry appended to the real `opencode` provider's inventory — a pick
- *   that routes exactly like mode `on` but never persists. The session
- *   stays on `opencode/auto` (the model picker IS the switch;
- *   `mode.json` is bypassed) while the `http.request` overlay writes the
- *   resolved pick into the outgoing body per physical attempt — mutating
- *   `event.model` is cosmetic (dispatch reads the persisted session
- *   model; proven live), so the overlay is what actually routes.
+ *   entry appended to the real `opencode` provider's inventory — THE
+ *   routing switch (the on/off/auto modes are gone): a session on it is
+ *   routed every turn, any other model is hands-off. The session stays on
+ *   `opencode/auto` (the model picker IS the switch) while the
+ *   `http.request` overlay writes the resolved pick into the outgoing
+ *   body per physical attempt — mutating `event.model` is cosmetic
+ *   (dispatch reads the persisted session model; proven live), so the
+ *   overlay is what actually routes.
  *   Free-exhaustion on a virtual session arms the forced retry without
- *   `switchSessionToGo` (persisting go would unstick the virtual pick);
+ *   ever switching the session (persisting go would unstick the virtual
+ *   pick);
  *   the armed retry re-resolves through the same overlay, where the
  *   fresh latch prefers go. Cross-provider picks cannot be overlaid (the
  *   endpoint stays pinned to the session model) and persist instead —
- *   the session then leaves virtual mode and routes normally.
+ *   the session then leaves virtual mode and the plugin hands off.
  * - `/modelselect` chat command (`ctx.command.transform`): no argument
- *   prints mode + host + last pick; `on|off|auto` writes the mode via
- *   `shared/status.js writeMode`. Output prefers `ctx.session.synthetic`
+ *   prints router-sync state + host + last pick; `sync on|off` writes the
+ *   router-sync switch via `shared/status.js writeRoutingSync`. Output
+ *   prefers `ctx.session.synthetic`
  *   (no model turn) with `ctx.session.prompt` as fallback.
  *
  * v2-only: the v1 `server()` entry was removed — this package now requires
@@ -83,7 +88,7 @@ const {
   truncate,
 } = require('./shared/continuation');
 const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce, loadConfig } = require('./shared/select');
-const { readMode, writeMode, writeStatus, statusFile } = require('./shared/status');
+const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
 const { syncRouting } = require('./shared/routing');
 const { createRoutingIo } = require('./shared/routing-io');
@@ -254,8 +259,9 @@ async function setup(ctx) {
     }
   }
 
-  // `/modelselect` chat command: no argument prints status (mode, host +
-  // source, virtual pick, last pick); `on|off|auto` writes the mode.
+  // `/modelselect` chat command: no argument prints status (router-sync,
+  // host + source, virtual pick, last pick); `sync on|off` writes the
+  // router-sync switch.
   // Output prefers `ctx.session.synthetic` (renders without a model turn —
   // a status read must not cost tokens) and falls back to
   // `ctx.session.prompt` if the host rejects synthetic messages. Never
@@ -266,14 +272,21 @@ async function setup(ctx) {
     if (tokens[0] && tokens[0].toLowerCase() === ID) tokens.shift(); // tolerate the command word
     const arg = (tokens[0] ?? '').toLowerCase();
     const lines = [];
-    if (arg === 'on' || arg === 'off' || arg === 'auto') {
-      lines.push(
-        writeMode(cacheDir, arg) ? `[modelselect] mode \u2192 ${arg}` : '[modelselect] mode change failed (want on, off or auto)',
-      );
+    if (arg === 'sync') {
+      const next = (tokens[1] ?? '').toLowerCase();
+      if (next === 'on' || next === 'off') {
+        lines.push(
+          writeRoutingSync(cacheDir, next === 'on')
+            ? `[modelselect] router sync \u2192 ${next}`
+            : '[modelselect] router sync change failed (want on or off)',
+        );
+      } else {
+        lines.push(`[modelselect] sync wants on or off (got '${tokens[1] ?? ''}')`);
+      }
     } else if (arg) {
-      lines.push(`[modelselect] unknown argument '${tokens[0]}' — use on, off or auto`);
+      lines.push(`[modelselect] unknown argument '${tokens[0]}' — use sync on or sync off`);
     } else {
-      lines.push(`[modelselect] mode=${readMode(cacheDir)}`);
+      lines.push(`[modelselect] routing-sync=${readRoutingSync(cacheDir) ? 'on' : 'off'}`);
       // Per-session host view: option/env still win, the session-map leg
       // checks THIS session (setup only knew "any fresh entry").
       const now = resolveHost({
@@ -319,7 +332,7 @@ async function setup(ctx) {
       await ctx.command.transform((editor) => {
         editor.add({
           name: ID,
-          description: 'Show modelselect status or set the routing mode (on|off|auto)',
+          description: 'Show modelselect status or toggle the router sync (sync on|off)',
           execute: async (input) => {
             try {
               await runModelselectCommand(input);
@@ -466,12 +479,14 @@ async function setup(ctx) {
   }
 
   // Keep OpenChamber's Jev routing categories (`~/.config/openchamber/
-  // routing.json`) in sync with the plugin caches before every turn, in
-  // every mode — best-effort, never breaks the turn. Optional: on a
-  // machine without OpenChamber the write fails silently and nothing is
-  // ever created. The sync is a courtesy for OpenChamber users; the
-  // plugin's own routing never reads routing.json.
+  // routing.json`) in sync with the plugin caches before every turn —
+  // best-effort, never breaks the turn, and skipped entirely while the
+  // router-sync switch is off (`<cacheDir>/routing-sync.json`, default
+  // on). Optional: on a machine without OpenChamber the write fails
+  // silently and nothing is ever created. The sync is a courtesy for
+  // OpenChamber users; the plugin's own routing never reads routing.json.
   async function syncRoutingNow() {
+    if (!readRoutingSync(cacheDir)) return;
     try {
       const r = await syncRouting(routingIo);
       if (r.written && opts.verbose) console.log('[modelselect] routing.json synced');
@@ -480,8 +495,9 @@ async function setup(ctx) {
     }
   }
 
-  // Last known task for a session: the per-turn status file first (mode
-  // `on` rewrites it every turn), then the continuation history. Returns
+  // Last known task for a session: the per-turn status file first (a
+  // virtual session rewrites it every turn), then the continuation
+  // history. Returns
   // `{ taskType, prev }` where `prev` is the parsed status (or null).
   function sessionTask(sessionID) {
     try {
@@ -499,8 +515,8 @@ async function setup(ctx) {
   // Paid `go` model for a session's last known task: null when the task
   // has no paid alternative. `entry.go` itself is often free by the
   // free-first policy, so the first paid `go_ranked` row wins — otherwise
-  // the flip would re-select the exhausted tier. Shared by the
-  // non-virtual flip and the virtual retry re-point.
+  // the retry would re-select the exhausted tier. Used by the virtual
+  // retry re-point.
   async function goRefForSession(sessionID) {
     const where = sessionTask(sessionID);
     if (!where) return null;
@@ -526,36 +542,6 @@ async function setup(ctx) {
     return { ref: splitModelRef(picked), where };
   }
 
-  // Flip a session to the configured `go` model for its task type
-  // (fail-soft after free-tier exhaustion). Best-effort: returns true only
-  // when a go model was found and the switch persisted; also refreshes the
-  // status file so the Work Status view reflects tier=go + the latch.
-  async function switchSessionToGo(sessionID) {
-    try {
-      const found = await goRefForSession(sessionID);
-      if (!found) return false;
-      const { ref, where } = found;
-      await ctx.session.switchModel({ sessionID, model: { providerID: ref.providerID, id: ref.id } });
-      applied.set(sessionID, `${ref.providerID}/${ref.id}`);
-      const prev = where.prev || {};
-      writeStatus(cacheDir, sessionID ?? 'default', {
-        taskType: prev.taskType ?? where.taskType,
-        tier: 'go',
-        model: `${ref.providerID}/${ref.id}`,
-        jev: prev.jev ?? null,
-        goOk: prev.goOk ?? null,
-        think: prev.think ?? null,
-        freeExhausted: true,
-        source: prev.source ?? '',
-        suggestOnly: opts.suggestOnly,
-      });
-      return true;
-    } catch (err) {
-      if (opts.verbose) console.log(`[modelselect] free-exhaustion flip skipped: ${err?.message ?? err}`);
-      return false;
-    }
-  }
-
   // Virtual free-exhaustion recovery: the session must STAY on
   // opencode/auto, so instead of persisting go we re-point the retry
   // event's model ref in place (same runtime-mutable pattern the context
@@ -579,11 +565,11 @@ async function setup(ctx) {
 
   // Register a free-side exhaustion: latch the observation PER MODEL
   // (quota uses a 12h window, rate limiting uses a 1h window — read by
-  // routing sync + resolveModel), refresh routing.json right away, and on
-  // the first failure per session while routing is active (any mode but
-  // `off`, or on a virtual pick, which bypasses the mode) recover:
-  // non-virtual sessions flip to their task's go model, virtual sessions
-  // stay on opencode/auto and only arm the forced retry. Zen publishes no
+  // routing sync + resolveModel), refresh routing.json right away (while
+  // the router sync is on), and on the first failure per VIRTUAL session
+  // while `suggestOnly` is off arm the one forced retry — the retry hook
+  // re-points event.model in place. Non-virtual sessions are the user's
+  // manual choice: latch + sync only, never switched. Zen publishes no
   // free-quota endpoint (anomalyco/opencode#18648), so the failed real
   // request IS the check.
   async function noteFreeExhaustion(sessionID, ref, detail, kind = 'exhaustion') {
@@ -595,22 +581,14 @@ async function setup(ctx) {
     });
     await syncRoutingNow();
     if (!sessionID || freeFlipped.has(sessionID)) return;
-    const virtual = virtualSessions.has(sessionID);
-    if ((readMode(cacheDir) === 'off' && !virtual) || opts.suggestOnly) return;
+    if (!virtualSessions.has(sessionID) || opts.suggestOnly) return;
     freeFlipped.add(sessionID);
     const cause = kind === 'rate-limit' ? 'rate-limited' : 'exhausted';
-    if (virtual) {
-      // Never switchModel here: persisting go would unstick the virtual
-      // pick (the session must keep re-routing every turn). Arm the one
-      // forced retry; the retry hook re-points event.model in place.
-      freeRetry.set(sessionID, Date.now());
-      console.log(`[modelselect] free tier ${cause} (${detail}) — virtual session stays on ${VIRTUAL_REF}, retry armed`);
-      return;
-    }
-    if (await switchSessionToGo(sessionID)) {
-      freeRetry.set(sessionID, Date.now());
-      console.log(`[modelselect] free tier ${cause} (${detail}) — session flipped to go`);
-    }
+    // Never switchModel here: persisting go would unstick the virtual
+    // pick (the session must keep re-routing every turn). Arm the one
+    // forced retry; the retry hook re-points event.model in place.
+    freeRetry.set(sessionID, Date.now());
+    console.log(`[modelselect] free tier ${cause} (${detail}) — virtual session stays on ${VIRTUAL_REF}, retry armed`);
   }
 
   console.log(
@@ -619,15 +597,14 @@ async function setup(ctx) {
 
   await ctx.session.hook('prompt', async (event) => {
     try {
-      // Sync OpenChamber routing before every question, then read the mode.
-      await syncRoutingNow();
-      const hookMode = readMode(cacheDir);
-      // `on` and `auto` announce (the plugin routes in both); `off`
-      // pauses everything. Virtual sessions bypass the mode (the picker
-      // is the switch) — they announce too. First turn on a virtual pick
-      // can miss this (the prompt hook runs before the context hook marks
+      // Sync OpenChamber routing before every question (router-sync
+      // toggle applies inside syncRoutingNow), then gate on the virtual
+      // pick: only `opencode/auto` sessions announce — any other model is
+      // the user's hands-off choice. First turn on a virtual pick can
+      // miss this (the prompt hook runs before the context hook marks
       // the session); the announce then lands on the next turn instead.
-      if (hookMode === 'off' && !virtualSessions.has(event.sessionID)) return;
+      await syncRoutingNow();
+      if (!virtualSessions.has(event.sessionID)) return;
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
       // delivery }. `event.agent` does not exist here — the agent tag comes
       // from prompt mentions (best-effort; undefined when absent).
@@ -644,8 +621,8 @@ async function setup(ctx) {
   await ctx.session.hook('context', async (event) => {
     try {
       const sessionID = event.sessionID;
-      // Track the virtual pick BEFORE any mode gate: `opencode/auto`
-      // bypasses mode.json entirely (the picker is the switch), and the
+      // Track the virtual pick BEFORE the routing gate: `opencode/auto`
+      // IS the switch (the picker selects routing per session), and the
       // free-exhaustion paths consult virtualSessions because their
       // http/retry events carry the post-mutation (real) model ref.
       const virtual = isVirtualRef(event.model);
@@ -653,17 +630,15 @@ async function setup(ctx) {
         if (virtual) virtualSessions.add(sessionID);
         else virtualSessions.delete(sessionID);
       }
-      // Sync OpenChamber routing first (fresh categories for this turn),
-      // then apply the mode — unless this turn is the virtual pick, which
-      // routes in every mode.
+      // Sync OpenChamber routing first (fresh categories for this turn,
+      // router-sync toggle inside syncRoutingNow), then gate on the
+      // virtual pick — any other model is the user's hands-off choice.
       await syncRoutingNow();
-      const mode = readMode(cacheDir);
-      if (!virtual && mode === 'off') {
-        if (opts.verbose) console.log(`[modelselect] mode=off: routing skipped for session=${sessionID}`);
+      if (!virtual) {
+        if (opts.verbose) console.log(`[modelselect] not ${VIRTUAL_REF}: routing skipped for session=${sessionID}`);
         return;
       }
-      // `on` and `auto` both route here: the plugin owns the pick in
-      // every mode but `off` (no OpenChamber hand-off anymore).
+      // Virtual sessions only: the plugin owns the pick here.
       const prompt = prompts.get(sessionID) ?? promptTextFromMessages(event.messages);
       const assistantSnippet = lastAssistantSnippet(event.messages, 1000);
       const { taskType, jev } = await resolveTask({
@@ -710,17 +685,10 @@ async function setup(ctx) {
         event.model.id = ref.id;
       }
       if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id });
-      // 2. Future turns: persist like the model picker does (best-effort).
-      //    NEVER for virtual sessions: switchModel would replace
-      //    opencode/auto and the pick would stop re-routing.
-      if (!virtual && sessionID && applied.get(sessionID) !== key) {
-        try {
-          await ctx.session.switchModel({ sessionID, model: { providerID: ref.providerID, id: ref.id } });
-          applied.set(sessionID, key);
-        } catch (err) {
-          if (opts.verbose) console.log(`[modelselect] switchModel skipped: ${err?.message ?? err}`);
-        }
-      }
+      // 2. Future turns: NEVER persisted for virtual sessions —
+      //    switchModel would replace opencode/auto and the pick would
+      //    stop re-routing (cross-provider picks are persisted by the
+      //    overlay below instead, which also ends the virtual session).
       if (opts.verbose) {
         console.log(
           `[modelselect] task=${picked.taskType} tier=${picked.tier} model=${key} jev=${jev}${virtual ? ` (virtual ${VIRTUAL_REF})` : ''}`,

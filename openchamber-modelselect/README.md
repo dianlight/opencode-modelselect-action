@@ -2,7 +2,7 @@
 
 Work Status section for the modelselect plugin: shows the plugin's
 per-session pick (task, tier, model, Jev reason, Go quota, config source)
-plus the global on/off/auto mode switch, and records session activity
+plus the auto-update-router on/off switch, and records session activity
 into the host-detection session map the plugin reads.
 
 Status-only extension: no panel, no background service, no commands.
@@ -21,7 +21,7 @@ Settings → Extensions → install from Folder / ZIP / URL pointing at
 `openchamber-modelselect/`.
 
 Grant the `files` and `sessions` capabilities when prompted (status,
-mode and session-map files live under the project; the `sessions`
+router-sync and session-map files live under the project; the `sessions`
 capability feeds the map's deleted/archived pruning; the
 installed-check reads the three global config paths declared in
 `package.json`, including the OpenChamber managed config; the routing
@@ -51,11 +51,11 @@ Folder/ZIP/URL source.
 
 ## Layout
 
-- Header (`ms-head`): `Mode` label + SDK `mountTabs` On / Off / Auto
-  control (writes `.opencode/.modelselect-cache/mode.json` via `writeFile`
-  and mirrors the value to `host.storage` `modelselect:mode`), with the
-  mode hint below (`routes every turn` / `routing paused` /
-  `plugin routes (auto)`).
+- Header (`ms-head`): `Auto-update router` label + SDK `mountTabs`
+  On / Off control (writes `.opencode/.modelselect-cache/routing-sync.json`
+  `{"sync": true|false}` via `writeFile` and mirrors the value to
+  `host.storage` `modelselect:sync`), with the hint below
+  (`routing.json refreshes every turn` / `router update paused`).
 - Status icons: color-coded glyphs trailing the Tier value (Go auth:
   `✓` ok / `✕` out / `?` unknown) and the Model value (`!` while the
   plugin runs in suggest-only trial mode). Native tooltips don't surface
@@ -67,20 +67,18 @@ Folder/ZIP/URL source.
   tooltip), Think (task-type reasoning effort:
   `default`/`minimal`/`low`/`medium`/`high`/`xhigh` from the status file,
   shown capitalized), Jev, Source. Badges (`mountBadge`) carry `last known` +
-  dimming when the pick is older than ~10 min
-  (`off` turns never rewrite the status file, so stale = last
-  applied pick), `unlisted task` when the task is absent from the config
-  cache, `free exhausted` while the plugin's free-tier soft-error latch
-  is fresh for the pick's model (12h for spent quota, 1h for transient
-  rate limiting), and
-  `Auto` while the session model is unset.
-- Mode-dependent fields: in `off` the status file is stale by
-  design (the plugin never rewrites it there), so the whole pick grid
-  and all badges are hidden — only the live session Model + Agent and
-  the mode hint are shown. `on`/`auto` render the full grid above (the
-  plugin routes in both). Missing
-  mode storage means `auto` (the plugin default): a fresh install shows
-  the live grid until the user picks `on`.
+  dimming when the pick is older than ~10 min (non-auto sessions never
+  rewrite the status file, so stale = last applied pick), `unlisted task`
+  when the task is absent from the config cache, `free exhausted` while
+  the plugin's free-tier soft-error latch is fresh for the pick's model
+  (12h for spent quota, 1h for transient rate limiting), and `Auto` while
+  the session model is unset.
+- Session-dependent fields: the pick grid + badges are shown only for
+  auto-ish sessions (empty/unset model = OpenChamber auto, or the virtual
+  `opencode/auto` pick — the plugin routes only those). Any other model
+  is the user's hands-off choice, so its row shows only the live session
+  Model + Agent. The router-sync toggle gates only the `routing.json`
+  refresh, not the grid visibility.
 - Theme comes from the host (`applyHostReady`); layout CSS uses host
   tokens with system fallbacks, matching other panels.
 
@@ -95,10 +93,11 @@ Status is visible.
 The Jev routing categories (`~/.config/openchamber/routing.json`,
 stored-deviations shape) are kept fresh from two places, both best-effort:
 
-- The plugin, before every turn (the `prompt` + `context` hooks) — a
-  courtesy sync so an installed OpenChamber follows the plugin's caches;
-  the plugin routes the pick itself in `on` and `auto` and never hands
-  off to OpenChamber's routing.
+- The plugin, before every turn (the `prompt` + `context` hooks) while
+  the router sync is ON — a courtesy sync so an installed OpenChamber
+  follows the plugin's caches; the plugin routes the pick itself (only
+  virtual `opencode/auto` sessions) and never hands off to OpenChamber's
+  routing.
 - This view, on every Work Status refresh (fallback while the panel is
   open) — grant the `files` capability (the `routing.json` path is
   declared in `package.json`, re-approve on update).
@@ -153,21 +152,17 @@ this bundle wraps it in a host-file adapter
 ## External config (`modelselect.json`) + model autoset
 
 `~/.config/openchamber/modelselect.json` (user-editable, all keys
-optional) holds the global defaults:
+optional) holds the global defaults (the `mode` key is gone — the
+virtual `opencode/auto` model is the routing switch now):
 
 ```json
 {
-  "mode": "auto",
   "autoSmallModel": false,
   "autoWalkthroughModel": false,
   "smallModelTask": "small-model",
   "walkthroughModelTask": "review"
 }
 ```
-
-- `mode` is the fallback when the per-project
-  `.opencode/.modelselect-cache/mode.json` is missing or invalid;
-  unknown values mean `"auto"`.
 - `autoSmallModel: true` writes the resolved `smallModelTask` model
   into `settings.json` + `preferences.json` as `smallModelOverride`
   (with `smallModelUseDefault: false`); `autoWalkthroughModel: true`

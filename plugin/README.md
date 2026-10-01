@@ -197,22 +197,16 @@ best-effort per-session status file next to the caches — it never throws:
 }
 ```
 
-The global mode file `<project>/.opencode/.modelselect-cache/mode.json`
-(`{"mode": "on"|"off"|"auto"}`) controls routing; a missing file, bad
-JSON, or unknown value falls back to the external
-`~/.config/openchamber/modelselect.json` `mode` when readable and valid,
-else `"auto"` (default):
-
-```sh
-echo '{"mode":"off"}' > <project>/.opencode/.modelselect-cache/mode.json
-```
-
-The external file (`~/.config/openchamber/modelselect.json`, user-editable)
-holds the global defaults plus the autoset flags:
+The router-sync file `<project>/.opencode/.modelselect-cache/routing-sync.json`
+(`{"sync": true|false}`) gates the per-turn `~/.config/openchamber/routing.json`
+refresh (the on/off/auto modes are gone). Default ON — only an explicit
+`false` pauses it. The external `~/.config/openchamber/modelselect.json`
+`mode` key is no longer read (its autoset flags — `autoSmallModel`,
+`autoWalkthroughModel`, `smallModelTask`, `walkthroughModelTask` — still
+configure the sync):
 
 ```json
 {
-  "mode": "auto",
   "autoSmallModel": false,
   "autoWalkthroughModel": false,
   "smallModelTask": "small-model",
@@ -220,22 +214,18 @@ holds the global defaults plus the autoset flags:
 }
 ```
 
-Before the mode check on every turn (the `prompt` + `context` hooks) the
-plugin best-effort syncs OpenChamber's `~/.config/openchamber/routing.json`
-from the caches above (`src/shared/routing.js`, writes only on diff). The
-write is skipped silently when `~/.config/openchamber` doesn't exist —
-the plugin never creates OpenChamber's config itself.
+Before routing on every turn (the `prompt` + `context` hooks) the plugin
+best-effort syncs OpenChamber's `~/.config/openchamber/routing.json` from
+the caches above (`src/shared/routing.js`, writes only on diff) — but only
+while the router sync is ON. The write is skipped silently when
+`~/.config/openchamber` doesn't exist — the plugin never creates
+OpenChamber's config itself.
 
-- `on` — route every turn.
-- `off` — skip routing entirely for the turn: no mutation, no
-  `switchModel`, no announce line, no status write (one verbose log line
-  only).
-- `auto` — exactly like `on`: the plugin resolves and routes the pick
-  itself (announce + status + persistence). The default. The plugin no
-  longer depends on OpenChamber — the routing.json refresh above still
-  runs so an installed OpenChamber follows along, but nothing hands off
-  to it. The only difference from `on` is history: `auto` is the default
-  value everything falls back to.
+Routing itself is now keyed off the session's model, not a mode: the virtual
+model `opencode/auto` (below) is the switch. Only sessions on that ref route
+(announce + status + overlay); every other model is the user's hands-off
+choice. The router sync merely decides whether OpenChamber's `routing.json`
+stays refreshed.
 
 When `autoSmallModel` is true the sync also writes the resolved
 `smallModelTask` model into OpenChamber's `settings.json` +
@@ -296,9 +286,11 @@ entry never duplicated). Selecting it makes the session route like mode
   stays on `opencode/auto` and keeps re-routing (no persist, no
   stickiness to the resolved model). Cross-provider picks cannot be
   overlaid (the endpoint stays pinned to the session model) and persist
-  instead — the session then leaves virtual mode and routes normally;
-- `mode.json` is bypassed — a virtual pick routes in `on`, `off` and
-  `auto`;
+  instead — the session then leaves virtual mode and the plugin hands
+  off;
+- there is no mode gate — a virtual pick routes every turn regardless of
+  the router-sync toggle (the toggle only gates the `routing.json`
+  refresh);
 - free-tier exhaustion arms the forced retry and re-points the retry
   event at the `go` model in place instead of flipping the session;
 - `title`/`compaction`/`generate` requests follow the session's last
@@ -319,12 +311,12 @@ turn 2 — the prompt hook runs before the context hook marks the session
 
 A chat command (registered via `ctx.command.transform`):
 
-- `/modelselect` — status: global mode, host + source for this session,
-  the session's pick (virtual or persisted), and the last routed pick
-  from the status file. Output goes through a synthetic message (no
+- `/modelselect` — status: router-sync state, host + source for this
+  session, the session's pick (virtual or persisted), and the last routed
+  pick from the status file. Output goes through a synthetic message (no
   model turn, no tokens), falling back to a steered prompt.
-- `/modelselect on|off|auto` — writes the mode file (the same file the
-  OpenChamber switch uses) and echoes the new mode.
+- `/modelselect sync on|off` — writes the router-sync file
+  (`{"sync": true|false}`) and echoes the new state.
 
 The command word is optional: `modelselect off` and a bare `off` behave
 the same.
@@ -356,10 +348,11 @@ comes back exhausted (402, 429, quota wording, or the transient message
    in place.
 
 Each window runs from its first detection and never extends; after it
-expires, the next real failure may register again (the "new check"). Mode `off` and `suggestOnly` still latch + resync
-routing but never switch the session. The Work Status view shows a
-`free exhausted` badge while the latch is fresh and one countdown row
-per freshly latched model.
+expires, the next real failure may register again (the "new check").
+`suggestOnly` still latches + resyncs routing but never switches the
+session; non-virtual sessions latch + resync too but never arm the retry.
+The Work Status view shows a `free exhausted` badge while the latch is
+fresh and one countdown row per freshly latched model.
 
 ## Trial run without side effects
 

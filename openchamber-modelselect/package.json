@@ -1,7 +1,7 @@
 {
   "name": "openchamber-modelselect",
   "version": "0.1.4",
-  "description": "Work Status section surfacing the modelselect plugin's per-session pick plus its on/off/auto mode switch.",
+  "description": "Work Status section surfacing the modelselect plugin's per-session pick (shown for auto/virtual sessions) plus the auto-update-router on/off switch.",
   "license": "MIT",
   "type": "module",
   "dependencies": {
