@@ -161,7 +161,7 @@ describe('virtual model registration', () => {
       assert.deepEqual(m.cost, []);
       assert.equal(m.status, 'active');
       assert.equal(m.enabled, true);
-      assert.deepEqual(m.limit, { context: 200000, output: 32000 });
+      assert.deepEqual(m.limit, v2.FALLBACK_VIRTUAL_LIMIT, 'empty inventory -> large fallback, never a small window');
       assert.ok(seen.commandDef, 'command registered');
       assert.equal(seen.commandDef.name, 'modelselect');
     } finally {
@@ -197,6 +197,53 @@ describe('virtual model registration', () => {
     } finally {
       iso.restore();
     }
+  });
+
+  it('sizes the virtual limit to the live max when it exceeds the fallback', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupV2(iso.dir, {}, {
+        liveModels: [
+          { id: 'small', modelID: 'small', providerID: 'opencode', limit: { context: 200000, output: 32000 } },
+          { id: 'big', modelID: 'big', providerID: 'opencode', limit: { context: 3000000, output: 200000 } },
+        ],
+      });
+      const auto = seen.modelsSet.models.find((m) => m.id === 'auto');
+      assert.deepEqual(auto.limit, { context: 3000000, output: 200000 }, 'live max wins when larger');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('floors small live limits at the large fallback (no premature compaction)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      const seen = await setupV2(iso.dir, {}, {
+        liveModels: [
+          { id: 'tiny', modelID: 'tiny', providerID: 'opencode', limit: { context: 64000, output: 8000 } },
+        ],
+      });
+      const auto = seen.modelsSet.models.find((m) => m.id === 'auto');
+      assert.deepEqual(auto.limit, v2.FALLBACK_VIRTUAL_LIMIT, 'fallback floors small inventories');
+      assert.ok(auto.limit.context >= 2000000, 'large enough to avoid early compaction');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('virtualLimitFor ignores the stale auto entry and non-numeric limits', async () => {
+    assert.deepEqual(
+      v2.virtualLimitFor([
+        { id: 'auto', limit: { context: 999999999, output: 999999999 } },
+        { id: 'x', limit: { context: 'big', output: NaN } },
+        { id: 'y' },
+      ].filter((m) => m.id !== 'auto')),
+      v2.FALLBACK_VIRTUAL_LIMIT,
+    );
+    assert.deepEqual(
+      v2.virtualLimitFor([{ id: 'big', limit: { context: 5000000, output: 64000 } }]),
+      { context: 5000000, output: v2.FALLBACK_VIRTUAL_LIMIT.output },
+    );
   });
 
   it('registers even when a fresh session-map entry says OpenChamber (always visible)', async () => {

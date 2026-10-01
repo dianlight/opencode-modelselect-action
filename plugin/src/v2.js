@@ -112,6 +112,40 @@ const VIRTUAL_REF = `${VIRTUAL_PROVIDER}/${VIRTUAL_MODEL}`;
 // an arm older than this (consumed late) is stale and must not fire.
 const FREE_RETRY_TTL_MS = 60 * 1000;
 
+// Fallback virtual limits: the session stays on `opencode/auto`, so
+// OpenCode drives its compaction threshold off the virtual
+// `limit.context`. It must stay large (never the smallest pick), otherwise
+// a session compacts early and the compaction request can dispatch the
+// raw `auto` id (`invalid model`). Live maxima win when larger.
+const FALLBACK_VIRTUAL_LIMIT = { context: 2000000, output: 128000 };
+
+/** Max positive finite number in a list, or null when none qualifies. */
+function maxPositive(values) {
+  let best = null;
+  for (const v of values) {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) continue;
+    if (best === null || v > best) best = v;
+  }
+  return best;
+}
+
+/**
+ * Virtual `limit` for a live inventory snapshot: the max live
+ * `limit.context`/`limit.output`, floored at the large fallback so a
+ * small/empty inventory can never shrink the virtual window. `models`
+ * excludes the virtual entry itself (pass the filtered list) to keep
+ * transform replays idempotent.
+ */
+function virtualLimitFor(models) {
+  const list = Array.isArray(models) ? models : [];
+  const liveContext = maxPositive(list.map((m) => m?.limit?.context));
+  const liveOutput = maxPositive(list.map((m) => m?.limit?.output));
+  return {
+    context: Math.max(FALLBACK_VIRTUAL_LIMIT.context, liveContext ?? 0),
+    output: Math.max(FALLBACK_VIRTUAL_LIMIT.output, liveOutput ?? 0),
+  };
+}
+
 /** Is this Model.Ref the virtual `opencode/auto` pick? */
 function isVirtualRef(ref) {
   return Boolean(
@@ -218,8 +252,12 @@ async function setup(ctx) {
   // for a cloned real driver). Sitting on the real driver, the virtual
   // pick dispatches exactly like a turn-1 non-virtual route (proven live)
   // and the context hook re-routes it every turn since `switchModel` is
-  // never called for it. The model literal mirrors @opencode/schema's
-  // `Model.Info.default(providerID, id)` — copied here because the
+  // never called for it. The virtual `limit` is the max live context/output
+  // floored at a large fallback: OpenCode compacts off the SESSION model's
+  // window, and a small virtual window would compact early and risk
+  // dispatching the raw `auto` id (`invalid model`). The model literal
+  // mirrors @opencode/schema's `Model.Info.default(providerID, id)` —
+  // copied here because the
   // package is zero-dependency. If a real `opencode/auto` model ever
   // ships, selecting it simply gets always-route behavior.
   // Existing inventory is preserved (and an existing `auto` entry is
@@ -234,7 +272,12 @@ async function setup(ctx) {
         if (typeof editor.get !== 'function' || !editor.models || typeof editor.models.set !== 'function') return;
         const live = editor.get(VIRTUAL_PROVIDER);
         if (!live) return;
-        const current = live.models instanceof Map ? [...live.models.values()] : [];
+        const current =
+          live.models instanceof Map
+            ? [...live.models.values()]
+            : Array.isArray(live.models)
+              ? [...live.models]
+              : [];
         const rest = current.filter((m) => !m || m.id !== VIRTUAL_MODEL);
         editor.models.set(VIRTUAL_PROVIDER, [
           ...rest,
@@ -249,7 +292,7 @@ async function setup(ctx) {
             cost: [],
             status: 'active',
             enabled: true,
-            limit: { context: 200000, output: 32000 },
+            limit: virtualLimitFor(rest),
           },
         ]);
       });
@@ -894,6 +937,6 @@ async function setup(ctx) {
   });
 }
 
-module.exports = { id: ID, setup };
+module.exports = { id: ID, setup, virtualLimitFor, FALLBACK_VIRTUAL_LIMIT };
 module.exports.default = module.exports;
 

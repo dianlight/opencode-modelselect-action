@@ -301,7 +301,11 @@ It must live on the real driver: OpenCode pins the dispatch endpoint to
 the session model, so a standalone fake provider could never serve turns
 (`package: ""` is rejected at load, a cloned real driver fails
 load-time model validation). The entry registers under OpenChamber too —
-it is the always-visible "this session routes every turn" pick.
+it is the always-visible "this session routes every turn" pick. Its
+`limit` is the max live `opencode` context/output floored at a large
+fallback (2M context / 128k output): the session stays on `auto`, so
+OpenCode compacts off the virtual window — a small window would compact
+early and risk dispatching the raw `auto` id (`invalid model`).
 
 Known first-turn gap: the announce line for a virtual pick starts from
 turn 2 — the prompt hook runs before the context hook marks the session
