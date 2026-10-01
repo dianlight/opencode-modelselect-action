@@ -16,7 +16,8 @@ const { TASK_TYPES, normalizeAgentMap } = require('./detect');
 const { DEFAULT_TASK_TYPES_URL } = require('./tasktypes');
 const { resolveToken } = require('./auth');
 const { isFreeQuotaFresh } = require('./freequota');
-const { isFreeModelString, firstPaidModel } = require('./routing');
+const { isFreeModelString, firstPaidModel, splitModelRefStrict } = require('./core/model-ref');
+const { entryFor, normalizeThink } = require('./core/lookup');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
@@ -155,14 +156,6 @@ async function loadConfig(opts, cacheDir) {
   throw new Error(`Model config unreachable (${opts.configUrl}): ${error?.message ?? 'no cache'}`);
 }
 
-function entryFor(config, taskType) {
-  const table = config?.['task-types'] ?? config?.task_types;
-  if (!table || typeof table !== 'object') throw new Error("Invalid model config: missing 'task-types'.");
-  const key = Object.keys(table).find((k) => k.toLowerCase() === String(taskType).toLowerCase());
-  if (!key) return { key: null, entry: null };
-  return { key, entry: table[key] };
-}
-
 const GO_QUOTA_TTL_MS = 5 * 60 * 1000;
 const goQuotaCache = new Map(); // token -> { ok, at }
 let noTokenHinted = false; // verbose no-token hint, once per process
@@ -204,12 +197,6 @@ async function checkGoQuota(token, usageUrl) {
 function clearQuotaCache() {
   goQuotaCache.clear();
   noTokenHinted = false;
-}
-
-/** Coerce a config `think` value to a known effort level, else null. */
-function normalizeThink(v) {
-  const s = String(v ?? '').toLowerCase();
-  return ['default', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(s) ? s : null;
 }
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
@@ -286,21 +273,13 @@ async function resolveModel({ taskType, opts, cacheDir }) {
   return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched };
 }
 
-/** Split a "provider/model" string. v1 uses modelID, v2 uses id. */
-function splitModelRef(model) {
-  const s = String(model ?? '').trim();
-  const i = s.indexOf('/');
-  if (i <= 0 || i === s.length - 1) throw new Error(`Invalid model ref '${s}' (want provider/model).`);
-  return { providerID: s.slice(0, i), id: s.slice(i + 1) };
-}
-
 module.exports = {
   normalizeOptions,
   formatAnnounce,
   shouldAnnounce,
   loadConfig,
   resolveModel,
-  splitModelRef,
+  splitModelRef: splitModelRefStrict,
   checkGoQuota,
   clearQuotaCache,
   DEFAULT_CONFIG_URL,

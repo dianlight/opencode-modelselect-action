@@ -43,6 +43,8 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { selectWithinBudget } = require('./shared/core/budget');
+const { parseGoUsageWindows, goWindowsExhausted, classifyFreeProbe } = require('./shared/core/probe');
 
 const FETCH_TIMEOUT_MS = 15000;
 const DEFAULT_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
@@ -112,62 +114,6 @@ async function fetchRemoteConfig(url) {
   }
 }
 
-function normModelName(value) {
-  const s = String(value ?? '').trim();
-  const i = s.lastIndexOf('/');
-  return (i >= 0 ? s.slice(i + 1) : s).toLowerCase();
-}
-
-function rankedCost(row) {
-  if (!row || typeof row !== 'object') return null;
-  const c = row.blended_cost;
-  return typeof c === 'number' && Number.isFinite(c) && c >= 0 ? c : null;
-}
-
-function selectWithinBudget(entry, taskKey, tier, recommended, maxCost) {
-  const ranked = entry ? entry[`${tier}_ranked`] : null;
-  if (!Array.isArray(ranked)) {
-    fail(
-      `Input 'max-cost' needs a '${tier}_ranked' best-to-worst ranking for ` +
-        `task-type='${taskKey}' in the model config; regenerate ` +
-        'data/model-config.json via maintenance.',
-    );
-  }
-  const ordered = ranked
-    .filter((r) => r && typeof r.model === 'string' && r.model)
-    .slice()
-    .sort((a, b) => {
-      const sa = typeof a.score === 'number' ? a.score : -Infinity;
-      const sb = typeof b.score === 'number' ? b.score : -Infinity;
-      if (sb !== sa) return sb - sa;
-      const ca = rankedCost(a);
-      const cb = rankedCost(b);
-      if (ca === null && cb === null) return 0;
-      if (ca === null) return 1;
-      if (cb === null) return -1;
-      return ca - cb;
-    });
-  const wanted = normModelName(recommended);
-  const rec = ordered.find((r) => normModelName(r.model) === wanted);
-  const recCost = rec ? rankedCost(rec) : null;
-  if (recCost !== null && recCost <= maxCost) {
-    return { model: recommended, cost: String(recCost) };
-  }
-  for (const row of ordered) {
-    const c = rankedCost(row);
-    if (c !== null && c <= maxCost) return { model: row.model, cost: String(c) };
-  }
-  const known = ordered.map(rankedCost).filter((c) => c !== null);
-  const cheapest = known.length ? Math.min(...known) : null;
-  return {
-    model: null,
-    hint:
-      cheapest === null
-        ? 'no ranked model has a known cost'
-        : `cheapest ranked model costs $${cheapest}/1M`,
-  };
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -187,70 +133,6 @@ function authHeaders(token) {
     Authorization: `Bearer ${token}`,
     'User-Agent': 'opencode-modelselect-action/1.0',
   };
-}
-
-function pickKey(obj, names) {
-  for (const n of names) {
-    if (obj && obj[n] !== undefined && obj[n] !== null) return obj[n];
-  }
-  return undefined;
-}
-
-function secondsUntil(iso) {
-  const t = Date.parse(iso);
-  if (!Number.isFinite(t)) return null;
-  return Math.max(0, Math.round((t - Date.now()) / 1000));
-}
-
-// Normalize the several wire shapes seen for GET /zen/go/v1/usage into
-// [{ name, percent, resetSec, status }]. Shapes handled:
-//   { usage: { rolling, weekly, monthly: { status, percent|usagePercent, resetsAt|resetInSec } } }
-//   { useBalance, rollingUsage, weeklyUsage, monthlyUsage: { status, usagePercent, resetInSec } }
-//   { rolling, weekly, monthly } / { windows: { rolling, weekly, monthly } }
-function parseGoUsageWindows(data) {
-  if (!data || typeof data !== 'object') return null;
-  const root = data.usage && typeof data.usage === 'object' ? data.usage : data;
-  const bag =
-    (root.windows && typeof root.windows === 'object' ? root.windows : null) || root;
-  const candidates = [
-    ['rolling', bag.rolling ?? bag.rollingUsage],
-    ['weekly', bag.weekly ?? bag.weeklyUsage],
-    ['monthly', bag.monthly ?? bag.monthlyUsage],
-  ];
-  const windows = [];
-  for (const [name, w] of candidates) {
-    if (!w || typeof w !== 'object') continue;
-    const rawPercent = pickKey(w, ['usagePercent', 'percent', 'usage_percent', 'usagePct']);
-    const percent =
-      typeof rawPercent === 'number' && Number.isFinite(rawPercent) ? rawPercent : null;
-    const rawReset = pickKey(w, [
-      'resetInSec',
-      'resetsInSec',
-      'reset_in_sec',
-      'resets_in_seconds',
-      'resetsInSeconds',
-    ]);
-    const rawAt = pickKey(w, ['resetsAt', 'resetAt', 'reset_at', 'resets_at']);
-    const resetSec =
-      typeof rawReset === 'number' && Number.isFinite(rawReset)
-        ? rawReset
-        : typeof rawAt === 'string'
-          ? secondsUntil(rawAt)
-          : null;
-    const status =
-      typeof w.status === 'string' ? w.status.toLowerCase() : null;
-    windows.push({ name, percent, resetSec, status });
-  }
-  return windows.length ? windows : null;
-}
-
-function goWindowsExhausted(windows) {
-  const blocked = new Set(['limited', 'exhausted', 'blocked', 'rate_limited', 'denied']);
-  return windows.some(
-    (w) =>
-      (w.percent !== null && w.percent >= 100) ||
-      (w.status !== null && blocked.has(w.status)),
-  );
 }
 
 async function checkGoAvailability(token, usageUrl) {
@@ -319,39 +201,6 @@ async function probeOnce(token, url, body) {
     // ignore
   }
   return { status: res.status, ok: res.ok, text };
-}
-
-function isSessionGate(text) {
-  const t = String(text ?? '').toLowerCase();
-  return t.includes('missingsessionid') || t.includes('only be used in opencode');
-}
-
-// Classify one free-probe answer into a state:
-//   available  2xx: the model answered.
-//   selectable 400 + session gate: the key is accepted and the free route
-//              exists, but Zen only serves free models to OpenCode clients,
-//              so a raw probe can never get a completion. The model is still
-//              usable by the downstream OpenCode step.
-//   exhausted  402/429/503/529: free quota spent.
-//   unavailable 403/404: forbidden or removed.
-//   authFailed 401: the key is rejected here.
-//   unknown    anything else (500s, network errors, unexpected 400s).
-function classifyFreeProbe({ status, text, error }) {
-  if (status === null) return { state: 'unknown', reason: `free probe unreachable (${error})` };
-  if (status >= 200 && status < 300) return { state: 'available', reason: 'free probe succeeded' };
-  if (status === 401) {
-    return { state: 'authFailed', reason: 'free rejected (401): token invalid for free probe' };
-  }
-  if (status === 402 || status === 429 || status === 503 || status === 529) {
-    return { state: 'exhausted', reason: `free exhausted (HTTP ${status})` };
-  }
-  if (status === 403 || status === 404) {
-    return { state: 'unavailable', reason: `free unavailable (HTTP ${status})` };
-  }
-  if (status === 400 && isSessionGate(text)) {
-    return { state: 'selectable', reason: 'free usable via OpenCode (session-gated probe)' };
-  }
-  return { state: 'unknown', reason: `free probe HTTP ${status}` };
 }
 
 async function checkFreeAvailability(token, probeUrl, probeResponsesUrl, freeModel) {
@@ -670,7 +519,12 @@ async function main() {
   }
 
   if (maxCost !== null && !fromFallback) {
-    const budgeted = selectWithinBudget(entry, key, tierSelected, model, maxCost);
+    let budgeted;
+    try {
+      budgeted = selectWithinBudget(entry, key, tierSelected, model, maxCost);
+    } catch (err) {
+      fail(err.message); // core throws; re-fail with the identical message
+    }
     if (!budgeted.model) {
       if (fallbackModel) {
         warn(

@@ -89,6 +89,7 @@ When updating `CHANGELOG.md`:
 
 - **Always run `mise run lint-yaml` after editing any YAML file** — the CI lints YAML and a `syntax error: could not find expected ':'` usually means a `|` block line broke out of the correct indent level
 - **Always run `mise run lint-python` after editing any Python file** — the CI checks Python with ruff
+- After changing anything under `core/`, run `mise run build-core` and commit the regenerated `github-action/src/shared/core/` and `plugin/src/shared/core/` copies — CI and `plugin/test/core-vendor.test.js` fail on drift (`mise run build-core-check`)
 - Verify with `node --check github-action/src/index.js` after changing the action (run from `github-action/` as `node --check src/index.js`); `npm test` at the root delegates to `github-action/test/`
 - After changing `openchamber-modelselect/status/src/main.js`, rebuild the
   bundle (`bun run build` in `openchamber-modelselect/`), verify with

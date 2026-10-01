@@ -1,8 +1,8 @@
 /* openchamber-modelselect — routing sync adapter (ESM, bundled with the
  * status view).
  *
- * The sync logic itself lives in the shared plugin core
- * (`plugin/src/shared/routing.js` — CommonJS, dependency-free so it
+ * The sync logic itself lives in the shared decision core
+ * (`core/routing.js` at the repo root — CommonJS, dependency-free so it
  * inlines into the browser bundle); this file only adapts it to the
  * OpenChamber host file API:
  *
@@ -24,7 +24,7 @@
  * skip the write).
  */
 
-import routingShared from '../../../plugin/src/shared/routing.js';
+import routingShared from '../../../core/routing.js';
 
 const routingCore = routingShared;
 const {

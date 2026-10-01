@@ -22,6 +22,16 @@
   suspended model) all follow the entry for the model at hand. Legacy v1
   files still read (a model-less entry remains a global latch over every
   free model).
+- The pure decision logic moved into a shared canonical core (`core/`:
+  `model-ref`, `free-quota`, `probe`, `budget`, `lookup`, `routing`),
+  vendored byte-identical into `github-action/src/shared/core/` and
+  `plugin/src/shared/core/` by `scripts/build-core.js` (mise tasks
+  `build-core` / `build-core-check`). Each runtime stays self-contained
+  (no cross-runtime imports at runtime; `plugin/src/shared/routing.js`
+  is now a shim, the Action `require`s its probe/budget helpers, and the
+  Work Status bundle imports `core/routing.js` at build time). Drift
+  between `core/` and the vendored copies fails CI and the plugin test
+  suite (`build-core --check`).
 
 ## [0.4.0]
 ### Added

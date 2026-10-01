@@ -1,0 +1,84 @@
+'use strict';
+
+/**
+ * Model reference helpers — shared pure decision core (no dependencies).
+ *
+ * Vendored into `github-action/src/shared/core/` and
+ * `plugin/src/shared/core/` by `scripts/build-core.js`; edit `core/`,
+ * never the vendored copies.
+ *
+ * Two split variants exist on purpose (behavior-preserving split of the
+ * historical copies):
+ * - `splitModelRef`       — routing variant: `{ providerID, modelID }`,
+ *                           null when the ref is not "provider/model" shaped.
+ * - `splitModelRefStrict` — select variant: `{ providerID, id }`, throws on
+ *                           a malformed ref (v1/v2 hook consumers).
+ */
+
+function isObject(v) {
+  return Boolean(v) && typeof v === 'object' && !Array.isArray(v);
+}
+
+/** Normalize a "provider/model" string to its bare lowercased model part. */
+function normModelName(value) {
+  const s = String(value ?? '').trim();
+  const i = s.lastIndexOf('/');
+  return (i >= 0 ? s.slice(i + 1) : s).toLowerCase();
+}
+
+function splitModelRef(model) {
+  const s = String(model == null ? '' : model).trim();
+  const i = s.indexOf('/');
+  if (i <= 0 || i === s.length - 1) return null;
+  return { providerID: s.slice(0, i), modelID: s.slice(i + 1) };
+}
+
+/** Split a "provider/model" string. v1 uses modelID, v2 uses id. */
+function splitModelRefStrict(model) {
+  const s = String(model ?? '').trim();
+  const i = s.indexOf('/');
+  if (i <= 0 || i === s.length - 1) throw new Error(`Invalid model ref '${s}' (want provider/model).`);
+  return { providerID: s.slice(0, i), id: s.slice(i + 1) };
+}
+
+// True when a `"provider/model"` string routes to the free tier: the
+// `opencode` provider, a `-free` suffix on either provider (paid mirrors
+// like `opencode-go/longcat-2.5-preview-free` share the free quota), or
+// the suffix-less `big-pickle` free model.
+function isFreeModelString(s) {
+  const str = String(s ?? '').trim();
+  if (!str) return false;
+  if (/big-pickle$/i.test(str)) return true;
+  const ref = splitModelRef(str);
+  if (!ref) return /-free$/i.test(str);
+  if (/-free$/i.test(ref.modelID)) return true;
+  return String(ref.providerID).toLowerCase() === 'opencode';
+}
+
+// First paid model for an entry: `go` when it is not free, else the first
+// non-free row of `go_ranked` (best-to-worst). Null when the entry has no
+// paid alternative (e.g. `go == free` by the free-first policy with no
+// ranked paid row). Used while the free-quota latch is fresh so a
+// `go-first` failover never re-selects a free model.
+function firstPaidModel(entry) {
+  if (!isObject(entry)) return null;
+  if (typeof entry.go === 'string' && entry.go.trim() && !isFreeModelString(entry.go)) {
+    return entry.go.trim();
+  }
+  const ranked = Array.isArray(entry.go_ranked) ? entry.go_ranked : null;
+  if (ranked) {
+    for (const row of ranked) {
+      const m = row && typeof row.model === 'string' ? row.model.trim() : '';
+      if (m && !isFreeModelString(m)) return m;
+    }
+  }
+  return null;
+}
+
+module.exports = {
+  normModelName,
+  splitModelRef,
+  splitModelRefStrict,
+  isFreeModelString,
+  firstPaidModel,
+};

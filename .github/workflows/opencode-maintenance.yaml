@@ -46,6 +46,10 @@ jobs:
       - name: Lint Python files
         run: ruff check scripts/ tests/
 
+      # ── Vendored shared-core drift check ───────────────────────────────────
+      - name: Check vendored core copies
+        run: node scripts/build-core.js --check
+
       # ── Python unit tests (offline, no network) ──────────────────────────
       - name: Run Python unit tests
         run: python -m unittest discover -s tests

@@ -27,3 +27,11 @@ description = "Run Python unit tests for the maintenance script"
 [tasks.lint-types]
 run = "basedpyright --level error scripts/"
 description = "Type-check all Python files with basedpyright"
+
+[tasks.build-core]
+run = "node scripts/build-core.js"
+description = "Vendor core/*.js into github-action and plugin (committed copies)"
+
+[tasks.build-core-check]
+run = "node scripts/build-core.js --check"
+description = "Fail when vendored core copies drift from core/"

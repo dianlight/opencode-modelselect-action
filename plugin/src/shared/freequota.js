@@ -26,7 +26,8 @@
  *     - `shared/select.js` resolves the pick to `go` while fresh.
  *
  * Fingerprint mirrors the field-tested free-probe classification in
- * `github-action/src/index.js` (`classifyFreeProbe`): 402/429 are the
+ * `core/probe.js` (`classifyFreeProbe`, fail-closed action variant):
+ * 402/429 are the
  * quota-spent statuses. A bare 503/529 on a live conversation is usually
  * transient overload — and a 12h latch is expensive — so those and other
  * 4xx statuses only count with quota wording in the body. A rate-limit
@@ -34,8 +35,9 @@
  * instead receives the shorter rate-limit window. 401 is auth,
  * never exhaustion.
  *
- * Node-only (fs). Pure freshness (`freeQuotaFresh`) lives in
- * `shared/routing.js` because the Work Status bundle inlines that module.
+ * Node-only (fs). The pure side (`freeQuotaFresh`, the latch matchers and
+ * the failure classifiers) lives in the shared core (`core/free-quota.js`,
+ * vendored under `shared/core/` and re-exported by `shared/routing.js`).
  * Nothing here ever throws: a soft-error latch must never break a turn.
  */
 
@@ -48,68 +50,17 @@ const {
   latchEntries,
   latchKeyApplies,
 } = require('./routing');
+const {
+  FREE_RATE_LIMIT_TTL_MS,
+  EXHAUST_BODY_RE,
+  RATE_LIMIT_BODY_RE,
+  RATE_LIMIT_MESSAGE_RE,
+  classifyFreeExhaustion,
+  classifyFreeFailure,
+  isFreeModelRef,
+} = require('./core/free-quota');
 
 const FREE_QUOTA_BASENAME = path.basename(FREE_QUOTA_FILE);
-
-// Transient rate limiting gets a shorter recovery window than spent quota.
-const FREE_RATE_LIMIT_TTL_MS = 60 * 60 * 1000;
-
-// Body fingerprints for statuses that are not quota-spent by themselves
-// (400/403-style rejections, 503/529 overload with a quota note, ...).
-const EXHAUST_BODY_RE =
-  /rate\s*limit|too many requests|quota|exhaust|out of (?:credits|quota|capacity)|daily\s*limit|usage\s*limit|upstream (?:provider|error)/i;
-
-// Explicit vendor wording for transient rate limiting. This is matched
-// separately so it also counts when it arrives with an unexpected failure
-// status.
-const RATE_LIMIT_MESSAGE_RE = /rate\s*limit\s*exceeded\.?\s*please\s+try\s+again\s+later\.?/i;
-const RATE_LIMIT_BODY_RE = /rate\s*limit|too many requests/i;
-
-/**
- * Classify a failed model response: does it signal free-quota exhaustion?
- * Accepts a status-less value (0/NaN, e.g. a retry error object with only
- * a message) and falls back to the body text alone in that case.
- */
-function classifyFreeExhaustion(status, bodyText) {
-  const s = Number(status);
-  const text = String(bodyText ?? '');
-  const failure = !Number.isFinite(s) || s <= 0 || s >= 400;
-  if (!failure) return false;
-  if (RATE_LIMIT_MESSAGE_RE.test(text)) return true;
-  if (!Number.isFinite(s) || s <= 0) return EXHAUST_BODY_RE.test(text);
-  if (s === 401) return false; // key rejected, not quota
-  if (s === 402 || s === 429) return true;
-  if (s < 500) return EXHAUST_BODY_RE.test(text);
-  // 503/529 only with quota wording: bare overload is transient.
-  if (s === 503 || s === 529) return EXHAUST_BODY_RE.test(text);
-  return false;
-}
-
-/**
- * Distinguish transient rate limiting from spent quota. Both switch away
- * from free; only their latch windows differ.
- */
-function isRateLimitSignal(status, bodyText) {
-  const s = Number(status);
-  const text = String(bodyText ?? '');
-  if (!Number.isFinite(s) || s <= 0) {
-    return RATE_LIMIT_BODY_RE.test(text) || RATE_LIMIT_MESSAGE_RE.test(text);
-  }
-  if (s < 400) return false;
-  return s === 429 || RATE_LIMIT_BODY_RE.test(text) || RATE_LIMIT_MESSAGE_RE.test(text);
-}
-
-/**
- * Classify a failed model response as `{ exhausted, rateLimited }`.
- * The exact vendor message "Rate limit exceeded. Please try again later."
- * is always treated as transient rate limiting when it accompanies a
- * failure.
- */
-function classifyFreeFailure(status, bodyText) {
-  const exhausted = classifyFreeExhaustion(status, bodyText);
-  if (!exhausted) return { exhausted: false, rateLimited: false };
-  return { exhausted: true, rateLimited: isRateLimitSignal(status, bodyText) };
-}
 
 function freeQuotaFile(cacheDir) {
   return path.join(String(cacheDir), FREE_QUOTA_BASENAME);
@@ -212,33 +163,6 @@ function readModelTable(cacheDir) {
   } catch {
     return null;
   }
-}
-
-/**
- * True when `ref` is a FREE-side model. Accepts Model.Ref
- * (`{ providerID, id }`) and splitModelRef shapes
- * (`{ providerID, modelID }`). Match order: any configured `free`
- * entry wins; a configured `go` entry means paid (never latch a paid
- * pick); otherwise the Zen `-free` suffix is the fallback — models like
- * `big-pickle` do not carry it, which is why the table match is
- * preferred whenever the cache exists.
- */
-function isFreeModelRef(ref, modelTable) {
-  if (!ref || typeof ref !== 'object') return false;
-  const providerID = String(ref.providerID ?? '');
-  const id = String(ref.id ?? ref.modelID ?? '');
-  if (!id) return false;
-  const key = providerID ? `${providerID}/${id}` : id;
-  const hit = (v) => {
-    const s = String(v ?? '').trim();
-    return s === key || s === id;
-  };
-  if (modelTable && typeof modelTable === 'object') {
-    const entries = Object.values(modelTable).filter((e) => e && typeof e === 'object');
-    if (entries.some((e) => hit(e.free))) return true;
-    if (entries.some((e) => hit(e.go))) return false;
-  }
-  return /-free$/i.test(id);
 }
 
 module.exports = {
