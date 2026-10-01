@@ -41,6 +41,13 @@ const EXHAUST_BODY_RE =
 const RATE_LIMIT_MESSAGE_RE = /rate\s*limit\s*exceeded\.?\s*please\s+try\s+again\s+later\.?/i;
 const RATE_LIMIT_BODY_RE = /rate\s*limit|too many requests/i;
 
+// Upstream "model is unavailable" (e.g. `Upstream request failed: Model is
+// unavailable.`): Zen reports a removed/rotated free model as a 5xx
+// server_error with no quota wording, so the generic fingerprints miss it.
+// Treat it as exhaustion on any failure status — the per-model latch then
+// prefers `go` for that task and the session retries once.
+const UNAVAILABLE_MODEL_RE = /model\s+is\s+unavailable/i;
+
 /**
  * Classify a failed model response: does it signal free-quota exhaustion?
  * Accepts a status-less value (0/NaN, e.g. a retry error object with only
@@ -52,6 +59,7 @@ function classifyFreeExhaustion(status, bodyText) {
   const failure = !Number.isFinite(s) || s <= 0 || s >= 400;
   if (!failure) return false;
   if (RATE_LIMIT_MESSAGE_RE.test(text)) return true;
+  if (UNAVAILABLE_MODEL_RE.test(text)) return true;
   if (!Number.isFinite(s) || s <= 0) return EXHAUST_BODY_RE.test(text);
   if (s === 401) return false; // key rejected, not quota
   if (s === 402 || s === 429) return true;
@@ -205,6 +213,7 @@ module.exports = {
   EXHAUST_BODY_RE,
   RATE_LIMIT_BODY_RE,
   RATE_LIMIT_MESSAGE_RE,
+  UNAVAILABLE_MODEL_RE,
   classifyFreeExhaustion,
   classifyFreeFailure,
   isRateLimitSignal,

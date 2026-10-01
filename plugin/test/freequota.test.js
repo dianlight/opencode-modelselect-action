@@ -75,6 +75,14 @@ describe('classifyFreeExhaustion', () => {
     });
     assert.deepEqual(classifyFreeFailure(200, message), { exhausted: false, rateLimited: false });
   });
+
+  it('treats "model is unavailable" as exhaustion on any failure status', () => {
+    const msg = 'Upstream request failed: Model is unavailable.';
+    assert.equal(classifyFreeExhaustion(500, msg), true);
+    assert.equal(classifyFreeExhaustion(503, msg), true);
+    assert.equal(classifyFreeExhaustion(null, msg), true);
+    assert.deepEqual(classifyFreeFailure(500, msg), { exhausted: true, rateLimited: false });
+  });
 });
 
 describe('isFreeModelRef', () => {
