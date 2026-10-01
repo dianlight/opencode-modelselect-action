@@ -1,59 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "deepseek-v4.1-flash",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "gpt-6-luna",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "grok-4.5",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "grok-4.6",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "grok-4.7",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "kimi-k2.7-code",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "kimi-k3",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "muse-spark-1.2-contributor",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "muse-spark-1.2-contributor-free",
-      "tier": "Free"
-    },
-    {
-      "model": "muse-spark-1.3-contributor",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "muse-spark-1.3-contributor-free",
-      "tier": "Free"
-    },
-    {
-      "model": "qwen3.8-flash",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "qwen3.8-max",
-      "tier": "Go (Paid)"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [
     {
       "model": "deepseek-flash",
