@@ -3,8 +3,9 @@
 /**
  * v2 virtual model (`opencode/auto`) + `/modelselect` command.
  *
- * - Registration is standalone-only (option → env → session map decide
- *   the host) and uses literal @opencode/schema shapes.
+ * - Registration is unconditional (every host: option → env → session
+ *   map only decide the displayed host) and uses literal @opencode/schema
+ *   shapes.
  * - A virtual pick routes like mode `on` in every mode, mutates the
  *   in-flight ref, and never persists (switchModel must never fire —
  *   otherwise the session would stop re-routing). Title/compaction/
@@ -143,7 +144,7 @@ function withIsolation(envValue) {
 }
 
 describe('virtual model registration', () => {
-  it('appends opencode/auto to the live provider inventory when standalone', async () => {
+  it('appends opencode/auto to the live provider inventory in every host', async () => {
     const iso = withIsolation(undefined);
     try {
       const seen = await setupV2(iso.dir);
@@ -202,12 +203,13 @@ describe('virtual model registration', () => {
     }
   });
 
-  it('skips registration when a fresh session-map entry says OpenChamber', async () => {
+  it('registers even when a fresh session-map entry says OpenChamber (always visible)', async () => {
     const iso = withIsolation(undefined);
     try {
       writeMap(iso.dir, { ses_openchamber: Date.now() });
       const seen = await setupV2(iso.dir);
-      assert.equal(seen.providerAdded, undefined, 'no provider transform under OpenChamber');
+      assert.ok(seen.modelsSet, 'virtual model registered under OpenChamber too');
+      assert.equal(seen.modelsSet.models.some((m) => m.id === 'auto'), true);
     } finally {
       iso.restore();
     }
@@ -224,11 +226,11 @@ describe('virtual model registration', () => {
     }
   });
 
-  it('option beats env and map in both directions', async () => {
+  it('registration is host-independent (host precedence lives in host.test.js)', async () => {
     let iso = withIsolation('1'); // env says OpenChamber
     try {
       const seen = await setupV2(iso.dir, { openchamber: 'off' });
-      assert.ok(seen.modelsSet, "option 'off' forces standalone despite env");
+      assert.ok(seen.modelsSet, "option 'off' (standalone) still registers");
     } finally {
       iso.restore();
     }
@@ -237,18 +239,18 @@ describe('virtual model registration', () => {
     try {
       writeMap(iso.dir, { ses_x: Date.now() }); // map says OpenChamber
       const seen = await setupV2(iso.dir, { openchamber: 'on' });
-      assert.equal(seen.providerAdded, undefined, "option 'on' forces OpenChamber despite map");
+      assert.ok(seen.modelsSet, "option 'on' (OpenChamber) still registers");
     } finally {
       iso.restore();
     }
   });
 
-  it('env beats the session map', async () => {
+  it('env OpenChamber still registers the virtual model', async () => {
     let iso = withIsolation('0');
     try {
       writeMap(iso.dir, { ses_x: Date.now() });
       const seen = await setupV2(iso.dir);
-      assert.ok(seen.modelsSet, "env '0' forces standalone despite map");
+      assert.ok(seen.modelsSet, "env '0' forces standalone yet registers");
     } finally {
       iso.restore();
     }
@@ -256,7 +258,7 @@ describe('virtual model registration', () => {
     iso = withIsolation('1');
     try {
       const seen = await setupV2(iso.dir);
-      assert.equal(seen.providerAdded, undefined, "env '1' forces OpenChamber");
+      assert.ok(seen.modelsSet, "env '1' (OpenChamber) still registers");
     } finally {
       iso.restore();
     }

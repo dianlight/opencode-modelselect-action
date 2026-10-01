@@ -24,27 +24,32 @@
  *   terse line persists+renders (~15 tokens/turn). The prompt hook event
  *   carries no `agent` field — the agent tag is read from prompt mentions.
  * - Global mode (`<cacheDir>/mode.json`): both hooks first sync
- *   OpenChamber's `routing.json` (shared `./shared/routing.js`), then
- *   `on` routes/announces every turn (default), `off` skips everything,
- *   and `auto` does only that sync and then acts like off — OpenChamber's
- *   Jev routing owns the pick.
+ *   OpenChamber's `routing.json` (shared `./shared/routing.js`, best-effort
+ *   — a machine without `~/.config/openchamber` is a silent no-op), then
+ *   `on` and `auto` route/announce every turn (the plugin picks the model
+ *   itself in both; `auto` is the default) and `off` skips everything.
+ *   The plugin no longer depends on OpenChamber: routing.json is only
+ *   kept in sync so an installed OpenChamber follows along.
  * - Free-tier fail-soft (`http.response` + `retry` hooks): Zen publishes
  *   no free-quota endpoint (anomalyco/opencode#18648), so exhaustion is
  *   detected from the real failed request — no dummy probe. A free-side
  *   `primary` response matching the fingerprints in `./shared/
- *   freequota.js` registers a latch (`.opencode/.modelselect-cache/
- *   free-quota.json`): spent quota uses 12h, transient rate limiting uses
- *   1h. Routing sync + `resolveModel` then prefer `go`, and the failing
- *   session flips to its task's go model with exactly one forced retry so
- *   the turn resumes on the paid alternative. The latch expires after its
- *   first-detection window (never extended), allowing a new check; mode
- *   `off`/`auto` and `suggestOnly` still latch + resync routing but never
- *   switch the session.
+ *   freequota.js` registers a PER-MODEL latch (`.opencode/.modelselect-
+ *   cache/free-quota.json`): spent quota uses 12h, transient rate
+ *   limiting uses 1h, and only the failing model is suspended — its
+ *   siblings keep routing free. Routing sync + `resolveModel` then prefer
+ *   `go` for tasks on that model, and the failing session flips to its
+ *   task's go model with exactly one forced retry so the turn resumes on
+ *   the paid alternative. The latch expires after its first-detection
+ *   window (never extended), allowing a new check; mode `off` and
+ *   `suggestOnly` still latch + resync routing but never switch the
+ *   session.
  * - Host detection (`./shared/host.js`): explicit `openchamber` option →
  *   `MODELSELECT_OPENCHAMBER` env → extension-written session map →
- *   standalone. Drives virtual-model registration and the `/modelselect`
- *   status line only; per-turn routing keys off `event.model` directly.
- * - Virtual model `opencode/auto` (standalone host only): an `auto`
+ *   standalone. Display/status only (`/modelselect`); per-turn routing
+ *   keys off `event.model` directly and the virtual model registers in
+ *   every host.
+ * - Virtual model `opencode/auto` (every host): an `auto`
  *   entry appended to the real `opencode` provider's inventory — a pick
  *   that routes exactly like mode `on` but never persists. The session
  *   stays on `opencode/auto` (the model picker IS the switch;
@@ -92,8 +97,9 @@ const {
 
 const ID = 'modelselect';
 // Virtual model: `opencode/auto` — an `auto` entry appended to the REAL
-// `opencode` provider's inventory, standalone-only. Selecting it routes
-// like mode `on` but never persists (see header).
+// `opencode` provider's inventory, registered in every host (always
+// visible in the picker). Selecting it routes like mode `on` but never
+// persists (see header).
 const VIRTUAL_PROVIDER = 'opencode';
 const VIRTUAL_MODEL = 'auto';
 const VIRTUAL_REF = `${VIRTUAL_PROVIDER}/${VIRTUAL_MODEL}`;
@@ -195,9 +201,10 @@ async function setup(ctx) {
   const lastVirtualPick = new Map(); // sessionID -> { providerID, id }: last resolved pick, for aux requests
 
   // Virtual model `opencode/auto`: an `auto` entry appended to the REAL
-  // `opencode` provider's inventory, standalone-only (under OpenChamber
-  // the host owns the model and a virtual entry would only clutter its
-  // picker). A standalone fake provider cannot work: the dispatch driver
+  // `opencode` provider's inventory, registered in EVERY host — it is
+  // the always-visible "plugin routes this session" pick (host detection
+  // no longer gates it). A standalone fake provider cannot work: the
+  // dispatch driver
   // stays pinned to the session model (verified live — mutating
   // `event.model` renames the model but does not move the endpoint), so a
   // session on a fake provider can never reach a real endpoint, while a
@@ -216,7 +223,7 @@ async function setup(ctx) {
   // means no virtual model: failures only log, the rest of the plugin
   // works without it.
   let virtualRegistered = false;
-  if (host.host === 'standalone' && typeof ctx.provider?.transform === 'function') {
+  if (typeof ctx.provider?.transform === 'function') {
     try {
       await ctx.provider.transform((editor) => {
         if (typeof editor.get !== 'function' || !editor.models || typeof editor.models.set !== 'function') return;
@@ -460,9 +467,10 @@ async function setup(ctx) {
 
   // Keep OpenChamber's Jev routing categories (`~/.config/openchamber/
   // routing.json`) in sync with the plugin caches before every turn, in
-  // every mode — best-effort, never breaks the turn. In `auto` mode this
-  // sync IS the plugin's whole job: the categories just refreshed are what
-  // routes the question, and the plugin then acts like `off`.
+  // every mode — best-effort, never breaks the turn. Optional: on a
+  // machine without OpenChamber the write fails silently and nothing is
+  // ever created. The sync is a courtesy for OpenChamber users; the
+  // plugin's own routing never reads routing.json.
   async function syncRoutingNow() {
     try {
       const r = await syncRouting(routingIo);
@@ -569,14 +577,15 @@ async function setup(ctx) {
     }
   }
 
-  // Register a free-side exhaustion: latch the observation (quota uses a
-  // 12h window, rate limiting uses a 1h window — read by routing sync +
-  // resolveModel), refresh routing.json right away, and on the first
-  // failure per session while mode `on` (or on a virtual pick, which
-  // bypasses the mode) recover: non-virtual sessions flip to their task's
-  // go model, virtual sessions stay on opencode/auto and only arm the
-  // forced retry. Zen publishes no free-quota endpoint
-  // (anomalyco/opencode#18648), so the failed real request IS the check.
+  // Register a free-side exhaustion: latch the observation PER MODEL
+  // (quota uses a 12h window, rate limiting uses a 1h window — read by
+  // routing sync + resolveModel), refresh routing.json right away, and on
+  // the first failure per session while routing is active (any mode but
+  // `off`, or on a virtual pick, which bypasses the mode) recover:
+  // non-virtual sessions flip to their task's go model, virtual sessions
+  // stay on opencode/auto and only arm the forced retry. Zen publishes no
+  // free-quota endpoint (anomalyco/opencode#18648), so the failed real
+  // request IS the check.
   async function noteFreeExhaustion(sessionID, ref, detail, kind = 'exhaustion') {
     const rid = ref && (ref.id ?? ref.modelID);
     markFreeQuota(cacheDir, {
@@ -587,7 +596,7 @@ async function setup(ctx) {
     await syncRoutingNow();
     if (!sessionID || freeFlipped.has(sessionID)) return;
     const virtual = virtualSessions.has(sessionID);
-    if ((readMode(cacheDir) !== 'on' && !virtual) || opts.suggestOnly) return;
+    if ((readMode(cacheDir) === 'off' && !virtual) || opts.suggestOnly) return;
     freeFlipped.add(sessionID);
     const cause = kind === 'rate-limit' ? 'rate-limited' : 'exhausted';
     if (virtual) {
@@ -613,13 +622,12 @@ async function setup(ctx) {
       // Sync OpenChamber routing before every question, then read the mode.
       await syncRoutingNow();
       const hookMode = readMode(cacheDir);
-      // Only `on` announces: `off` pauses everything; `auto` refreshed
-      // routing.json above and now acts like off (OpenChamber routes).
-      // Virtual sessions bypass the mode (the picker is the switch) — they
-      // announce like `on`. First turn on a virtual pick can miss this
-      // (the prompt hook runs before the context hook marks the session);
-      // the announce then lands on the next turn instead.
-      if (hookMode !== 'on' && !virtualSessions.has(event.sessionID)) return;
+      // `on` and `auto` announce (the plugin routes in both); `off`
+      // pauses everything. Virtual sessions bypass the mode (the picker
+      // is the switch) — they announce too. First turn on a virtual pick
+      // can miss this (the prompt hook runs before the context hook marks
+      // the session); the announce then lands on the next turn instead.
+      if (hookMode === 'off' && !virtualSessions.has(event.sessionID)) return;
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
       // delivery }. `event.agent` does not exist here — the agent tag comes
       // from prompt mentions (best-effort; undefined when absent).
@@ -647,23 +655,15 @@ async function setup(ctx) {
       }
       // Sync OpenChamber routing first (fresh categories for this turn),
       // then apply the mode — unless this turn is the virtual pick, which
-      // routes like `on` in every mode.
+      // routes in every mode.
       await syncRoutingNow();
       const mode = readMode(cacheDir);
       if (!virtual && mode === 'off') {
         if (opts.verbose) console.log(`[modelselect] mode=off: routing skipped for session=${sessionID}`);
         return;
       }
-      if (!virtual && mode === 'auto') {
-        // The sync above refreshed `~/.config/openchamber/routing.json` —
-        // that is the whole job in auto mode: OpenChamber's Jev routing
-        // owns the pick from here, the plugin acts like off (no resolve,
-        // no status write, no announce, no model mutation).
-        if (opts.verbose) {
-          console.log(`[modelselect] mode=auto: routing synced, plugin hands off session=${sessionID}`);
-        }
-        return;
-      }
+      // `on` and `auto` both route here: the plugin owns the pick in
+      // every mode but `off` (no OpenChamber hand-off anymore).
       const prompt = prompts.get(sessionID) ?? promptTextFromMessages(event.messages);
       const assistantSnippet = lastAssistantSnippet(event.messages, 1000);
       const { taskType, jev } = await resolveTask({
@@ -789,7 +789,8 @@ async function setup(ctx) {
       let pick = lastVirtualPick.get(sessionID);
       if (
         !pick ||
-        (isFreeModelRef(pick, readModelTable(cacheDir)) && isFreeQuotaFresh(cacheDir, Date.now()))
+        (isFreeModelRef(pick, readModelTable(cacheDir)) &&
+          isFreeQuotaFresh(cacheDir, Date.now(), `${pick.providerID}/${pick.id}`))
       ) {
         const where = sessionTask(sessionID);
         const { taskType } = where

@@ -352,15 +352,12 @@ describe('modelselect status frame', () => {
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
       assert.equal(tabs[2].attrs['aria-selected'], 'true');
       const txt = textOf(frame.root);
-      assert.match(txt, /routing synced, plugin off/);
-      // auto: stale pick hidden — live Model + Agent only.
+      assert.match(txt, /plugin routes \(auto\)/);
+      // auto routes like on now: the full pick grid is shown.
+      assert.match(txt, /Task debug/);
       assert.match(txt, /Agent build/);
-      assert.doesNotMatch(txt, /Task debug/);
-      assert.doesNotMatch(txt, /Think/);
-      assert.doesNotMatch(txt, /Jev debug@0\.61/);
-      assert.doesNotMatch(txt, /Source cache/);
-      assert.doesNotMatch(txt, /Tier free/);
-      assert.doesNotMatch(txt, /last known/); // no badges in auto/off
+      assert.match(txt, /Tier free/);
+      assert.doesNotMatch(txt, /routing synced/);
     } finally {
       frame.close();
     }
@@ -376,11 +373,9 @@ describe('modelselect status frame', () => {
       const tabs = findAll(frame.root, (el) => el.tagName === 'button' && el.attrs.role === 'tab');
       assert.equal(tabs[2].attrs['aria-selected'], 'true');
       const txt = textOf(frame.root);
-      assert.match(txt, /routing synced, plugin off/);
-      // auto: stale pick hidden — live Model + Agent only.
-      assert.match(txt, /Agent build/);
-      assert.doesNotMatch(txt, /Task debug/);
-      assert.doesNotMatch(txt, /Tier free/);
+      assert.match(txt, /plugin routes \(auto\)/);
+      assert.match(txt, /Task debug/);
+      assert.match(txt, /Tier free/);
     } finally {
       frame.close();
     }
@@ -713,7 +708,41 @@ describe('modelselect status frame', () => {
       const txt = textOf(frame.root);
       assert.match(txt, /Free tier exhausted/);
       assert.match(txt, /retry in/);
-      assert.doesNotMatch(txt, /Task debug/); // auto still hides the pick
+      assert.match(txt, /Task debug/); // auto routes like on: the pick is live
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('renders one countdown row per latched model', async () => {
+    const latch = JSON.stringify({
+      version: 2,
+      models: {
+        'opencode/m-free': {
+          at: Date.now(), until: Date.now() + 45 * 60 * 1000,
+          kind: 'exhaustion', detail: 'quota spent', updatedAt: Date.now(),
+        },
+        'opencode/other-free': {
+          at: Date.now(), until: Date.now() + 30 * 60 * 1000,
+          kind: 'rate-limit', detail: 'Rate limit exceeded. Please try again later.', updatedAt: Date.now(),
+        },
+      },
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/mode.json`, JSON.stringify({ mode: 'on' })],
+        [`${STATUS_DIR}/free-quota.json`, latch],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.match(txt, /Free tier exhausted — opencode\/m-free/);
+      assert.match(txt, /Rate limited — opencode\/other-free/);
+      const rows = findAll(frame.root, (el) => el.className && String(el.className).indexOf('ms-freequota') === 0);
+      assert.equal(rows.length, 2, 'one row per freshly latched model');
     } finally {
       frame.close();
     }

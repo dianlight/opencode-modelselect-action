@@ -13,9 +13,9 @@
  *   free-tier latch (`free-quota.json`, project-relative).
  * - `host.writeFile(path, text)` writes back only when something changed.
  *
- * Re-exports `FREE_QUOTA_FILE` + `freeQuotaFresh` from the shared core so
- * the status view can render the free-tier suspension countdown from the
- * same latch the sync consumes.
+ * Re-exports `FREE_QUOTA_FILE` + `freeQuotaFresh` + `latchEntries` from
+ * the shared core so the status view can render the per-model free-tier
+ * suspension countdown rows from the same latch the sync consumes.
  *
  * Failures are silent: sync is best-effort and must never break the
  * status view. See the shared module header for the category rules
@@ -40,6 +40,7 @@ const {
   splitModelRef,
   parseJsonLenient,
   freeQuotaFresh,
+  latchEntries,
   ROUTING_PATH,
   MODELSELECT_CONFIG_PATH,
   SETTINGS_PATH,
@@ -99,6 +100,7 @@ export {
   splitModelRef,
   parseJsonLenient,
   freeQuotaFresh,
+  latchEntries,
   ROUTING_PATH,
   MODELSELECT_CONFIG_PATH,
   SETTINGS_PATH,

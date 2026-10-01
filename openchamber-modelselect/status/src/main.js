@@ -20,13 +20,16 @@
  *   freeExhausted
  *   (true|false|null, 12h free-tier latch), source, suggestOnly,
  *   updatedAt (epoch ms).
- * - Free-tier latch: `<project>/.opencode/.modelselect-cache/free-quota.json`
- *   = `{ version, at, until, kind, model, detail, updatedAt }` where `kind`
- *   is `exhaustion` (spent quota, 12h window) or `rate-limit` (transient
- *   rate limiting, 1h window) and `until` is the retry time (epoch ms).
- *   Rendered mode-independently as a live countdown while fresh
- *   (shared `plugin/src/shared/routing.js` `freeQuotaFresh`); hidden when
- *   missing or expired.
+ * - Free-tier latch (PER MODEL): `<project>/.opencode/.modelselect-cache/free-quota.json`
+ *   = `{ version: 2, models: { "<provider/id>": { at, until, kind, detail,
+ *   updatedAt } } }` where `kind` is `exhaustion` (spent quota, 12h
+ *   window) or `rate-limit` (transient rate limiting, 1h window) and
+ *   `until` is the retry time (epoch ms). Legacy v1 files (a single
+ *   entry with an optional `model` field; a model-less one is the global
+ *   `'*'` latch) still read through `latchEntries`. Rendered
+ *   mode-independently as ONE live countdown row per freshly latched
+ *   model (shared `plugin/src/shared/routing.js` `latchEntries` +
+ *   `freeQuotaFresh`); hidden when missing or expired.
  * - Mode file: `<project>/.opencode/.modelselect-cache/mode.json` =
  *   {"mode":"on"|"off"|"auto"}; missing/invalid means the global
  *   `~/.config/openchamber/modelselect.json` mode when readable and valid,
@@ -42,16 +45,16 @@
  *   plugin only reads it: a fresh entry marks the project as
  *   OpenChamber-hosted — the mobile-proof signal, since this extension
  *   runs on web/desktop while the app drives the same server and project.
- * - Mode-dependent rendering: `on` shows the full pick grid (Task, Agent,
- *   Tier, Model, Think, Jev, Source) + state badges from the status file
- *   (Agent comes from the live session snapshot). `auto`/`off` never
- *   rewrite the status file, so it is stale there — those modes hide the
- *   whole pick and badges and only show the live session Model + Agent
- *   plus the mode hint.
- * - NOTE: `off`/`auto` turns never rewrite the status file, so a stale
- *   file means "last applied pick". In `auto` the plugin only refreshes
- *   routing.json per turn (shared `plugin/src/shared/routing.js`) and
- *   then hands off to OpenChamber's routing — this view mirrors that.
+ * - Mode-dependent rendering: `on`/`auto` show the full pick grid (Task,
+ *   Agent, Tier, Model, Think, Jev, Source) + state badges from the
+ *   status file (Agent comes from the live session snapshot) — the
+ *   plugin routes in both modes. `off` never rewrites the status file,
+ *   so it is stale there — that mode hides the whole pick and badges and
+ *   only shows the live session Model + Agent plus the mode hint.
+ * - NOTE: the plugin no longer hands off to OpenChamber in `auto`: it
+ *   routes the pick itself (only `off` pauses it) and refreshes
+ *   routing.json per turn as a courtesy (shared
+ *   `plugin/src/shared/routing.js`) — this view mirrors that.
  *
  * Task-type / model names are read ONLY from the plugin's
  * model-config-cache.json (same directory, relative read). Routing
@@ -67,7 +70,7 @@
  */
 import { connectHost } from '@openchamber/sdk';
 import { applyHostReady, mountBadge, mountBanner, mountTabs } from '@openchamber/sdk/ui';
-import { syncRouting, FREE_QUOTA_FILE, freeQuotaFresh } from './routing-sync.js';
+import { syncRouting, FREE_QUOTA_FILE, freeQuotaFresh, latchEntries } from './routing-sync.js';
 
 var host = connectHost();
 
@@ -108,11 +111,12 @@ var modeBusy = false;
 // swallowed — the 30d age prune on write is the backstop).
 var sessionMapChain = Promise.resolve();
 var sessionPruneDirectory = null;
-// Live countdown handle for the free-tier suspension row (setTimeout
-// chain — setInterval is not assumed in the guest frame). Cleared on
-// every render; expiry triggers a refresh so the row disappears and the
-// routing sync can flip back to the configured preference.
-var freeQuotaTimer = null;
+// Live countdown handles for the per-model free-tier suspension rows
+// (setTimeout chain — setInterval is not assumed in the guest frame).
+// Cleared on every render; each row's expiry triggers a refresh so the
+// row disappears and the routing sync can flip that task back to the
+// configured preference.
+var freeQuotaTimers = [];
 
 function $(id) { return document.getElementById(id); }
 
@@ -454,7 +458,7 @@ function isStale(status) {
 
 function modeHint(mode) {
   if (mode === 'off') return 'routing paused';
-  if (mode === 'auto') return 'routing synced, plugin off';
+  if (mode === 'auto') return 'plugin routes (auto)';
   return 'routes every turn';
 }
 
@@ -615,21 +619,29 @@ function renderLiveGrid(root) {
   root.appendChild(grid);
 }
 
-// Free-tier suspension row, rendered mode-independently while the latch
-// is fresh: "Free tier exhausted — retry in 2h 15m" for spent quota or
-// "Rate limited — retry in 5m 30s" for transient rate limiting. The
-// countdown ticks live (setTimeout chain); on expiry it refreshes so the
-// row disappears. Hidden entirely when no latch exists or it expired.
-// Clicking the row toasts the latch detail (model + reason), since native
-// title tooltips don't surface in the sandboxed frame.
-function renderFreeQuota(root, entry) {
-  if (!entry || !freeQuotaFresh(entry)) return;
+// Free-tier suspension rows, rendered mode-independently while the latch
+// is fresh — ONE row per freshly latched model: "Free tier exhausted —
+// retry in 2h 15m" for spent quota or "Rate limited — retry in 5m 30s"
+// for transient rate limiting, labelled with the suspended model (the
+// legacy global `'*'` latch renders without one). Each countdown ticks
+// live (setTimeout chain); on expiry it refreshes so the row disappears.
+// Hidden entirely when no latch is fresh. Clicking a row toasts that
+// latch's detail (model + reason), since native title tooltips don't
+// surface in the sandboxed frame.
+function renderFreeQuota(root, data) {
+  var fresh = latchEntries(data).filter(function (e) { return freeQuotaFresh(e); });
+  for (var i = 0; i < fresh.length; i++) renderFreeQuotaRow(root, fresh[i]);
+}
+
+function renderFreeQuotaRow(root, entry) {
   var rateLimited = entry.kind === 'rate-limit';
   var row = document.createElement('div');
   row.className = 'ms-freequota' + (rateLimited ? ' rate-limit' : ' exhausted');
   var label = document.createElement('span');
   label.className = 'ms-fq-label';
-  label.appendChild(text(rateLimited ? 'Rate limited' : 'Free tier exhausted'));
+  var labelText = rateLimited ? 'Rate limited' : 'Free tier exhausted';
+  if (entry.model) labelText += ' — ' + entry.model;
+  label.appendChild(text(labelText));
   var count = document.createElement('span');
   count.className = 'ms-fq-count';
   row.appendChild(label);
@@ -637,8 +649,7 @@ function renderFreeQuota(root, entry) {
   root.appendChild(row);
 
   var detail = String((entry && entry.detail) || '').trim();
-  var model = String((entry && entry.model) || '').trim();
-  var tip = (model ? model + ' — ' : '') + (detail || 'free tier temporarily unavailable');
+  var tip = (entry.model ? entry.model + ' — ' : '') + (detail || 'free tier temporarily unavailable');
   row.setAttribute('title', tip);
   row.addEventListener('click', function () {
     toPromise(function () {
@@ -647,8 +658,13 @@ function renderFreeQuota(root, entry) {
   });
 
   var until = Number(entry.until);
+  // One cell per row so render-time cleanup clears the pending handle
+  // without bookkeeping per tick (the array would otherwise grow every
+  // second between renders).
+  var cell = { handle: null };
+  freeQuotaTimers.push(cell);
   var tick = function () {
-    freeQuotaTimer = null;
+    cell.handle = null;
     var left = until - Date.now();
     if (left <= 0) {
       refresh(); // latch just expired — hide the row, re-sync routing
@@ -658,10 +674,10 @@ function renderFreeQuota(root, entry) {
     count.appendChild(text('retry in ' + formatCountdown(left)));
     fitHeight();
     try {
-      freeQuotaTimer = setTimeout(tick, 1000);
+      cell.handle = setTimeout(tick, 1000);
       // Don't hold the host/test process open for the next tick.
-      if (freeQuotaTimer && typeof freeQuotaTimer.unref === 'function') {
-        try { freeQuotaTimer.unref(); } catch (e) { /* best-effort */ }
+      if (cell.handle && typeof cell.handle.unref === 'function') {
+        try { cell.handle.unref(); } catch (e) { /* best-effort */ }
       }
     } catch (e) { /* one-shot countdown is fine without timers */ }
   };
@@ -689,10 +705,16 @@ function renderFixBanner(root, err) {
 
 function render(state) {
   var root = $('root');
-  // Stop the previous countdown before rebuilding the DOM it writes to.
-  if (freeQuotaTimer !== null) {
-    try { clearTimeout(freeQuotaTimer); } catch (e) { /* best-effort */ }
-    freeQuotaTimer = null;
+  // Stop the previous per-model countdowns before rebuilding the DOM
+  // they write to.
+  if (freeQuotaTimers.length) {
+    for (var qi = 0; qi < freeQuotaTimers.length; qi++) {
+      var handle = freeQuotaTimers[qi].handle;
+      if (handle !== null && handle !== undefined) {
+        try { clearTimeout(handle); } catch (e) { /* best-effort */ }
+      }
+    }
+    freeQuotaTimers = [];
   }
   while (root.firstChild) root.removeChild(root.firstChild);
   var shell = document.createElement('div');
@@ -713,7 +735,7 @@ function render(state) {
   var autoSession = isAutoSession(currentSession);
   var statusFound = Boolean(state.status && state.status.found);
   var err = (state.status && (state.status.readErr || state.status.statErr)) || null;
-  var liveOnly = currentMode === 'auto' || currentMode === 'off';
+  var liveOnly = currentMode === 'off';
   if (!statusFound && !state.globalEntry.entry) {
     // Plugin-missing banner is mode-independent (kept in every mode).
     renderFixBanner(shell, err);

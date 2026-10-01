@@ -307,6 +307,48 @@ describe('syncRouting', () => {
     });
   });
 
+  it('the latch is per model: only the latched task flips to paid', async () => {
+    // generic's free model (f/x) is exhausted; review keeps its free pick.
+    // (`docs` carries no jev_criteria, so it never becomes a category.)
+    const io = fakeIo({
+      ...caches(),
+      [FREE_QUOTA_FILE]: {
+        version: 2,
+        models: {
+          'f/x': {
+            at: Date.now(),
+            until: Date.now() + FREE_QUOTA_TTL_MS,
+            kind: 'exhaustion',
+            detail: 'http 402',
+            updatedAt: Date.now(),
+          },
+        },
+      },
+    });
+    assert.deepEqual(await syncRouting(io), { written: true, settingsWritten: false });
+    const cats = io.files.get(ROUTING_PATH).categories;
+    assert.deepEqual(cats.generic.model, { providerID: 'g', modelID: 'x' }, 'generic flips to paid');
+    assert.deepEqual(cats.review.model, { providerID: 'f', modelID: 'b' }, 'review stays free');
+  });
+
+  it('a legacy model-less latch still forces every row (global)', async () => {
+    const io = fakeIo({
+      ...caches(),
+      [FREE_QUOTA_FILE]: {
+        version: 1,
+        at: Date.now(),
+        until: Date.now() + FREE_QUOTA_TTL_MS,
+        kind: 'exhaustion',
+        model: null,
+        detail: 'http 402',
+      },
+    });
+    assert.deepEqual(await syncRouting(io), { written: true, settingsWritten: false });
+    const cats = io.files.get(ROUTING_PATH).categories;
+    assert.deepEqual(cats.review.model, { providerID: 'g', modelID: 'a' });
+    assert.deepEqual(cats.generic.model, { providerID: 'g', modelID: 'x' });
+  });
+
   it('leaves Small Model + Walkthrough rows alone unless autoset is enabled', async () => {
     const io = fakeIo({
       ...caches(),

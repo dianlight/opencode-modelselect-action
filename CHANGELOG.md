@@ -1,4 +1,27 @@
 ## [Unreleased]
+### Changed
+- Mode `auto` no longer depends on OpenChamber: the plugin resolves and
+  routes the pick itself in `auto` (identical to `on` — announce, status,
+  persistence), instead of syncing `routing.json` and handing off to
+  OpenChamber's Jev router. The best-effort `routing.json` sync still
+  runs in every mode so an installed OpenChamber follows along; without
+  `~/.config/openchamber` it stays a silent no-op. Only `off` skips
+  routing now, and free-tier failures flip sessions in `auto` too. The
+  Work Status view mirrors this: `auto` shows the full pick grid (only
+  `off` hides it) and its mode hint reads `plugin routes (auto)`.
+- The virtual model `opencode/auto` is registered in EVERY host
+  (previously standalone-only), so the "routes every turn" pick is always
+  visible in the model picker; host detection now only feeds the
+  `/modelselect` status line.
+- The free-tier soft-error latch is PER MODEL
+  (`free-quota.json` v2:
+  `{version: 2, models: {"<provider/id>": {at, until, kind, …}}}`): an
+  exhausted free model only suspends itself — sibling free models keep
+  routing free. `resolveModel`, the `routing.json` sync and the Work
+  Status countdown (one row per freshly latched model, labelled with the
+  suspended model) all follow the entry for the model at hand. Legacy v1
+  files still read (a model-less entry remains a global latch over every
+  free model).
 
 ## [0.4.0]
 ### Added

@@ -40,12 +40,15 @@
  *   picking the `go` or `free` side per the plugin `autoPreference`
  *   (`go-first` vs `free-first`, read from the modelselect plugin options
  *   in the managed/global OpenCode config; default `free-first`).
- * - Exception: while the free-tier soft-error latch is fresh
- *   (`free-quota.json`, 12h — written by the plugin on a real free-side
- *   exhaustion, see `shared/freequota.js`) the side is forced to `go`,
- *   whatever `autoPreference` says. Zen publishes no free-quota endpoint
- *   to pre-check, so the routing table follows the observed failure;
- *   once the latch expires the configured preference takes over again.
+ * - Exception: while a task's free model carries a fresh free-tier
+ *   soft-error latch (`free-quota.json`, PER MODEL — 12h for spent quota,
+ *   1h for rate limiting, written by the plugin on a real free-side
+ *   exhaustion, see `shared/freequota.js`) only THAT task's row is forced
+ *   to `go`, whatever `autoPreference` says; every other task keeps its
+ *   configured preference. Zen publishes no free-quota endpoint to
+ *   pre-check, so the routing table follows the observed failure; once a
+ *   latch expires its preference takes over again. The legacy `'*'`
+ *   entry (a v1 latch written without a model) still forces every row.
  * - `agent` is set only when the task type defines one; otherwise the
  *   user's existing value is left alone (never cleared).
  * - Stale entries (stored ids that are not task types, or ignored ones)
@@ -90,17 +93,87 @@ function isObject(v) {
 
 // Free-tier soft-error latch freshness: `at` is the FIRST detection and
 // `until` is the kind-specific deadline stored by the writer (spent quota
-// uses 12h; transient rate limiting uses 1h). Fresh => the free side is
-// known to be unavailable and every consumer must prefer `go`; after
-// `until` the latch clears and the next real failure may register again.
-// `now` is injectable for tests; defaults to Date.now() so the status
-// bundle (browser) works unchanged.
+// uses 12h; transient rate limiting uses 1h). Fresh => that model's free
+// side is known to be unavailable and consumers must prefer `go` for it;
+// after `until` the latch clears and the next real failure may register
+// again. `now` is injectable for tests; defaults to Date.now() so the
+// status bundle (browser) works unchanged.
 function freeQuotaFresh(entry, now) {
   if (!isObject(entry)) return false;
   const at = Number(entry.at);
   const until = Number(entry.until);
   if (!Number.isFinite(at) || !Number.isFinite(until) || until <= at) return false;
   return until > (now === undefined ? Date.now() : now);
+}
+
+// Normalize a `free-quota.json` payload into per-model latch entries.
+// The latch is PER MODEL, keyed by `"provider/model"`; the key `'*'` is
+// the legacy global latch (a v1 entry written without a model) and
+// applies to every free model. Both shapes are understood:
+// - v1 `{ version: 1, at, until, kind, model, detail, updatedAt }`
+//   -> one entry keyed by `model` (or `'*'` when the model is unknown),
+// - v2 `{ version: 2, models: { "<key>": { at, until, kind, ... } } }`.
+// Returns `[{ key, model, at, until, kind, detail, updatedAt }]`; an
+// unusable payload reads as `[]`. Pure (browser-safe), never throws.
+function latchEntries(raw) {
+  if (!isObject(raw)) return [];
+  const out = [];
+  if (isObject(raw.models)) {
+    const keys = Object.keys(raw.models);
+    for (let i = 0; i < keys.length; i++) {
+      const key = String(keys[i]).trim();
+      const e = raw.models[keys[i]];
+      if (!key || !isObject(e)) continue;
+      out.push({
+        key,
+        model: key === '*' ? null : key,
+        at: e.at,
+        until: e.until,
+        kind: e.kind,
+        detail: e.detail,
+        updatedAt: e.updatedAt,
+      });
+    }
+    return out;
+  }
+  if (raw.at !== undefined || raw.until !== undefined) {
+    const model = typeof raw.model === 'string' && raw.model.trim() ? raw.model.trim() : '*';
+    out.push({
+      key: model,
+      model: model === '*' ? null : model,
+      at: raw.at,
+      until: raw.until,
+      kind: raw.kind,
+      detail: raw.detail,
+      updatedAt: raw.updatedAt,
+    });
+  }
+  return out;
+}
+
+// Does the latch entry `key` apply to `model` ("provider/model", bare id
+// tolerated)? `'*'` is the legacy global latch (applies to everything);
+// otherwise exact match, with a lenient suffix match so a bare model id
+// and its `"provider/id"` form hit the same entry.
+function latchKeyApplies(key, model) {
+  const k = String(key ?? '').trim();
+  const s = String(model ?? '').trim();
+  if (!k || !s) return false;
+  if (k === '*') return true;
+  return k === s || k.endsWith('/' + s) || s.endsWith('/' + k);
+}
+
+// Build a per-model latch predicate from a fresh-entry list (see
+// `latchEntries` + `freeQuotaFresh`). Returns `(model) => bool`: true
+// while that model (or the legacy global `'*'` entry) is latched.
+function latchPredicate(freshEntries) {
+  const list = Array.isArray(freshEntries) ? freshEntries : [];
+  return (model) => {
+    for (let i = 0; i < list.length; i++) {
+      if (latchKeyApplies(list[i].key, model)) return true;
+    }
+    return false;
+  };
 }
 
 // Lenient JSON parse: plain JSON first, then a string-aware comment
@@ -235,13 +308,27 @@ function normalizeModelselectConfig(raw) {
   };
 }
 
+// Evaluate the `avoidFree` argument for one model-config entry: either a
+// legacy boolean (applies to every entry) or a per-model predicate
+// `(modelStr) => bool` (a fresh latch for THAT entry's free side — or its
+// free-shaped `go` mirror — means "resolve to paid").
+function entryAvoided(avoidFree, entry) {
+  if (typeof avoidFree === 'function') {
+    const free = isObject(entry) ? entry.free : null;
+    const go = isObject(entry) ? entry.go : null;
+    if (avoidFree(free)) return true;
+    return Boolean(isFreeModelString(go)) && Boolean(avoidFree(go));
+  }
+  return Boolean(avoidFree);
+}
+
 // Pick the `provider/model` string for one task type under a preference,
 // falling back to the other side when the preferred one is unconfigured.
-// When `avoidFree` is true (fresh free-quota latch) a free `go` value is
-// skipped in favour of the first paid model in `go_ranked`; null is
-// returned when no paid alternative exists so callers preserve the stored
-// value instead of writing a free model. Returns the `"provider/model"`
-// string or null.
+// When `avoidFree` says this entry's free side is latched (boolean or
+// per-model predicate) a free `go` value is skipped in favour of the
+// first paid model in `go_ranked`; null is returned when no paid
+// alternative exists so callers preserve the stored value instead of
+// writing a free model. Returns the `"provider/model"` string or null.
 function pickSideRef(modelTable, taskName, preference, avoidFree = false) {
   const table = isObject(modelTable) ? modelTable : null;
   if (!table) return null;
@@ -250,7 +337,7 @@ function pickSideRef(modelTable, taskName, preference, avoidFree = false) {
   const key = Object.keys(table).filter((k) => String(k).toLowerCase() === want)[0];
   const entry = key ? table[key] : null;
   if (!isObject(entry)) return null;
-  if (avoidFree) {
+  if (entryAvoided(avoidFree, entry)) {
     const paid = firstPaidModel(entry);
     if (paid) {
       const paidRef = splitModelRef(paid);
@@ -371,9 +458,10 @@ function firstPaidModel(entry) {
 // the ids with an empty criteria, and `unusable` flags a payload that
 // carries no criteria at all (pre-jev_criteria cache or a shape change):
 // there the "everything else is stale" rule would wipe the whole list.
-// When `avoidFree` is true (fresh free-quota latch) categories resolve to
-// the first paid model; entries with no paid alternative omit `model` so
-// the merge preserves the stored value instead of writing a free model.
+// When `avoidFree` says an entry's free side is latched (boolean or
+// per-model predicate) that category resolves to the first paid model;
+// entries with no paid alternative omit `model` so the merge preserves
+// the stored value instead of writing a free model.
 function buildDesired(taskTypes, modelTable, preference, avoidFree = false) {
   const desired = {};
   const ignored = [];
@@ -398,7 +486,7 @@ function buildDesired(taskTypes, modelTable, preference, avoidFree = false) {
     )[0];
     const entry = tableKey ? modelTable[tableKey] : null;
     let ref = null;
-    if (avoidFree) {
+    if (entryAvoided(avoidFree, entry)) {
       ref = splitModelRef(firstPaidModel(entry));
     } else {
       const side = preference === 'go-first' ? (entry && entry.go) : (entry && entry.free);
@@ -524,16 +612,17 @@ function syncRouting(io, opts) {
       const modelCache = parts[1];
       const ttCache = parts[2];
       const routing = parts[3];
-      // Fresh free-tier soft-error latch: the free side is known
-      // exhausted, so the table routes to paid models until the window
-      // closes; expiry hands the choice back to the configured
-      // preference (a later failure re-registers the latch). Paid means
-      // the first non-free `go_ranked` row — `entry.go` itself is often
-      // free by the free-first policy, which would otherwise re-select
-      // the exhausted tier.
-      const latchFresh = freeQuotaFresh(parts[4], now);
-      const preference = latchFresh ? 'go-first' : autoPreferenceOf(findPluginOptions(managed));
-      const avoidFree = latchFresh;
+      // Fresh free-tier soft-error latches are PER MODEL: each task's
+      // table row routes to paid models only while its own free side (or
+      // the legacy global `'*'` entry) is latched; other tasks keep the
+      // configured preference until their own window closes (a later
+      // failure re-registers their latch). Paid means the first non-free
+      // `go_ranked` row — `entry.go` itself is often free by the
+      // free-first policy, which would otherwise re-select the exhausted
+      // tier.
+      const freshLatches = latchEntries(parts[4]).filter((e) => freeQuotaFresh(e, now));
+      const preference = autoPreferenceOf(findPluginOptions(managed));
+      const avoidFree = latchPredicate(freshLatches);
       const msConfig = normalizeModelselectConfig(parts[5]);
       let modelTable = null;
       if (modelCache && isObject(modelCache.config)) {
@@ -655,6 +744,9 @@ module.exports = {
   FREE_QUOTA_FILE,
   FREE_QUOTA_TTL_MS,
   freeQuotaFresh,
+  latchEntries,
+  latchKeyApplies,
+  latchPredicate,
   parseJsonLenient,
   findPluginOptions,
   autoPreferenceOf,

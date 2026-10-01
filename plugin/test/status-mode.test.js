@@ -393,7 +393,7 @@ describe('v2 status + mode', () => {
     };
   }
 
-  it('auto syncs OpenChamber routing, then hands off like off', async () => {
+  it('auto routes like on (announce + mutate + status) and still syncs OpenChamber routing', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-mode-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     seedTaskTypes(dir, {
@@ -403,11 +403,15 @@ describe('v2 status + mode', () => {
     const home = isolateHome();
     try {
       const seen = await v2Hooks(dir, {});
-      // Prompt: no announce line — auto is hands-off after the sync.
+      // Prompt: auto announces like on — no OpenChamber hand-off anymore.
       const e1 = { sessionID: 's1', prompt: 'review this diff' };
       await seen.prompt(e1);
-      assert.equal(e1.prompt, 'review this diff');
-      // Context: syncs routing.json, then acts like off.
+      assert.match(
+        typeof e1.prompt === 'string' ? e1.prompt : String(e1.prompt && e1.prompt.text),
+        /\[modelselect: task=review tier=free → f\/b/,
+        'auto announces the pick',
+      );
+      // Context: routes + persists + writes the status file.
       const ev1 = {
         sessionID: 's1',
         agent: 'review',
@@ -415,34 +419,18 @@ describe('v2 status + mode', () => {
         messages: [],
       };
       await seen.context(ev1);
-      assert.equal(ev1.model.providerID, 'old');
-      assert.equal(ev1.model.id, 'old');
-      assert.equal(seen.switched, undefined);
-      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
-      // The sync itself did land: fresh category from the plugin caches.
+      assert.equal(ev1.model.providerID, 'f');
+      assert.equal(ev1.model.id, 'b');
+      assert.equal(seen.switches, 1, 'the pick is persisted like mode on');
+      const raw = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
+      assert.equal(raw.model, 'f/b');
+      // The courtesy sync still landed: fresh category from the caches.
       const routingFile = path.join(home.home, '.config', 'openchamber', 'routing.json');
       const routing = JSON.parse(fs.readFileSync(routingFile, 'utf8'));
       assert.equal(routing.version, 1);
       assert.equal(routing.categories.review.builtin, false);
       assert.equal(routing.categories.review.description, 'Review work: judge diffs.');
       assert.deepEqual(routing.categories.review.model, { providerID: 'f', modelID: 'b' });
-      // Second turn: routing already matches, so no rewrite and still no
-      // routing/announce/status from the plugin.
-      const before = fs.statSync(routingFile).mtimeMs;
-      const e2 = { sessionID: 's1', prompt: 'again' };
-      await seen.prompt(e2);
-      assert.equal(e2.prompt, 'again');
-      const ev2 = {
-        sessionID: 's1',
-        agent: 'review',
-        model: { providerID: 'user', id: 'x' },
-        messages: [],
-      };
-      await seen.context(ev2);
-      assert.equal(ev2.model.providerID, 'user');
-      assert.equal(seen.switches, undefined);
-      assert.equal(fs.statSync(routingFile).mtimeMs, before);
-      assert.ok(!fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')));
     } finally {
       home.restore();
       fs.rmSync(dir, { recursive: true, force: true });

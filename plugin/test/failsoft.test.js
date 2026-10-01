@@ -109,9 +109,9 @@ describe('v2 free-tier fail-soft', () => {
       assert.deepEqual(r1.decision, { retry: true, delay: 0 });
 
       // second failure: window never extends, flip happens once, no re-arm
-      const before = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8'));
+      const before = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['f/b'];
       await seen['http.response'](freeResponse('s1'));
-      const after = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8'));
+      const after = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['f/b'];
       assert.equal(after.until, before.until, 'the active window never extends');
       assert.equal(seen.switches.length, 2, 'one flip per session');
       const r2 = retryEvent('s1', { providerID: 'f', id: 'b' }, { retry: false }, 3);
@@ -131,11 +131,11 @@ describe('v2 free-tier fail-soft', () => {
       await runTurn(seen);
       await seen['http.response'](freeResponse('s1', 429, 'Rate limit exceeded. Please try again later.'));
 
-      const entry = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8'));
+      const entry = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['f/b'];
       assert.equal(entry.kind, 'rate-limit');
       assert.equal(entry.until - entry.at, FREE_RATE_LIMIT_TTL_MS);
-      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until - 1), true);
-      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until), false);
+      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until - 1, 'f/b'), true);
+      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until, 'f/b'), false);
       assert.deepEqual(
         seen.switches[1],
         { sessionID: 's1', model: { providerID: 'g', id: 'a' } },
@@ -290,6 +290,28 @@ describe('resolveModel honors the latch', () => {
       assert.equal(picked.model, 'g/a');
     } finally {
       globalThis.fetch = realFetch;
+      restore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a latch on a different model leaves sibling tasks on free', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-per-'));
+    const restore = isolateAuth(dir);
+    try {
+      seedCache(dir, {
+        'task-types': { code: { go: 'g/a', free: 'f/b' }, other: { go: 'g/z', free: 'f/z' } },
+      });
+      markFreeQuota(CACHE(dir), { model: 'f/b', detail: 'http 429' }, Date.now());
+      const opts = normalizeOptions({ tier: 'free', token: 'tok' });
+      const latchedTask = await resolveModel({ taskType: 'code', opts, cacheDir: CACHE(dir) });
+      assert.equal(latchedTask.freeExhausted, true);
+      assert.equal(latchedTask.model, 'g/a', 'the latched task falls to go');
+      const sibling = await resolveModel({ taskType: 'other', opts, cacheDir: CACHE(dir) });
+      assert.equal(sibling.freeExhausted, false, 'no latch on the sibling free model');
+      assert.equal(sibling.tier, 'free');
+      assert.equal(sibling.model, 'f/z');
+    } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });
     }

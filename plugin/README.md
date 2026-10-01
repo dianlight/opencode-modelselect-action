@@ -92,7 +92,7 @@ env, so the plugin reads the key from OpenCode's `auth.json` instead — see
 | `jevToken` | `""` | Auth for the Jev call; falls back to `token` / `OPENCODE_API_KEY` / `auth.json`. Never logged. |
 | `continuation` | `true` | Zero-signal turns (acks like `do it` / `sì, procedi`, answers after a question, any language or length) inherit the previous substantive turn's task instead of falling to `generic`. The ack match (IT+EN) is only a second opinion — the score decides. Set `false` to disable. |
 | `historyChars` | `2000` | Max chars of the previous substantive prompt kept per session for continuation (also fed to Jev as `Previous: … / Current: …` context, plus the last assistant snippet). Accepts `history-chars` alias. |
-| `openchamber` | `auto` | Host detection force for the virtual model and the `/modelselect` host line: `auto` detects via `MODELSELECT_OPENCHAMBER` env (`1|true|on|yes` / `0|false|off|no`), then the OpenChamber session map (below); `on` / `off` force a host. Accepts the `open-chamber` alias. See [Host detection](#host-detection-opencode-vs-standalone). |
+| `openchamber` | `auto` | Host detection force for the `/modelselect` host line: `auto` detects via `MODELSELECT_OPENCHAMBER` env (`1|true|on|yes` / `0|false|off|no`), then the OpenChamber session map (below); `on` / `off` force a host. Accepts the `open-chamber` alias. See [Host detection](#host-detection-opencode-vs-standalone). |
 
 ## How it routes (verified against SDK types)
 
@@ -230,12 +230,12 @@ the plugin never creates OpenChamber's config itself.
 - `off` — skip routing entirely for the turn: no mutation, no
   `switchModel`, no announce line, no status write (one verbose log line
   only).
-- `auto` — refresh OpenChamber's Jev routing categories
-  (`~/.config/openchamber/routing.json`) from the plugin caches before the
-  turn, then act like `off`: no resolve, no announce, no status write, no
-  model mutation. The freshly synced categories are what route the
-  question — OpenChamber's router picks the model, the plugin stays
-  hands-off. This is the default.
+- `auto` — exactly like `on`: the plugin resolves and routes the pick
+  itself (announce + status + persistence). The default. The plugin no
+  longer depends on OpenChamber — the routing.json refresh above still
+  runs so an installed OpenChamber follows along, but nothing hands off
+  to it. The only difference from `on` is history: `auto` is the default
+  value everything falls back to.
 
 When `autoSmallModel` is true the sync also writes the resolved
 `smallModelTask` model into OpenChamber's `settings.json` +
@@ -245,8 +245,9 @@ writes the resolved `walkthroughModelTask` model as
 `walkthroughModelOverride` (the Settings → Sessions → Changes
 Walkthrough Model row — the per-panel Walkthrough model picker defaults
 to the small model, so keeping the small override fresh covers it too).
-Both follow the same go/free preference (and the 12h free-exhausted
-latch) as the routing categories, and both write only on diff.
+Both follow the same go/free preference (and the per-model
+free-exhausted latch) as the routing categories, and both write only on
+diff.
 
 ## Host detection (OpenCode vs standalone)
 
@@ -271,13 +272,15 @@ wins:
 
 The startup log names the outcome (`host=standalone/default`,
 `host=openchamber/session-map`, …) and `/modelselect` re-reports it per
-session. Detection only gates the virtual model below — per-turn routing
-always keys off the session's actual model, never the host.
+session. Detection only feeds that status line — per-turn routing always
+keys off the session's actual model, and the virtual model below
+registers in every host.
 
-## Virtual model `opencode/auto` (standalone only)
+## Virtual model `opencode/auto`
 
-When the host resolves standalone, the plugin appends an `auto` entry to
-the real `opencode` provider's inventory (existing models preserved, the
+The plugin appends an `auto` entry to
+the real `opencode` provider's inventory in every host (existing models
+preserved, the
 entry never duplicated). Selecting it makes the session route like mode
 `on` on every turn — the picker *is* the switch:
 
@@ -305,9 +308,8 @@ entry never duplicated). Selecting it makes the session route like mode
 It must live on the real driver: OpenCode pins the dispatch endpoint to
 the session model, so a standalone fake provider could never serve turns
 (`package: ""` is rejected at load, a cloned real driver fails
-load-time model validation). Under OpenChamber nothing is registered:
-the host owns the model there, and a virtual entry would only clutter
-its picker (mode `auto` hands off to OpenChamber's router instead).
+load-time model validation). The entry registers under OpenChamber too —
+it is the always-visible "this session routes every turn" pick.
 
 Known first-turn gap: the announce line for a virtual pick starts from
 turn 2 — the prompt hook runs before the context hook marks the session
@@ -336,13 +338,16 @@ there is deliberately no probe. When a free-side `primary` model call
 comes back exhausted (402, 429, quota wording, or the transient message
 “Rate limit exceeded. Please try again later.”), the plugin:
 
-1. registers a latch in
-   `<project>/.opencode/.modelselect-cache/free-quota.json` — while
-   fresh, routing sync writes the `go` side of OpenChamber's
-   `routing.json` (whatever `autoPreference` says) and `resolveModel`
-   picks `go` (also for a pinned `tier: "free"` when a token exists).
-   Spent quota uses a 12h window; transient rate limiting uses a 1h
-   window;
+1. registers a PER-MODEL latch in
+   `<project>/.opencode/.modelselect-cache/free-quota.json`
+   (`{version: 2, models: {"<provider/id>": {at, until, kind, …}}}`) —
+   while fresh for that model, routing sync writes the `go` side of
+   OpenChamber's `routing.json` for the tasks on it (whatever
+   `autoPreference` says) and `resolveModel` picks `go` for them (also
+   for a pinned `tier: "free"` when a token exists). Sibling free models
+   are unaffected and keep routing free. Spent quota uses a 12h window;
+   transient rate limiting uses a 1h window. A legacy model-less entry
+   still reads as a global latch over every free model;
 2. forces exactly one retry of the turn on its task's `go` model — no
    dummy probe, no loop (the flip latches per session and OpenCode's
    attempt cap bounds the rest). On a virtual `modelselect/auto` session
@@ -351,9 +356,10 @@ comes back exhausted (402, 429, quota wording, or the transient message
    in place.
 
 Each window runs from its first detection and never extends; after it
-expires, the next real failure may register again (the "new check"). `off`/`auto` modes and `suggestOnly` still latch + resync
+expires, the next real failure may register again (the "new check"). Mode `off` and `suggestOnly` still latch + resync
 routing but never switch the session. The Work Status view shows a
-`free exhausted` badge while the latch is fresh.
+`free exhausted` badge while the latch is fresh and one countdown row
+per freshly latched model.
 
 ## Trial run without side effects
 

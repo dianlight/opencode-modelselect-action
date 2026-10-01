@@ -55,7 +55,7 @@ Folder/ZIP/URL source.
   control (writes `.opencode/.modelselect-cache/mode.json` via `writeFile`
   and mirrors the value to `host.storage` `modelselect:mode`), with the
   mode hint below (`routes every turn` / `routing paused` /
-  `routing synced, plugin off`).
+  `plugin routes (auto)`).
 - Status icons: color-coded glyphs trailing the Tier value (Go auth:
   `✓` ok / `✕` out / `?` unknown) and the Model value (`!` while the
   plugin runs in suggest-only trial mode). Native tooltips don't surface
@@ -68,15 +68,17 @@ Folder/ZIP/URL source.
   `default`/`minimal`/`low`/`medium`/`high`/`xhigh` from the status file,
   shown capitalized), Jev, Source. Badges (`mountBadge`) carry `last known` +
   dimming when the pick is older than ~10 min
-  (`off`/`auto` turns never rewrite the status file, so stale = last
+  (`off` turns never rewrite the status file, so stale = last
   applied pick), `unlisted task` when the task is absent from the config
   cache, `free exhausted` while the plugin's free-tier soft-error latch
-  is fresh (12h for spent quota, 1h for transient rate limiting), and
+  is fresh for the pick's model (12h for spent quota, 1h for transient
+  rate limiting), and
   `Auto` while the session model is unset.
-- Mode-dependent fields: in `auto`/`off` the status file is stale by
+- Mode-dependent fields: in `off` the status file is stale by
   design (the plugin never rewrites it there), so the whole pick grid
   and all badges are hidden — only the live session Model + Agent and
-  the mode hint are shown. `on` renders the full grid above. Missing
+  the mode hint are shown. `on`/`auto` render the full grid above (the
+  plugin routes in both). Missing
   mode storage means `auto` (the plugin default): a fresh install shows
   the live grid until the user picks `on`.
 - Theme comes from the host (`applyHostReady`); layout CSS uses host
@@ -93,9 +95,10 @@ Status is visible.
 The Jev routing categories (`~/.config/openchamber/routing.json`,
 stored-deviations shape) are kept fresh from two places, both best-effort:
 
-- The plugin, before every turn (the `prompt` + `context` hooks) — this
-  is what makes `auto` mode work: the sync refreshes the categories, then
-  the plugin acts like `off` and OpenChamber's routing owns the pick.
+- The plugin, before every turn (the `prompt` + `context` hooks) — a
+  courtesy sync so an installed OpenChamber follows the plugin's caches;
+  the plugin routes the pick itself in `on` and `auto` and never hands
+  off to OpenChamber's routing.
 - This view, on every Work Status refresh (fallback while the panel is
   open) — grant the `files` capability (the `routing.json` path is
   declared in `package.json`, re-approve on update).
@@ -138,12 +141,14 @@ this bundle wraps it in a host-file adapter
 - Stale entries (stored ids that are no task type) are disabled
   (`disabled: true`), never deleted. Writes happen only on diff; all
   failures are silent so the view never breaks.
-- Free-tier latch: while `.opencode/.modelselect-cache/free-quota.json`
-  is fresh (12h for spent quota or 1h for transient rate limiting,
-  written by the plugin on a real free-side failure — Zen has no
-  free-quota endpoint), the sync forces the `go` side for every category
-  and `fallback`, whatever `autoPreference` says; expiry hands the
-  choice back.
+- Free-tier latch (per model): while `.opencode/.modelselect-cache/free-quota.json`
+  carries a fresh entry for a model (12h for spent quota or 1h for
+  transient rate limiting, written by the plugin on a real free-side
+  failure — Zen has no free-quota endpoint), the sync forces the `go`
+  side for that model's categories and `fallback`, whatever
+  `autoPreference` says; every other category keeps its preference, and
+  expiry hands the choice back. A legacy model-less entry still forces
+  every category. The view renders one countdown row per fresh entry.
 
 ## External config (`modelselect.json`) + model autoset
 

@@ -155,7 +155,11 @@ describe('markFreeQuota / freshness (first-detection windows)', () => {
 
       // The first failure controls the active window: a later quota signal
       // does not lengthen or reclassify it.
-      const later = markFreeQuota(dir, { kind: 'exhaustion', detail: 'quota spent' }, at + 60_000);
+      const later = markFreeQuota(
+        dir,
+        { kind: 'exhaustion', model: 'f/b', detail: 'quota spent' },
+        at + 60_000,
+      );
       assert.equal(later.kind, 'rate-limit');
       assert.equal(later.until, at + FREE_RATE_LIMIT_TTL_MS);
       assert.equal(later.updatedAt, at + 60_000);
@@ -179,20 +183,69 @@ describe('markFreeQuota / freshness (first-detection windows)', () => {
     }
   });
 
-  it('reads back the entry and survives missing/corrupt files', () => {
+  it('reads back the raw file and survives missing/corrupt files', () => {
     const dir = tempCache('modelselect-fq-');
     try {
       assert.equal(readFreeQuota(dir), null, 'missing -> null');
       assert.deepEqual(readFreeQuota(''), null, 'no cacheDir -> null');
       const at = Date.now();
-      const entry = markFreeQuota(dir, { detail: 'x' }, at);
-      assert.deepEqual(readFreeQuota(dir), entry);
+      const entry = markFreeQuota(dir, { model: 'f/b', detail: 'x' }, at);
+      const raw = readFreeQuota(dir);
+      assert.equal(raw.version, 2, 'per-model file shape');
+      assert.equal(raw.models['f/b'].at, at);
+      assert.equal(raw.models['f/b'].detail, 'x');
+      assert.deepEqual(raw.models['f/b'], {
+        at: entry.at,
+        until: entry.until,
+        kind: entry.kind,
+        detail: entry.detail,
+        updatedAt: entry.updatedAt,
+      });
 
       fs.writeFileSync(path.join(dir, FREE_QUOTA_BASENAME), 'nope{', 'utf8');
       assert.equal(readFreeQuota(dir), null, 'corrupt -> null');
-      assert.equal(isFreeQuotaFresh(dir, at), false, 'corrupt -> not fresh');
+      assert.equal(isFreeQuotaFresh(dir, at, 'f/b'), false, 'corrupt -> not fresh');
       fs.writeFileSync(path.join(dir, FREE_QUOTA_BASENAME), '[]', 'utf8');
       assert.equal(readFreeQuota(dir), null, 'array -> null');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('latches per model: siblings stay free, legacy v1 stays global', () => {
+    const dir = tempCache('modelselect-fq-per-');
+    try {
+      const at = Date.now();
+      markFreeQuota(dir, { model: 'opencode/a-free', detail: 'http 429' }, at);
+      assert.equal(isFreeQuotaFresh(dir, at, 'opencode/a-free'), true, 'the failing model is latched');
+      assert.equal(isFreeQuotaFresh(dir, at, 'opencode/b-free'), false, 'the sibling stays free');
+      assert.equal(isFreeQuotaFresh(dir, at), true, 'any-model queries still see it');
+
+      // A second model gets its own independent window.
+      markFreeQuota(dir, { model: 'opencode/b-free', kind: 'rate-limit', detail: 'rl' }, at + 1000);
+      const raw = readFreeQuota(dir);
+      assert.deepEqual(Object.keys(raw.models).sort(), ['opencode/a-free', 'opencode/b-free']);
+      assert.equal(raw.models['opencode/b-free'].until - raw.models['opencode/b-free'].at, FREE_RATE_LIMIT_TTL_MS);
+
+      // A model-less mark latches the legacy global '*' key: everything
+      // reads fresh.
+      markFreeQuota(dir, { detail: 'no model' }, at + 2000);
+      assert.equal(isFreeQuotaFresh(dir, at + 2000, 'opencode/anything'), true);
+
+      // A legacy v1 file (single entry, model field) still reads as-is.
+      fs.writeFileSync(
+        path.join(dir, FREE_QUOTA_BASENAME),
+        JSON.stringify({ version: 1, at, until: at + FREE_QUOTA_TTL_MS, kind: 'exhaustion', model: 'f/b' }),
+        'utf8',
+      );
+      assert.equal(isFreeQuotaFresh(dir, at, 'f/b'), true, 'v1 model entry');
+      assert.equal(isFreeQuotaFresh(dir, at, 'f/other'), false, 'v1 latch only covers its model');
+      fs.writeFileSync(
+        path.join(dir, FREE_QUOTA_BASENAME),
+        JSON.stringify({ version: 1, at, until: at + FREE_QUOTA_TTL_MS, kind: 'exhaustion', model: null }),
+        'utf8',
+      );
+      assert.equal(isFreeQuotaFresh(dir, at, 'f/other'), true, 'v1 model-less latch is global');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

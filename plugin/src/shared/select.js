@@ -214,20 +214,23 @@ function normalizeThink(v) {
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir }) {
-  // Free-tier soft-error latch (quota exhaustion uses 12h and transient
-  // rate limiting uses 1h; see shared/freequota.js): Zen has no
-  // free-quota endpoint, so a real exhaustion registers there; while the
-  // latch is fresh the free side is known-exhausted and the pick falls to
-  // `go` (also across routing sync — shared/routing.js reads the file).
-  const freeExhausted = isFreeQuotaFresh(cacheDir);
   const { config, source, stale } = await loadConfig(opts, cacheDir);
   const { key, entry } = entryFor(config, taskType);
+  // Free-tier soft-error latch, PER MODEL (quota 12h / rate-limit 1h;
+  // see shared/freequota.js): Zen has no free-quota endpoint, so a real
+  // exhaustion registers there; while THIS task's free candidate is
+  // latched the pick falls to `go` (also across routing sync —
+  // shared/routing.js reads the same file). Other tasks' free models are
+  // unaffected.
+  const go = (entry && entry.go) || '';
+  const free = (entry && entry.free) || '';
+  const freeExhausted = free
+    ? isFreeQuotaFresh(cacheDir, undefined, free)
+    : isFreeQuotaFresh(cacheDir); // no entry: report "something is latched"
   if (!key || !entry) {
     if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted };
     throw new Error(`No model configured for task-type='${taskType}'.`);
   }
-  const go = entry.go || '';
-  const free = entry.free || '';
   let tier = opts.tier;
   let goOk = null; // last quota-probe result; null when no probe ran
   if (tier === 'auto') {
@@ -262,11 +265,13 @@ async function resolveModel({ taskType, opts, cacheDir }) {
     // it; without a token nothing else can work either, keep free).
     tier = 'go';
   }
-  // Fresh latch means the free side is exhausted, but `go` is often free
-  // itself by the free-first policy — that would re-select the spent tier.
-  // Prefer the first paid `go_ranked` row instead (best-to-worst).
+  // A fresh latch on the chosen model means its free side is exhausted,
+  // but `go` is often free itself by the free-first policy — that would
+  // re-select the spent tier. Prefer the first paid `go_ranked` row
+  // instead (best-to-worst).
   let model = tier === 'go' ? go : free;
-  if (freeExhausted) {
+  const modelLatched = model ? isFreeQuotaFresh(cacheDir, undefined, model) : false;
+  if (modelLatched) {
     const paid = firstPaidModel(entry);
     const canUsePaid = Boolean(opts.token) || tier === 'go';
     if (paid && canUsePaid && isFreeModelString(model)) {
@@ -278,7 +283,7 @@ async function resolveModel({ taskType, opts, cacheDir }) {
     if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched };
 }
 
 /** Split a "provider/model" string. v1 uses modelID, v2 uses id. */
