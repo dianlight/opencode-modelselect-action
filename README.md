@@ -68,31 +68,31 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-03 09:49 UTC**.
-> LiveBench data: **308 models scored**.
-> LiveBench snapshot: **2026_01_08**.
-> Source: https://livebench.ai/table_2026_01_08.csv
+> Last updated: **2026-10-03 09:56 UTC**.
+> LiveBench data: **353 models scored**.
+> LiveBench snapshot: **2026_06_25**.
+> Source: https://livebench.ai/table_2026_06_25.csv
 > Free-first threshold: **5%**.
 > Blended cost weights: **75% in / 25% out** ($/1M).
 > Costs shown as in/out $/1M (Free = $0).
 
 | Task Type | Description | Best Zen | Best Free | Best Go |
 |-----------|-------------|----------|-----------|---------|
-| `plan` (Plan) | Planning, architecture decisions, task decomposition | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (84.0, Free) | 🏆 `opencode-go/gpt-5.6-luna` (93.0, $0.2/$1.2) |
-| `issue-triage` (Issue Triage) | Triage, label, categorize, route issues | `opencode/gpt-5.6-sol` (81.6, $4/$20) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
-| `review` (Review) | Review PRs, pull requests, diffs | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (84.0, Free) | 🏆 `opencode-go/gpt-5.6-luna` (93.0, $0.2/$1.2) |
-| `ui-design` (UI Design) | UI design, components, layouts, mockups | `opencode/gpt-5.5` (76.3, $5/$30) | `opencode/mimo-v2.5-free` (54.0, Free) | 🏆 `opencode-go/hy4-preview` (84.0, $0.834/$2.501) |
-| `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/gpt-5.4` (73.0, $2.5/$15) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/mimo-v2.6-pro` (80.0, $0.435/$0.87) |
-| `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/gpt-5.4` (73.0, $2.5/$15) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/mimo-v2.6-pro` (80.0, $0.435/$0.87) |
-| `docs` (Docs) | Documentation, READMEs, changelogs, docstrings | `opencode/gpt-5.6-sol` (81.6, $4/$20) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
-| `debug` (Debug) | Debugging, reproductions, crash and exception triage | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (84.0, Free) | 🏆 `opencode-go/gpt-5.6-luna` (93.0, $0.2/$1.2) |
-| `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/gpt-5.4` (73.0, $2.5/$15) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/mimo-v2.6-pro` (80.0, $0.435/$0.87) |
-| `security` (Security) | Security review, vulnerabilities, hardening | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (84.0, Free) | 🏆 `opencode-go/gpt-5.6-luna` (93.0, $0.2/$1.2) |
-| `code` (Code) | Code generation, implementation, features | `opencode/gpt-5.4` (73.0, $2.5/$15) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/mimo-v2.6-pro` (80.0, $0.435/$0.87) |
-| `mechanical-engineer` (Mechanical Engineer) | Mechanical engineering, calculations, CAD, thermodynamics, materials | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (84.0, Free) | 🏆 `opencode-go/gpt-5.6-luna` (93.0, $0.2/$1.2) |
-| `web-search` (Web Search) | Ricerche approfondite sul web, sintesi multi-fonte | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (84.0, Free) | 🏆 `opencode-go/gpt-5.6-luna` (93.0, $0.2/$1.2) |
-| `generic` (Generic) | General Q&A, explanations, analysis, everything else | `opencode/gpt-5.6-sol` (81.6, $4/$20) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
-| `small-model` (Small Model) | Lightweight utility tasks: commit messages, session titles/renames, summaries | `opencode/gpt-5.6-sol` (81.6, $4/$20) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
+| `plan` (Plan) | Planning, architecture decisions, task decomposition | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
+| `issue-triage` (Issue Triage) | Triage, label, categorize, route issues | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
+| `review` (Review) | Review PRs, pull requests, diffs | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
+| `ui-design` (UI Design) | UI design, components, layouts, mockups | `opencode/gpt-6-astra` (86.3, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (68.4, Free) | 🏆 `opencode-go/hy4-preview` (84.0, $0.834/$2.501) |
+| `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `docs` (Docs) | Documentation, READMEs, changelogs, docstrings | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
+| `debug` (Debug) | Debugging, reproductions, crash and exception triage | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
+| `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `security` (Security) | Security review, vulnerabilities, hardening | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
+| `code` (Code) | Code generation, implementation, features | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/mimo-v2.6-flash-free` (71.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `mechanical-engineer` (Mechanical Engineer) | Mechanical engineering, calculations, CAD, thermodynamics, materials | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
+| `web-search` (Web Search) | Ricerche approfondite sul web, sintesi multi-fonte | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
+| `generic` (Generic) | General Q&A, explanations, analysis, everything else | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
+| `small-model` (Small Model) | Lightweight utility tasks: commit messages, session titles/renames, summaries | `opencode/gpt-5.5-pro` (81.6, $30/$180) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
 
 ### LiveBench Score Reference
 
@@ -105,30 +105,30 @@ automatically at their next run.
 |-------|------|--------|----------|---------|--------|-----------|--------|----------------------|---------|----------|--------------|-------|
 | `big-pickle` | Free | 📋 Fallback | UITest, APITest | 61.5 | 67.0 | 61.5 | 8.0 | 60.0 | Free | Free | Free | — |
 | `deepseek-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 67.3 | 69.2 | 89.9 | 5.0 | 80.4 | — | — | — | — |
-| `deepseek-v4-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 67.7 | 57.7 | 73.1 | 46.9 | 69.4 | $0.14 | $0.28 | $0.175 | 386.9 |
-| `deepseek-v4-flash-free` | Free | ✅ LiveBench | Plan, Review | 67.7 | 57.7 | 73.1 | 46.9 | 69.4 | Free | Free | Free | — |
-| `deepseek-v4-flash-vision-exp` | Go (Paid) | ✅ LiveBench | Plan, Review | 67.7 | 57.7 | 73.1 | 46.9 | 69.4 | $0.14 | $0.28 | $0.175 | 386.9 |
-| `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 74.4 | 62.0 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 34.2 |
-| `deepseek-v4.1-flash` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.3 | $1.2 | $0.525 | — |
+| `deepseek-v4-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 66.1 | 50.3 | 73.1 | 46.9 | 69.4 | $0.14 | $0.28 | $0.175 | 377.7 |
+| `deepseek-v4-flash-free` | Free | ✅ LiveBench | Plan, Review | 66.1 | 50.3 | 73.1 | 46.9 | 69.4 | Free | Free | Free | — |
+| `deepseek-v4-flash-vision-exp` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.7 | 66.3 | 86.1 | 57.7 | 75.2 | $0.14 | $0.28 | $0.175 | 444.0 |
+| `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.6 | 53.6 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 33.4 |
+| `deepseek-v4.1-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 81.4 | 78.4 | 88.7 | 61.6 | 74.0 | $0.3 | $1.2 | $0.525 | 155.0 |
 | `fledge-alpha-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `glm-5` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $1 | $3.2 | $1.55 | 44.3 |
 | `glm-5.1` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.6 | 63.1 | 75.6 | 60.3 | 69.5 | $1.4 | $4.4 | $2.15 | 32.8 |
-| `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $1.4 | $4.4 | $2.15 | 32.0 |
-| `glm-5.3` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $1.4 | $4.4 | $2.15 | 32.0 |
-| `glm-5.3-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $0.15 | $0.5 | $0.2375 | 289.3 |
-| `gpt-5.6-luna` | Go (Paid) | ✅ LiveBench | Plan, Review | 78.8 | 60.0 | 93.0 | 57.0 | 81.6 | $0.2 | $1.2 | $0.45 | 175.1 |
-| `gpt-6-luna` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.1 | $0.5 | $0.2 | — |
-| `grok-4.5` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $2 | $6 | $3 | — |
-| `grok-4.6` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $2 | $6 | $3 | — |
-| `grok-4.7` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $2 | $6 | $3 | — |
+| `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 73.4 | 62.9 | 82.1 | 60.7 | 68.2 | $1.4 | $4.4 | $2.15 | 34.1 |
+| `glm-5.3` | Go (Paid) | ✅ LiveBench | Plan, Review | 76.6 | 68.1 | 84.4 | 60.2 | 72.3 | $1.4 | $4.4 | $2.15 | 35.6 |
+| `glm-5.3-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 71.1 | 65.6 | 78.2 | 60.3 | 64.5 | $0.15 | $0.5 | $0.2375 | 299.4 |
+| `gpt-5.6-luna` | Go (Paid) | ✅ LiveBench | Plan, Review | 73.7 | 62.2 | 84.8 | 51.2 | 66.6 | $0.2 | $1.2 | $0.45 | 163.8 |
+| `gpt-6-luna` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.2 | 62.3 | 82.7 | 57.5 | 63.7 | $0.1 | $0.5 | $0.2 | 361.0 |
+| `grok-4.5` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.1 | 61.3 | 86.9 | 66.4 | 73.9 | $2 | $6 | $3 | 25.7 |
+| `grok-4.6` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.0 | 64.9 | 89.1 | 67.1 | 74.3 | $2 | $6 | $3 | 26.3 |
+| `grok-4.7` | Go (Paid) | ✅ LiveBench | Plan, Review | 78.3 | 63.3 | 87.9 | 72.4 | 74.3 | $2 | $6 | $3 | 26.1 |
 | `hy3` | Go (Paid) | 📋 Fallback | Plan, Review | 54.0 | 55.0 | 60.0 | 8.0 | 58.0 | $0.14 | $0.58 | $0.25 | 216.0 |
 | `hy3-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 54.0 | 55.0 | 60.0 | 8.0 | 58.0 | — | — | — | — |
 | `hy4-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 79.2 | 68.9 | 85.0 | 84.0 | 78.0 | $0.834 | $2.501 | $1.2508 | 63.3 |
 | `jev-1.13-free` | Free | 📋 Fallback | Plan, Review | 67.8 | 30.0 | 67.8 | 5.0 | 50.0 | Free | Free | Free | — |
 | `kimi-k2.5` | Go (Paid) | ✅ LiveBench | Plan, Review | 69.2 | 60.1 | 76.7 | 55.0 | 65.3 | $0.6 | $3 | $1.2 | 57.7 |
-| `kimi-k2.6` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.4 | 66.4 | 77.9 | 58.1 | 69.7 | $0.95 | $4 | $1.7125 | 42.3 |
-| `kimi-k2.7-code` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.95 | $4 | $1.7125 | — |
-| `kimi-k3` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $3 | $15 | $6 | — |
+| `kimi-k2.6` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.9 | 59.6 | 77.9 | 58.1 | 69.7 | $0.95 | $4 | $1.7125 | 41.4 |
+| `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |
+| `kimi-k3` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 69.9 | 87.0 | 72.6 | 74.9 | $3 | $15 | $6 | 13.2 |
 | `ling-3.0-flash-fin-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 48.0 | 48.0 | 5.0 | 50.0 | Free | Free | Free | — |
 | `ling-3.1-flash-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `longcat-2.0` | Go (Paid) | 📋 Fallback | Triage, Docs | 60.0 | 70.0 | 89.0 | 5.0 | 90.0 | $0.3 | $1.2 | $0.525 | 114.3 |
@@ -143,20 +143,20 @@ automatically at their next run.
 | `mimo-v2.6-pro` | Go (Paid) | 📋 Fallback | Plan, Review | 70.0 | 80.0 | 88.0 | 50.0 | 82.0 | $0.435 | $0.87 | $0.5437 | 128.7 |
 | `minimax-m2.5` | Go (Paid) | ✅ LiveBench | Plan, Review | 60.3 | 59.3 | 62.3 | 31.3 | 62.2 | $0.3 | $1.2 | $0.525 | 114.9 |
 | `minimax-m2.7` | Go (Paid) | ✅ LiveBench | Plan, Review | 65.0 | 52.0 | 72.4 | 34.0 | 67.4 | $0.3 | $1.2 | $0.525 | 123.8 |
-| `minimax-m3` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.1 | 63.3 | 76.7 | 50.2 | 66.9 | $0.3 | $1.2 | $0.525 | 133.5 |
-| `muse-spark-1.2-contributor` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.1 | $0.2 | $0.125 | — |
-| `muse-spark-1.2-contributor-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
-| `muse-spark-1.3-contributor` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.1 | $0.2 | $0.125 | — |
-| `muse-spark-1.3-contributor-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
-| `nemotron-3-ultra-free` | Free | ✅ LiveBench | Triage, Docs | 50.7 | 56.5 | 42.9 | 36.5 | 62.5 | Free | Free | Free | — |
+| `minimax-m3` | Go (Paid) | ✅ LiveBench | Plan, Review | 67.5 | 51.7 | 76.7 | 50.2 | 66.9 | $0.3 | $1.2 | $0.525 | 128.6 |
+| `muse-spark-1.2-contributor` | Go (Paid) | ✅ LiveBench | Plan, Review | 78.9 | 65.6 | 88.7 | 61.7 | 74.9 | $0.1 | $0.2 | $0.125 | 631.2 |
+| `muse-spark-1.2-contributor-free` | Free | ✅ LiveBench | Plan, Review | 78.9 | 65.6 | 88.7 | 61.7 | 74.9 | Free | Free | Free | — |
+| `muse-spark-1.3-contributor` | Go (Paid) | ✅ LiveBench | Plan, Review | 82.4 | 70.9 | 90.9 | 68.4 | 78.9 | $0.1 | $0.2 | $0.125 | 659.2 |
+| `muse-spark-1.3-contributor-free` | Free | ✅ LiveBench | Plan, Review | 82.4 | 70.9 | 90.9 | 68.4 | 78.9 | Free | Free | Free | — |
+| `nemotron-3-ultra-free` | Free | ✅ LiveBench | Plan, Review | 68.7 | 51.5 | 75.6 | 47.8 | 74.0 | Free | Free | Free | — |
 | `nemotron-3.5-lightning-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 36.2 | 58.0 | 5.0 | 72.0 | Free | Free | Free | — |
 | `omen-alpha` | Go (Paid) | 📋 Fallback | Plan, Review | 56.0 | 57.9 | 65.0 | 40.0 | 62.0 | — | — | — | — |
 | `qwen3.5-plus` | Go (Paid) | 📋 Fallback | Plan, Review | 58.0 | 52.0 | 62.0 | 42.0 | 60.0 | $0.2 | $1.2 | $0.45 | 128.9 |
-| `qwen3.6-plus` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.8 | 64.3 | 77.0 | 52.5 | 67.7 | $0.5 | $3 | $1.125 | 62.9 |
-| `qwen3.7-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 75.2 | 60.7 | 82.4 | 58.7 | 76.6 | $2.5 | $7.5 | $3.75 | 20.1 |
+| `qwen3.6-plus` | Go (Paid) | ✅ LiveBench | Plan, Review | 69.0 | 56.1 | 77.0 | 52.5 | 67.7 | $0.5 | $3 | $1.125 | 61.3 |
+| `qwen3.7-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 74.1 | 55.8 | 82.4 | 58.7 | 76.6 | $2.5 | $7.5 | $3.75 | 19.8 |
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
-| `qwen3.8-flash` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.15 | $0.47 | $0.23 | — |
-| `qwen3.8-max` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $2 | $6 | $3 | — |
+| `qwen3.8-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.3 | 66.0 | 84.4 | 55.8 | 77.2 | $0.15 | $0.47 | $0.23 | 336.1 |
+| `qwen3.8-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 67.9 | 87.9 | 58.6 | 77.2 | $2 | $6 | $3 | 26.5 |
 | `space-bunny-free` | Free | 📋 Fallback | Plan, Review | 30.0 | 28.0 | 40.0 | 38.0 | 35.0 | Free | Free | Free | — |
 ## Sponsor
 
