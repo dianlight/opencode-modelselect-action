@@ -1,5 +1,13 @@
 ## [Unreleased]
 ### Changed
+- The maintenance workflow acts directly on model coverage issues instead of
+  waiting for issue checkboxes: when the audit detects stale fallback
+  entries, missing scores or vision mismatches it opens a fresh report
+  issue (assigned to the repo owner) and in the same run runs OpenCode to
+  research the scores and open the "Fix model coverage issues" PR
+  (assigned to the repo owner, always superseding any open automation PR).
+  The `handle-checkbox-task` job and the `issues`/`issue_comment` triggers
+  are gone; the report issue no longer carries checkboxes.
 - The on/off/auto modes are gone — the virtual `opencode/auto` model is
   the routing switch now: the plugin routes ONLY sessions whose model is
   that ref (announce, status, overlay, free-exhaustion retry); any other
