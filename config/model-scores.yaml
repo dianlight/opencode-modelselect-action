@@ -95,6 +95,12 @@ model_scores:
     overall: 45.0
     reasoning: 48.0
     vision: 5.0               # text-only per HF text-generation + llm-stats
+  ling-3.1-flash-free:
+    coding: 64.0             # unverified single source: BenchLM rows <- Ant launch table (SWE-Pro 65.39, DeepSWE 59.7, T-Bench-2.1 81.2, T-Bench-4.0 40.4); ~GLM-5.3-flash level (LiveBench coding 65.6)
+    instruction_following: 68.0  # unverified single source: no IFEval published; strong agentic suite (MCP-Atlas 83.0, BrowseComp 91.7, DRACO 85.5, WideSearch 83.3)
+    overall: 57.0             # unverified single source: vendor profile ~GLM-5.3-flash (LiveBench overall 71.1) discounted for text-only vision; consistent w/ BenchLM family (Ling-3.0 46.4) + ModelCap modeled index 59.9
+    reasoning: 75.0           # unverified single source: HLE 37.4, MultiChallenge 69.8, HealthBench-Professional 65.3 (Ant launch table via BenchLM); HLE slightly below GLM-5.3-flash (39.9)
+    vision: 5.0               # text-only per OpenCode data (input modalities: text) + BenchLM multimodal not measured
   mimo-v2.6-flash:
     coding: 75.0             # Terminal-Bench 2.1 87.6, DeepSWE 67.9, CyberGym 95.1 (BenchLM / LLM Stats)
     instruction_following: 76.0  # strong agentic IF-style performance; agentic index 76.5 (modelscale.dev)
