@@ -236,11 +236,14 @@ jobs:
             echo "✓ Closed superseded issue #$N"
           done
           OWNER="${{ github.repository_owner }}"
-          NUMBER=$(gh issue create \
+          # gh issue create prints the issue URL — extract the number for
+          # step outputs (used by `Closes #N`, gh issue view/comment).
+          ISSUE_URL=$(gh issue create \
             --title "$ISSUE_TITLE" \
             --label "maintenance" \
             --assignee "$OWNER" \
             --body-file /tmp/issue_body.md)
+          NUMBER=${ISSUE_URL##*/}
           echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
           echo "✓ Created issue #$NUMBER, assigned to $OWNER"
 
@@ -251,9 +254,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCHES=$(gh pr list --state open --json headRefName --jq -r '.[].headRefName' 2>/dev/null | grep -E '^(model-coverage-fix|model-config-update)' || true)
+          # NOTE: gh's --jq already prints raw strings — `--jq -r 'expr'` is
+          # invalid (`--jq` swallows `-r`) and made this loop a silent no-op.
+          BRANCHES=$(gh pr list --state open --json headRefName --jq '.[].headRefName' | grep -E '^(model-coverage-fix|model-config-update)' || true)
           for BR in $BRANCHES; do
-            NUM=$(gh pr list --state open --head "$BR" --json number --jq -r '.[0].number' 2>/dev/null || true)
+            NUM=$(gh pr list --state open --head "$BR" --json number --jq '.[0].number' || true)
             if [ -n "$NUM" ] && [ "$NUM" != "null" ]; then
               gh pr close "$NUM" --comment "Superseded by a fresh maintenance run." 2>/dev/null || true
               echo "✓ Closed superseded PR #$NUM ($BR)"
@@ -378,7 +383,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           OWNER="${{ github.repository_owner }}"
-          PRS=$(gh pr list --state open --json number,headRefName --jq -r '.[] | select(.headRefName | startswith("model-coverage-")) | .number' 2>/dev/null || true)
+          PRS=$(gh pr list --state open --json number,headRefName --jq '.[] | select(.headRefName | startswith("model-coverage-")) | .number' || true)
           for P in $PRS; do
             gh pr edit "$P" --add-assignee "$OWNER" 2>/dev/null || true
             echo "✓ Assigned PR #$P to $OWNER"

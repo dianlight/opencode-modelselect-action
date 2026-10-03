@@ -7,7 +7,10 @@
   research the scores and open the "Fix model coverage issues" PR
   (assigned to the repo owner, always superseding any open automation PR).
   The `handle-checkbox-task` job and the `issues`/`issue_comment` triggers
-  are gone; the report issue no longer carries checkboxes.
+  are gone; the report issue no longer carries checkboxes. Also fixes the
+  superseded-PR/assignee loops, which never ran because `gh --jq -r '…'`
+  is invalid gh syntax (`--jq` swallowed `-r`), and the issue-number
+  output, which received the `gh issue create` URL instead of the number.
 - The on/off/auto modes are gone — the virtual `opencode/auto` model is
   the routing switch now: the plugin routes ONLY sessions whose model is
   that ref (announce, status, overlay, free-exhaustion retry); any other
