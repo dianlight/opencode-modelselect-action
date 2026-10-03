@@ -88,8 +88,12 @@ jobs:
       # No checkbox round-trip: when coverage issues exist this run opens a
       # fresh (assigned) report issue and then immediately runs OpenCode to
       # research scores and open the fix PR. TASKS drives both steps below.
+      # Gated off `push`: `opencode github run` only accepts
+      # schedule/workflow_dispatch (+ issues/issue_comment) — push runs are
+      # workflow self-tests and must not reach the OpenCode step.
       - name: Detect coverage issues
         id: coverage
+        if: github.event_name != 'push'
         run: |
           # Check coverage issues
           STALE=$(python3 -c "import json; d=json.load(open('data/coverage_issues.json')); print(len(d.get('stale_fallback',[])))" 2>/dev/null || echo "0")

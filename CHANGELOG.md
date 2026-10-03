@@ -11,6 +11,9 @@
   superseded-PR/assignee loops, which never ran because `gh --jq -r '…'`
   is invalid gh syntax (`--jq` swallowed `-r`), and the issue-number
   output, which received the `gh issue create` URL instead of the number.
+  The report+fix chain runs for `schedule`/`workflow_dispatch` only —
+  `opencode github run` rejects `push` events, so push runs stay workflow
+  self-tests.
 - The on/off/auto modes are gone — the virtual `opencode/auto` model is
   the routing switch now: the plugin routes ONLY sessions whose model is
   that ref (announce, status, overlay, free-exhaustion retry); any other
