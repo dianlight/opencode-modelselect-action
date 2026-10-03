@@ -95,6 +95,12 @@ model_scores:
     overall: 45.0
     reasoning: 48.0
     vision: 5.0               # text-only per HF text-generation + llm-stats
+  ling-3.1-flash-free:
+    coding: 55.0             # unverified single source: BenchLM TB4 40.4 + SWE-Atlas 55.9 + CyberGym 87.9 (Ant Ling launch screenshots 2026-09-30), discounted vs TB2.1-scale comparables
+    instruction_following: 52.0  # unverified single source: no IF data for 3.1; ling-3.0 IFBench 74.5 -> 50.0, slight bump for newer model
+    overall: 55.0             # unverified single source: BenchLM overall not computed; agentic gains over ling-3.0-flash (BenchLM 46.38)
+    reasoning: 62.0           # unverified single source: DRACO 85.5 + CyberGym 87.9 multi-step agentic reasoning; no GPQA/AIME data
+    vision: 5.0               # text-only per Novita (text in/out) + Vercel (text workflows) + OpenCode catalog
   mimo-v2.6-flash:
     coding: 75.0             # Terminal-Bench 2.1 87.6, DeepSWE 67.9, CyberGym 95.1 (BenchLM / LLM Stats)
     instruction_following: 76.0  # strong agentic IF-style performance; agentic index 76.5 (modelscale.dev)
