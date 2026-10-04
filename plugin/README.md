@@ -59,6 +59,7 @@ env, so the plugin reads the key from OpenCode's `auth.json` instead — see
   "configRefreshMinutes": 1440, // 0 = refetch every request, default 24h (also governs the task-types cache below)
   "taskTypesUrl": "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/task-types.json",
   "fallbackModel": "",      // escape hatch when nothing resolves
+  "maxCost": "",            // blended $/1M budget cap; over-budget picks swap to the best ranked fit ("" = off)
   "verbose": false,
   "suggestOnly": false,      // trial mode: log the pick, never switch models
   "jevModel": "",            // e.g. "jev-1.13-free": when set, Jev refines the task-type
@@ -83,6 +84,7 @@ env, so the plugin reads the key from OpenCode's `auth.json` instead — see
 | `configRefreshMinutes` | `1440` | Cache validity in minutes for both the model config and the task-type list; `0` refetches every request. Stale cache survives fetch failures. |
 | `taskTypesUrl` | (see above) | Remote task-type definitions (`data/task-types.json`, published from `config/task-types.yaml` by the maintenance run), cached locally as `task-types-cache.json`. Only fetched when Jev refinement is enabled (`jevModel` set): it supplies the Jev `choice` criteria and the accepted answer list. Accepts `task-types-url` as alias. |
 | `fallbackModel` | `""` | Used when no model resolves; empty keeps the current session model with a logged error. |
+| `maxCost` | `""` | Blended $/1M budget cap (same semantics as the action's `max-cost`, needs `<tier>_ranked` in the config): an over-budget pick is replaced by the best-scoring ranked model within budget; when nothing fits, `fallbackModel` is used or the turn keeps the current model (logged error). Empty disables. Accepts `max-cost` alias. |
 | `verbose` | `false` | Log each selection (`task/tier/model`). |
 | `suggestOnly` | `false` | Trial mode: resolve task-type/tier/model as usual but never switch models — the pick is only logged to the console as `[modelselect] (suggest-only) task=… tier=… would-select=… current=…`, even with `verbose: false`. Accepts `suggest-only` / `suggest_only` as aliases. |
 | `announce` | `switch` | Chat-visible pick line (`[modelselect: task=… tier=… → provider/model jev=…]`; `→` becomes `would use` in `suggestOnly`): `switch` emits only on model change, `always` every user turn, `off` keeps console logs only. The trailing `jev=` segment tells why the task is what it is: `off` (Jev disabled), `pinned` (fixed `taskType`), `<choice>@<conf>` (Jev decided, e.g. `review@0.95`), or `kept:<reason>` (`no-token`, `error`, `lowconf`, `unknown`, `empty` — heuristic kept). Appends a terse line to the prompt (~15 tokens/turn). |

@@ -196,8 +196,11 @@ async function refineTaskTypeWithJev({ heuristic, prompt, files, agent, opts, to
   if (!parsed || !valid.includes(parsed.choice)) {
     return { taskType: heuristic, jev: null, status: 'unknown' };
   }
-  if (parsed.confidence !== null && parsed.confidence < opts.jevThreshold) {
-    if (opts.verbose) console.log(`[modelselect] jev low confidence: ${parsed.choice} ${parsed.confidence}`);
+  // Missing confidence is NOT consent: without a number the threshold
+  // cannot vouch for the answer, so fail open to the heuristic (status
+  // `lowconf` keeps the existing `kept:lowconf` announce label).
+  if (parsed.confidence === null || parsed.confidence < opts.jevThreshold) {
+    if (opts.verbose) console.log(`[modelselect] jev low confidence: ${parsed.choice} ${parsed.confidence ?? 'none'}`);
     return { taskType: heuristic, jev: null, status: 'lowconf' };
   }
   if (opts.verbose) console.log(`[modelselect] jev task=${parsed.choice} conf=${parsed.confidence ?? '?'} (heuristic=${heuristic})`);

@@ -61,6 +61,22 @@
   between `core/` and the vendored copies fails CI and the plugin test
   suite (`build-core --check`).
 
+### Added
+- Plugin `maxCost` option (alias `max-cost`) is now wired into
+  `resolveModel`: an over-budget pick is swapped for the best-scoring
+  `<tier>_ranked` model within budget, mirroring the action's `max-cost`
+  input; when nothing fits the turn uses `fallbackModel` or keeps the
+  current model with a logged error. Invalid values (negative,
+  non-numeric) fail option normalization.
+
+### Fixed
+- Plugin `historyChars: 0` now keeps no history instead of the full
+  prompt (`truncate` treated `max <= 0` as "no limit").
+- A Jev answer without a `confidence` number no longer bypasses
+  `jevThreshold`: it fails open to the heuristic (`kept:lowconf`).
+- A failed model-config cache write (read-only dir, full disk) no longer
+  discards a successfully fetched remote config.
+
 ## [0.4.0]
 ### Added
 - External modelselect config (`~/.config/openchamber/modelselect.json`,

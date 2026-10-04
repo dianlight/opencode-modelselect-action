@@ -211,6 +211,71 @@ describe('select options + cache', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
+  it('serves the remote config even when the cache write fails', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-ro-'));
+    const blocked = path.join(dir, 'not-a-dir'); // parent is a file: mkdir/write throws
+    fs.writeFileSync(blocked, 'x');
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: true, status: 200, json: async () => ({ 'task-types': {} }) });
+    try {
+      const opts = normalizeOptions({});
+      const { config: got, source } = await loadConfig(opts, path.join(blocked, 'cache'));
+      assert.equal(source, 'remote');
+      assert.deepEqual(got, { 'task-types': {} });
+    } finally {
+      globalThis.fetch = realFetch;
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('applies the maxCost budget cap', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-budget-'));
+    seedCache(dir, {
+      'task-types': {
+        code: {
+          go: 'g/a',
+          free: 'f/expensive',
+          free_ranked: [
+            { model: 'f/expensive', score: 80, blended_cost: 10 },
+            { model: 'f/cheap', score: 70, blended_cost: 0.5 },
+          ],
+        },
+      },
+    });
+    const cacheDir = path.join(dir, '.opencode', '.modelselect-cache');
+    try {
+      // within budget: keep the recommended pick
+      const keep = await resolveModel({ taskType: 'code', opts: normalizeOptions({ tier: 'free', maxCost: 10 }), cacheDir });
+      assert.equal(keep.model, 'f/expensive');
+      // over budget: swap to the best-scoring ranked row within budget
+      const swap = await resolveModel({ taskType: 'code', opts: normalizeOptions({ tier: 'free', maxCost: 1 }), cacheDir });
+      assert.equal(swap.model, 'f/cheap');
+      // nothing fits: no fallback -> throws; fallbackModel -> used
+      await assert.rejects(
+        resolveModel({ taskType: 'code', opts: normalizeOptions({ tier: 'free', maxCost: 0.1 }), cacheDir }),
+        /fits max-cost/,
+      );
+      const fb = await resolveModel({
+        taskType: 'code',
+        opts: normalizeOptions({ tier: 'free', maxCost: 0.1, fallbackModel: 'f/fb' }),
+        cacheDir,
+      });
+      assert.equal(fb.model, 'f/fb');
+      assert.match(fb.source, /\+fallback/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('validates the maxCost option', () => {
+    assert.equal(normalizeOptions({}).maxCost, null);
+    assert.equal(normalizeOptions({ maxCost: '' }).maxCost, null);
+    assert.equal(normalizeOptions({ maxCost: 0 }).maxCost, 0);
+    assert.equal(normalizeOptions({ 'max-cost': '1.5' }).maxCost, 1.5);
+    assert.throws(() => normalizeOptions({ maxCost: -1 }), /non-negative/);
+    assert.throws(() => normalizeOptions({ maxCost: 'abc' }), /non-negative/);
+  });
+
   it('splits provider/model refs (modelID may contain slashes)', () => {
     assert.deepEqual(splitModelRef('opencode/muse-spark-free'), {
       providerID: 'opencode',
@@ -654,6 +719,27 @@ describe('jev optional refinement', () => {
     }
   });
 
+  it('missing confidence keeps the heuristic (no number, no override)', async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ answers: { task: { type: 'choice', choice: 'review' } } }),
+    });
+    try {
+      const opts = normalizeOptions({ jevModel: 'jev-1.13-free', token: 'tok' });
+      const { taskType, status } = await refineTaskTypeWithJev({
+        heuristic: 'generic',
+        prompt: 'review this diff',
+        opts,
+      });
+      assert.equal(taskType, 'generic');
+      assert.equal(status, 'lowconf');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
   it('network errors and unknown choices fail open', async () => {
     const realFetch = globalThis.fetch;
     const authDir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-jev-failopen-'));
@@ -1020,7 +1106,13 @@ describe('jev announce label', () => {
 
 describe('continuation (short acks inherit previous task)', () => {
   const { isAck, isLowSignal } = require('../src/shared/detect');
-  const { resolveWithHistory, continuationState, lastAssistantSnippet } = require('../src/shared/continuation');
+  const { resolveWithHistory, continuationState, lastAssistantSnippet, truncate } = require('../src/shared/continuation');
+
+  it('truncate keeps nothing when max is 0 (historyChars: 0)', () => {
+    assert.equal(truncate('review this diff', 0), '');
+    assert.equal(truncate('review this diff', 6), 'review');
+    assert.equal(truncate('short', 100), 'short');
+  });
 
   it('matches Italian and English acks, not long messages', () => {
     assert.equal(isAck('do it'), true);

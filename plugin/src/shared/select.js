@@ -17,6 +17,7 @@ const { DEFAULT_TASK_TYPES_URL } = require('./tasktypes');
 const { resolveToken } = require('./auth');
 const { isFreeQuotaFresh } = require('./freequota');
 const { isFreeModelString, firstPaidModel, splitModelRefStrict } = require('./core/model-ref');
+const { selectWithinBudget } = require('./core/budget');
 const { entryFor, normalizeThink } = require('./core/lookup');
 
 const DEFAULT_CONFIG_URL =
@@ -52,6 +53,13 @@ function normalizeOptions(raw = {}, env = process.env) {
   if (!TASK_TYPES.includes(defaultTaskType)) {
     throw new Error(`Unknown defaultTaskType '${raw.defaultTaskType ?? raw['default-task-type']}'.`);
   }
+  // Budget cap: blended $/1M (same as the action's max-cost input).
+  // Empty/absent = disabled (null); anything set must be a non-negative number.
+  let maxCost = raw.maxCost ?? raw['max-cost'] ?? '';
+  maxCost = String(maxCost).trim() === '' ? null : Number(maxCost);
+  if (maxCost !== null && (!Number.isFinite(maxCost) || maxCost < 0)) {
+    throw new Error(`maxCost must be a non-negative number (blended $/1M), got '${raw.maxCost ?? raw['max-cost']}'.`);
+  }
   return {
     taskType: String(raw.taskType ?? raw['task-type'] ?? 'auto'),
     defaultTaskType,
@@ -66,7 +74,7 @@ function normalizeOptions(raw = {}, env = process.env) {
       raw.taskTypesUrl ?? raw['task-types-url'] ?? raw.tasktypesUrl ?? DEFAULT_TASK_TYPES_URL,
     ),
     fallbackModel: String(raw.fallbackModel ?? raw['fallback-model'] ?? '').trim(),
-    maxCost: raw.maxCost ?? raw['max-cost'] ?? '',
+    maxCost,
     openchamber,
     token,
     tokenSource,
@@ -149,7 +157,13 @@ async function loadConfig(opts, cacheDir) {
     error = err;
   }
   if (remote) {
-    writeCache(cacheDir, remote);
+    // A failed cache write (permissions, disk full) must not lose a good
+    // remote config: the fetch already succeeded, serve it anyway.
+    try {
+      writeCache(cacheDir, remote);
+    } catch {
+      // best-effort: next run refetches
+    }
     return { config: remote, source: 'remote', stale: false };
   }
   if (cached) return { config: cached.config, source: 'cache-stale', stale: true, error };
@@ -201,7 +215,8 @@ function clearQuotaCache() {
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir }) {
-  const { config, source, stale } = await loadConfig(opts, cacheDir);
+  const { config, source: source0, stale } = await loadConfig(opts, cacheDir);
+  let source = source0;
   const { key, entry } = entryFor(config, taskType);
   // Free-tier soft-error latch, PER MODEL (quota 12h / rate-limit 1h;
   // see shared/freequota.js): Zen has no free-quota endpoint, so a real
@@ -269,6 +284,33 @@ async function resolveModel({ taskType, opts, cacheDir }) {
   if (!model) {
     if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
+  }
+  // Budget cap (mirrors the action): an over-budget pick is replaced by the
+  // best-scoring ranked model within budget; nothing fitting falls back to
+  // `fallbackModel` or throws (the context hook keeps the current model).
+  if (opts.maxCost !== null && opts.maxCost !== undefined) {
+    let budgeted;
+    try {
+      budgeted = selectWithinBudget(entry, key, tier, model, opts.maxCost);
+    } catch (err) {
+      if (!opts.fallbackModel) throw err;
+      if (opts.verbose) console.log(`[modelselect] max-cost skipped: ${err.message}`);
+      budgeted = null;
+    }
+    if (budgeted) {
+      if (!budgeted.model) {
+        const hint = `No '${tier}' model for task-type='${key}' fits max-cost=${opts.maxCost} (${budgeted.hint})`;
+        if (!opts.fallbackModel) throw new Error(`${hint}; raise maxCost or set fallbackModel.`);
+        if (opts.verbose) console.log(`[modelselect] ${hint}; using fallbackModel.`);
+        model = opts.fallbackModel;
+        source = `${source}+fallback`;
+      } else {
+        if (budgeted.model !== model && opts.verbose) {
+          console.log(`[modelselect] over max-cost=${opts.maxCost} → ${budgeted.model} ($${budgeted.cost}/1M)`);
+        }
+        model = budgeted.model;
+      }
+    }
   }
   return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched };
 }

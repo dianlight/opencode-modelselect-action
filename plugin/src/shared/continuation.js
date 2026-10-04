@@ -24,7 +24,8 @@ function normalizeHistoryOptions(raw = {}) {
 
 function truncate(s, max) {
   const t = String(s ?? '');
-  if (max <= 0 || t.length <= max) return t;
+  if (max <= 0) return ''; // historyChars: 0 keeps nothing, not everything
+  if (t.length <= max) return t;
   return t.slice(0, max);
 }
 
