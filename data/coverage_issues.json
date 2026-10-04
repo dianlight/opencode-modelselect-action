@@ -4,10 +4,6 @@
     {
       "model": "fledge-alpha-free",
       "tier": "Free"
-    },
-    {
-      "model": "ling-3.1-flash-free",
-      "tier": "Free"
     }
   ],
   "missing_prices": [

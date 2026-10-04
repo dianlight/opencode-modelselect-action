@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-03 10:03 UTC**.
+> Last updated: **2026-10-04 03:08 UTC**.
 > LiveBench data: **353 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -130,7 +130,7 @@ automatically at their next run.
 | `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |
 | `kimi-k3` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 69.9 | 87.0 | 72.6 | 74.9 | $3 | $15 | $6 | 13.2 |
 | `ling-3.0-flash-fin-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 48.0 | 48.0 | 5.0 | 50.0 | Free | Free | Free | — |
-| `ling-3.1-flash-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
+| `ling-3.1-flash-free` | Free | 📋 Fallback | Plan, Review | 55.0 | 55.0 | 62.0 | 5.0 | 52.0 | Free | Free | Free | — |
 | `longcat-2.0` | Go (Paid) | 📋 Fallback | Triage, Docs | 60.0 | 70.0 | 89.0 | 5.0 | 90.0 | $0.3 | $1.2 | $0.525 | 114.3 |
 | `longcat-2.5-preview-free` | Free | 📋 Fallback | Triage, Docs | 55.0 | 66.0 | 84.0 | 40.0 | 86.0 | Free | Free | Free | — |
 | `mimo-v2-omni` | Go (Paid) | 📋 Fallback | Design, Triage | 50.0 | 42.0 | 48.0 | 55.0 | 50.0 | — | — | — | — |

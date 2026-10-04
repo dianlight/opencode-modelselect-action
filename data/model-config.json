@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-03T09:56:06.534867+00:00",
+  "timestamp": "2026-10-04T03:08:28.345832+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -355,6 +355,13 @@
         {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 62.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -768,6 +775,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 52.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode/jev-1.13-free",
           "score": 50.0,
           "input_cost": 0.0,
@@ -1143,6 +1157,13 @@
         {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 62.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -1570,6 +1591,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 5.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 5.0,
           "input_cost": 0.0,
@@ -1924,6 +1952,13 @@
         {
           "model": "opencode/mimo-v2.5-free",
           "score": 56.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 55.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -2318,6 +2353,13 @@
         {
           "model": "opencode/mimo-v2.5-free",
           "score": 56.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 55.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -2738,6 +2780,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 52.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode/jev-1.13-free",
           "score": 50.0,
           "input_cost": 0.0,
@@ -3113,6 +3162,13 @@
         {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 62.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -3500,6 +3556,13 @@
         {
           "model": "opencode/mimo-v2.5-free",
           "score": 56.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 55.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -3906,6 +3969,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 62.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode/big-pickle",
           "score": 61.5,
           "input_cost": 0.0,
@@ -4288,6 +4358,13 @@
         {
           "model": "opencode/mimo-v2.5-free",
           "score": 56.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 55.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -4694,6 +4771,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 62.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode/big-pickle",
           "score": 61.5,
           "input_cost": 0.0,
@@ -5083,6 +5167,13 @@
         {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 62.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -5496,6 +5587,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 52.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
           "model": "opencode/jev-1.13-free",
           "score": 50.0,
           "input_cost": 0.0,
@@ -5885,6 +5983,13 @@
         {
           "model": "opencode/big-pickle",
           "score": 60.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/ling-3.1-flash-free",
+          "score": 52.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
