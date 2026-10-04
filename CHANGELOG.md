@@ -1,4 +1,15 @@
 ## [Unreleased]
+### Changed
+- Single virtual provider: the dual `opencode/auto` + `opencode-go/auto`
+  anchors are replaced by one plugin-owned `modelselect` provider with
+  two models — `modelselect/auto-free-first` (pins free-first) and
+  `modelselect/auto-go-first` (pins go-first). The provider points at a
+  localhost proxy started by the plugin (`plugin/src/proxy.js`), which
+  forwards each request to the real Zen/Go base with the resolved pick
+  stamped in `x-modelselect-*` headers + body per attempt. Sessions stay
+  virtual for life (no `switchModel`, no anchor hops, no leaving virtual
+  mode); free-exhaustion arms the forced retry without moving the
+  session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
 - Virtual `opencode/auto` sessions failed with `ModelProtocolUnsupported`
   ("Model does not support this protocol") whenever the pick lived on a

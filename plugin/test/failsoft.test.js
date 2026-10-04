@@ -4,8 +4,9 @@
  * Free-tier fail-soft (v2): the `http.response`/`retry` hooks classify a
  * real free-side failure, register the 12h latch
  * (`.opencode/.modelselect-cache/free-quota.json`), and — for the virtual
- * session only — arm exactly one forced retry that re-points the retry
- * event in place. Non-virtual sessions just latch + resync: they are the
+ * session only — arm exactly one forced retry without moving the session
+ * (the retried dispatch re-resolves through the proxy, where the fresh
+ * latch prefers go). Non-virtual sessions just latch + resync: they are the
  * user's hands-off choice and are never flipped (switchSessionToGo is gone).
  * Also pins the resolveModel latch honoring (auto + pinned free) and the
  * never-loop / never-extend invariants.
@@ -29,7 +30,7 @@ const { seedCache, isolateAuth } = require('./helpers');
 
 const CACHE = (dir) => path.join(dir, '.opencode', '.modelselect-cache');
 const LATCH = (dir) => path.join(CACHE(dir), 'free-quota.json');
-const VIRTUAL = { providerID: 'opencode', id: 'auto' };
+const VIRTUAL = { providerID: 'modelselect', id: 'auto-free-first' };
 
 async function setupSession(dir, options = {}) {
   seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
@@ -113,12 +114,13 @@ describe('v2 free-tier fail-soft', () => {
       assert.ok(fs.existsSync(LATCH(dir)), 'soft error registered in the latch');
       assert.equal(isFreeQuotaFresh(CACHE(dir), undefined, 'f/b'), true);
 
-      // The armed retry forces the turn to resume, re-pointing to go.
-      const r1 = retryEvent('s1', { providerID: 'f', id: 'b' });
+      // The armed retry forces the turn to resume through the proxy —
+      // the session model itself never moves (the retried dispatch
+      // re-resolves with the fresh latch preferring go).
+      const r1 = retryEvent('s1', { ...VIRTUAL });
       await seen.retry(r1);
       assert.deepEqual(r1.decision, { retry: true, delay: 0 });
-      assert.equal(r1.model.providerID, 'g', 'retry re-points to the task go model');
-      assert.equal(r1.model.id, 'a');
+      assert.deepEqual(r1.model, VIRTUAL, 'retry keeps the virtual anchor');
 
       // second failure: window never extends, arm is spent, no re-arm.
       const before = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['f/b'];
@@ -148,9 +150,10 @@ describe('v2 free-tier fail-soft', () => {
       assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until - 1, 'f/b'), true);
       assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until, 'f/b'), false);
 
-      const retry = retryEvent('s1', { providerID: 'f', id: 'b' });
+      const retry = retryEvent('s1', { ...VIRTUAL });
       await seen.retry(retry);
       assert.deepEqual(retry.decision, { retry: true, delay: 0 });
+      assert.deepEqual(retry.model, VIRTUAL, 'retry keeps the virtual anchor');
     } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });
@@ -270,13 +273,14 @@ describe('v2 free-tier fail-soft', () => {
       await virtualTurn(seen);
       const r = {
         sessionID: 's1',
-        model: { providerID: 'f', id: 'b' },
+        model: { ...VIRTUAL },
         error: { type: 'provider', message: 'You have exceeded your quota', status: 403 },
         attempt: 2,
         decision: { retry: false },
       };
       await seen.retry(r);
       assert.deepEqual(r.decision, { retry: true, delay: 0 }, 'fallback path forces one retry');
+      assert.deepEqual(r.model, VIRTUAL, 'retry keeps the virtual anchor');
       assert.ok(fs.existsSync(LATCH(dir)), 'latch registered from the retry path');
     } finally {
       restore();

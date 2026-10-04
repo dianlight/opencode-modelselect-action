@@ -75,7 +75,7 @@ Folder/ZIP/URL source.
   the session model is unset.
 - Session-dependent fields: the pick grid + badges are shown only for
   auto-ish sessions (empty/unset model = OpenChamber auto, or the virtual
-  `opencode/auto` pick — the plugin routes only those). Any other model
+  `modelselect/auto-*` pick — the plugin routes only those). Any other model
   is the user's hands-off choice, so its row shows only the live session
   Model + Agent. The router-sync toggle gates only the `routing.json`
   refresh, not the grid visibility.
@@ -96,7 +96,7 @@ stored-deviations shape) are kept fresh from two places, both best-effort:
 - The plugin, before every turn (the `prompt` + `context` hooks) while
   the router sync is ON — a courtesy sync so an installed OpenChamber
   follows the plugin's caches; the plugin routes the pick itself (only
-  virtual `opencode/auto` sessions) and never hands off to OpenChamber's
+  virtual `modelselect/auto-*` sessions) and never hands off to OpenChamber's
   routing.
 - This view, on every Work Status refresh (fallback while the panel is
   open) — grant the `files` capability (the `routing.json` path is
@@ -153,7 +153,7 @@ this bundle wraps it in a host-file adapter
 
 `~/.config/openchamber/modelselect.json` (user-editable, all keys
 optional) holds the global defaults (the `mode` key is gone — the
-virtual `opencode/auto` model is the routing switch now):
+virtual `modelselect/auto-*` models are the routing switch now):
 
 ```json
 {

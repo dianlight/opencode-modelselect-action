@@ -45,13 +45,13 @@
  *   OpenChamber-hosted — the mobile-proof signal, since this extension
  *   runs on web/desktop while the app drives the same server and project.
  * - Session-dependent rendering: a session whose model is empty/unset
- *   (OpenChamber auto) or the virtual `opencode/auto` pick shows the full
+ *   (OpenChamber auto) or a virtual `modelselect/auto-*` pick shows the
  *   pick grid (Task, Agent, Tier, Model, Think, Jev, Source) + state
  *   badges from the status file (Agent comes from the live session
  *   snapshot) — the plugin routes only virtual sessions now. Any other
  *   model is the user's hands-off choice, so its row shows only the live
  *   session Model + Agent. A missing plugin shows the fix banner instead.
- * - NOTE: the plugin routes only virtual (`opencode/auto`) sessions and
+ * - NOTE: the plugin routes only virtual (`modelselect/auto-free-first` / `modelselect/auto-go-first`) sessions and
  *   refreshes routing.json per turn as a courtesy (shared
  *   `plugin/src/shared/routing.js`) while the router sync is on — this
  *   view mirrors that. The on/off/auto modes are gone; the router-sync
@@ -158,9 +158,9 @@ function isAutoSession(snap) {
   var m = modelOf(snap);
   if (!m || !m.trim()) return true;
   m = m.trim();
-  // The virtual model `opencode/auto` IS the plugin's routing switch: a
+  // A virtual `modelselect/auto-*` model IS the plugin's routing switch: a
   // session on it routes every turn, so its row shows the full pick grid.
-  if (m === 'opencode/auto') return true;
+  if (m === 'modelselect/auto-free-first' || m === 'modelselect/auto-go-first' || m.indexOf('modelselect/') === 0) return true;
   return AUTO_MODEL_RE.test(m);
 }
 

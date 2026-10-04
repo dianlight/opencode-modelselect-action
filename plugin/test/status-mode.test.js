@@ -261,9 +261,9 @@ describe('v2 routing + sync', () => {
     return seen;
   }
 
-  // The virtual model is the routing switch: only sessions on opencode/auto
-  // route. Non-virtual sessions are the user's hands-off choice.
-  const VIRTUAL = { providerID: 'opencode', id: 'auto' };
+  // The virtual model is the routing switch: only sessions on a modelselect
+  // virtual model route. Non-virtual sessions are the user's hands-off choice.
+  const VIRTUAL = { providerID: 'modelselect', id: 'auto-free-first' };
 
   it('writes the status file on context routing (virtual session), incl. suggestOnly', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-status-'));
@@ -273,7 +273,7 @@ describe('v2 routing + sync', () => {
       await seen.prompt({ sessionID: 's1', prompt: 'review this diff' });
       const event = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(event);
-      assert.equal(event.model.providerID, 'f');
+      assert.deepEqual(event.model, VIRTUAL, 'session stays on its virtual anchor');
       const raw = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
       assert.equal(raw.sessionID, 's1');
       assert.equal(raw.taskType, 'review');
@@ -299,8 +299,7 @@ describe('v2 routing + sync', () => {
         } finally {
           console.log = origLog;
         }
-        assert.equal(ev2.model.providerID, 'opencode', 'suggestOnly never mutates the model');
-        assert.equal(ev2.model.id, 'auto');
+        assert.deepEqual(ev2.model, VIRTUAL, 'suggestOnly never mutates the model');
         const raw2 = JSON.parse(fs.readFileSync(path.join(cacheOf(dir2), 'status-s1.json'), 'utf8'));
         assert.equal(raw2.suggestOnly, true);
         assert.equal(raw2.model, 'f/b');
@@ -350,7 +349,7 @@ describe('v2 routing + sync', () => {
     };
   }
 
-  it('virtual session routes (announce + mutate + status) and still syncs OpenChamber routing', async () => {
+  it('virtual session routes (announce + status) and still syncs OpenChamber routing', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-route-'));
     seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
     seedTaskTypes(dir, {
@@ -369,11 +368,10 @@ describe('v2 routing + sync', () => {
         /\[modelselect: task=review tier=free → f\/b/,
         'virtual session announces the pick',
       );
-      // Context: routes + mutates in place + writes the status file.
+      // Context: routes (session stays virtual) + writes the status file.
       const ev1 = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(ev1);
-      assert.equal(ev1.model.providerID, 'f');
-      assert.equal(ev1.model.id, 'b');
+      assert.deepEqual(ev1.model, VIRTUAL, 'session stays on its virtual anchor');
       assert.equal(seen.switches, undefined, 'virtual sessions never persist via switchModel');
       const raw = JSON.parse(fs.readFileSync(path.join(cacheOf(dir), 'status-s1.json'), 'utf8'));
       assert.equal(raw.model, 'f/b');
@@ -404,7 +402,7 @@ describe('v2 routing + sync', () => {
       await seen.prompt(e1);
       const ev1 = { sessionID: 's1', agent: 'review', model: { ...VIRTUAL }, messages: [] };
       await seen.context(ev1);
-      assert.equal(ev1.model.providerID, 'f', 'routing still happens for virtual sessions');
+      assert.deepEqual(ev1.model, VIRTUAL, 'routing still happens for virtual sessions');
       assert.ok(fs.existsSync(path.join(cacheOf(dir), 'status-s1.json')), 'status still written');
       const routingFile = path.join(home.home, '.config', 'openchamber', 'routing.json');
       assert.ok(!fs.existsSync(routingFile), 'sync skipped while router-sync is off');

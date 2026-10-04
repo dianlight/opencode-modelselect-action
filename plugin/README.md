@@ -268,54 +268,51 @@ session. Detection only feeds that status line — per-turn routing always
 keys off the session's actual model, and the virtual model below
 registers in every host.
 
-## Virtual models `opencode/auto` + `opencode-go/auto`
+## Virtual provider `modelselect` (`auto-free-first` + `auto-go-first`)
 
-The plugin appends an `auto` entry to
-each real provider inventory (`opencode` + `opencode-go`) in every host
-(existing models preserved, the
-entry never duplicated). Selecting either makes the session route like
-mode `on` on every turn — the picker *is* the switch:
+The plugin auto-registers a single `modelselect` provider in every host
+(idempotent remove + add on each catalog replay) with one model per
+auto-preference — `modelselect/auto-free-first` pins free-first,
+`modelselect/auto-go-first` pins go-first. Selecting either makes the
+session route on every turn — the picker *is* the switch:
 
-- the in-flight `event.model` is mutated to the resolved pick per turn
-  (bookkeeping for logs/announce/status);
-- the `http.request` overlay writes the decided model into the outgoing
-  body per physical attempt — this is what actually routes, because
-  dispatch reads the persisted session model and `event.model` mutation
-  is cosmetic. It resolves on the spot when no pick exists yet and
-  re-resolves under a fresh exhaustion latch, so armed retries carry a
-  live decision too;
+- the session stays on its virtual anchor for its whole life:
+  `event.model` is never mutated to the real pick and `switchModel` is
+  never called for routing — the provider's baseURL points at the
+  plugin's localhost proxy (`plugin/src/proxy.js`), which forwards each
+  request to the real Zen/Go base. The proxy is why a single provider
+  works: OpenCode pins the dispatch endpoint to the session provider
+  and the two real bases differ, so the virtual provider IS its own
+  endpoint;
+- the `http.request` hook stamps the resolved pick into
+  `x-modelselect-*` routing headers + body per physical attempt. It
+  resolves on the spot when no pick exists yet and re-resolves under a
+  fresh exhaustion latch, so armed retries carry a live decision too.
+  All picks flow through the same proxy whatever their provider —
+  sessions never leave virtual mode;
 - picks on a different Zen wire protocol than the provider default
   (from the config's `endpoints` map — `responses` for e.g.
   `muse-spark-1.3-contributor-free`, `messages` for the Claude and
-  Qwen-plus rows) also re-point the virtual entry's catalog `api` to the
+  Qwen-plus rows) also re-point the virtual model's catalog `api` to the
   matching AI SDK package per turn, so OpenCode's route — URL, body
   shape and stream decoder — matches the pick. Without it those models
-  fail with `ModelProtocolUnsupported` on chat/completions;
-- same-provider picks never call `switchModel`, and cross-provider picks
-  (e.g. free `opencode/longcat-2.5-preview-free` → paid
-  `opencode-go/longcat-2.0`) hop the anchor
-  (`opencode/auto` ↔ `opencode-go/auto`) instead of persisting the real
-  model — the session stays virtual and keeps re-routing, hopping back
-  when the latch expires. Only picks on a provider without a virtual
-  anchor persist the real model and leave virtual mode;
+  fail with `ModelProtocolUnsupported` on chat/completions. The proxy
+  preserves the driver's path when forwarding, so protocols keep
+  working end to end;
 - there is no mode gate — a virtual pick routes every turn regardless of
   the router-sync toggle (the toggle only gates the `routing.json`
   refresh);
-- free-tier exhaustion arms the forced retry and re-points the retry
-  event at the `go` model in place instead of flipping the session;
+- free-tier exhaustion arms the forced retry without moving the session;
+  the retried dispatch re-resolves through the same routing headers,
+  where the fresh latch prefers go;
 - `title`/`compaction`/`generate` requests follow the session's last
   resolved pick (resolving one on the spot when no primary turn has run
-  yet — the raw virtual entry must never dispatch).
+  yet — the raw virtual entry must never dispatch). Aux hooks never
+  mutate the session model either.
 
-It must live on the real driver: OpenCode pins the dispatch endpoint to
-the session model, so a standalone fake provider could never serve turns
-(`package: ""` is rejected at load, a cloned real driver fails
-load-time model validation). The entries register under OpenChamber too —
-they are the always-visible "this session routes every turn" picks. Each
-`limit` is the max live context/output of its own provider floored at a
-large fallback (2M context / 128k output): the session stays on `auto`, so
-OpenCode compacts off the virtual window — a small window would compact
-early and risk dispatching the raw `auto` id (`invalid model`).
+Each virtual `limit` stays at the large fallback (2M context / 128k
+output): the session stays virtual, so OpenCode compacts off the
+virtual window — a small window would compact early.
 
 Known first-turn gap: the announce line for a virtual pick starts from
 turn 2 — the prompt hook runs before the context hook marks the session
