@@ -284,6 +284,13 @@ mode `on` on every turn — the picker *is* the switch:
   is cosmetic. It resolves on the spot when no pick exists yet and
   re-resolves under a fresh exhaustion latch, so armed retries carry a
   live decision too;
+- picks on a different Zen wire protocol than the provider default
+  (from the config's `endpoints` map — `responses` for e.g.
+  `muse-spark-1.3-contributor-free`, `messages` for the Claude and
+  Qwen-plus rows) also re-point the virtual entry's catalog `api` to the
+  matching AI SDK package per turn, so OpenCode's route — URL, body
+  shape and stream decoder — matches the pick. Without it those models
+  fail with `ModelProtocolUnsupported` on chat/completions;
 - same-provider picks never call `switchModel`, and cross-provider picks
   (e.g. free `opencode/longcat-2.5-preview-free` → paid
   `opencode-go/longcat-2.0`) hop the anchor

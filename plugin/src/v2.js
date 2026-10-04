@@ -112,6 +112,19 @@ const VIRTUAL_PROVIDERS = ['opencode', 'opencode-go'];
 const VIRTUAL_PROVIDER = 'opencode';
 const VIRTUAL_MODEL = 'auto';
 const VIRTUAL_REF = `${VIRTUAL_PROVIDER}/${VIRTUAL_MODEL}`;
+// Wire-protocol token (config `endpoints` map) → AI SDK package. The
+// catalog model's `api` drives OpenCode's route selection — URL path, body
+// serializer and stream decoder all come from it — so pointing the virtual
+// `auto` entry's `api` at the pick's protocol puts /responses-only picks
+// (e.g. muse-spark-1.3-*, GPT-6 Luna) on the right Zen endpoint instead of
+// inheriting the provider default chat/completions, which those models
+// reject with ModelProtocolUnsupported. Unknown/absent tokens keep the
+// provider default.
+const ENDPOINT_PACKAGES = {
+  responses: '@ai-sdk/openai',
+  messages: '@ai-sdk/anthropic',
+  chat: '@ai-sdk/openai-compatible',
+};
 // Forced-retry arm window: a retry follows its failure within seconds, so
 // an arm older than this (consumed late) is stale and must not fire.
 const FREE_RETRY_TTL_MS = 60 * 1000;
@@ -274,6 +287,12 @@ async function setup(ctx) {
   // means no virtual model there: failures only log, the rest of the
   // plugin works without it.
   let virtualRegistered = false;
+  // Desired wire protocol for the virtual `auto` entry (see
+  // ENDPOINT_PACKAGES); null = provider default (chat). Applied by
+  // applyVirtualApi on every catalog materialize. The catalog is
+  // process-global: concurrent virtual sessions overwrite each other's
+  // wanted state — accepted (serialized turns, the norm, are exact).
+  let virtualApiWanted = null;
   if (typeof ctx.provider?.transform === 'function') {
     try {
       await ctx.provider.transform((editor) => {
@@ -309,6 +328,106 @@ async function setup(ctx) {
       });
     } catch (err) {
       if (opts.verbose) console.log(`[modelselect] virtual model registration skipped: ${err?.message ?? err}`);
+    }
+  }
+
+  // Per-turn protocol applier: patches the `auto` entry's `api` from
+  // virtualApiWanted. Registered AFTER the registration cb (so it sees the
+  // fresh entry the registration cb re-materializes) and re-run via
+  // `reload()`/`transform()` whenever the wanted state changes.
+  function applyVirtualApi(editor) {
+    try {
+      if (typeof editor.get !== 'function' || !editor.models || typeof editor.models.set !== 'function') return;
+      for (const providerID of VIRTUAL_PROVIDERS) {
+        const live = editor.get(providerID);
+        if (!live) continue;
+        const current =
+          live.models instanceof Map
+            ? [...live.models.values()]
+            : Array.isArray(live.models)
+              ? [...live.models]
+              : [];
+        const wanted =
+          virtualApiWanted && virtualApiWanted.providerID === providerID
+            ? virtualApiWanted
+            : null;
+        const pkg = wanted && wanted.endpoint ? ENDPOINT_PACKAGES[wanted.endpoint] : undefined;
+        let changed = false;
+        const next = current.map((m) => {
+          if (!m || m.id !== VIRTUAL_MODEL) return m;
+          const patched = { ...m };
+          if (pkg) {
+            // No url: inherits the provider base — all three protocols
+            // share one base per provider (zen / go).
+            const api = { id: wanted.id, type: 'aisdk', package: pkg };
+            const same =
+              patched.api &&
+              patched.api.id === api.id &&
+              patched.api.type === api.type &&
+              patched.api.package === api.package;
+            if (!same) {
+              patched.api = api;
+              changed = true;
+            }
+          } else if (patched.api) {
+            delete patched.api; // restore the provider default protocol
+            changed = true;
+          }
+          return patched;
+        });
+        if (changed) editor.models.set(providerID, next);
+      }
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] virtual api apply skipped: ${err?.message ?? err}`);
+    }
+  }
+  if (typeof ctx.provider?.transform === 'function') {
+    try {
+      await ctx.provider.transform(applyVirtualApi);
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] virtual api registration skipped: ${err?.message ?? err}`);
+    }
+  }
+
+  // Point the virtual anchor's catalog `api` at the pick's wire protocol
+  // and re-materialize so the NEXT route resolution (URL + body + decoder)
+  // matches. Must run in the context/aux hooks — the runner picks the
+  // route when it resolves the model, so an http.request-time write would
+  // be too late for the current attempt (the overlay re-assert below only
+  // covers retries / next attempts). Best-effort: without a usable SDK
+  // hook the body.model overlay keeps the old behavior.
+  async function syncVirtualApiFor(pick) {
+    try {
+      if (!pick || !pick.id) return;
+      let endpoint = typeof pick.endpoint === 'string' ? pick.endpoint : null;
+      if (!endpoint) {
+        // Picks stored by anchor hops / retry re-points carry no endpoint —
+        // derive it from the config's bare-id map.
+        const { config } = await loadConfig(opts, cacheDir);
+        const map = config && config.endpoints;
+        const bare = String(pick.id).split('/').pop();
+        endpoint = map && typeof map[bare] === 'string' ? map[bare] : null;
+      }
+      virtualApiWanted = { providerID: pick.providerID, endpoint, id: pick.id };
+      if (typeof ctx.provider?.reload === 'function') {
+        await ctx.provider.reload();
+        if (opts.verbose) {
+          console.log(
+            `[modelselect] virtual api sync via reload → ${pick.providerID}/${pick.id} (endpoint=${endpoint || 'default'})`,
+          );
+        }
+      } else if (typeof ctx.provider?.transform === 'function') {
+        // SDK without `reload`: transform re-materializes; the appended
+        // duplicates are the same stable cb reading the same wanted state.
+        await ctx.provider.transform(applyVirtualApi);
+        if (opts.verbose) {
+          console.log(
+            `[modelselect] virtual api sync via transform → ${pick.providerID}/${pick.id} (endpoint=${endpoint || 'default'})`,
+          );
+        }
+      }
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] virtual api sync skipped: ${err?.message ?? err}`);
     }
   }
 
@@ -607,7 +726,7 @@ async function setup(ctx) {
     if (!sessionID || !VIRTUAL_PROVIDERS.includes(providerID)) return false;
     try {
       await ctx.session.switchModel({ sessionID, model: { providerID, id: VIRTUAL_MODEL } });
-      if (pick) lastVirtualPick.set(sessionID, { providerID: pick.providerID, id: pick.id });
+      if (pick) lastVirtualPick.set(sessionID, { providerID: pick.providerID, id: pick.id, endpoint: pick.endpoint ?? null });
       if (opts.verbose) {
         console.log(`[modelselect] virtual anchor → ${providerID}/${VIRTUAL_MODEL} (staying virtual)`);
       }
@@ -763,7 +882,7 @@ async function setup(ctx) {
         );
         // Still record the pick: aux requests (title/…) on a virtual
         // session need a dispatchable ref even in trial mode.
-        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id });
+        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null });
         return;
       }
       // 1. In-flight turn: mutate Model.Ref fields in place (bookkeeping
@@ -778,7 +897,11 @@ async function setup(ctx) {
         event.model.providerID = ref.providerID;
         event.model.id = ref.id;
       }
-      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id });
+      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null });
+      // Put THIS turn's dispatch on the pick's wire protocol before the
+      // runner resolves the model (see syncVirtualApiFor). Same timing
+      // window as the anchor hop below.
+      await syncVirtualApiFor({ providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null });
       // Hop the virtual anchor when the pick lives on the other virtual
       // provider (e.g. free `opencode/...` → paid `opencode-go/...`):
       // persisting `{ pickProvider/auto }` keeps the session virtual
@@ -800,6 +923,7 @@ async function setup(ctx) {
           await hopVirtualAnchor(sessionID, ref.providerID, {
             providerID: ref.providerID,
             id: ref.id,
+            endpoint: picked.endpoint ?? null,
           });
         }
       }
@@ -839,9 +963,12 @@ async function setup(ctx) {
           });
           const picked = await resolveModel({ taskType, opts, cacheDir });
           const ref = splitModelRef(picked.model);
-          pick = { providerID: ref.providerID, id: ref.id };
+          pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null };
           lastVirtualPick.set(sessionID, pick);
         }
+        // Aux requests dispatch through the same route machinery — apply
+        // the pick's protocol before the runner resolves the model.
+        await syncVirtualApiFor(pick);
         if (event.model && typeof event.model === 'object') {
           event.model.providerID = pick.providerID;
           event.model.id = pick.id;
@@ -890,9 +1017,12 @@ async function setup(ctx) {
             });
         const picked = await resolveModel({ taskType, opts, cacheDir });
         const ref = splitModelRef(picked.model);
-        pick = { providerID: ref.providerID, id: ref.id };
+        pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null };
         lastVirtualPick.set(sessionID, pick);
       }
+      // Re-assert this turn's protocol (covers armed retries, which do not
+      // re-run the context hook, and picks stored without an endpoint).
+      await syncVirtualApiFor(pick);
       if (!sessionModel || pick.providerID !== sessionModel.providerID) {
         // Cross-provider: prefer staying virtual by hopping the anchor
         // when both sides are virtual-capable. The current attempt is

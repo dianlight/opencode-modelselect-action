@@ -30,6 +30,7 @@ const path = require('node:path');
 
 const v2 = require('../src/v2.js');
 const { seedCache, isolateAuth } = require('./helpers');
+const { resolveModel, normalizeOptions } = require('../src/shared/select');
 const { SESSION_MAP_FILE } = require('../src/shared/host');
 const { readRoutingSync } = require('../src/shared/status');
 const { isFreeQuotaFresh, markFreeQuota } = require('../src/shared/freequota');
@@ -91,25 +92,47 @@ async function setupV2(dir, options = {}, features = {}) {
     const LIVE_MODELS = features.liveModels || [
       { id: 'x', modelID: 'x', providerID: 'opencode', name: 'X' },
     ];
+    // Stateful inventory: writes from every transform cb (registration,
+    // per-turn protocol applier) accumulate like the real catalog.
+    const state = new Map(LIVE_MODELS.map((m) => [m.id, m]));
+    const cbs = [];
+    const runCb = (cb) => {
+      const added = [];
+      const editor = { add: (x) => added.push(x) };
+      if (features.providerGet !== false) {
+        editor.get = (id) =>
+          id === 'opencode'
+            ? { provider: { id: 'opencode' }, models: state }
+            : undefined;
+        editor.models = {
+          set: (providerID, models) => {
+            if (providerID === 'opencode') {
+              state.clear();
+              for (const m of models) state.set(m.id, m);
+            }
+            seen.modelsSet = { providerID, models };
+          },
+        };
+      }
+      cb(editor);
+      seen.providerAdded = added;
+    };
     fakeCtx.provider = {
       async transform(cb) {
-        const added = [];
-        const editor = { add: (x) => added.push(x) };
-        if (features.providerGet !== false) {
-          editor.get = (id) =>
-            id === 'opencode'
-              ? { provider: { id: 'opencode' }, models: new Map(LIVE_MODELS.map((m) => [m.id, m])) }
-              : undefined;
-          editor.models = {
-            set: (providerID, models) => {
-              seen.modelsSet = { providerID, models };
-            },
-          };
-        }
-        cb(editor);
-        seen.providerAdded = added;
+        cbs.push(cb);
+        seen.providerTransforms = (seen.providerTransforms || 0) + 1;
+        runCb(cb);
       },
     };
+    if (features.providerReload) {
+      // Hosts like opencode v2.0.22 expose ctx.provider.reload (source:
+      // packages/core/src/plugin/host.ts) — sync must prefer it over
+      // appending more transform cbs.
+      fakeCtx.provider.reload = async () => {
+        seen.reloads = (seen.reloads || 0) + 1;
+        for (const cb of cbs) runCb(cb);
+      };
+    }
   }
   if (features.command !== false) {
     fakeCtx.command = {
@@ -531,6 +554,112 @@ describe('virtual routing', () => {
   });
 });
 
+describe('virtual protocol api (config endpoints map)', () => {
+  it('resolveModel surfaces the endpoint token from the config', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': {
+          review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' },
+          docs: { go: 'opencode/gc', free: 'opencode/plain-free' },
+        },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const withEndpoint = await resolveModel({
+        taskType: 'review',
+        opts: normalizeOptions({ tier: 'free' }),
+        cacheDir: CACHE(iso.dir),
+      });
+      assert.equal(withEndpoint.model, 'opencode/muse-spark-1.3-contributor-free');
+      assert.equal(withEndpoint.endpoint, 'responses');
+      const without = await resolveModel({
+        taskType: 'docs',
+        opts: normalizeOptions({ tier: 'free' }),
+        cacheDir: CACHE(iso.dir),
+      });
+      assert.equal(without.endpoint, null, 'models missing from the map keep the provider default');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('points the auto entry at the pick protocol before dispatch', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.equal(e1.model.id, 'muse-spark-1.3-contributor-free', 'in-flight ref mutated');
+      assert.ok(seen.modelsSet, 'catalog re-materialized');
+      const auto = seen.modelsSet.models.find((m) => m.id === 'auto');
+      assert.ok(auto, 'auto entry still registered');
+      assert.deepEqual(
+        auto.api,
+        { id: 'muse-spark-1.3-contributor-free', type: 'aisdk', package: '@ai-sdk/openai' },
+        'route resolves to /responses (URL + body + decoder)',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('prefers ctx.provider.reload over extra transform registrations', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir, {}, { providerReload: true });
+      assert.equal(seen.providerTransforms, 2, 'setup registers registration cb + applier');
+      assert.equal(seen.reloads ?? 0, 0, 'no reload during setup');
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.equal(seen.reloads, 1, 'sync re-materialized via reload');
+      assert.equal(seen.providerTransforms, 2, 'sync appended no transform cbs');
+      const auto = seen.modelsSet.models.find((m) => m.id === 'auto');
+      assert.deepEqual(
+        auto.api,
+        { id: 'muse-spark-1.3-contributor-free', type: 'aisdk', package: '@ai-sdk/openai' },
+        'reload replay applied the override',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('clears a stale protocol override when the next pick has none', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.equal(e1.model.id, 'muse-spark-1.3-contributor-free');
+      assert.ok(seen.modelsSet.models.find((m) => m.id === 'auto').api, 'turn 1 sets the override');
+      // Same task, new config: the pick moves to a model with no endpoint
+      // entry (e.g. an unmapped/removed docs row) — the override must go.
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/plain-free' } },
+      });
+      const e2 = { sessionID: 's1', model: { providerID: 'opencode', id: 'auto' }, messages: [], agent: 'review' };
+      await seen.context(e2);
+      assert.equal(e2.model.id, 'plain-free', 're-resolve picks the unmapped model');
+      const auto = seen.modelsSet.models.find((m) => m.id === 'auto');
+      assert.equal(auto.api, undefined, 'provider default restored');
+    } finally {
+      iso.restore();
+    }
+  });
+});
+
 describe('virtual dispatch overlay', () => {
   const URL = 'https://opencode.ai/inference/openai/v1/chat/completions';
   // Same-provider seeds: the overlay can only rewrite the body when the
@@ -704,6 +833,10 @@ describe('dual virtual anchors (opencode/auto + opencode-go/auto)', () => {
   async function setupDual(dir, options = {}) {
     seedCache(dir, CROSS);
     const seen = { switches: [], synthetics: [], promptsOut: [] };
+    const state = {
+      opencode: new Map([['x', { id: 'x', modelID: 'x', providerID: 'opencode' }]]),
+      'opencode-go': new Map([['x', { id: 'x', modelID: 'x', providerID: 'opencode-go' }]]),
+    };
     const fakeCtx = {
       options: { tier: 'free', taskType: 'review', token: 'tok', ...options },
       location: { directory: dir },
@@ -717,20 +850,22 @@ describe('dual virtual anchors (opencode/auto + opencode-go/auto)', () => {
       },
       provider: {
         async transform(cb) {
-          const sets = {};
+          // Stateful per-provider inventory (mirrors the real catalog:
+          // every registered cb writes into the same materialized state).
           const editor = {
-            get: (id) => {
-              if (id !== 'opencode' && id !== 'opencode-go') return undefined;
-              return { provider: { id }, models: new Map([['x', { id: 'x', modelID: 'x', providerID: id }]]) };
-            },
+            get: (id) =>
+              state[id] ? { provider: { id }, models: state[id] } : undefined,
             models: {
               set: (providerID, models) => {
-                sets[providerID] = models;
+                state[providerID] = new Map(models.map((m) => [m.id, m]));
+                seen.sets = {
+                  opencode: [...state.opencode.values()],
+                  'opencode-go': [...state['opencode-go'].values()],
+                };
               },
             },
           };
           cb(editor);
-          seen.sets = sets;
         },
       },
     };

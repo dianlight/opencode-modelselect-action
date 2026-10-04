@@ -213,6 +213,19 @@ function clearQuotaCache() {
   noTokenHinted = false;
 }
 
+/**
+ * Wire-protocol token ('responses' | 'messages' | 'chat' | 'systemone') for
+ * a model from the config's top-level `endpoints` map ({bareId: token}).
+ * Returns null when the config carries no entry — the provider default
+ * protocol (chat) then applies, matching pre-endpoint behavior.
+ */
+function endpointFor(config, model) {
+  const map = config && config.endpoints;
+  if (!map || typeof map !== 'object' || !model) return null;
+  const id = String(model).split('/').pop();
+  return typeof map[id] === 'string' ? map[id] : null;
+}
+
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir }) {
   const { config, source: source0, stale } = await loadConfig(opts, cacheDir);
@@ -230,7 +243,7 @@ async function resolveModel({ taskType, opts, cacheDir }) {
     ? isFreeQuotaFresh(cacheDir, undefined, free)
     : isFreeQuotaFresh(cacheDir); // no entry: report "something is latched"
   if (!key || !entry) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted, endpoint: endpointFor(config, opts.fallbackModel) };
     throw new Error(`No model configured for task-type='${taskType}'.`);
   }
   let tier = opts.tier;
@@ -282,7 +295,7 @@ async function resolveModel({ taskType, opts, cacheDir }) {
     }
   }
   if (!model) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted, endpoint: endpointFor(config, opts.fallbackModel) };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
   // Budget cap (mirrors the action): an over-budget pick is replaced by the
@@ -312,7 +325,7 @@ async function resolveModel({ taskType, opts, cacheDir }) {
       }
     }
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, endpoint: endpointFor(config, model) };
 }
 
 module.exports = {

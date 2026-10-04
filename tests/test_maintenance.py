@@ -389,8 +389,9 @@ class ChangelogAndTreeDatesTest(unittest.TestCase):
 
 class ZenPricingParseTest(unittest.TestCase):
     HTML = (
-        "<table><tr><th>Model</th><th>Model ID</th></tr>"
-        "<tr><td>Foo</td><td>foo</td></tr></table>"
+        "<table><tr><th>Model</th><th>Model ID</th><th>Endpoint</th></tr>"
+        "<tr><td>Foo</td><td>foo</td>"
+        "<td>https://opencode.ai/zen/v1/responses</td></tr></table>"
         "<table><tr><th>Model</th><th>Input</th><th>Output</th></tr>"
         "<tr><td>Foo</td><td>Free</td><td>Free</td></tr>"
         "<tr><td>Bar (&le; 1K)</td><td>$0.30</td><td>-</td></tr>"
@@ -403,15 +404,18 @@ class ZenPricingParseTest(unittest.TestCase):
 
     def test_parses_tables(self):
         with patch.object(m, "fetch_text", return_value=self.HTML):
-            pricing = m.fetch_zen_pricing()
+            pricing, endpoints = m.fetch_zen_pricing()
         self.assertTrue(pricing["foo"]["free"])
         self.assertEqual(pricing["foo"]["input"], "Free")
         self.assertIn("tiers", pricing["bar"])
         self.assertEqual(pricing["bar"]["output"], None)
+        self.assertEqual(
+            endpoints["foo"], "https://opencode.ai/zen/v1/responses"
+        )
 
     def test_no_pricing_table_returns_empty(self):
         with patch.object(m, "fetch_text", return_value="<table></table>"):
-            self.assertEqual(m.fetch_zen_pricing(), {})
+            self.assertEqual(m.fetch_zen_pricing(), ({}, {}))
 
 
 class RankModelsTest(unittest.TestCase):
@@ -573,10 +577,12 @@ class GoPricingParseTest(unittest.TestCase):
     )
 
     def test_parse_go_table_with_usage_column(self):
-        pricing = m._parse_pricing_html(self.HTML)
+        pricing, endpoints = m._parse_pricing_html(self.HTML)
         self.assertEqual(pricing["muse-spark-1.3-contributor"]["input"], "$0.10")
         self.assertEqual(pricing["muse-spark-1.3-contributor"]["output"], "$0.20")
         self.assertIsNone(pricing["muse-spark-1.3-contributor"]["cached_write"])
+        # No Endpoint column in this table -> no endpoint entries.
+        self.assertEqual(endpoints, {})
 
     def test_fetch_go_pricing_unreachable(self):
         with patch.object(m, "fetch_text", return_value=None):
@@ -584,9 +590,53 @@ class GoPricingParseTest(unittest.TestCase):
 
     def test_fetch_go_pricing_parses(self):
         with patch.object(m, "fetch_text", return_value=self.HTML):
-            pricing = m.fetch_go_pricing()
-        assert pricing is not None
+            result = m.fetch_go_pricing()
+        assert result is not None
+        pricing, _ = result
         self.assertIn("muse-spark-1.3-contributor", pricing)
+
+
+class EndpointTokenTest(unittest.TestCase):
+    def test_known_protocols(self):
+        self.assertEqual(
+            m._endpoint_token("https://opencode.ai/zen/v1/responses"), "responses"
+        )
+        self.assertEqual(
+            m._endpoint_token("https://opencode.ai/zen/v1/chat/completions"), "chat"
+        )
+        self.assertEqual(
+            m._endpoint_token("https://opencode.ai/zen/v1/messages"), "messages"
+        )
+        self.assertEqual(
+            m._endpoint_token("https://opencode.ai/zen/v1/systemone/"), "systemone"
+        )
+
+    def test_unknown_and_empty_return_none(self):
+        self.assertIsNone(
+            m._endpoint_token("https://opencode.ai/zen/v1/models/gemini-2.5-pro")
+        )
+        self.assertIsNone(m._endpoint_token(""))
+        self.assertIsNone(m._endpoint_token(None))
+
+    def test_endpoint_url_falls_back_to_canonical_base(self):
+        endpoints = {
+            "muse-spark-1.2": "https://opencode.ai/zen/v1/responses",
+            "plain": "https://opencode.ai/zen/v1/chat/completions",
+        }
+        self.assertEqual(
+            m._endpoint_url_for(endpoints, "muse-spark-1.2"),
+            "https://opencode.ai/zen/v1/responses",
+        )
+        self.assertEqual(
+            m._endpoint_url_for(endpoints, "muse-spark-1.2-contributor-free"),
+            "https://opencode.ai/zen/v1/responses",
+        )
+        self.assertEqual(
+            m._endpoint_url_for(endpoints, "opencode/plain-free"),
+            "https://opencode.ai/zen/v1/chat/completions",
+        )
+        self.assertIsNone(m._endpoint_url_for(endpoints, "missing-model"))
+        self.assertIsNone(m._endpoint_url_for(endpoints, "anything"))
 
 
 class SmallModelTaskTypeTest(unittest.TestCase):

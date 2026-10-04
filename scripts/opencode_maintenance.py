@@ -373,24 +373,37 @@ def _pricing_display_to_id(display: str, name_to_id: dict[str, str]) -> str | No
     return slug or None
 
 
-def _parse_pricing_html(html: str) -> dict[str, dict[str, Any]]:
-    """Parse endpoint + pricing tables from a docs page into {model_id: entry}."""
+def _parse_pricing_html(
+    html: str,
+) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+    """Parse endpoint + pricing tables from a docs page.
+
+    Returns ``(pricing, endpoints)`` where ``pricing`` is
+    ``{model_id: {input, output, cached_read, cached_write, ...}}`` and
+    ``endpoints`` is ``{model_id: endpoint_url}`` taken from the endpoint
+    table's "Endpoint" column (the per-model wire protocol path).
+    """
     parser = _HtmlTableParser()
     parser.feed(html)
     tables = parser.tables
 
     # Build display-name -> model-id map from the endpoint table (has a
-    # "Model ID" column with the explicit id for every model display name).
+    # "Model ID" column with the explicit id for every model display name),
+    # and capture the Endpoint column alongside it.
     name_to_id: dict[str, str] = {}
+    endpoints: dict[str, str] = {}
     for table in tables:
         if not table:
             continue
         header = [c.lower() for c in table[0]]
         if "model id" in header:
             idx = header.index("model id")
+            ep_idx = header.index("endpoint") if "endpoint" in header else None
             for row in table[1:]:
                 if len(row) > idx and row[0]:
                     name_to_id[row[0]] = row[idx]
+                    if ep_idx is not None and len(row) > ep_idx and row[ep_idx]:
+                        endpoints[row[idx]] = row[ep_idx].strip()
             break
 
     # Locate the pricing table via its price-ish header columns.
@@ -408,7 +421,7 @@ def _parse_pricing_html(html: str) -> dict[str, dict[str, Any]]:
             break
     if not pricing_table:
         print("  x pricing: pricing table not found on the docs page")
-        return {}
+        return {}, endpoints
 
     def _col(*names: str) -> int | None:
         for n in names:
@@ -446,18 +459,20 @@ def _parse_pricing_html(html: str) -> dict[str, dict[str, Any]]:
             tier = {"range": range_m.group(1).strip(), **entry}
             pricing[model_id].setdefault("tiers", []).append(tier)
 
-    return pricing
+    return pricing, endpoints
 
 
-def fetch_zen_pricing() -> dict[str, dict[str, Any]] | None:
-    """Fetch Zen model prices from the docs pricing page.
+def fetch_zen_pricing() -> tuple[dict[str, dict[str, Any]], dict[str, str]] | None:
+    """Fetch Zen model prices + endpoints from the docs pricing page.
 
-    Returns {model_id: {"input": ..., "output": ..., "cached_read": ...,
-    "cached_write": ..., "free": bool, "tiers": [...]}}.
-    Price cells keep the published string value ("Free" or "$0.30"); "-"/empty
-    cells become None. Models with per-context-range prices (e.g. GPT 5.6 Sol)
-    get the default (first) tier at the top level plus every tier under
-    "tiers". Returns None if the page could not be fetched.
+    Returns ``(pricing, endpoints)`` where pricing is
+    {model_id: {"input": ..., "output": ..., "cached_read": ...,
+    "cached_write": ..., "free": bool, "tiers": [...]}} and endpoints is
+    {model_id: endpoint_url}. Price cells keep the published string value
+    ("Free" or "$0.30"); "-"/empty cells become None. Models with
+    per-context-range prices (e.g. GPT 5.6 Sol) get the default (first)
+    tier at the top level plus every tier under "tiers". Returns None if
+    the page could not be fetched.
     """
     page_url = ZEN_PRICING_URL.split("#", 1)[0]
     html = fetch_text(page_url)
@@ -468,8 +483,8 @@ def fetch_zen_pricing() -> dict[str, dict[str, Any]] | None:
     return _parse_pricing_html(html)
 
 
-def fetch_go_pricing() -> dict[str, dict[str, Any]] | None:
-    """Fetch Go-tier model prices from the Go docs page.
+def fetch_go_pricing() -> tuple[dict[str, dict[str, Any]], dict[str, str]] | None:
+    """Fetch Go-tier model prices + endpoints from the Go docs page.
 
     Same shape as `fetch_zen_pricing`. Covers Go-only ids (e.g.
     `muse-spark-1.3-contributor` at $0.10/$0.20) that have no Zen pricing
@@ -504,21 +519,31 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
 
     all_zen = zen_data.get("data", [])
 
-    # Fetch prices from the Zen + Go docs pricing pages and attach them.
-    # Go-only ids (e.g. `muse-spark-1.3-contributor`) have no Zen row.
-    pricing = fetch_zen_pricing()
+    # Fetch prices + endpoints from the Zen + Go docs pricing pages and
+    # attach them. Go-only ids (e.g. `muse-spark-1.3-contributor`) have no
+    # Zen row.
+    zen_fetched = fetch_zen_pricing()
+    pricing: dict[str, dict[str, Any]] = {}
     go_pricing: dict[str, dict[str, Any]] = {}
-    if pricing is None:
-        # Reuse prices from the last successful run so zen_models.json stays
-        # populated even while the docs page is unreachable.
+    endpoints: dict[str, str] = {}
+    if zen_fetched is None:
+        # Reuse prices/endpoints from the last successful run so
+        # zen_models.json stays populated even while the docs page is
+        # unreachable.
         prev = load_json(ZEN_MODELS_PATH) if ZEN_MODELS_PATH.exists() else {}
         pricing = {
             m["id"]: m["pricing"]
             for m in prev.get("all", [])
             if m.get("pricing")
         }
+        endpoints = {
+            m["id"]: m["endpoint"]
+            for m in prev.get("all", [])
+            if m.get("endpoint")
+        }
         print("  w Zen pricing: reusing previously fetched prices")
     else:
+        pricing, endpoints = zen_fetched
         fetched_go = fetch_go_pricing()
         if fetched_go is None:
             prev_go = load_json(GO_MODELS_PATH) if GO_MODELS_PATH.exists() else {}
@@ -527,13 +552,20 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
                 for m in prev_go.get("data", [])
                 if m.get("pricing")
             }
+            go_endpoints = {
+                m["id"]: m["endpoint"]
+                for m in prev_go.get("data", [])
+                if m.get("endpoint")
+            }
             if go_pricing:
                 print("  w Go pricing: reusing previously fetched prices")
         else:
-            go_pricing = fetched_go
+            go_pricing, go_endpoints = fetched_go
         # Zen wins on conflicts; Go fills Go-only ids.
         for gid, ginfo in go_pricing.items():
             pricing.setdefault(gid, ginfo)
+        for gid, gurl in go_endpoints.items():
+            endpoints.setdefault(gid, gurl)
     free_by_pricing: set[str] = set()
     for m in all_zen:
         info = pricing.get(m["id"])
@@ -541,6 +573,9 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
             m["pricing"] = info
             if info.get("free"):
                 free_by_pricing.add(m["id"])
+        endpoint = _endpoint_url_for(endpoints, m["id"])
+        if endpoint:
+            m["endpoint"] = endpoint
 
     free_models = [
         m for m in all_zen
@@ -566,6 +601,9 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
             info = pricing.get(m["id"]) or go_pricing.get(m["id"])
             if info:
                 m["pricing"] = info
+            endpoint = _endpoint_url_for(endpoints, m["id"])
+            if endpoint:
+                m["endpoint"] = endpoint
         save_json(
             GO_MODELS_PATH,
             {"data": go_models, "pricing_source": GO_PRICING_URL},
@@ -732,6 +770,48 @@ def _load_model_config() -> dict[str, Any]:
     return _MODEL_CONFIG_CACHE
 
 
+def _endpoint_url_for(endpoints: dict[str, str], model_id: str) -> str | None:
+    """Endpoint URL for a model id, with the pricing-style fallback chain.
+
+    exact id -> normalised (prefix/`-free` stripped) -> canonical base
+    (`-contributor`/`-unlimited`/effort/`-<N>x`/date stripped). Variant rows
+    share their base's protocol (e.g. `muse-spark-1.2-contributor-free`
+    serves on the base row's `/responses` endpoint).
+    """
+    if not model_id or not endpoints:
+        return None
+    key = model_id.strip().lower()
+    if key in endpoints:
+        return endpoints[key]
+    norm = _normalise_model_for_lookup(model_id)
+    if norm in endpoints:
+        return endpoints[norm]
+    base = _canonical_model_base(model_id)
+    return endpoints.get(base)
+
+
+def _endpoint_token(url: str | None) -> str | None:
+    """Map a full endpoint URL to the wire-protocol token for the plugin.
+
+    `responses` -> OpenAI Responses, `messages` -> Anthropic Messages,
+    `chat` -> OpenAI-compatible chat completions, `systemone` -> systemone.
+    Unknown paths (per-model Gemini routes) and empty values return None so
+    callers keep the provider default protocol (chat).
+    """
+    if not url:
+        return None
+    path = url.rstrip("/")
+    for suffix, token in (
+        ("/chat/completions", "chat"),
+        ("/responses", "responses"),
+        ("/messages", "messages"),
+        ("/systemone", "systemone"),
+    ):
+        if path.endswith(suffix):
+            return token
+    return None
+
+
 def _rank_models_for_config(
     model_ids: list[str],
     livebench: dict[str, Any],
@@ -841,6 +921,15 @@ def generate_model_config(
         if isinstance(livebench, dict)
         else None,
         "task-types": task_map,
+        # Bare model id -> wire-protocol token, so the plugin can put a
+        # picked model on the right Zen endpoint (responses/messages/chat)
+        # instead of inheriting the provider default. Models with unknown
+        # endpoints are omitted (provider default applies).
+        "endpoints": {
+            m["id"]: _endpoint_token(m["endpoint"])
+            for m in (*free_models, *go_models)
+            if m.get("id") and m.get("endpoint") and _endpoint_token(m["endpoint"])
+        },
     }
 
     if not MODEL_CONFIG_PATH.exists():
@@ -852,7 +941,10 @@ def generate_model_config(
 
     current = _load_model_config()
     current_task_types = current.get("task-types") or {}
-    if current_task_types == proposed["task-types"]:
+    if (
+        current_task_types == proposed["task-types"]
+        and (current.get("endpoints") or {}) == proposed["endpoints"]
+    ):
         print("  v Central model config unchanged")
         return False
 

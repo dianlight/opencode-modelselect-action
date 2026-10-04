@@ -1,4 +1,19 @@
 ## [Unreleased]
+### Fixed
+- Virtual `opencode/auto` sessions failed with `ModelProtocolUnsupported`
+  ("Model does not support this protocol") whenever the pick lived on a
+  non-chat Zen endpoint — e.g. `muse-spark-1.3-contributor-free`, the top
+  free pick for six task types, is `/responses`-only. Dispatch inherited
+  the provider default chat/completions route because the virtual entry
+  carries no per-model `api`. The maintenance script now parses the docs
+  endpoint table into a top-level `endpoints` map in
+  `data/model-config.json` (bare model id → `responses`/`messages`/`chat`
+  token, with the pricing-style variant fallback), `resolveModel` returns
+  the token, and the plugin points the virtual entry's catalog `api` at
+  the matching AI SDK package per turn — URL, body shape and stream
+  decoder move together (a raw request-URL rewrite in the overlay would
+  have broken response decoding). The overlay's `body.model` swap stays
+  as the fallback.
 ### Changed
 - The maintenance workflow acts directly on model coverage issues instead of
   waiting for issue checkboxes: when the audit detects stale fallback
