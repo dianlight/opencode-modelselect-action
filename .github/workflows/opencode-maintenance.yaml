@@ -28,7 +28,7 @@ jobs:
 
       # ── Setup Python via mise ───────────────────────────────────────────
       - name: Install mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
 
       - name: Install Python dependencies
         run: pip install pyyaml requests
