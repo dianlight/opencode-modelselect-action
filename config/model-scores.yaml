@@ -5,6 +5,12 @@ model_scores:
     overall: 67.3             # LiveBench Global 67.3 (SWEN.AI / LiveBench 08-24)
     reasoning: 89.9           # GPQA Diamond 89.9 (Artificial Analysis, max effort)
     vision: 5.0               # text-only, no vision encoder
+  fledge-alpha-free:
+    coding: 68.0              # 61/61 executable code checks vs LongCat 59/61 (Echeve) + 15/15 bug-fix battery vs Big Pickle 12/15 (Soares); longcat-2.0-class, discounted for tiny single-harness samples
+    instruction_following: 55.0  # no IF data; conservative estimate for stealth model (cf. omen-alpha 62, ling-3.0-flash-free 50)
+    overall: 62.0             # composite ~ mean of subscores; consistent with big-pickle 61.5 / longcat-2.0 60.0
+    reasoning: 84.0           # GPQA-D 92.3 (n=39, unverified single source: stealthmodels.com) + 6/6 math, 4/4 logic (Echeve); calibrated vs kimi-k3 93.5->87.0, ds-v4-pro 90.1->83.9/88.7; discounted for small GPQA sample + weak HLE 25.4
+    vision: 40.0              # text+image input per models.dev catalog + OpenCode Zen catalog (attachment: true); no vision benchmark, multimodal baseline
   jev-1.13-free:
     coding: 30.0              # decision-only model (no text/code generation); workflow accuracy 67.8%
     instruction_following: 50.0  # schema-guaranteed output (no open-ended IFEval-style tasks)
