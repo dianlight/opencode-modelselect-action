@@ -1,11 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "fledge-alpha-free",
-      "tier": "Free"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [
     {
       "model": "deepseek-flash",
