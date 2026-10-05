@@ -11,6 +11,16 @@
   mode); free-exhaustion arms the forced retry without moving the
   session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
+- `ModelProtocolUnsupported` ("Model does not support this protocol")
+  hard-failing virtual turns: the virtual entry's catalog `api` could miss
+  the pick's protocol — a 24h config cache written before the `endpoints`
+  map existed, or a first-turn/title-first race where the re-materialize
+  landed after the runner resolved its route — and the error had no
+  recovery path. `resolveModel` now falls back to a built-in protocol map
+  for known non-chat models when the loaded config carries no entry, and
+  the `retry` hook re-syncs the virtual `api` to the pick's protocol and
+  retries once on `ModelProtocolUnsupported` (virtual sessions only, never
+  latched as exhaustion, one shot per session so it cannot loop).
 - Virtual `opencode/auto` sessions failed with `ModelProtocolUnsupported`
   ("Model does not support this protocol") whenever the pick lived on a
   non-chat Zen endpoint — e.g. `muse-spark-1.3-contributor-free`, the top

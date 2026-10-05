@@ -593,6 +593,98 @@ describe('virtual protocol api (config endpoints map)', () => {
       iso.restore();
     }
   });
+
+  it('falls back to a known protocol when the cached config predates the endpoints map', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      // No `endpoints` key: a 24h cache written before the upgrade.
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      const entry = seen.catalog.get('modelselect').models.get('auto-free-first');
+      assert.deepEqual(
+        entry.api,
+        { id: 'muse-spark-1.3-contributor-free', type: 'aisdk', package: '@ai-sdk/openai' },
+        'fallback supplies the responses token, no chat-default miss',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('a protocol mismatch re-syncs the api and retries once without latching (virtual)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      assert.ok(seen.catalog.get('modelselect').models.get('auto-free-first').api, 'precondition: override set');
+
+      // Simulate the race: the dispatch went out on the chat default.
+      delete seen.catalog.get('modelselect').models.get('auto-free-first').api;
+      const mismatch = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(mismatch);
+      assert.deepEqual(mismatch.decision, { retry: true, delay: 0 }, 'one re-synced retry');
+      assert.deepEqual(mismatch.model, FREE, 'retry keeps the virtual anchor');
+      assert.deepEqual(
+        seen.catalog.get('modelselect').models.get('auto-free-first').api,
+        { id: 'muse-spark-1.3-contributor-free', type: 'aisdk', package: '@ai-sdk/openai' },
+        'catalog api corrected before the retry',
+      );
+      assert.equal(
+        fs.existsSync(path.join(CACHE(iso.dir), 'free-quota.json')),
+        false,
+        'a routing miss never latches as exhaustion',
+      );
+
+      const again = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        attempt: 2,
+        decision: { retry: false },
+      };
+      await seen.retry(again);
+      assert.deepEqual(again.decision, { retry: false }, 'one shot: no retry loop');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('a protocol mismatch on a non-virtual session never retries', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const r = {
+        sessionID: 's9',
+        model: { providerID: 'opencode', id: 'x' },
+        error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(r);
+      assert.deepEqual(r.decision, { retry: false }, "hands-off sessions keep the host's decision");
+    } finally {
+      iso.restore();
+    }
+  });
 });
 
 describe('virtual routing headers', () => {

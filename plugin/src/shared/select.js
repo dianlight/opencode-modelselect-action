@@ -218,12 +218,38 @@ function clearQuotaCache() {
  * a model from the config's top-level `endpoints` map ({bareId: token}).
  * Returns null when the config carries no entry — the provider default
  * protocol (chat) then applies, matching pre-endpoint behavior.
+ *
+ * FALLBACK_ENDPOINTS covers the same non-chat rows when the loaded config
+ * predates the `endpoints` map (a 24h-cached config written before the
+ * upgrade) or is unreachable offline: without it a stale cache resolves a
+ * responses-only pick with no token, the virtual `api` stays on chat, and
+ * Zen rejects the dispatch with ModelProtocolUnsupported. `chat` needs no
+ * fallback row — it IS the provider default. Keep in sync with the
+ * maintenance script's endpoint table (`scripts/opencode_maintenance.py`).
  */
+const FALLBACK_ENDPOINTS = {
+  'muse-spark-1.3-contributor-free': 'responses',
+  'muse-spark-1.2-contributor-free': 'responses',
+  'muse-spark-1.3-contributor': 'responses',
+  'muse-spark-1.2-contributor': 'responses',
+  'gpt-5.6-luna': 'responses',
+  'gpt-6-luna': 'responses',
+  'grok-4.5': 'responses',
+  'grok-4.6': 'responses',
+  'grok-4.7': 'responses',
+  'qwen3.5-plus': 'messages',
+  'qwen3.6-plus': 'messages',
+  'qwen3.7-plus': 'messages',
+  'qwen3.7-max': 'messages',
+  'qwen3.8-flash': 'messages',
+  'jev-1.13-free': 'systemone',
+};
 function endpointFor(config, model) {
-  const map = config && config.endpoints;
-  if (!map || typeof map !== 'object' || !model) return null;
+  if (!model) return null;
   const id = String(model).split('/').pop();
-  return typeof map[id] === 'string' ? map[id] : null;
+  const map = config && config.endpoints;
+  if (map && typeof map === 'object' && typeof map[id] === 'string') return map[id];
+  return typeof FALLBACK_ENDPOINTS[id] === 'string' ? FALLBACK_ENDPOINTS[id] : null;
 }
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */

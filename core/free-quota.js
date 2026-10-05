@@ -48,6 +48,37 @@ const RATE_LIMIT_BODY_RE = /rate\s*limit|too many requests/i;
 // prefers `go` for that task and the session retries once.
 const UNAVAILABLE_MODEL_RE = /model\s+is\s+unavailable/i;
 
+// Wrong-wire-protocol dispatch (e.g. `ModelProtocolUnsupported` / "Model
+// does not support this protocol."): the virtual entry's catalog `api`
+// missed the pick's protocol, so the driver sent chat/completions to a
+// responses-only model (or vice versa). This is NOT quota exhaustion —
+// it must never latch — but a virtual session can recover by re-syncing
+// the virtual `api` to the pick's protocol and retrying once.
+const PROTOCOL_MISMATCH_RE = /model\s+does\s+not\s+support\s+this\s+protocol|modelprotocolunsupported/i;
+
+/**
+ * True when a failure is a wire-protocol mismatch rather than a model
+ * error. Accepts the retry-hook error shape (`{ type, message, status }`),
+ * a bare string, or a status/body pair. Never throws.
+ */
+function isProtocolMismatch(error, bodyText) {
+  try {
+    if (typeof error === 'string') {
+      const text = bodyText === undefined ? error : `${error} ${bodyText ?? ''}`;
+      return PROTOCOL_MISMATCH_RE.test(text);
+    }
+    if (!error || typeof error !== 'object') {
+      return PROTOCOL_MISMATCH_RE.test(String(bodyText ?? ''));
+    }
+    const parts = [error.type, error.code, error.message, bodyText]
+      .map((v) => (v === undefined || v === null ? '' : String(v)))
+      .join(' ');
+    return PROTOCOL_MISMATCH_RE.test(parts);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Classify a failed model response: does it signal free-quota exhaustion?
  * Accepts a status-less value (0/NaN, e.g. a retry error object with only
@@ -214,6 +245,8 @@ module.exports = {
   RATE_LIMIT_BODY_RE,
   RATE_LIMIT_MESSAGE_RE,
   UNAVAILABLE_MODEL_RE,
+  PROTOCOL_MISMATCH_RE,
+  isProtocolMismatch,
   classifyFreeExhaustion,
   classifyFreeFailure,
   isRateLimitSignal,

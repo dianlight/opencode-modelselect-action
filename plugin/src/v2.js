@@ -96,6 +96,7 @@ const {
   classifyFreeFailure,
   isFreeModelRef,
   isFreeQuotaFresh,
+  isProtocolMismatch,
   markFreeQuota,
   readModelTable,
 } = require('./shared/freequota');
@@ -291,6 +292,7 @@ async function setup(ctx) {
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
   const freeFlipped = new Set(); // sessions already flipped to go (process lifetime)
   const freeRetry = new Map(); // sessionID -> armedAt (epoch ms): one forced retry
+  const protocolRetry = new Map(); // sessionID -> armedAt: one re-synced retry after a protocol mismatch
   const virtualSessions = new Set(); // sessions whose current model is a virtual anchor
   const virtualIds = new Map(); // sessionID -> virtual model id (pins the preference)
   const lastVirtualPick = new Map(); // sessionID -> { providerID, id }: last resolved pick, for aux requests
@@ -1116,6 +1118,53 @@ async function setup(ctx) {
         return;
       }
       const err = event.error;
+      // Wire-protocol mismatch on a virtual session: the virtual entry's
+      // catalog `api` missed the pick's protocol (stale endpoints map,
+      // first-turn race, or a host without reload), so the driver
+      // dispatched on the wrong route and Zen answered
+      // ModelProtocolUnsupported. Re-sync the `api` to the pick's
+      // protocol and retry once — the next attempt resolves its route
+      // against the corrected catalog. Never latched: a routing miss is
+      // not quota exhaustion. One shot per session; the re-sync persists
+      // for later turns via virtualApiWanted.
+      if (isProtocolMismatch(err)) {
+        const sessionID = event.sessionID;
+        const isVirtual = Boolean(
+          sessionID && (virtualSessions.has(sessionID) || isVirtualRef(event.model)),
+        );
+        if (!isVirtual || opts.suggestOnly) return;
+        if (protocolRetry.has(sessionID)) {
+          protocolRetry.delete(sessionID);
+          return;
+        }
+        try {
+          const virtualId = virtualIds.get(sessionID) || (isVirtualRef(event.model) ? event.model.id : null);
+          const preference = virtualId ? preferenceForVirtualId(virtualId) : opts.autoPreference;
+          const where = sessionTask(sessionID);
+          const taskType = where
+            ? where.taskType
+            : (
+                await resolveTask({
+                  sessionID,
+                  text: prompts.get(sessionID) ?? '',
+                  files: [],
+                  agent: undefined,
+                  assistantSnippet: '',
+                })
+              ).taskType;
+          const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir });
+          const ref = splitModelRef(picked.model);
+          const pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null };
+          lastVirtualPick.set(sessionID, pick);
+          if (virtualId) await syncVirtualApiFor(pick, virtualId);
+        } catch {
+          // re-sync is best-effort; the retry below still gets its chance
+        }
+        protocolRetry.set(sessionID, Date.now());
+        event.decision = { retry: true, delay: 0 };
+        if (opts.verbose) console.log(`[modelselect] protocol mismatch re-synced, retrying session=${sessionID}`);
+        return;
+      }
       const outcome = classifyFreeFailure(err?.status, err?.message ?? '');
       if (!outcome.exhausted) return;
       const ref = refForFailure(event.sessionID, event.model, virtualSessions, lastVirtualPick);

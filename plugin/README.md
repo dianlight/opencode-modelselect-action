@@ -296,7 +296,10 @@ session route on every turn — the picker *is* the switch:
   Qwen-plus rows) also re-point the virtual model's catalog `api` to the
   matching AI SDK package per turn, so OpenCode's route — URL, body
   shape and stream decoder — matches the pick. Without it those models
-  fail with `ModelProtocolUnsupported` on chat/completions. The proxy
+  fail with `ModelProtocolUnsupported` on chat/completions. A built-in
+  fallback covers known non-chat models when the cached config predates
+  the map, and a `ModelProtocolUnsupported` failure re-syncs the `api`
+  and retries once (virtual sessions only, never latched). The proxy
   preserves the driver's path when forwarding, so protocols keep
   working end to end;
 - there is no mode gate — a virtual pick routes every turn regardless of

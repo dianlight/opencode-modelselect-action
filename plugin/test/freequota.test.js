@@ -19,6 +19,9 @@ const {
   FREE_QUOTA_BASENAME,
   FREE_RATE_LIMIT_TTL_MS,
   RATE_LIMIT_MESSAGE_RE,
+  UNAVAILABLE_MODEL_RE,
+  PROTOCOL_MISMATCH_RE,
+  isProtocolMismatch,
   classifyFreeExhaustion,
   classifyFreeFailure,
   isFreeModelRef,
@@ -82,6 +85,28 @@ describe('classifyFreeExhaustion', () => {
     assert.equal(classifyFreeExhaustion(503, msg), true);
     assert.equal(classifyFreeExhaustion(null, msg), true);
     assert.deepEqual(classifyFreeFailure(500, msg), { exhausted: true, rateLimited: false });
+  });
+
+  it('detects wire-protocol mismatches without calling them exhaustion', () => {
+    const err = { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' };
+    assert.match(err.message, PROTOCOL_MISMATCH_RE);
+    assert.match(err.type, PROTOCOL_MISMATCH_RE);
+    assert.equal(isProtocolMismatch(err), true);
+    assert.equal(isProtocolMismatch({ message: 'Model does not support this protocol.' }), true);
+    assert.equal(isProtocolMismatch('ModelProtocolUnsupported'), true);
+    assert.equal(isProtocolMismatch(null, 'Model does not support this protocol.'), true);
+    assert.equal(isProtocolMismatch({ type: 'rate_limit', message: '429 too many requests' }), false);
+    assert.equal(isProtocolMismatch(null), false);
+    assert.equal(isProtocolMismatch('plain failure'), false);
+    // A protocol miss must never latch as quota exhaustion (any status).
+    assert.deepEqual(classifyFreeFailure(400, 'Model does not support this protocol.'), {
+      exhausted: false,
+      rateLimited: false,
+    });
+    assert.deepEqual(classifyFreeFailure(null, 'ModelProtocolUnsupported'), {
+      exhausted: false,
+      rateLimited: false,
+    });
   });
 });
 
