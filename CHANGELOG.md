@@ -12,6 +12,21 @@
   session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
 - `ModelProtocolUnsupported` ("Model does not support this protocol")
+  still hard-failing virtual turns after the `api` re-sync retry: the
+  re-pointed catalog entry does not move an already-pinned session route,
+  so the retried dispatch went out on chat/completions again and the turn
+  died (reproduced live on host v2.0.23 with a `review` free pick —
+  `muse-spark-1.3-contributor-free` is `/responses`-only — while a direct
+  session on the same model succeeds). The `retry` hook now fails soft:
+  on a virtual-session protocol mismatch it persists the resolved real
+  pick via `switchModel` (best-effort; a host without it keeps the plain
+  re-synced retry) so the retried attempt resolves its route against the
+  real provider's native handling, then retries once. The session leaves
+  virtual mode (later turns are hands-off) and the status file records
+  the landing (`source` gains `+protocol-failsoft`); still never latched
+  as exhaustion, still one shot per session, still skipped in
+  `suggestOnly`.
+- `ModelProtocolUnsupported` ("Model does not support this protocol")
   hard-failing virtual turns: the virtual entry's catalog `api` could miss
   the pick's protocol — a 24h config cache written before the `endpoints`
   map existed, or a first-turn/title-first race where the re-materialize

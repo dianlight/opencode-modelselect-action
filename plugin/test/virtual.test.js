@@ -87,6 +87,7 @@ async function setupV2(dir, options = {}, features = {}) {
         seen[name] = cb;
       },
       async switchModel(input) {
+        if (features.switchModelError) throw new Error('switch unavailable');
         seen.switches.push(input);
       },
       async synthetic(input) {
@@ -615,7 +616,7 @@ describe('virtual protocol api (config endpoints map)', () => {
     }
   });
 
-  it('a protocol mismatch re-syncs the api and retries once without latching (virtual)', async () => {
+  it('a protocol mismatch fails soft onto the real pick and retries once without latching (virtual)', async () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, {
@@ -638,12 +639,22 @@ describe('virtual protocol api (config endpoints map)', () => {
       };
       await seen.retry(mismatch);
       assert.deepEqual(mismatch.decision, { retry: true, delay: 0 }, 'one re-synced retry');
-      assert.deepEqual(mismatch.model, FREE, 'retry keeps the virtual anchor');
+      assert.deepEqual(mismatch.model, FREE, 'retry event keeps the virtual anchor');
       assert.deepEqual(
         seen.catalog.get('modelselect').models.get('auto-free-first').api,
         { id: 'muse-spark-1.3-contributor-free', type: 'aisdk', package: '@ai-sdk/openai' },
         'catalog api corrected before the retry',
       );
+      // The virtual chat driver cannot speak the responses pick, so the
+      // session fails soft onto the real pick whose native route works.
+      assert.deepEqual(
+        seen.switches,
+        [{ sessionID: 's1', model: { providerID: 'opencode', id: 'muse-spark-1.3-contributor-free' } }],
+        'exactly one fail-soft switch onto the real pick',
+      );
+      const st = JSON.parse(fs.readFileSync(path.join(CACHE(iso.dir), 'status-s1.json'), 'utf8'));
+      assert.equal(st.model, 'opencode/muse-spark-1.3-contributor-free', 'status follows the landed pick');
+      assert.match(st.source, /protocol-failsoft/, 'status names the fail-soft');
       assert.equal(
         fs.existsSync(path.join(CACHE(iso.dir), 'free-quota.json')),
         false,
@@ -659,6 +670,63 @@ describe('virtual protocol api (config endpoints map)', () => {
       };
       await seen.retry(again);
       assert.deepEqual(again.decision, { retry: false }, 'one shot: no retry loop');
+      assert.equal(seen.switches.length, 1, 'one shot: no second switch');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('a protocol mismatch still retries when the fail-soft switch throws (virtual)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir, {}, { switchModelError: true });
+      // Host without switchModel: the plain re-synced retry below still fires.
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      const mismatch = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(mismatch);
+      assert.deepEqual(mismatch.decision, { retry: true, delay: 0 }, 'fallback retry still armed');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('a protocol mismatch in suggestOnly never switches nor retries', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir, { suggestOnly: true });
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      const origLog = console.log;
+      console.log = () => {};
+      try {
+        await seen.context(e1);
+      } finally {
+        console.log = origLog;
+      }
+      const mismatch = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(mismatch);
+      assert.deepEqual(mismatch.decision, { retry: false }, 'trial mode never retries');
+      assert.deepEqual(seen.switches, [], 'trial mode never switches');
     } finally {
       iso.restore();
     }

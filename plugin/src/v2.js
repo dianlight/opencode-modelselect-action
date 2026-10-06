@@ -1120,13 +1120,19 @@ async function setup(ctx) {
       const err = event.error;
       // Wire-protocol mismatch on a virtual session: the virtual entry's
       // catalog `api` missed the pick's protocol (stale endpoints map,
-      // first-turn race, or a host without reload), so the driver
-      // dispatched on the wrong route and Zen answered
-      // ModelProtocolUnsupported. Re-sync the `api` to the pick's
-      // protocol and retry once — the next attempt resolves its route
-      // against the corrected catalog. Never latched: a routing miss is
-      // not quota exhaustion. One shot per session; the re-sync persists
-      // for later turns via virtualApiWanted.
+      // first-turn race, or a host that pins the session route before the
+      // per-turn re-point), so the driver dispatched on the wrong route
+      // and Zen answered ModelProtocolUnsupported. Re-sync the `api` to
+      // the pick's protocol AND move the session onto the real pick: the
+      // virtual chat-default driver cannot speak a responses/messages
+      // pick, while the real provider dispatches its own models natively
+      // (a direct opencode/muse-spark-1.3-contributor-free turn succeeds
+      // where the virtual dispatch 400s). The retried attempt then
+      // resolves its route against the real provider. This leaves virtual
+      // mode for the session (later turns are hands-off), but a working
+      // real-model session beats a stuck virtual one. Never latched: a
+      // routing miss is not quota exhaustion. One shot per session; the
+      // re-sync persists for later turns via virtualApiWanted.
       if (isProtocolMismatch(err)) {
         const sessionID = event.sessionID;
         const isVirtual = Boolean(
@@ -1157,6 +1163,38 @@ async function setup(ctx) {
           const pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null };
           lastVirtualPick.set(sessionID, pick);
           if (virtualId) await syncVirtualApiFor(pick, virtualId);
+          // Fail soft off virtual mode: a re-synced catalog alone cannot
+          // save the retry while the session stays pinned to the virtual
+          // chat route — persist the real pick (best-effort; a host
+          // without switchModel keeps the plain re-synced retry below).
+          let landed = false;
+          try {
+            await ctx.session.switchModel({
+              sessionID,
+              model: { providerID: pick.providerID, id: pick.id },
+            });
+            landed = true;
+          } catch (switchErr) {
+            if (opts.verbose) console.log(`[modelselect] protocol fail-soft switch skipped: ${switchErr?.message ?? switchErr}`);
+          }
+          if (landed) {
+            // The session now dispatches natively: stop stamping virtual
+            // routing headers onto its attempts (the retried dispatch must
+            // be a pure real-provider turn).
+            virtualSessions.delete(sessionID);
+            const prev = (where && where.prev) || {};
+            writeStatus(cacheDir, sessionID ?? 'default', {
+              taskType,
+              tier: picked.tier,
+              model: picked.model,
+              jev: typeof prev.jev === 'string' ? prev.jev : null,
+              goOk: typeof prev.goOk === 'boolean' ? prev.goOk : (picked.goOk ?? null),
+              think: prev.think ?? picked.think ?? null,
+              freeExhausted: prev.freeExhausted ?? picked.freeExhausted ?? null,
+              source: `${picked.source}+protocol-failsoft`,
+              suggestOnly: opts.suggestOnly,
+            });
+          }
         } catch {
           // re-sync is best-effort; the retry below still gets its chance
         }

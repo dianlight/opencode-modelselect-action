@@ -299,7 +299,13 @@ session route on every turn — the picker *is* the switch:
   fail with `ModelProtocolUnsupported` on chat/completions. A built-in
   fallback covers known non-chat models when the cached config predates
   the map, and a `ModelProtocolUnsupported` failure re-syncs the `api`
-  and retries once (virtual sessions only, never latched). The proxy
+  and retries once (virtual sessions only, never latched). When the
+  re-synced retry would still dispatch on the pinned virtual chat route,
+  the retry fails soft instead: the session is persisted onto the
+  resolved real pick via `switchModel` (best-effort) so the retried
+  attempt uses the real provider's native route — later turns on that
+  session are hands-off, and the status file records the landing
+  (`source` gains `+protocol-failsoft`). The proxy
   preserves the driver's path when forwarding, so protocols keep
   working end to end;
 - there is no mode gate — a virtual pick routes every turn regardless of
