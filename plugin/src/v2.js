@@ -67,6 +67,17 @@
  *   virtual session arms the forced retry without ever moving the session;
  *   the armed retry re-resolves through the same headers, where the fresh
  *   latch prefers go.
+ * - Thinking level: the two virtual models register the six config
+ *   think levels (`default|minimal|low|medium|high|xhigh`) as picker
+ *   variants, and the per-turn task `think` hint syncs onto the virtual
+ *   entry's `settings.reasoningEffort` + `body.reasoning_effort`
+ *   (same wanted-state pattern as the protocol `api` patch). The task
+ *   hint is therefore the dispatch default; a manual variant on the
+ *   session ref wins because the host's `withVariant` merges variant
+ *   settings/body OVER the model's per dispatch, and `default` maps to
+ *   no overlay — so picking `default` = follow the task hint. Effort
+ *   fields ride the body untouched through the `http.request` rewrite
+ *   and the proxy (both only touch `body.model`).
  * - `/modelselect` chat command (`ctx.command.transform`): no argument
  *   prints router-sync state + host + last pick; `sync on|off` writes the
  *   router-sync switch via `shared/status.js writeRoutingSync`. Output
@@ -79,6 +90,7 @@
 
 const path = require('node:path');
 const { detectRepoSignals } = require('./shared/detect');
+const { normalizeThink } = require('./shared/core/lookup');
 const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
 const {
   resolveWithHistory,
@@ -120,6 +132,14 @@ const VIRTUAL_FREE = 'auto-free-first';
 const VIRTUAL_GO = 'auto-go-first';
 const VIRTUAL_MODELS = [VIRTUAL_FREE, VIRTUAL_GO];
 const VIRTUAL_REF = `${VIRTUAL_PROVIDER}/${VIRTUAL_FREE}`;
+// The six reasoning-effort levels from config/task-types.yaml, offered as
+// picker variants on both virtual models. `default` carries no overlay (the
+// host maps variant "default" to no merge), the rest overlay the effort onto
+// the outgoing request — `settings` for the driver-normalized spell and the
+// raw `body` key as the guaranteed passthrough (both converge to the same
+// `reasoning_effort` field on the chat protocol the virtual models dispatch
+// with, so applying both is idempotent).
+const THINK_VARIANTS = ['default', 'minimal', 'low', 'medium', 'high', 'xhigh'];
 // Live-captured upstream bases, refreshed on every catalog materialize.
 // Hardcoded fallbacks are the live-verified Zen/Go inference bases.
 const FALLBACK_UPSTREAM = {
@@ -347,7 +367,11 @@ async function setup(ctx) {
       providerID: VIRTUAL_PROVIDER,
       name,
       capabilities: { tools: true, input: ['text', 'image'], output: ['text'] },
-      variants: [],
+      variants: THINK_VARIANTS.map((level) =>
+        level === 'default'
+          ? { id: level }
+          : { id: level, settings: { reasoningEffort: level }, body: { reasoning_effort: level } },
+      ),
       time: { released: 0 },
       cost: [],
       status: 'active',
@@ -398,6 +422,12 @@ async function setup(ctx) {
   // sessions overwrite each other's wanted state — accepted (serialized
   // turns, the norm, are exact).
   const virtualApiWanted = new Map(); // virtual model id -> { endpoint, id }
+  // Desired task-think default per virtual model (see THINK_VARIANTS):
+  // reasoningEffort/reasoning_effort for a concrete level, absent for
+  // `default`/null (no effort forced — upstream default applies). A manual
+  // picker variant needs no wanted state here: the host merges the session
+  // ref's variant overlay over these model-level values at dispatch time.
+  const virtualThinkWanted = new Map(); // virtual model id -> effort level | null
   try {
     proxy = await startProxy({
       getUpstream: upstreamFor,
@@ -463,6 +493,45 @@ async function setup(ctx) {
           delete patched.api; // restore the provider default protocol
           changed = true;
         }
+        // Task-think default: mirror the wanted effort onto the entry's
+        // settings + body (concrete levels only; `default`/null clears a
+        // stale hint). A manual picker variant still wins — the host merges
+        // the variant overlay over these model-level values per dispatch.
+        const think = normalizeThink(virtualThinkWanted.get(m.id));
+        const wantEffort = think && think !== 'default' ? think : null;
+        const settings = { ...(patched.settings || {}) };
+        const body = { ...(patched.body || {}) };
+        let settingsChanged = false;
+        let bodyChanged = false;
+        if (wantEffort) {
+          if (settings.reasoningEffort !== wantEffort) {
+            settings.reasoningEffort = wantEffort;
+            settingsChanged = true;
+          }
+          if (body.reasoning_effort !== wantEffort) {
+            body.reasoning_effort = wantEffort;
+            bodyChanged = true;
+          }
+        } else {
+          if (Object.hasOwn(settings, 'reasoningEffort')) {
+            delete settings.reasoningEffort;
+            settingsChanged = true;
+          }
+          if (Object.hasOwn(body, 'reasoning_effort')) {
+            delete body.reasoning_effort;
+            bodyChanged = true;
+          }
+        }
+        if (settingsChanged) {
+          if (Object.keys(settings).length > 0) patched.settings = settings;
+          else delete patched.settings;
+          changed = true;
+        }
+        if (bodyChanged) {
+          if (Object.keys(body).length > 0) patched.body = body;
+          else delete patched.body;
+          changed = true;
+        }
         return patched;
       });
       if (changed) editor.models.set(VIRTUAL_PROVIDER, next);
@@ -499,6 +568,7 @@ async function setup(ctx) {
         endpoint = map && typeof map[bare] === 'string' ? map[bare] : null;
       }
       virtualApiWanted.set(virtualId, { endpoint, id: pick.id });
+      virtualThinkWanted.set(virtualId, normalizeThink(pick.think));
       if (typeof ctx.provider?.reload === 'function') {
         await ctx.provider.reload();
         if (opts.verbose) {
@@ -884,6 +954,7 @@ async function setup(ctx) {
         jev,
         goOk: picked.goOk ?? null,
         think: picked.think ?? null,
+        variant: normalizeThink(event.model && event.model.variant),
         freeExhausted: picked.freeExhausted ?? null,
         source: picked.source,
         suggestOnly: opts.suggestOnly,
@@ -899,7 +970,7 @@ async function setup(ctx) {
         );
         // Still record the pick: aux requests (title/…) on a virtual
         // session need a dispatchable ref even in trial mode.
-        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null });
+        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null });
         return;
       }
       // The session stays on its virtual anchor for its whole life:
@@ -907,11 +978,11 @@ async function setup(ctx) {
       // past the proxy on the wrong driver) and nothing is ever persisted.
       // The `http.request` hook stamps the pick into routing headers +
       // body, and the proxy forwards it to the real base.
-      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null });
+      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null });
       // Point THIS virtual model's catalog `api` at the pick's protocol
       // before the runner resolves the model (per-model wanted state —
       // the two virtual models route independently).
-      await syncVirtualApiFor({ providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null }, virtualId);
+      await syncVirtualApiFor({ providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null }, virtualId);
       // A resolved free pick with no fresh latch closes the previous
       // free episode so a later exhaustion can arm a new retry.
       if (virtual && sessionID) {
@@ -960,7 +1031,7 @@ async function setup(ctx) {
             cacheDir,
           });
           const ref = splitModelRef(picked.model);
-          pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null };
+          pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
           lastVirtualPick.set(sessionID, pick);
         }
         // Aux requests dispatch through the same route machinery — apply
@@ -1008,7 +1079,7 @@ async function setup(ctx) {
             });
         const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir });
         const ref = splitModelRef(picked.model);
-        pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null };
+        pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
         lastVirtualPick.set(sessionID, pick);
       }
       // Re-assert this virtual model's protocol (covers armed retries,
@@ -1160,7 +1231,7 @@ async function setup(ctx) {
               ).taskType;
           const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir });
           const ref = splitModelRef(picked.model);
-          const pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null };
+          const pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
           lastVirtualPick.set(sessionID, pick);
           if (virtualId) await syncVirtualApiFor(pick, virtualId);
           // Fail soft off virtual mode: a re-synced catalog alone cannot
@@ -1190,6 +1261,7 @@ async function setup(ctx) {
               jev: typeof prev.jev === 'string' ? prev.jev : null,
               goOk: typeof prev.goOk === 'boolean' ? prev.goOk : (picked.goOk ?? null),
               think: prev.think ?? picked.think ?? null,
+              variant: null,
               freeExhausted: prev.freeExhausted ?? picked.freeExhausted ?? null,
               source: `${picked.source}+protocol-failsoft`,
               suggestOnly: opts.suggestOnly,

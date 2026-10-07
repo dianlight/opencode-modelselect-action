@@ -13,14 +13,16 @@
  * - Status file: `<cacheDir>/status-<sessionID>.json` (sessionID sanitized
  *   to `[A-Za-z0-9-_]`, best-effort, never throws — including suggestOnly
  *   runs). Schema:
- *   `{ sessionID, taskType, tier, model, jev, goOk, think, freeExhausted,
- *      source, suggestOnly, updatedAt }`
+ *   `{ sessionID, taskType, tier, model, jev, goOk, think, variant,
+ *      freeExhausted, source, suggestOnly, updatedAt }`
  *   where `model` is `"provider/id"`, `jev` is `off|pinned|<choice>@<conf>`
  *   or `kept:<reason>`, `goOk` is the last quota-probe result
  *   (`true|false|null` when unknown / no probe ran), `think` is the task
  *   type's reasoning-effort hint
  *   (`default|minimal|low|medium|high|xhigh|null`, normalized
- *   case-insensitively), `freeExhausted` is the free-tier soft-error
+ *   case-insensitively), `variant` is the manual picker override on the
+ *   session's virtual ref (same level vocabulary; null when unset — the
+ *   effective effort is `variant ?? think`), `freeExhausted` is the free-tier soft-error
  *   latch (`true|false|null`; 12h for spent quota, 1h for transient
  *   rate limiting — see shared/freequota.js),
  *   `source` is the config source (`remote|cache|cache-stale…`), and
@@ -31,6 +33,15 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+
+/** Reasoning-effort levels accepted for `think`/`variant` (case-insensitive). */
+const THINK_LEVELS = ['default', 'minimal', 'low', 'medium', 'high', 'xhigh'];
+
+/** Normalize an effort level to lowercase, else null (unknown/absent). */
+function thinkLevel(value) {
+  const level = String(value ?? '').toLowerCase();
+  return THINK_LEVELS.includes(level) ? level : null;
+}
 
 /** Sanitize a session ID for use in a file name: [A-Za-z0-9-_], max 128. */
 function sanitizeSessionID(id) {
@@ -94,10 +105,8 @@ function writeStatus(cacheDir, sessionID, fields = {}) {
       model: fields.model ?? null,
       jev: fields.jev ?? null,
       goOk: typeof fields.goOk === 'boolean' ? fields.goOk : null,
-      think: ['default', 'minimal', 'low', 'medium', 'high', 'xhigh']
-        .includes(String(fields.think ?? '').toLowerCase())
-        ? String(fields.think).toLowerCase()
-        : null,
+      think: thinkLevel(fields.think),
+      variant: thinkLevel(fields.variant),
       freeExhausted: typeof fields.freeExhausted === 'boolean' ? fields.freeExhausted : null,
       source: String(fields.source ?? ''),
       suggestOnly: Boolean(fields.suggestOnly ?? false),

@@ -37,6 +37,16 @@ const { isFreeQuotaFresh, markFreeQuota } = require('../src/shared/freequota');
 const CACHE = (dir) => path.join(dir, '.opencode', '.modelselect-cache');
 const FREE = { providerID: 'modelselect', id: 'auto-free-first' };
 const GO = { providerID: 'modelselect', id: 'auto-go-first' };
+// The six picker variants both virtual models register (literal, not derived:
+// the assertion must catch accidental shape changes in v2.js).
+const EXPECTED_VARIANTS = [
+  { id: 'default' },
+  { id: 'minimal', settings: { reasoningEffort: 'minimal' }, body: { reasoning_effort: 'minimal' } },
+  { id: 'low', settings: { reasoningEffort: 'low' }, body: { reasoning_effort: 'low' } },
+  { id: 'medium', settings: { reasoningEffort: 'medium' }, body: { reasoning_effort: 'medium' } },
+  { id: 'high', settings: { reasoningEffort: 'high' }, body: { reasoning_effort: 'high' } },
+  { id: 'xhigh', settings: { reasoningEffort: 'xhigh' }, body: { reasoning_effort: 'xhigh' } },
+];
 
 function tmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-virt-'));
@@ -188,7 +198,8 @@ describe('virtual provider registration', () => {
       assert.equal(free.providerID, 'modelselect');
       assert.equal(free.name.length > 0, true);
       assert.deepEqual(free.capabilities, { tools: true, input: ['text', 'image'], output: ['text'] });
-      assert.deepEqual(free.variants, []);
+      assert.deepEqual(free.variants, EXPECTED_VARIANTS, 'six thinking-level picker variants');
+      assert.deepEqual(go.variants, EXPECTED_VARIANTS, 'both virtual models offer the levels');
       assert.deepEqual(free.time, { released: 0 });
       assert.deepEqual(free.cost, []);
       assert.equal(free.status, 'active');
@@ -260,6 +271,143 @@ describe('virtual provider registration', () => {
       { context: 5000000, output: v2.FALLBACK_VIRTUAL_LIMIT.output },
     );
     assert.deepEqual(v2.virtualLimitFor([{ id: 'tiny', limit: { context: 64000, output: 8000 } }]), v2.FALLBACK_VIRTUAL_LIMIT);
+  });
+});
+
+describe('thinking levels (task default, manual variant wins)', () => {
+  function httpEvent(sessionID, model, bodyModel) {
+    return {
+      sessionID,
+      model,
+      kind: 'primary',
+      request: new Request('https://opencode.ai/inference/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: bodyModel, messages: [] }),
+      }),
+    };
+  }
+
+  function virtualEntry(seen, id = 'auto-free-first') {
+    return seen.catalog.get('modelselect').models.get(id);
+  }
+
+  it('syncs the task think hint onto the virtual entry as the dispatch default', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'high' } } });
+      const seen = await setupV2(iso.dir);
+
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+
+      const entry = virtualEntry(seen);
+      assert.equal(entry.settings.reasoningEffort, 'high', 'settings carry the task hint');
+      assert.equal(entry.body.reasoning_effort, 'high', 'body carries the raw passthrough');
+      // Wanted state is keyed per virtual id: the sibling stays untouched.
+      const go = virtualEntry(seen, 'auto-go-first');
+      assert.equal(go.settings, undefined, 'sibling gets no default until it routes');
+      assert.equal(go.body, undefined);
+      assert.deepEqual(e1.model, FREE, 'session ref untouched');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('clears a stale think hint when the task moves to default/absent', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+      const seen = await setupV2(iso.dir);
+
+      // Absent think: no effort is forced at all.
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+      assert.equal(virtualEntry(seen).settings, undefined, 'absent think forces nothing');
+      assert.equal(virtualEntry(seen).body, undefined);
+
+      // Config gains a concrete hint: next turn applies it.
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'medium' } } });
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+      assert.equal(virtualEntry(seen).settings.reasoningEffort, 'medium');
+
+      // Explicit `default` think: the forced hint must disappear again.
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'default' } } });
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+      const entry = virtualEntry(seen);
+      assert.equal(entry.settings, undefined, 'stale reasoningEffort cleared');
+      assert.equal(entry.body, undefined, 'stale reasoning_effort cleared');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('records a manual picker variant in status without touching the task default', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'high' } } });
+      const seen = await setupV2(iso.dir);
+
+      const e1 = { sessionID: 's1', model: { ...FREE, variant: 'low' }, messages: [], agent: 'review' };
+      await seen.context(e1);
+
+      const st = JSON.parse(fs.readFileSync(path.join(CACHE(iso.dir), 'status-s1.json'), 'utf8'));
+      assert.equal(st.think, 'high', 'task default stays recorded');
+      assert.equal(st.variant, 'low', 'manual override recorded alongside');
+      // The catalog default stays the task hint — the host merges the session
+      // ref's variant overlay over it at dispatch time, so the plugin must
+      // not pre-apply the manual choice.
+      assert.equal(virtualEntry(seen).settings.reasoningEffort, 'high');
+      assert.deepEqual(e1.model, { ...FREE, variant: 'low' }, 'ref (incl. variant) never mutated');
+
+      // Unknown variant ids normalize to null for display (the host fails the
+      // dispatch itself with VariantUnavailable — nothing to record here).
+      const e2 = { sessionID: 's2', model: { ...FREE, variant: 'banana' }, messages: [], agent: 'review' };
+      await seen.context(e2);
+      const st2 = JSON.parse(fs.readFileSync(path.join(CACHE(iso.dir), 'status-s2.json'), 'utf8'));
+      assert.equal(st2.variant, null);
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('syncs the think default from a title-first dispatch (no context turn yet)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'opencode/ga', free: 'opencode/fb', think: 'xhigh' } } });
+      const seen = await setupV2(iso.dir);
+
+      const h = httpEvent('s9', { ...FREE }, 'auto-free-first');
+      await seen['http.request'](h);
+      const body = JSON.parse(await h.request.text());
+      assert.equal(body.model, 'fb', 'live pick stamped');
+      assert.equal(virtualEntry(seen).settings.reasoningEffort, 'xhigh', 'resolve-on-the-spot syncs the default');
+      assert.equal(body.reasoning_effort, undefined, 'task default rides the catalog, not a body rewrite');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('suggestOnly reports think/variant in status but never patches the catalog', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'high' } } });
+      const seen = await setupV2(iso.dir, { suggestOnly: true });
+      const e1 = { sessionID: 's1', model: { ...FREE, variant: 'medium' }, messages: [], agent: 'review' };
+      const origLog = console.log;
+      console.log = () => {};
+      try {
+        await seen.context(e1);
+      } finally {
+        console.log = origLog;
+      }
+      assert.equal(virtualEntry(seen).settings, undefined, 'trial mode changes nothing in the catalog');
+      assert.equal(virtualEntry(seen).body, undefined);
+      const st = JSON.parse(fs.readFileSync(path.join(CACHE(iso.dir), 'status-s1.json'), 'utf8'));
+      assert.equal(st.think, 'high', 'reporting still works in trial mode');
+      assert.equal(st.variant, 'medium');
+    } finally {
+      iso.restore();
+    }
   });
 });
 

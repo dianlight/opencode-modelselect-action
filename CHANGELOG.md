@@ -1,4 +1,21 @@
 ## [Unreleased]
+### Added
+- Thinking-level selection on the virtual models:
+  `modelselect/auto-free-first` and `modelselect/auto-go-first` register
+  the six config think levels (`default`, `minimal`, `low`, `medium`,
+  `high`, `xhigh`) as picker variants. Every routed turn syncs the
+  task's `think` hint onto the virtual entry
+  (`settings.reasoningEffort` + `body.reasoning_effort`, same
+  wanted-state pattern as the protocol `api` patch), so the task hint
+  is the dispatch default; a manually picked variant on the session ref
+  wins because the host merges the variant overlay over the model-level
+  values at dispatch time (picking `default` maps to no overlay, i.e.
+  back to the task hint). Effort fields ride the body untouched through
+  the `http.request` rewrite and the proxy (both only touch
+  `body.model`), and `suggestOnly` never patches the catalog. The
+  status file records both (`think` = task default, `variant` = manual
+  override); the Work Status view shows the effective level with the
+  task default beside a manual override (e.g. `Low (manual, task High)`).
 ### Changed
 - Single virtual provider: the dual `opencode/auto` + `opencode-go/auto`
   anchors are replaced by one plugin-owned `modelselect` provider with

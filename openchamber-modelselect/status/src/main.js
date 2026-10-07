@@ -17,7 +17,8 @@
  *   sessionID sanitized to [A-Za-z0-9-_] (128 cap, empty -> "default").
  *   Fields: sessionID, taskType, tier, model ("provider/id"), jev, goOk
  *   (true|false|null), think (default|minimal|low|medium|high|xhigh|null),
- *   freeExhausted
+ *   variant (manual picker override, same level vocabulary | null —
+ *   effective effort is variant ?? think), freeExhausted
  *   (true|false|null, 12h free-tier latch), source, suggestOnly,
  *   updatedAt (epoch ms).
  * - Free-tier latch (PER MODEL): `<project>/.opencode/.modelselect-cache/free-quota.json`
@@ -184,6 +185,17 @@ function capitalize(v) {
   var s = v == null ? '' : String(v);
   if (!s) return '—';
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Think row value: effective effort — the manual picker variant when set,
+// else the task default — with the task default kept visible next to a
+// manual override ("Low (manual, task High)"). Equal values collapse to
+// "(manual)" since the effective behavior matches the default.
+function thinkLabel(status) {
+  if (!status) return capitalize(null);
+  if (!status.variant) return capitalize(status.think);
+  var suffix = status.variant !== status.think ? ', task ' + capitalize(status.think) : '';
+  return capitalize(status.variant) + ' (manual' + suffix + ')';
 }
 
 function toPromise(fn) {
@@ -584,7 +596,7 @@ function renderStatusGrid(root, status, knownTypes, autoSession) {
   field(grid, 'Tier', (status && status.tier) || '—', false, status && goIcon(status.goOk));
   field(grid, 'Model', (status && status.model) || '—', true,
     status && status.suggestOnly ? suggestIcon() : null);
-  field(grid, 'Think', capitalize(status && status.think));
+  field(grid, 'Think', thinkLabel(status));
   field(grid, 'Jev', (status && status.jev) || '—', true);
   field(grid, 'Source', (status && status.source) || '—');
   root.appendChild(grid);

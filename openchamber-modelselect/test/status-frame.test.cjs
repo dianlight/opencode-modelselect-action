@@ -286,6 +286,30 @@ describe('modelselect status frame', () => {
     }
   });
 
+  it('shows a manual think override with the task default beside it', async () => {
+    const status = JSON.stringify({
+      sessionID: 'ses_1', taskType: 'plan', tier: 'free',
+      model: 'opencode/x-free', jev: 'pinned', goOk: null,
+      think: 'xhigh', variant: 'low', source: 'cache',
+      suggestOnly: false, updatedAt: Date.now(),
+    });
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, status],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      // Effective effort first, manual marker, task default kept visible.
+      assert.match(txt, /Think Low \(manual, task Xhigh\)/);
+    } finally {
+      frame.close();
+    }
+  });
+
   it('shows the free-exhausted badge while the 12h latch is fresh', async () => {
     const status = JSON.stringify({
       sessionID: 'ses_1', taskType: 'debug', tier: 'go',

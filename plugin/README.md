@@ -192,6 +192,7 @@ best-effort per-session status file next to the caches — it never throws:
   "jev": "pinned",        // off | pinned | <choice>@<conf> | kept:<reason>
   "goOk": null,           // quota probe: true | false | null (no probe ran)
   "think": "high",        // task-type reasoning effort: default | minimal | low | medium | high | xhigh | null
+  "variant": null,        // manual picker override (same levels | null); effective effort = variant ?? think
   "freeExhausted": null,  // soft-error latch: true | false | null (quota: 12h; rate limit: 1h)
   "source": "cache",      // remote | cache | cache-stale…
   "suggestOnly": false,
@@ -314,6 +315,20 @@ session route on every turn — the picker *is* the switch:
 - free-tier exhaustion arms the forced retry without moving the session;
   the retried dispatch re-resolves through the same routing headers,
   where the fresh latch prefers go;
+- thinking level: both virtual models register the six config think
+  levels (`default`, `minimal`, `low`, `medium`, `high`, `xhigh`) as
+  picker variants, and each routed turn syncs the task's `think` hint
+  onto the virtual entry (`settings.reasoningEffort` +
+  `body.reasoning_effort`, same wanted-state pattern as the protocol
+  `api` patch) — so the task hint is the dispatch default. Selecting a
+  variant on the session ref overrides it for that session: the host
+  merges the variant overlay over the model-level values at dispatch
+  time (and `variant: default` maps to no overlay, i.e. back to the
+  task hint). The effort fields ride the request body untouched through
+  the `http.request` rewrite and the proxy (both only touch
+  `body.model`); `suggestOnly` never patches the catalog. The status
+  file records both (`think` = task default, `variant` = manual
+  override), and the Work Status view shows the effective level;
 - `title`/`compaction`/`generate` requests follow the session's last
   resolved pick (resolving one on the spot when no primary turn has run
   yet — the raw virtual entry must never dispatch). Aux hooks never

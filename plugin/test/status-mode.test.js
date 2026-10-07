@@ -36,6 +36,7 @@ describe('status file helpers', () => {
         jev: 'pinned',
         goOk: null,
         think: 'high',
+        variant: 'low',
         source: 'cache',
         suggestOnly: false,
       });
@@ -54,6 +55,7 @@ describe('status file helpers', () => {
         'think',
         'tier',
         'updatedAt',
+        'variant',
       ]);
       assert.equal(raw.sessionID, 's1');
       assert.equal(raw.taskType, 'review');
@@ -62,6 +64,7 @@ describe('status file helpers', () => {
       assert.equal(raw.jev, 'pinned');
       assert.equal(raw.goOk, null);
       assert.equal(raw.think, 'high');
+      assert.equal(raw.variant, 'low');
       assert.equal(raw.freeExhausted, null);
       assert.equal(raw.source, 'cache');
       assert.equal(raw.suggestOnly, false);
@@ -85,6 +88,13 @@ describe('status file helpers', () => {
       assert.equal(xhigh.think, 'xhigh');
       const def = writeStatus(cacheDir, 's4', { model: 'f/b', think: 'DEFAULT' });
       assert.equal(def.think, 'default');
+      // variant: same vocabulary as think, normalized the same way.
+      const manual = writeStatus(cacheDir, 's5', { model: 'f/b', variant: 'XHIGH' });
+      assert.equal(manual.variant, 'xhigh');
+      const noVariant = writeStatus(cacheDir, 's6', { model: 'f/b' });
+      assert.equal(noVariant.variant, null, 'absent variant stays null');
+      const badVariant = writeStatus(cacheDir, 's7', { model: 'f/b', variant: 'extreme' });
+      assert.equal(badVariant.variant, null, 'unknown variant levels are dropped');
       assert.equal(payload.sessionID, '../evil/x y!');
       assert.ok(fs.existsSync(path.join(cacheDir, 'status-___evil_x_y_.json')));
       assert.deepEqual(fs.readdirSync(dir), ['.opencode']);
