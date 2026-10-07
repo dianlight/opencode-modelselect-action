@@ -1,6 +1,11 @@
 {
   "stale_fallback": [],
-  "missing_scores": [],
+  "missing_scores": [
+    {
+      "model": "exo-free",
+      "tier": "Free"
+    }
+  ],
   "missing_prices": [
     {
       "model": "deepseek-flash",

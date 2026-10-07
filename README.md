@@ -68,8 +68,8 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-06 03:34 UTC**.
-> LiveBench data: **353 models scored**.
+> Last updated: **2026-10-07 03:00 UTC**.
+> LiveBench data: **354 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
 > Free-first threshold: **5%**.
@@ -110,6 +110,7 @@ automatically at their next run.
 | `deepseek-v4-flash-vision-exp` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.7 | 66.3 | 86.1 | 57.7 | 75.2 | $0.14 | $0.28 | $0.175 | 444.0 |
 | `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.6 | 53.6 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 33.4 |
 | `deepseek-v4.1-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 81.4 | 78.4 | 88.7 | 61.6 | 74.0 | $0.3 | $1.2 | $0.525 | 155.0 |
+| `exo-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `fledge-alpha-free` | Free | 📋 Fallback | Plan, Review | 62.0 | 68.0 | 84.0 | 40.0 | 55.0 | Free | Free | Free | — |
 | `glm-5` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $1 | $3.2 | $1.55 | 44.3 |
 | `glm-5.1` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.6 | 63.1 | 75.6 | 60.3 | 69.5 | $1.4 | $4.4 | $2.15 | 32.8 |
@@ -157,6 +158,7 @@ automatically at their next run.
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
 | `qwen3.8-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.3 | 66.0 | 84.4 | 55.8 | 77.2 | $0.15 | $0.47 | $0.23 | 336.1 |
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 67.9 | 87.9 | 58.6 | 77.2 | $2 | $6 | $3 | 26.5 |
+| `space-bunny` | Go (Paid) | 📋 Fallback | Plan, Review | 30.0 | 28.0 | 40.0 | 38.0 | 35.0 | $0.15 | $0.6 | $0.2625 | 114.3 |
 | `space-bunny-free` | Free | 📋 Fallback | Plan, Review | 30.0 | 28.0 | 40.0 | 38.0 | 35.0 | Free | Free | Free | — |
 ## Sponsor
 
