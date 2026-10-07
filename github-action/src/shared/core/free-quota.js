@@ -60,8 +60,55 @@ const PROTOCOL_MISMATCH_RE = /model\s+does\s+not\s+support\s+this\s+protocol|mod
 /**
  * True when a failure is a wire-protocol mismatch rather than a model
  * error. Accepts the retry-hook error shape (`{ type, message, status }`),
- * a bare string, or a status/body pair. Never throws.
+ * a bare string, or a status/body pair. The send-time failure arrives
+ * nested (`{ type: 'error', error: { type: 'ModelProtocolUnsupported',
+ * message } }`), so known wrapper keys are searched recursively.
+ * Never throws.
  */
+function mismatchHaystack(error, bodyText) {
+  const parts = [];
+  const seen = new Set();
+  function push(v, depth) {
+    if (v === undefined || v === null || depth > 4) return;
+    if (typeof v === 'string') {
+      parts.push(v);
+      return;
+    }
+    if (typeof v === 'number') {
+      parts.push(String(v));
+      return;
+    }
+    if (typeof v !== 'object') return;
+    if (seen.has(v)) return;
+    seen.add(v);
+    for (const k of [
+      'type',
+      'code',
+      'message',
+      'error',
+      'data',
+      'cause',
+      'details',
+      'detail',
+      'response',
+      'body',
+      'text',
+    ]) {
+      if (v[k] !== undefined) push(v[k], depth + 1);
+    }
+    if (depth === 0) {
+      try {
+        parts.push(JSON.stringify(v));
+      } catch {
+        // circular shape: the collected keys above are enough
+      }
+    }
+  }
+  push(error, 0);
+  if (bodyText !== undefined && bodyText !== null) parts.push(String(bodyText));
+  return parts.join(' ');
+}
+
 function isProtocolMismatch(error, bodyText) {
   try {
     if (typeof error === 'string') {
@@ -71,10 +118,7 @@ function isProtocolMismatch(error, bodyText) {
     if (!error || typeof error !== 'object') {
       return PROTOCOL_MISMATCH_RE.test(String(bodyText ?? ''));
     }
-    const parts = [error.type, error.code, error.message, bodyText]
-      .map((v) => (v === undefined || v === null ? '' : String(v)))
-      .join(' ');
-    return PROTOCOL_MISMATCH_RE.test(parts);
+    return PROTOCOL_MISMATCH_RE.test(mismatchHaystack(error, bodyText));
   } catch {
     return false;
   }

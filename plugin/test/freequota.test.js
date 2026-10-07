@@ -108,6 +108,22 @@ describe('classifyFreeExhaustion', () => {
       rateLimited: false,
     });
   });
+
+  it('detects nested send-time protocol errors (ModelProtocolUnsupported wrapper)', () => {
+    // The reported ses_ee8036 shape: the send fails before dispatch with
+    // the mismatch nested one level deep, not flat on the error object.
+    const nested = {
+      type: 'error',
+      error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+    };
+    assert.equal(isProtocolMismatch(nested), true);
+    assert.equal(
+      isProtocolMismatch({ error: { message: 'Model does not support this protocol.' } }),
+      true,
+    );
+    assert.equal(isProtocolMismatch({ type: 'error', error: { type: 'other' } }), false);
+    assert.equal(isProtocolMismatch(JSON.stringify(nested)), true);
+  });
 });
 
 describe('isFreeModelRef', () => {

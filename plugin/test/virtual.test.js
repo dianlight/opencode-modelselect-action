@@ -824,6 +824,112 @@ describe('virtual protocol api (config endpoints map)', () => {
     }
   });
 
+  it('a nested send-time protocol error fails soft the same way (ses_ee8036 shape)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      const mismatch = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: {
+          type: 'error',
+          error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(mismatch);
+      assert.deepEqual(mismatch.decision, { retry: true, delay: 0 }, 'nested shape still retries');
+      assert.deepEqual(
+        seen.switches,
+        [{ sessionID: 's1', model: { providerID: 'opencode', id: 'muse-spark-1.3-contributor-free' } }],
+        'nested shape still fails soft onto the real pick',
+      );
+      assert.equal(
+        fs.existsSync(path.join(CACHE(iso.dir), 'free-quota.json')),
+        false,
+        'a routing miss never latches as exhaustion',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('a stale protocol arm expires so the next independent mismatch retries again', async () => {
+    const iso = withIsolation(undefined);
+    const realNow = Date.now;
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      const first = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(first);
+      assert.deepEqual(first.decision, { retry: true, delay: 0 }, 'first mismatch retries');
+      assert.equal(seen.switches.length, 1);
+      // The retried turn succeeded long ago: the arm must not swallow the
+      // next independent mismatch forever.
+      Date.now = () => realNow() + v2.PROTOCOL_RETRY_TTL_MS + 1000;
+      const later = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(later);
+      assert.deepEqual(later.decision, { retry: true, delay: 0 }, 'stale arm expires: fresh retry');
+      assert.equal(seen.switches.length, 2, 'stale arm expires: fresh fail-soft switch');
+    } finally {
+      Date.now = realNow;
+      iso.restore();
+    }
+  });
+
+  it('the prompt hook pre-syncs the virtual protocol ahead of the context hook', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      const api = { id: 'muse-spark-1.3-contributor-free', type: 'aisdk', package: '@ai-sdk/openai' };
+      assert.deepEqual(seen.catalog.get('modelselect').models.get('auto-free-first').api, api, 'precondition: override set');
+      // Simulate the first-turn race: the dispatch went out before the
+      // re-point landed. The next prompt pre-syncs it back without waiting
+      // for another context turn.
+      delete seen.catalog.get('modelselect').models.get('auto-free-first').api;
+      const p2 = { sessionID: 's1', prompt: { text: 'review this diff again' } };
+      await seen.prompt(p2);
+      assert.deepEqual(
+        seen.catalog.get('modelselect').models.get('auto-free-first').api,
+        api,
+        'prompt pre-sync restored the protocol override',
+      );
+      assert.deepEqual(seen.switches, [], 'pre-sync never moves the session');
+    } finally {
+      iso.restore();
+    }
+  });
+
   it('a protocol mismatch still retries when the fail-soft switch throws (virtual)', async () => {
     const iso = withIsolation(undefined);
     try {

@@ -162,6 +162,11 @@ const ENDPOINT_PACKAGES = {
 // Forced-retry arm window: a retry follows its failure within seconds, so
 // an arm older than this (consumed late) is stale and must not fire.
 const FREE_RETRY_TTL_MS = 60 * 1000;
+// Protocol-mismatch arm window: the one-shot fail-soft retry must not stick
+// forever — a retried turn that succeeds leaves its arm behind, and without
+// a TTL that stale arm would swallow the next independent mismatch. Arms
+// older than this are treated as absent (a fresh mismatch retries again).
+const PROTOCOL_RETRY_TTL_MS = 60 * 1000;
 
 // Fallback virtual limits: the session stays on a virtual `auto` anchor, so
 // OpenCode drives its compaction threshold off the virtual
@@ -786,7 +791,11 @@ async function setup(ctx) {
   // suggestOnly, where applied never moves); first turn counts as a switch.
   // Never throws — failures only log.
   async function maybeAnnounce(event, text, { files = [], agent = undefined } = {}) {
-    if (opts.announce === 'off' || !text.trim() || !event.sessionID) return;
+    // Returns the resolved pick (`{ picked, virtualId }`) when the turn
+    // resolved one — even when deduped to silence — so the prompt-hook
+    // pre-sync can reuse it instead of resolving (and Jev-refining) twice.
+    // Null/undefined when nothing resolved (announce off, empty text, failure).
+    if (opts.announce === 'off' || !text.trim() || !event.sessionID) return null;
     try {
       const { taskType, jev } = await resolveTask({ sessionID: event.sessionID, text, files, agent });
       // A virtual session announces its pinned preference (first turn can
@@ -796,7 +805,8 @@ async function setup(ctx) {
       const effectiveOpts = virtualId ? { ...opts, autoPreference: preferenceForVirtualId(virtualId) } : opts;
       const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir });
       const key = picked.model;
-      if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return;
+      const resolved = { picked, virtualId };
+      if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return resolved;
       const line = formatAnnounce({
         taskType: picked.taskType,
         tier: picked.tier,
@@ -806,11 +816,13 @@ async function setup(ctx) {
       });
       if (!appendPromptLine(event, line)) {
         console.error(`[modelselect] announce skipped: could not edit prompt for session ${event.sessionID}`);
-        return;
+        return resolved;
       }
       announced.set(event.sessionID, key);
+      return resolved;
     } catch (err) {
       console.error(`[modelselect] announce skipped: ${err?.message ?? err}`);
+      return null;
     }
   }
 
@@ -898,7 +910,36 @@ async function setup(ctx) {
       const files = filesFromPrompt(event.prompt);
       const agent = agentFromPrompt(event.prompt) ?? event.agent;
       if (text.trim() && event.sessionID) prompts.set(event.sessionID, text);
-      await maybeAnnounce(event, text, { files, agent });
+      const resolved = await maybeAnnounce(event, text, { files, agent });
+      // Pre-sync the virtual entry's wire protocol ahead of the context
+      // hook: the runner may pin the dispatch route before the per-turn
+      // re-point lands, so a synced api here gives the context reload a
+      // head start (turn 2+; turn 1 runs before the session is marked
+      // virtual). Reuses the announce resolution when there is one so a
+      // turn pays at most one Jev refinement. Trial mode changes nothing.
+      if (!opts.suggestOnly && text.trim() && event.sessionID) {
+        try {
+          let pick = null;
+          let virtualId = virtualIds.get(event.sessionID);
+          if (resolved && resolved.picked) {
+            const ref = splitModelRef(resolved.picked.model);
+            pick = { providerID: ref.providerID, id: ref.id, endpoint: resolved.picked.endpoint ?? null, think: resolved.picked.think ?? null };
+            virtualId = resolved.virtualId ?? virtualId;
+          } else if (opts.announce === 'off') {
+            const { taskType } = await resolveTask({ sessionID: event.sessionID, text, files, agent });
+            const picked = await resolveModel({
+              taskType,
+              opts: { ...opts, autoPreference: preferenceForVirtualId(virtualId) },
+              cacheDir,
+            });
+            const ref = splitModelRef(picked.model);
+            pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
+          }
+          if (pick && virtualId) await syncVirtualApiFor(pick, virtualId);
+        } catch {
+          // best-effort: the context hook syncs again before dispatch
+        }
+      }
     } catch {
       // never break the session
     }
@@ -927,6 +968,19 @@ async function setup(ctx) {
       // router-sync toggle inside syncRoutingNow), then gate on the
       // virtual pick — any other model is the user's hands-off choice.
       await syncRoutingNow();
+      // A retried turn that succeeded leaves its protocol arm behind;
+      // without expiry that stale arm would swallow the next independent
+      // mismatch, so arms older than the retry window are forgotten here
+      // (the retry hook applies the same TTL when consuming).
+      if (sessionID && protocolRetry.has(sessionID)) {
+        try {
+          if (Date.now() - protocolRetry.get(sessionID) > PROTOCOL_RETRY_TTL_MS) {
+            protocolRetry.delete(sessionID);
+          }
+        } catch {
+          // never break the turn
+        }
+      }
       if (!virtual) {
         if (opts.verbose) console.log(`[modelselect] not ${VIRTUAL_PROVIDER}/*: routing skipped for session=${sessionID}`);
         return;
@@ -1202,7 +1256,9 @@ async function setup(ctx) {
       // resolves its route against the real provider. This leaves virtual
       // mode for the session (later turns are hands-off), but a working
       // real-model session beats a stuck virtual one. Never latched: a
-      // routing miss is not quota exhaustion. One shot per session; the
+      // routing miss is not quota exhaustion. One shot per window (see
+      // PROTOCOL_RETRY_TTL_MS): a stale arm from a long-ago success
+      // expires so the next independent mismatch retries again. The
       // re-sync persists for later turns via virtualApiWanted.
       if (isProtocolMismatch(err)) {
         const sessionID = event.sessionID;
@@ -1210,9 +1266,14 @@ async function setup(ctx) {
           sessionID && (virtualSessions.has(sessionID) || isVirtualRef(event.model)),
         );
         if (!isVirtual || opts.suggestOnly) return;
-        if (protocolRetry.has(sessionID)) {
+        const armedAt = protocolRetry.get(sessionID);
+        if (armedAt !== undefined) {
           protocolRetry.delete(sessionID);
-          return;
+          // One shot per window: a fresh arm means the retried attempt
+          // already had its chance — never loop. A stale arm (a retried
+          // turn that succeeded long ago) is forgotten so the next
+          // independent mismatch retries again instead of being swallowed.
+          if (Date.now() - armedAt <= PROTOCOL_RETRY_TTL_MS) return;
         }
         try {
           const virtualId = virtualIds.get(sessionID) || (isVirtualRef(event.model) ? event.model.id : null);
@@ -1320,6 +1381,8 @@ module.exports = {
   setup,
   virtualLimitFor,
   FALLBACK_VIRTUAL_LIMIT,
+  FREE_RETRY_TTL_MS,
+  PROTOCOL_RETRY_TTL_MS,
   VIRTUAL_PROVIDER,
   VIRTUAL_FREE,
   VIRTUAL_GO,
