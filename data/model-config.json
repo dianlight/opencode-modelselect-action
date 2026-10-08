@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-07T03:00:19.314337+00:00",
+  "timestamp": "2026-10-08T03:17:19.572515+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -353,13 +353,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 73.1,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
           "input_cost": 0.0,
@@ -376,13 +369,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 61.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 60.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -756,20 +742,6 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 72.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 69.4,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 62.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -1169,13 +1141,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 73.1,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
           "input_cost": 0.0,
@@ -1192,13 +1157,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 61.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 60.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -1549,22 +1507,8 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 54.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/nemotron-3-ultra-free",
           "score": 47.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 46.9,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -1985,13 +1929,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 56.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/ling-3.1-flash-free",
           "score": 55.0,
           "input_cost": 0.0,
@@ -2001,13 +1938,6 @@
         {
           "model": "opencode/nemotron-3-ultra-free",
           "score": 51.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 50.3,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -2393,13 +2323,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 56.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/ling-3.1-flash-free",
           "score": 55.0,
           "input_cost": 0.0,
@@ -2409,13 +2332,6 @@
         {
           "model": "opencode/nemotron-3-ultra-free",
           "score": 51.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 50.3,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -2796,20 +2712,6 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 72.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 69.4,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 62.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -3209,13 +3111,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 73.1,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
           "input_cost": 0.0,
@@ -3232,13 +3127,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 61.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 60.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -3617,13 +3505,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 56.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/ling-3.1-flash-free",
           "score": 55.0,
           "input_cost": 0.0,
@@ -3633,13 +3514,6 @@
         {
           "model": "opencode/nemotron-3-ultra-free",
           "score": 51.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 50.3,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -4025,13 +3899,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 73.1,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
           "input_cost": 0.0,
@@ -4048,13 +3915,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 61.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 60.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -4433,13 +4293,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 56.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/ling-3.1-flash-free",
           "score": 55.0,
           "input_cost": 0.0,
@@ -4449,13 +4302,6 @@
         {
           "model": "opencode/nemotron-3-ultra-free",
           "score": 51.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 50.3,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -4841,13 +4687,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 73.1,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
           "input_cost": 0.0,
@@ -4864,13 +4703,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 61.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 60.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -5249,13 +5081,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 73.1,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/jev-1.13-free",
           "score": 67.8,
           "input_cost": 0.0,
@@ -5272,13 +5097,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 61.5,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 60.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -5652,20 +5470,6 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 72.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 69.4,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 62.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -6065,20 +5869,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/deepseek-v4-flash-free",
-          "score": 69.4,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/mimo-v2.5-free",
-          "score": 62.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/big-pickle",
           "score": 60.0,
           "input_cost": 0.0,
@@ -6127,13 +5917,11 @@
     "big-pickle": "chat",
     "jev-1.13-free": "systemone",
     "exo-free": "chat",
-    "deepseek-v4-flash-free": "chat",
     "muse-spark-1.3-contributor-free": "responses",
     "muse-spark-1.2-contributor-free": "responses",
     "mimo-v2.6-flash-free": "chat",
     "space-bunny-free": "chat",
     "longcat-2.5-preview-free": "chat",
-    "mimo-v2.5-free": "chat",
     "ling-3.0-flash-fin-free": "chat",
     "nemotron-3-ultra-free": "chat",
     "nemotron-3.5-lightning-free": "chat",
