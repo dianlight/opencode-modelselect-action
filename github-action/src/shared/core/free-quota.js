@@ -49,6 +49,14 @@ const RATE_LIMIT_BODY_RE = /rate\s*limit|too many requests/i;
 // prefers `go` for that task and the session retries once.
 const UNAVAILABLE_MODEL_RE = /model\s+is\s+unavailable/i;
 
+// Removed/deprecated models (e.g. `Model exo-free has been deprecated.`):
+// Zen answers a rotated-out model as a status-less InvalidRequest with
+// neither quota wording nor "unavailable", so the generic fingerprints
+// miss it too. Retrying the same model can never succeed — treat it as
+// exhaustion on any failure status so the latch prefers `go` and the
+// session retries once on the paid side.
+const DEPRECATED_MODEL_RE = /has\s+been\s+deprecated|is\s+deprecated|model\s+has\s+been\s+(removed|retired|discontinued)|no\s+longer\s+(available|supported)/i;
+
 // Wrong-wire-protocol dispatch (e.g. `ModelProtocolUnsupported` / "Model
 // does not support this protocol."): the virtual entry's catalog `api`
 // missed the pick's protocol, so the driver sent chat/completions to a
@@ -136,6 +144,7 @@ function classifyFreeExhaustion(status, bodyText) {
   if (!failure) return false;
   if (RATE_LIMIT_MESSAGE_RE.test(text)) return true;
   if (UNAVAILABLE_MODEL_RE.test(text)) return true;
+  if (DEPRECATED_MODEL_RE.test(text)) return true;
   if (!Number.isFinite(s) || s <= 0) return EXHAUST_BODY_RE.test(text);
   if (s === 401) return false; // key rejected, not quota
   if (s === 402 || s === 429) return true;
@@ -290,7 +299,9 @@ module.exports = {
   RATE_LIMIT_BODY_RE,
   RATE_LIMIT_MESSAGE_RE,
   UNAVAILABLE_MODEL_RE,
+  DEPRECATED_MODEL_RE,
   PROTOCOL_MISMATCH_RE,
+  mismatchHaystack,
   isProtocolMismatch,
   classifyFreeExhaustion,
   classifyFreeFailure,

@@ -20,7 +20,9 @@ const {
   FREE_RATE_LIMIT_TTL_MS,
   RATE_LIMIT_MESSAGE_RE,
   UNAVAILABLE_MODEL_RE,
+  DEPRECATED_MODEL_RE,
   PROTOCOL_MISMATCH_RE,
+  mismatchHaystack,
   isProtocolMismatch,
   classifyFreeExhaustion,
   classifyFreeFailure,
@@ -87,6 +89,34 @@ describe('classifyFreeExhaustion', () => {
     assert.deepEqual(classifyFreeFailure(500, msg), { exhausted: true, rateLimited: false });
   });
 
+  it('treats deprecated/removed models as exhaustion on any failure status', () => {
+    const msg = 'Model exo-free has been deprecated.';
+    assert.match(msg, DEPRECATED_MODEL_RE);
+    assert.equal(classifyFreeExhaustion(400, msg), true);
+    assert.equal(classifyFreeExhaustion(null, msg), true);
+    assert.deepEqual(classifyFreeFailure(null, msg), { exhausted: true, rateLimited: false });
+  });
+
+  it('classifies nested retry-hook errors via the flattened haystack', () => {
+    // The reported ses_ee2d51 shape: the failure arrives nested one level
+    // deep, so top-level `err.message` is empty and only the haystack
+    // carries the vendor text.
+    const nested = {
+      type: 'error',
+      error: { type: 'FreeUsageLimitError', message: 'Rate limit exceeded. Please try again later.' },
+    };
+    assert.equal(nested.message, undefined);
+    assert.match(mismatchHaystack(nested, ''), RATE_LIMIT_MESSAGE_RE);
+    assert.deepEqual(classifyFreeFailure(null, mismatchHaystack(nested, '')), {
+      exhausted: true,
+      rateLimited: true,
+    });
+    const deprecated = { type: 'error', error: { message: 'Model exo-free has been deprecated.' } };
+    assert.deepEqual(classifyFreeFailure(null, mismatchHaystack(deprecated, '')), {
+      exhausted: true,
+      rateLimited: false,
+    });
+  });
   it('detects wire-protocol mismatches without calling them exhaustion', () => {
     const err = { type: 'ModelProtocolUnsupported', message: 'Model does not support this protocol.' };
     assert.match(err.message, PROTOCOL_MISMATCH_RE);

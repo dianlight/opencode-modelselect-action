@@ -110,6 +110,7 @@ const {
   isFreeQuotaFresh,
   isProtocolMismatch,
   markFreeQuota,
+  mismatchHaystack,
   readModelTable,
 } = require('./shared/freequota');
 
@@ -1336,7 +1337,14 @@ async function setup(ctx) {
         if (opts.verbose) console.log(`[modelselect] protocol mismatch re-synced, retrying session=${sessionID}`);
         return;
       }
-      const outcome = classifyFreeFailure(err?.status, err?.message ?? '');
+      // Retry-hook errors arrive nested (e.g. `{ type: 'error',
+      // error: { type: 'FreeUsageLimitError', message } }`), so read the
+      // status through the wrapper keys and classify the flattened
+      // haystack — top-level `err?.message` alone misses both the nested
+      // rate-limit text and `Model ... has been deprecated` wording.
+      const errStatus =
+        err?.status ?? err?.error?.status ?? err?.cause?.status ?? err?.response?.status ?? null;
+      const outcome = classifyFreeFailure(errStatus, mismatchHaystack(err, ''));
       if (!outcome.exhausted) return;
       const ref = refForFailure(event.sessionID, event.model, virtualSessions, lastVirtualPick);
       if (!isFreeModelRef(ref, readModelTable(cacheDir))) return;
