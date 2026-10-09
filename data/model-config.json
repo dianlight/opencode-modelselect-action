@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-08T03:17:19.572515+00:00",
+  "timestamp": "2026-10-09T03:22:59.960744+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -204,6 +204,13 @@
           "blended_cost": 1.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 76.5,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/glm-5.1",
           "score": 75.6,
           "input_cost": 1.4,
@@ -320,13 +327,6 @@
         {
           "model": "opencode/muse-spark-1.2-contributor-free",
           "score": 88.7,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 84.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -647,6 +647,13 @@
           "blended_cost": 0.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 62.8,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/minimax-m2.5",
           "score": 62.2,
           "input_cost": 0.3,
@@ -749,13 +756,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 60.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 55.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -992,6 +992,13 @@
           "blended_cost": 1.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 76.5,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/glm-5.1",
           "score": 75.6,
           "input_cost": 1.4,
@@ -1108,13 +1115,6 @@
         {
           "model": "opencode/muse-spark-1.2-contributor-free",
           "score": 88.7,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 84.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -1456,6 +1456,13 @@
           "blended_cost": 0.525
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 27.9,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/hy3",
           "score": 8.0,
           "input_cost": 0.14,
@@ -1509,13 +1516,6 @@
         {
           "model": "opencode/nemotron-3-ultra-free",
           "score": 47.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 40.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -1694,6 +1694,13 @@
           "input_cost": 0.15,
           "output_cost": 0.5,
           "blended_cost": 0.2375
+        },
+        {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 65.4,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/grok-4.6",
@@ -1896,13 +1903,6 @@
         {
           "model": "opencode/muse-spark-1.3-contributor-free",
           "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 68.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -2090,6 +2090,13 @@
           "blended_cost": 0.2375
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 65.4,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/grok-4.6",
           "score": 64.9,
           "input_cost": 2.0,
@@ -2290,13 +2297,6 @@
         {
           "model": "opencode/muse-spark-1.3-contributor-free",
           "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 68.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -2617,6 +2617,13 @@
           "blended_cost": 0.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 62.8,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/minimax-m2.5",
           "score": 62.2,
           "input_cost": 0.3,
@@ -2719,13 +2726,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 60.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 55.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -2962,6 +2962,13 @@
           "blended_cost": 1.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 76.5,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/glm-5.1",
           "score": 75.6,
           "input_cost": 1.4,
@@ -3078,13 +3085,6 @@
         {
           "model": "opencode/muse-spark-1.2-contributor-free",
           "score": 88.7,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 84.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -3270,6 +3270,13 @@
           "input_cost": 0.15,
           "output_cost": 0.5,
           "blended_cost": 0.2375
+        },
+        {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 65.4,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/grok-4.6",
@@ -3472,13 +3479,6 @@
         {
           "model": "opencode/muse-spark-1.3-contributor-free",
           "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 68.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -3750,6 +3750,13 @@
           "blended_cost": 1.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 76.5,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/glm-5.1",
           "score": 75.6,
           "input_cost": 1.4,
@@ -3866,13 +3873,6 @@
         {
           "model": "opencode/muse-spark-1.2-contributor-free",
           "score": 88.7,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 84.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -4058,6 +4058,13 @@
           "input_cost": 0.15,
           "output_cost": 0.5,
           "blended_cost": 0.2375
+        },
+        {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 65.4,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
         },
         {
           "model": "opencode-go/grok-4.6",
@@ -4260,13 +4267,6 @@
         {
           "model": "opencode/muse-spark-1.3-contributor-free",
           "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 68.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -4538,6 +4538,13 @@
           "blended_cost": 1.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 76.5,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/glm-5.1",
           "score": 75.6,
           "input_cost": 1.4,
@@ -4654,13 +4661,6 @@
         {
           "model": "opencode/muse-spark-1.2-contributor-free",
           "score": 88.7,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 84.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -4932,6 +4932,13 @@
           "blended_cost": 1.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 76.5,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/glm-5.1",
           "score": 75.6,
           "input_cost": 1.4,
@@ -5048,13 +5055,6 @@
         {
           "model": "opencode/muse-spark-1.2-contributor-free",
           "score": 88.7,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 84.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -5375,6 +5375,13 @@
           "blended_cost": 0.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 62.8,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/minimax-m2.5",
           "score": 62.2,
           "input_cost": 0.3,
@@ -5477,13 +5484,6 @@
         {
           "model": "opencode/big-pickle",
           "score": 60.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
-          "model": "opencode/fledge-alpha-free",
-          "score": 55.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
@@ -5769,6 +5769,13 @@
           "blended_cost": 0.2
         },
         {
+          "model": "opencode-go/claude-haiku-5-5",
+          "score": 62.8,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "blended_cost": 0.2
+        },
+        {
           "model": "opencode-go/minimax-m2.5",
           "score": 62.2,
           "input_cost": 0.3,
@@ -5876,13 +5883,6 @@
           "blended_cost": 0.0
         },
         {
-          "model": "opencode/fledge-alpha-free",
-          "score": 55.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0
-        },
-        {
           "model": "opencode/ling-3.1-flash-free",
           "score": 52.0,
           "input_cost": 0.0,
@@ -5922,10 +5922,10 @@
     "mimo-v2.6-flash-free": "chat",
     "space-bunny-free": "chat",
     "longcat-2.5-preview-free": "chat",
+    "step-5-preview-free": "chat",
     "ling-3.0-flash-fin-free": "chat",
     "nemotron-3-ultra-free": "chat",
     "nemotron-3.5-lightning-free": "chat",
-    "fledge-alpha-free": "chat",
     "ling-3.1-flash-free": "chat",
     "minimax-m3": "chat",
     "minimax-m2.7": "chat",
@@ -5956,6 +5956,7 @@
     "mimo-v2.5": "chat",
     "hy4-preview": "chat",
     "hy3": "chat",
+    "claude-haiku-5-5": "messages",
     "gpt-5.6-luna": "responses",
     "grok-4.5": "responses",
     "grok-4.7": "responses",
