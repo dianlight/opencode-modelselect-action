@@ -143,3 +143,9 @@ model_scores:
     overall: 30.0             # no LiveBench/AA data; LM Market Cap bottom 1% (433/436) on 4 benchmarks
     reasoning: 40.0           # mandatory reasoning with effort adjustment; no GPQA/AIME data; estimated
     vision: 38.0              # multimodal: text+image input confirmed; no vision benchmark data
+  step-5-preview-free:
+    coding: 72.0             # TB2.1 85.0, DeepSWE 67.7, CyberGym 84.7, ProgramBench 80.5, sweMarathon 72.7 (HF SHSLab card + BenchLM, both citing StepFun); discounted vs kimi-k3 LB 69.9 / ds-v4.1-flash LB 78.4
+    instruction_following: 72.0  # no IFEval/IFBench data; estimated vs kimi-k3 74.9 / glm-5.3 72.3; strong tool use (Toolathlon 74.1, MCP Atlas 85.6)
+    overall: 74.0             # AA Intelligence Index 44 (AA page; BenchLM 43.7) ties kimi-k3 (LB 79.5); preview + estimated IF -> conservative; BenchLM aggregate 70.17 (#17/889) cross-check
+    reasoning: 87.0           # GPQA Diamond 93.5 (HF card + BenchLM) calibrated to kimi-k3 (GPQA ~93.5 -> LB 87.0); AA-LCR 88.3, HLE 46.5 support
+    vision: 65.0              # multimodal: text+image input per AA page + HF image-text-to-text (vit weights); MMMU-Pro 76% (HF card + BenchLM); between glm-5.3 60.2 and kimi-k3 72.6
