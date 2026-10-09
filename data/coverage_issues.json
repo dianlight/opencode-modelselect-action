@@ -4,14 +4,6 @@
     {
       "model": "exo-free",
       "tier": "Free"
-    },
-    {
-      "model": "step-5-preview-free",
-      "tier": "Free"
-    },
-    {
-      "model": "step-5-preview-free",
-      "tier": "Free"
     }
   ],
   "missing_prices": [
