@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-10-12T02:57:54.435804+00:00",
+  "timestamp": "2026-10-13T04:13:02.150919+00:00",
   "livebench_snapshot": "2026_06_25",
   "livebench_source": "https://livebench.ai/table_2026_06_25.csv",
-  "zen_models_count": 82,
+  "zen_models_count": 83,
   "go_models_count": 38,
   "cost_blend": {
     "input_weight": 0.75,
@@ -920,9 +920,9 @@
         "score": 67.8,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 2152.38,
         "rank": 67
       },
       {
@@ -1842,9 +1842,9 @@
         "score": 50.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 1587.3,
         "rank": 77
       },
       {
@@ -2564,9 +2564,9 @@
         "score": 67.8,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 2152.38,
         "rank": 67
       },
       {
@@ -3536,9 +3536,9 @@
         "score": 5.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 158.73,
         "rank": 82
       }
     ],
@@ -4348,9 +4348,9 @@
         "score": 30.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 952.38,
         "rank": 81
       },
       {
@@ -5170,9 +5170,9 @@
         "score": 30.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 952.38,
         "rank": 81
       },
       {
@@ -5952,9 +5952,9 @@
         "score": 50.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 1587.3,
         "rank": 77
       },
       {
@@ -6674,9 +6674,9 @@
         "score": 67.8,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 2152.38,
         "rank": 67
       },
       {
@@ -7636,9 +7636,9 @@
         "score": 30.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 952.38,
         "rank": 81
       },
       {
@@ -8318,9 +8318,9 @@
         "score": 67.8,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 2152.38,
         "rank": 67
       },
       {
@@ -9280,9 +9280,9 @@
         "score": 30.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 952.38,
         "rank": 81
       },
       {
@@ -9962,9 +9962,9 @@
         "score": 67.8,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 2152.38,
         "rank": 67
       },
       {
@@ -10784,9 +10784,9 @@
         "score": 67.8,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 2152.38,
         "rank": 67
       },
       {
@@ -11706,9 +11706,9 @@
         "score": 50.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 1587.3,
         "rank": 77
       },
       {
@@ -12528,9 +12528,9 @@
         "score": 50.0,
         "source": "fallback",
         "input_cost": 0.042,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "output_cost": 0.0,
+        "blended_cost": 0.0315,
+        "value": 1587.3,
         "rank": 77
       },
       {

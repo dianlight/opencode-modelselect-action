@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-12T02:57:55.362171+00:00",
+  "timestamp": "2026-10-13T04:13:02.851289+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -316,6 +316,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 67.8,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         },
         {
           "model": "opencode/ling-3.1-flash-free",
@@ -684,6 +691,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/jev-1.13",
+          "score": 50.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
+        },
+        {
           "model": "opencode/space-bunny-free",
           "score": 35.0,
           "input_cost": 0.0,
@@ -1006,6 +1020,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 67.8,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         },
         {
           "model": "opencode/ling-3.1-flash-free",
@@ -1379,6 +1400,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 5.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         }
       ]
     },
@@ -1717,6 +1745,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 30.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         },
         {
           "model": "opencode/space-bunny-free",
@@ -2064,6 +2099,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/jev-1.13",
+          "score": 30.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
+        },
+        {
           "model": "opencode/space-bunny-free",
           "score": 28.0,
           "input_cost": 0.0,
@@ -2409,6 +2451,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/jev-1.13",
+          "score": 50.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
+        },
+        {
           "model": "opencode/space-bunny-free",
           "score": 35.0,
           "input_cost": 0.0,
@@ -2731,6 +2780,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 67.8,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         },
         {
           "model": "opencode/ling-3.1-flash-free",
@@ -3099,6 +3155,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/jev-1.13",
+          "score": 30.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
+        },
+        {
           "model": "opencode/space-bunny-free",
           "score": 28.0,
           "input_cost": 0.0,
@@ -3421,6 +3484,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 67.8,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         },
         {
           "model": "opencode/ling-3.1-flash-free",
@@ -3789,6 +3859,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/jev-1.13",
+          "score": 30.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
+        },
+        {
           "model": "opencode/space-bunny-free",
           "score": 28.0,
           "input_cost": 0.0,
@@ -4111,6 +4188,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 67.8,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         },
         {
           "model": "opencode/ling-3.1-flash-free",
@@ -4456,6 +4540,13 @@
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0
+        },
+        {
+          "model": "opencode/jev-1.13",
+          "score": 67.8,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
         },
         {
           "model": "opencode/ling-3.1-flash-free",
@@ -4824,6 +4915,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/jev-1.13",
+          "score": 50.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
+        },
+        {
           "model": "opencode/space-bunny-free",
           "score": 35.0,
           "input_cost": 0.0,
@@ -5169,6 +5267,13 @@
           "blended_cost": 0.0
         },
         {
+          "model": "opencode/jev-1.13",
+          "score": 50.0,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "blended_cost": 0.0315
+        },
+        {
           "model": "opencode/space-bunny-free",
           "score": 35.0,
           "input_cost": 0.0,
@@ -5189,6 +5294,7 @@
     "step-5-preview-free": "chat",
     "longcat-2.5-preview-free": "chat",
     "space-bunny-free": "chat",
+    "jev-1.13": "systemone",
     "deepseek-v4-flash": "chat",
     "deepseek-v4-flash-vision-exp": "chat",
     "deepseek-v4.1-flash": "chat",
