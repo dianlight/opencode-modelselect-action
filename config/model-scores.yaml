@@ -137,6 +137,13 @@ model_scores:
     overall: 61.5             # ORPT-Bench composite (correctness-weighted)
     reasoning: 61.5
     vision: 8.0               # text-only, no vision encoder
+  # cat-jam-free: SKIPPED per Secondary Source Protocol (audit 2026-10-14).
+  # Stealth model launched 2026-10-13; no score data on any protocol source:
+  # BenchLM 404, Artificial Analysis 404, no HF repo (no open weights), not on
+  # LiveBench. Community feedback (Reddit/X) is anecdotal and contradictory
+  # ("low intelligence, very fast" vs "intelligent enough, between Space Bunny
+  # and Deepseek 4.1"). No value may be inserted without >=2 agreeing sources.
+  # Re-evaluate once independent benchmarks are published.
   space-bunny-free:
     coding: 28.0             # anonymous stealth model (Sept 2026); no published benchmarks; conservative estimate
     instruction_following: 35.0  # no IFEval data; free anonymous preview; estimated baseline
