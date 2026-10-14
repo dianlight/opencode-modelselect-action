@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-13 04:12 UTC**.
+> Last updated: **2026-10-14 02:25 UTC**.
 > LiveBench data: **357 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -104,6 +104,7 @@ automatically at their next run.
 | Model | Tier | Source | Best For | Overall | Coding | Reasoning | Vision | Instruction Following | In $/1M | Out $/1M | Blended $/1M | Value |
 |-------|------|--------|----------|---------|--------|-----------|--------|----------------------|---------|----------|--------------|-------|
 | `big-pickle` | Free | 📋 Fallback | UITest, APITest | 61.5 | 67.0 | 61.5 | 8.0 | 60.0 | Free | Free | Free | — |
+| `cat-jam-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `claude-haiku-5-5` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.4 | 65.4 | 76.5 | 27.9 | 62.8 | $0.1 | $0.5 | $0.2 | 342.0 |
 | `deepseek-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 67.3 | 69.2 | 89.9 | 5.0 | 80.4 | — | — | — | — |
 | `deepseek-v4-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 66.1 | 50.3 | 73.1 | 46.9 | 69.4 | $0.14 | $0.28 | $0.175 | 377.7 |

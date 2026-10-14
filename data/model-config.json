@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-13T04:13:02.851289+00:00",
+  "timestamp": "2026-10-14T02:25:45.154026+00:00",
   "livebench_snapshot": "2026_06_25",
   "task-types": {
     "plan": {
@@ -5286,6 +5286,7 @@
   "endpoints": {
     "big-pickle": "chat",
     "ling-3.1-flash-free": "chat",
+    "cat-jam-free": "chat",
     "mimo-v2.6-flash-free": "chat",
     "muse-spark-1.2-contributor-free": "responses",
     "muse-spark-1.3-contributor-free": "responses",

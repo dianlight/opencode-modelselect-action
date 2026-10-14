@@ -3,7 +3,7 @@
     {
       "id": "deepseek-v4-flash",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.14",
@@ -17,7 +17,7 @@
     {
       "id": "deepseek-v4-flash-vision-exp",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.14",
@@ -31,13 +31,13 @@
     {
       "id": "deepseek-flash",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode"
     },
     {
       "id": "deepseek-v4.1-flash",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.30",
@@ -51,7 +51,7 @@
     {
       "id": "deepseek-v4-pro",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$1.74",
@@ -65,7 +65,7 @@
     {
       "id": "glm-5.1",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$1.40",
@@ -79,7 +79,7 @@
     {
       "id": "glm-5.2",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$1.40",
@@ -93,7 +93,7 @@
     {
       "id": "glm-5.3",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$1.40",
@@ -107,7 +107,7 @@
     {
       "id": "grok-4.6",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$2.00",
@@ -138,7 +138,7 @@
     {
       "id": "grok-4.7",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$2.00",
@@ -169,7 +169,7 @@
     {
       "id": "muse-spark-1.2-contributor",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.10",
@@ -183,7 +183,7 @@
     {
       "id": "muse-spark-1.3-contributor",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.10",
@@ -197,7 +197,7 @@
     {
       "id": "glm-5.3-flash",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.15",
@@ -211,13 +211,13 @@
     {
       "id": "omen-alpha",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode"
     },
     {
       "id": "gpt-5.6-luna",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.20",
@@ -248,7 +248,7 @@
     {
       "id": "gpt-6-luna",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.10",
@@ -279,7 +279,7 @@
     {
       "id": "claude-haiku-5-5",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.10",
@@ -310,7 +310,7 @@
     {
       "id": "hy3",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.14",
@@ -324,7 +324,7 @@
     {
       "id": "hy4-preview",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.834",
@@ -338,7 +338,7 @@
     {
       "id": "kimi-k2.6",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.95",
@@ -352,7 +352,7 @@
     {
       "id": "kimi-k2.7-code",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.95",
@@ -366,7 +366,7 @@
     {
       "id": "kimi-k3",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$3.00",
@@ -380,7 +380,7 @@
     {
       "id": "mimo-v2.5",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.14",
@@ -394,7 +394,7 @@
     {
       "id": "mimo-v2.6-flash",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.14",
@@ -408,7 +408,7 @@
     {
       "id": "mimo-v2.5-pro",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.435",
@@ -422,7 +422,7 @@
     {
       "id": "mimo-v2.6-pro",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.435",
@@ -436,7 +436,7 @@
     {
       "id": "minimax-m2.5",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.30",
@@ -450,7 +450,7 @@
     {
       "id": "minimax-m2.7",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.30",
@@ -464,7 +464,7 @@
     {
       "id": "minimax-m3",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.30",
@@ -478,7 +478,7 @@
     {
       "id": "space-bunny",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.15",
@@ -492,7 +492,7 @@
     {
       "id": "longcat-2.0",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.30",
@@ -506,7 +506,7 @@
     {
       "id": "longcat-2.5-preview-free",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "Free",
@@ -520,7 +520,21 @@
     {
       "id": "step-5-preview-free",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
+      "owned_by": "opencode",
+      "pricing": {
+        "input": "Free",
+        "output": "Free",
+        "cached_read": "Free",
+        "cached_write": null,
+        "free": true
+      },
+      "endpoint": "https://opencode.ai/inference/v1/chat/completions"
+    },
+    {
+      "id": "cat-jam-free",
+      "object": "model",
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "Free",
@@ -534,7 +548,7 @@
     {
       "id": "qwen3.6-plus",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.50",
@@ -548,7 +562,7 @@
     {
       "id": "qwen3.7-max",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$2.50",
@@ -562,7 +576,7 @@
     {
       "id": "qwen3.8-max",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$2.00",
@@ -576,7 +590,7 @@
     {
       "id": "qwen3.8-flash",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.15",
@@ -590,7 +604,7 @@
     {
       "id": "qwen3.7-plus",
       "object": "model",
-      "created": 1791864777,
+      "created": 1791944738,
       "owned_by": "opencode",
       "pricing": {
         "input": "$0.40",
