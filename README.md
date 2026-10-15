@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-15 02:06 UTC**.
+> Last updated: **2026-10-15 11:43 UTC**.
 > LiveBench data: **357 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -82,13 +82,13 @@ automatically at their next run.
 | `issue-triage` (Issue Triage) | Triage, label, categorize, route issues | `opencode/gpt-5` (81.6, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
 | `review` (Review) | Review PRs, pull requests, diffs | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `ui-design` (UI Design) | UI design, components, layouts, mockups | `opencode/gpt-6-astra` (86.3, $10/$50) | `opencode/muse-spark-1.3-contributor-free` (68.4, Free) | 🏆 `opencode-go/hy4-preview` (84.0, $0.834/$2.501) |
-| `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/step-5-preview-free` (72.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
-| `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/step-5-preview-free` (72.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `ui-testing` (UI Testing) | Playwright, Cypress, E2E, frontend tests | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/deepseek-v4.1-flash-free` (78.4, Free) | 🏆 `opencode-go/deepseek-v4.1-flash-free` (78.4, Free) |
+| `api-testing` (API Testing) | API testing, integration tests, OpenAPI, Postman | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/deepseek-v4.1-flash-free` (78.4, Free) | 🏆 `opencode-go/deepseek-v4.1-flash-free` (78.4, Free) |
 | `docs` (Docs) | Documentation, READMEs, changelogs, docstrings | `opencode/gpt-5` (81.6, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
 | `debug` (Debug) | Debugging, reproductions, crash and exception triage | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
-| `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/step-5-preview-free` (72.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `refactor` (Refactor) | Refactoring, cleanup, tech-debt reduction | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/deepseek-v4.1-flash-free` (78.4, Free) | 🏆 `opencode-go/deepseek-v4.1-flash-free` (78.4, Free) |
 | `security` (Security) | Security review, vulnerabilities, hardening | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
-| `code` (Code) | Code generation, implementation, features | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/step-5-preview-free` (72.0, Free) | 🏆 `opencode-go/deepseek-v4.1-flash` (78.4, $0.3/$1.2) |
+| `code` (Code) | Code generation, implementation, features | `opencode/claude-opus-5-5` (78.7, $4/$20) | `opencode/deepseek-v4.1-flash-free` (78.4, Free) | 🏆 `opencode-go/deepseek-v4.1-flash-free` (78.4, Free) |
 | `mechanical-engineer` (Mechanical Engineer) | Mechanical engineering, calculations, CAD, thermodynamics, materials | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `web-search` (Web Search) | Ricerche approfondite sul web, sintesi multi-fonte | `opencode/gpt-5-codex` (96.1, $1.07/$8.5) | `opencode/muse-spark-1.3-contributor-free` (90.9, Free) | 🏆 `opencode-go/muse-spark-1.3-contributor-free` (90.9, Free) |
 | `generic` (Generic) | General Q&A, explanations, analysis, everything else | `opencode/gpt-5` (81.6, $1.07/$8.5) | `opencode/longcat-2.5-preview-free` (86.0, Free) | 🏆 `opencode-go/longcat-2.5-preview-free` (86.0, Free) |
@@ -104,11 +104,12 @@ automatically at their next run.
 | Model | Tier | Source | Best For | Overall | Coding | Reasoning | Vision | Instruction Following | In $/1M | Out $/1M | Blended $/1M | Value |
 |-------|------|--------|----------|---------|--------|-----------|--------|----------------------|---------|----------|--------------|-------|
 | `big-pickle` | Free | 📋 Fallback | UITest, APITest | 61.5 | 67.0 | 61.5 | 8.0 | 60.0 | Free | Free | Free | — |
-| `cat-jam-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
+| `cat-jam-free` | Free | ❌ Missing | Plan, Triage | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 | Free | Free | Free | — |
 | `claude-haiku-5-5` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.4 | 65.4 | 76.5 | 27.9 | 62.8 | $0.1 | $0.5 | $0.2 | 342.0 |
 | `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.6 | 53.6 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 33.4 |
 | `deepseek-v4.1-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 81.4 | 78.4 | 88.7 | 61.6 | 74.0 | $0.3 | $1.2 | $0.525 | 155.0 |
-| `gemini-4-argon-contributor` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $4 | $20 | $8 | — |
+| `deepseek-v4.1-flash-free` | Free | ✅ LiveBench | Plan, Review | 81.4 | 78.4 | 88.7 | 61.6 | 74.0 | Free | Free | Free | — |
+| `gemini-4-argon-contributor` | Go (Paid) | 📋 Fallback | Plan, Review | 82.0 | 66.0 | 90.5 | 74.0 | 74.0 | $4 | $20 | $8 | 10.2 |
 | `glm-5.1` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.6 | 63.1 | 75.6 | 60.3 | 69.5 | $1.4 | $4.4 | $2.15 | 32.8 |
 | `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 73.4 | 62.9 | 82.1 | 60.7 | 68.2 | $1.4 | $4.4 | $2.15 | 34.1 |
 | `glm-5.3` | Go (Paid) | ✅ LiveBench | Plan, Review | 76.6 | 68.1 | 84.4 | 60.2 | 72.3 | $1.4 | $4.4 | $2.15 | 35.6 |
