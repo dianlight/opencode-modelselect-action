@@ -8,13 +8,13 @@
     {
       "model": "cat-jam-free",
       "tier": "Free"
+    },
+    {
+      "model": "gemini-4-argon-contributor",
+      "tier": "Go (Paid)"
     }
   ],
   "missing_prices": [
-    {
-      "model": "deepseek-flash",
-      "tier": "Go (Paid)"
-    },
     {
       "model": "omen-alpha",
       "tier": "Go (Paid)"

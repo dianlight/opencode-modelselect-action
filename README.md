@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-14 02:25 UTC**.
+> Last updated: **2026-10-15 02:06 UTC**.
 > LiveBench data: **357 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -106,11 +106,9 @@ automatically at their next run.
 | `big-pickle` | Free | 📋 Fallback | UITest, APITest | 61.5 | 67.0 | 61.5 | 8.0 | 60.0 | Free | Free | Free | — |
 | `cat-jam-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `claude-haiku-5-5` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.4 | 65.4 | 76.5 | 27.9 | 62.8 | $0.1 | $0.5 | $0.2 | 342.0 |
-| `deepseek-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 67.3 | 69.2 | 89.9 | 5.0 | 80.4 | — | — | — | — |
-| `deepseek-v4-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 66.1 | 50.3 | 73.1 | 46.9 | 69.4 | $0.14 | $0.28 | $0.175 | 377.7 |
-| `deepseek-v4-flash-vision-exp` | Go (Paid) | ✅ LiveBench | Plan, Review | 77.7 | 66.3 | 86.1 | 57.7 | 75.2 | $0.14 | $0.28 | $0.175 | 444.0 |
 | `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.6 | 53.6 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 33.4 |
 | `deepseek-v4.1-flash` | Go (Paid) | ✅ LiveBench | Plan, Review | 81.4 | 78.4 | 88.7 | 61.6 | 74.0 | $0.3 | $1.2 | $0.525 | 155.0 |
+| `gemini-4-argon-contributor` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $4 | $20 | $8 | — |
 | `glm-5.1` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.6 | 63.1 | 75.6 | 60.3 | 69.5 | $1.4 | $4.4 | $2.15 | 32.8 |
 | `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 73.4 | 62.9 | 82.1 | 60.7 | 68.2 | $1.4 | $4.4 | $2.15 | 34.1 |
 | `glm-5.3` | Go (Paid) | ✅ LiveBench | Plan, Review | 76.6 | 68.1 | 84.4 | 60.2 | 72.3 | $1.4 | $4.4 | $2.15 | 35.6 |
@@ -126,7 +124,6 @@ automatically at their next run.
 | `kimi-k2.6` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.9 | 59.6 | 77.9 | 58.1 | 69.7 | $0.95 | $4 | $1.7125 | 41.4 |
 | `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |
 | `kimi-k3` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 69.9 | 87.0 | 72.6 | 74.9 | $3 | $15 | $6 | 13.2 |
-| `ling-3.1-flash-free` | Free | 📋 Fallback | Plan, Review | 55.0 | 55.0 | 62.0 | 5.0 | 52.0 | Free | Free | Free | — |
 | `longcat-2.0` | Go (Paid) | 📋 Fallback | Triage, Docs | 60.0 | 70.0 | 89.0 | 5.0 | 90.0 | $0.3 | $1.2 | $0.525 | 114.3 |
 | `longcat-2.5-preview-free` | Free | 📋 Fallback | Triage, Docs | 55.0 | 66.0 | 84.0 | 40.0 | 86.0 | Free | Free | Free | — |
 | `mimo-v2.5` | Go (Paid) | 📋 Fallback | Triage, Docs | 62.0 | 60.0 | 64.0 | 58.0 | 65.0 | $0.14 | $0.28 | $0.175 | 354.3 |
