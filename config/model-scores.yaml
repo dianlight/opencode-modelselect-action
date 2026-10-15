@@ -149,3 +149,9 @@ model_scores:
     overall: 74.0             # AA Intelligence Index 44 (AA page; BenchLM 43.7) ties kimi-k3 (LB 79.5); preview + estimated IF -> conservative; BenchLM aggregate 70.17 (#17/889) cross-check
     reasoning: 87.0           # GPQA Diamond 93.5 (HF card + BenchLM) calibrated to kimi-k3 (GPQA ~93.5 -> LB 87.0); AA-LCR 88.3, HLE 46.5 support
     vision: 65.0              # multimodal: text+image input per AA page + HF image-text-to-text (vit weights); MMMU-Pro 76% (HF card + BenchLM); between glm-5.3 60.2 and kimi-k3 72.6
+  gemini-4-argon-contributor:
+    coding: 66.0             # Terminal-Bench 4.0 57.4% (~GPT-6 Astra level, -9 vs Opus 5.5 whose LB coding is 71.7) + DeepSWE v1.1 77.9% SOTA + Vibe Code Bench 91.9% (DeepMind model card 2026-10-13); vs LB terra-max 64.3 / sol-max 67.3
+    instruction_following: 74.0  # no IFEval/IFBench data; Gemini-line IF precedent (gemini-3.5-flash LB 77.6, 3.6-flash 76.5); Vals Finance Agent v2 65.4% + Harvey Legal 19.6% agentic work (DeepMind card); vs kimi-k3 74.9 / sol-max 75.0
+    overall: 82.0             # AA Intelligence Index 53 (#8/216, AA v4.3.2) vs kimi-k3 AA 44 -> LB 79.5; beats GPT-6 Astra on most model-card benchmarks (DeepSWE/Vals/AutomationBench/Vibe Code); >= gpt-5.6-sol-max LB 81.6
+    reasoning: 90.5           # Vals Index 68.9%, RiemannBench 76.0, LABBench 2 88.8, GraphWalks 99.7/84.2, ALE 39.5% (DeepMind card); no GPQA/AIME published; between opus-5-max 89.7 and sol-max 92.0
+    vision: 74.0              # multimodal: text+image+video+audio input (AA page + DeepMind model card + models.opencode.ai); Chartography 71.6% + LVBench 91.7% (DeepMind card); vs opus-5-max 74.7 / sol-max 79.1
