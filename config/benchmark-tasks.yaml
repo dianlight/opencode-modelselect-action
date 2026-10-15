@@ -1,0 +1,38 @@
+# Tiny backup benchmark for OpenCode models that are missing from
+# LiveBench and config/model-scores.yaml (and have no secondary source).
+# The battery is intentionally small (4 tasks) and only used as a last resort.
+version: 1
+tasks:
+  - id: coding-puzzle
+    subscore: coding
+    kind: integer
+    prompt: |
+      Answer with only the final integer.
+      What is the output of this Python snippet?
+      def f(x): return x*x + 1
+      print(f(3))
+    expected: 10
+
+  - id: reasoning-ball
+    subscore: reasoning
+    kind: float
+    prompt: |
+      Answer with only the final number.
+      A bat and a ball cost 1.10 together. The bat costs 1.00 more than the ball.
+      How much does the ball cost?
+    expected: 0.05
+
+  - id: instruction-json
+    subscore: instruction_following
+    kind: json
+    prompt: |
+      Reply with exactly this JSON and nothing else:
+      {"answer":"four","count":4}
+    expected: '{"answer":"four","count":4}'
+
+  - id: vision-color
+    subscore: vision
+    kind: contains
+    vision: true
+    prompt: "What is the dominant color of the image? Reply with one word."
+    expected: "red"

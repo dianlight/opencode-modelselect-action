@@ -40,6 +40,7 @@ ZEN_MODELS_PATH = DATA_DIR / "zen_models.json"
 GO_MODELS_PATH = DATA_DIR / "go_models.json"
 LIVEBENCH_PATH = DATA_DIR / "livebench.json"
 AUDIT_RESULTS_PATH = DATA_DIR / "audit_results.json"
+BENCHMARK_PATH = DATA_DIR / "benchmark_scores.json"
 COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # Central model config consumed by downstream workflows at startup
 # (see github-action/action.yml + github-action/src/index.js). This IS the actual configuration: each
@@ -154,6 +155,27 @@ def _get_fallback_scores() -> dict[str, dict[str, float]]:
             if nsfx not in _FALLBACK_CACHE:
                 _FALLBACK_CACHE[nsfx] = scores
     return _FALLBACK_CACHE
+
+
+# Static fallback scores cache (loaded from config/model-scores.yaml)
+_BENCHMARK_CACHE: dict[str, Any] | None = None
+
+
+def _get_benchmark_scores() -> dict[str, Any]:
+    """Load the backup benchmark cache ( Pass/Fail-derived estimates)."""
+    global _BENCHMARK_CACHE
+    if _BENCHMARK_CACHE is not None:
+        return _BENCHMARK_CACHE
+    if BENCHMARK_PATH.exists():
+        try:
+            data = load_json(BENCHMARK_PATH)
+            if isinstance(data, dict):
+                _BENCHMARK_CACHE = data
+                return _BENCHMARK_CACHE
+        except (OSError, json.JSONDecodeError):
+            pass
+    _BENCHMARK_CACHE = {}
+    return _BENCHMARK_CACHE
 
 
 def format_model_with_score(
@@ -1156,6 +1178,29 @@ def _get_model_score_and_source(
         k_norm = _normalise_model_for_lookup(name)
         if target and (target in k_norm or k_norm in target):
             return (scores.get(subscore), "fallback")
+
+    # 3. Try backup benchmark cache (coarse Pass/Fail-derived estimates)
+    benchmark = _get_benchmark_scores()
+    bmodels = benchmark.get("models", {}) if isinstance(benchmark, dict) else {}
+    if not isinstance(bmodels, dict):
+        bmodels = {}
+    for key in (name_lc, target, target_base):
+        entry = bmodels.get(key)
+        if isinstance(entry, dict):
+            scores = entry.get("scores")
+            if isinstance(scores, dict) and scores.get(subscore) is not None:
+                return (scores.get(subscore), "benchmark")
+    for name, entry in bmodels.items():
+        if not isinstance(entry, dict):
+            continue
+        scores = entry.get("scores")
+        if not isinstance(scores, dict) or scores.get(subscore) is None:
+            continue
+        k_norm = _normalise_model_for_lookup(name)
+        if k_norm == target or _canonical_model_base(name) == target_base:
+            return (scores.get(subscore), "benchmark")
+        if target and (target in k_norm or k_norm in target):
+            return (scores.get(subscore), "benchmark")
     return None
 
 
@@ -2203,6 +2248,18 @@ def main() -> None:
 
     # 2. Fetch LiveBench scores
     livebench = fetch_livebench()
+
+    # 2b. Backup benchmark for free models still missing score data.
+    # Last resort only: runs the tiny task battery against the OpenCode Zen
+    # endpoint when LiveBench, static fallback, and secondary sources all
+    # miss. Fail-soft: never aborts the maintenance run.
+    print("-> Running backup benchmark for unscored free models (if needed)...")
+    try:
+        import benchmark_models as _bm
+
+        _bm.run_backup(free_models, go_models, livebench, max_models=5)
+    except Exception as e:  # noqa: BLE001
+        print(f"  w Backup benchmark skipped: {e}")
 
     # 3. Generate recommendations
     print("-> Computing recommendations...")

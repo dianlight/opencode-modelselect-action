@@ -60,6 +60,8 @@ jobs:
       - name: Run OpenCode maintenance
         id: maintenance
         continue-on-error: true
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         run: python scripts/opencode_maintenance.py
 
       # ── Commit README.md and data changes ────────────────────────────────
