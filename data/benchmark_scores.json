@@ -1,0 +1,53 @@
+{
+  "timestamp": "2026-10-15T11:43:20.830246+00:00",
+  "models": {
+    "cat-jam-free": {
+      "scores": {
+        "coding": 0.0,
+        "reasoning": 0.0,
+        "instruction_following": 0.0,
+        "vision": 0.0,
+        "overall": 0.0
+      },
+      "passed_task_ids": [],
+      "failed_task_ids": [
+        "coding-puzzle",
+        "instruction-json",
+        "reasoning-ball",
+        "vision-color"
+      ],
+      "raw_pass_count": 0,
+      "task_count": 4,
+      "source": "benchmark",
+      "confidence": "low (4-task backup benchmark)",
+      "reference_model": "big-pickle",
+      "timestamp": "2026-10-15T11:43:20.330023+00:00"
+    }
+  },
+  "_reference": {
+    "model": "big-pickle",
+    "results": {
+      "coding-puzzle": {
+        "passed": false,
+        "response": null,
+        "error": "HTTP Error 403: Forbidden"
+      },
+      "reasoning-ball": {
+        "passed": false,
+        "response": null,
+        "error": "HTTP Error 403: Forbidden"
+      },
+      "instruction-json": {
+        "passed": false,
+        "response": null,
+        "error": "HTTP Error 403: Forbidden"
+      },
+      "vision-color": {
+        "passed": false,
+        "response": null,
+        "error": "HTTP Error 403: Forbidden"
+      }
+    },
+    "timestamp": "2026-10-15T11:43:19.678636+00:00"
+  }
+}

@@ -1,19 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "cat-jam-free",
-      "tier": "Free"
-    },
-    {
-      "model": "cat-jam-free",
-      "tier": "Free"
-    },
-    {
-      "model": "gemini-4-argon-contributor",
-      "tier": "Go (Paid)"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [
     {
       "model": "omen-alpha",
