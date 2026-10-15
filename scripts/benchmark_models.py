@@ -75,7 +75,7 @@ def _chat(
     api_key: str | None,
     *,
     timeout: int = REQUEST_TIMEOUT,
-) -> tuple[str | None, str | None]:
+) -> tuple[str | None, str | None, dict[str, Any] | None]:
     payload = {
         "model": model_id,
         "messages": messages,
@@ -95,14 +95,14 @@ def _chat(
         with urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode())
     except (URLError, HTTPError, TimeoutError, json.JSONDecodeError) as e:
-        return None, str(e)
+        return None, str(e), None
     choices = data.get("choices") or []
     if not choices:
-        return None, "no choices returned"
+        return None, "no choices returned", data.get("usage")
     content = (choices[0].get("message") or {}).get("content")
     if content is None:
-        return None, "empty content"
-    return str(content), None
+        return None, "empty content", data.get("usage")
+    return str(content), None, data.get("usage")
 
 
 def _messages_for(task: dict[str, Any]) -> list[dict[str, Any]]:
@@ -168,11 +168,12 @@ def run_battery(
 ) -> dict[str, Any]:
     results: dict[str, Any] = {}
     for task in tasks:
-        text, err = _chat(model_id, _messages_for(task), api_key, timeout=timeout)
+        text, err, usage = _chat(model_id, _messages_for(task), api_key, timeout=timeout)
         results[str(task.get("id"))] = {
             "passed": err is None and validate(task, text),
             "response": text,
             "error": err,
+            "usage": usage,
         }
     return results
 
@@ -200,42 +201,41 @@ def _scores_from_results(
     livebench: Any,
     reference_model: str,
 ) -> dict[str, Any]:
+    """Aggregate Pass/Fail results into per-subscore estimates.
+
+    Each subscore is scaled by the pass rate of its tasks, so extra tasks
+    (when present) improve granularity instead of acting as a single
+    all-or-nothing gate. Vision is bimodal: a model that passes at least
+    one vision task gets the reference's vision score, a model that fails
+    all of them keeps the text-only floor (5.0).
+    """
     passed = _passed_ids(results)
     task_by_id = {str(t.get("id")): t for t in tasks}
-    subscores: dict[str, float] = {}
-    # Group passed tasks by subscore; if any pass, use the reference's
-    # known sub-score for that category (coarse Pass/Fail mapping).
-    for tid, task in task_by_id.items():
-        sub = str(task.get("subscore", "overall"))
-        known = _reference_known_score(reference_model, livebench, sub)
-        if known is None:
-            known = _reference_known_score(reference_model, livebench, "overall")
-        if known is None:
-            known = 50.0
-        if tid in passed:
-            # Average when multiple tasks share a subscore.
-            subscores.setdefault(sub, 0.0)
-            # Simple: keep max-ish by averaging passes.
-        else:
-            subscores.setdefault(sub, 0.0)
 
-    # Compute per-subscore: reference known if at least one task in that
-    # subscore passed, else 0.
-    by_sub_passed: dict[str, bool] = {}
+    # Group tasks by subscore.
+    by_sub: dict[str, list[str]] = {}
     for tid, task in task_by_id.items():
-        sub = str(task.get("subscore", "overall"))
-        if tid in passed:
-            by_sub_passed[sub] = True
-        by_sub_passed.setdefault(sub, False)
+        by_sub.setdefault(str(task.get("subscore", "overall")), []).append(tid)
 
     final_subscores: dict[str, float] = {}
-    for sub, did_pass in by_sub_passed.items():
+    for sub, tids in by_sub.items():
+        total = len(tids)
+        passes = sum(1 for tid in tids if tid in passed)
         known = _reference_known_score(reference_model, livebench, sub)
         if known is None:
             known = _reference_known_score(reference_model, livebench, "overall")
         if known is None:
             known = 50.0
-        final_subscores[sub] = round(float(known if did_pass else 0.0), 1)
+        if sub == "vision":
+            # Bimodal: any pass => baseline score, all fail => text-only floor.
+            if passes > 0:
+                score = float(known)
+            else:
+                score = 5.0
+        else:
+            rate = (passes / total) if total else 0.0
+            score = float(known) * rate
+        final_subscores[sub] = round(score, 1)
 
     if not final_subscores:
         overall = 0.0
@@ -325,14 +325,27 @@ def run_backup(
             scored = _scores_from_results(
                 results, tasks, reference_results, livebench, reference_model
             )
+            token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            for r in results.values():
+                u = r.get("usage") or {}
+                token_usage["prompt_tokens"] += int(u.get("prompt_tokens") or u.get("input_tokens") or 0)
+                token_usage["completion_tokens"] += int(u.get("completion_tokens") or u.get("output_tokens") or 0)
+                token_usage["total_tokens"] += int(u.get("total_tokens") or 0)
+            if token_usage["total_tokens"] == 0 and (
+                token_usage["prompt_tokens"] or token_usage["completion_tokens"]
+            ):
+                token_usage["total_tokens"] = (
+                    token_usage["prompt_tokens"] + token_usage["completion_tokens"]
+                )
             cache["models"][mid] = {
                 "scores": scored["scores"],
                 "passed_task_ids": scored["passed_task_ids"],
                 "failed_task_ids": scored["failed_task_ids"],
                 "raw_pass_count": scored["raw_pass_count"],
                 "task_count": scored["task_count"],
+                "token_usage": token_usage,
                 "source": "benchmark",
-                "confidence": "low (4-task backup benchmark)",
+                "confidence": "low (backup benchmark)",
                 "reference_model": reference_model,
                 "timestamp": datetime.now(UTC).isoformat(),
             }

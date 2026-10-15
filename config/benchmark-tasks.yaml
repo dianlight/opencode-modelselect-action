@@ -1,6 +1,6 @@
 # Tiny backup benchmark for OpenCode models that are missing from
 # LiveBench and config/model-scores.yaml (and have no secondary source).
-# The battery is intentionally small (4 tasks) and only used as a last resort.
+# The battery is intentionally small and only used as a last resort.
 version: 1
 tasks:
   - id: coding-puzzle
@@ -36,3 +36,36 @@ tasks:
     vision: true
     prompt: "What is the dominant color of the image? Reply with one word."
     expected: "red"
+
+  - id: coding-output
+    subscore: coding
+    kind: integer
+    prompt: |
+      Answer with only the final integer.
+      What is the output of this Python snippet?
+      def g(n): return sum(range(1, n + 1))
+      print(g(5))
+    expected: 15
+
+  - id: reasoning-sum
+    subscore: reasoning
+    kind: integer
+    prompt: |
+      Answer with only the final integer.
+      What is 17 * 19 + 3?
+    expected: 326
+
+  - id: instruction-token
+    subscore: instruction_following
+    kind: exact
+    prompt: |
+      Reply with exactly this token and nothing else:
+      BENCHMARK_OK
+    expected: BENCHMARK_OK
+
+  - id: vision-presence
+    subscore: vision
+    kind: contains
+    vision: true
+    prompt: "Is there an image present? Reply with yes or no."
+    expected: "yes"
