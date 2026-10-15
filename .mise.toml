@@ -1,6 +1,6 @@
 [tools]
 "conda:basedpyright" = "latest"
-python = "3.14"
+python = "3.15.0"
 ruff = "latest"
 yamllint = "1.38"
 
