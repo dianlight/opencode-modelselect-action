@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-15 11:43 UTC**.
+> Last updated: **2026-10-16 01:57 UTC**.
 > LiveBench data: **357 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -140,6 +140,7 @@ automatically at their next run.
 | `muse-spark-1.3-contributor` | Go (Paid) | ✅ LiveBench | Plan, Review | 82.4 | 70.9 | 90.9 | 68.4 | 78.9 | $0.1 | $0.2 | $0.125 | 659.2 |
 | `muse-spark-1.3-contributor-free` | Free | ✅ LiveBench | Plan, Review | 82.4 | 70.9 | 90.9 | 68.4 | 78.9 | Free | Free | Free | — |
 | `nemotron-3.5-lightning-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 36.2 | 58.0 | 5.0 | 72.0 | Free | Free | Free | — |
+| `nemotron-3.5-super-vl-free` | Free | ❌ Missing | Design, Plan | 1.2 | 0.0 | 0.0 | 5.0 | 0.0 | Free | Free | Free | — |
 | `omen-alpha` | Go (Paid) | 📋 Fallback | Plan, Review | 56.0 | 57.9 | 65.0 | 40.0 | 62.0 | — | — | — | — |
 | `qwen3.6-plus` | Go (Paid) | ✅ LiveBench | Plan, Review | 69.0 | 56.1 | 77.0 | 52.5 | 67.7 | $0.5 | $3 | $1.125 | 61.3 |
 | `qwen3.7-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 74.1 | 55.8 | 82.4 | 58.7 | 76.6 | $2.5 | $7.5 | $3.75 | 19.8 |
@@ -148,7 +149,7 @@ automatically at their next run.
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench | Plan, Review | 79.5 | 67.9 | 87.9 | 58.6 | 77.2 | $2 | $6 | $3 | 26.5 |
 | `space-bunny` | Go (Paid) | 📋 Fallback | Plan, Review | 30.0 | 28.0 | 40.0 | 38.0 | 35.0 | $0.15 | $0.6 | $0.2625 | 114.3 |
 | `space-bunny-free` | Free | 📋 Fallback | Plan, Review | 30.0 | 28.0 | 40.0 | 38.0 | 35.0 | Free | Free | Free | — |
-| `step-5-preview-free` | Free | 📋 Fallback | Plan, Review | 74.0 | 72.0 | 87.0 | 65.0 | 72.0 | Free | Free | Free | — |
+| `step-5-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 74.0 | 72.0 | 87.0 | 65.0 | 72.0 | $1 | $2.7 | $1.425 | 51.9 |
 ## Sponsor
 
 <a href="https://github.com/sponsors/dianlight"><img src="https://img.shields.io/github/sponsors/dianlight?style=flat-square&logo=githubsponsors&logoColor=%23EA4AAA" alt="Github Sponsor"></a>
