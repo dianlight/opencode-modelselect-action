@@ -53,6 +53,37 @@
       "confidence": "low (backup benchmark)",
       "reference_model": "big-pickle",
       "timestamp": "2026-10-16T01:57:07.763746+00:00"
+    },
+    "beam-free": {
+      "scores": {
+        "coding": 0.0,
+        "reasoning": 0.0,
+        "instruction_following": 0.0,
+        "vision": 5.0,
+        "overall": 1.2
+      },
+      "passed_task_ids": [],
+      "failed_task_ids": [
+        "coding-output",
+        "coding-puzzle",
+        "instruction-json",
+        "instruction-token",
+        "reasoning-ball",
+        "reasoning-sum",
+        "vision-color",
+        "vision-presence"
+      ],
+      "raw_pass_count": 0,
+      "task_count": 8,
+      "token_usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      },
+      "source": "benchmark",
+      "confidence": "low (backup benchmark)",
+      "reference_model": "big-pickle",
+      "timestamp": "2026-10-17T01:51:54.353498+00:00"
     }
   },
   "_reference": {
