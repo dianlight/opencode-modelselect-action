@@ -1138,7 +1138,8 @@ def get_model_score(model_name: str, livebench: dict[str, Any], subscore: str) -
 def _get_model_score_and_source(
     model_name: str, livebench: dict, subscore: str
 ) -> tuple[float | None, str] | None:
-    """Like get_model_score but returns (score, source) where source is 'livebench' or 'fallback'."""
+    """Like get_model_score but returns (score, source) where source is
+    'livebench', 'fallback', or 'benchmark'."""
     models = _lb_models(livebench)
     target = _normalise_model_for_lookup(model_name)
     target_base = _canonical_model_base(model_name)
@@ -1205,7 +1206,7 @@ def _get_model_score_and_source(
 
 
 def get_model_source(model_name: str, livebench: dict[str, Any]) -> str:
-    """Determine the data source for a model: 'livebench', 'fallback', or 'missing'."""
+    """Determine the data source for a model: 'livebench', 'fallback', 'benchmark', or 'missing'."""
     s = _get_model_score_and_source(model_name, livebench, "overall")
     if s:
         return s[1]
@@ -1757,9 +1758,11 @@ def detect_coverage_issues(
                 }
             )
 
-    # Check all OpenCode models for missing scores
+    # Check all OpenCode models for missing scores. The free and Go catalogs
+    # overlap (a free id can be listed in both), so union them: a duplicate
+    # entry would make the backup benchmark run twice for the same model.
     free_ids = {m["id"] for m in free_models}
-    all_ids = [m["id"] for m in free_models] + [m["id"] for m in go_models]
+    all_ids = {m["id"] for m in free_models} | {m["id"] for m in go_models}
     for model_id in sorted(all_ids):
         source = get_model_source(model_id, livebench)
         if source == "missing":
@@ -2154,6 +2157,8 @@ def generate_score_reference_table(
             src_icon = "\u2705 LiveBench"
         elif source == "fallback":
             src_icon = "\U0001f4cb Fallback"
+        elif source == "benchmark":
+            src_icon = "\U0001f9ea Benchmark"
         else:
             src_icon = "\u274c Missing"
 

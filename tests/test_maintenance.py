@@ -8,6 +8,7 @@ Run with: python3 -m unittest discover -s tests -v
 
 import csv
 import io
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -485,6 +486,15 @@ class DetectCoverageTest(unittest.TestCase):
         self.assertIn("paid-x", models_missing)
         self.assertEqual(issues["missing_prices"], [{"model": "paid-x", "tier": "Go (Paid)"}])
 
+    def test_duplicate_free_and_go_ids_reported_once(self):
+        # A free id listed in the Go catalog too must yield one missing entry,
+        # or the backup benchmark would run twice for the same model.
+        issues = m.detect_coverage_issues(
+            [{"id": "dup-free"}], [{"id": "dup-free"}], {"models": {}}, None
+        )
+        reported = [i["model"] for i in issues["missing_scores"]]
+        self.assertEqual(reported.count("dup-free"), 1)
+
 
 class CanonicalBaseTest(unittest.TestCase):
     def test_tier_variants(self):
@@ -890,3 +900,57 @@ class ScoreTableDedupeTest(unittest.TestCase):
             ln for ln in table.splitlines() if "`longcat-2.5-preview-free`" in ln
         )
         self.assertIn("| Free |", row)
+
+
+class ScoreTableSourceTest(unittest.TestCase):
+    """The Source column must name every source, the backup benchmark included."""
+
+    def setUp(self):
+        self._fallback = m._FALLBACK_CACHE
+        self._bench = m._BENCHMARK_CACHE
+        self._bench_path = m.BENCHMARK_PATH
+        m._FALLBACK_CACHE = {}
+        m._BENCHMARK_CACHE = {}
+
+    def tearDown(self):
+        m._FALLBACK_CACHE = self._fallback
+        m._BENCHMARK_CACHE = self._bench
+        m.BENCHMARK_PATH = self._bench_path
+
+    def _source_cell(self, model_id, livebench=None):
+        table = m.generate_score_reference_table(
+            livebench or {"models": {}}, [{"id": model_id}], []
+        )
+        row = next(ln for ln in table.splitlines() if f"`{model_id}`" in ln)
+        return [cell.strip() for cell in row.split("|")][3]
+
+    def _set_benchmark(self, model_id):
+        import tempfile
+
+        path = Path(tempfile.mkdtemp()) / "benchmark_scores.json"
+        path.write_text(
+            json.dumps(
+                {"models": {model_id: {"scores": {"overall": 42.0}, "source": "benchmark"}}}
+            )
+        )
+        m.BENCHMARK_PATH = path
+        m._BENCHMARK_CACHE = None
+
+    def test_missing(self):
+        self.assertIn("Missing", self._source_cell("nobody-free"))
+
+    def test_fallback(self):
+        m._FALLBACK_CACHE = {"fb-free": {"overall": 50.0}}
+        self.assertIn("Fallback", self._source_cell("fb-free"))
+
+    def test_livebench(self):
+        cell = self._source_cell(
+            "lb-model", {"models": {"lb-model": {"overall": 90.0}}}
+        )
+        self.assertIn("LiveBench", cell)
+
+    def test_benchmark(self):
+        self._set_benchmark("bench-free")
+        cell = self._source_cell("bench-free")
+        self.assertIn("Benchmark", cell)
+        self.assertNotIn("Missing", cell)

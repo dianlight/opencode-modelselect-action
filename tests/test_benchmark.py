@@ -101,5 +101,83 @@ class BenchmarkSourceTest(unittest.TestCase):
             self.assertEqual(m.get_model_source("ghost-free", {"models": {}}), "benchmark")
 
 
+class BackupGuardTest(unittest.TestCase):
+    """A battery that never reached the endpoint must not record a score."""
+
+    TASKS = [
+        {"id": "t1", "kind": "integer", "expected": 1, "prompt": "q", "subscore": "overall"},
+        {"id": "t2", "kind": "contains", "expected": "red", "prompt": "q", "subscore": "vision"},
+    ]
+    MISSING = [{"model": "mystery-free", "tier": "Free"}]
+
+    def _results(self, error=None, passed=False):
+        return {
+            "t1": {"passed": passed, "response": None if error else "1", "error": error},
+            "t2": {"passed": passed, "response": None if error else "red", "error": error},
+        }
+
+    def _run(self, cache, ref_results, model_results, missing=None):
+        import tempfile
+
+        import opencode_maintenance as m
+
+        with tempfile.TemporaryDirectory() as d:
+            cache_path = Path(d) / "bench.json"
+            cache_path.write_text(json.dumps(cache))
+            seen: list[str] = []
+
+            def fake_battery(model_id, tasks, api_key=None, **_kw):
+                seen.append(model_id)
+                return ref_results if model_id == "big-pickle" else model_results
+
+            with patch.object(b, "load_tasks", return_value=self.TASKS), \
+                 patch.object(b, "run_battery", side_effect=fake_battery), \
+                 patch.object(b.time, "sleep", lambda *_: None), \
+                 patch.object(
+                     m, "detect_coverage_issues",
+                     return_value={"missing_scores": missing if missing is not None else self.MISSING},
+                 ):
+                out = b.run_backup(
+                    [{"id": "mystery-free"}], [], {"models": {}},
+                    api_key="k", cache_path=cache_path,
+                )
+            return out, seen
+
+    def test_all_errors_records_no_score(self):
+        out, _ = self._run(
+            {"models": {}},
+            {"model": "big-pickle", "results": self._results(passed=True)},
+            self._results(error="HTTP Error 403: Forbidden"),
+        )
+        self.assertNotIn("mystery-free", out["models"])
+
+    def test_answered_run_records_score(self):
+        out, _ = self._run(
+            {"models": {}},
+            {"model": "big-pickle", "results": self._results(passed=True)},
+            self._results(passed=True),
+        )
+        self.assertEqual(out["models"]["mystery-free"]["source"], "benchmark")
+
+    def test_unusable_reference_wipes_stale_scores(self):
+        broken = self._results(error="HTTP Error 403: Forbidden")
+        cache = {
+            "_reference": {"model": "big-pickle", "results": broken},
+            "models": {"mystery-free": {"scores": {"overall": 1.2}, "source": "benchmark"}},
+        }
+        out, _ = self._run(cache, broken, broken)
+        self.assertEqual(out["models"], {})
+        self.assertNotIn("_reference", out)
+
+    def test_duplicate_missing_ids_benchmarked_once(self):
+        _, seen = self._run(
+            {"models": {}},
+            {"model": "big-pickle", "results": self._results(passed=True)},
+            self._results(passed=True),
+            missing=[{"model": "mystery-free", "tier": "Free"}, {"model": "mystery-free", "tier": "Free"}],
+        )
+        self.assertEqual(seen.count("mystery-free"), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

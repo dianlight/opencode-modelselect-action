@@ -28,6 +28,21 @@
   mode); free-exhaustion arms the forced retry without moving the
   session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
+- Backup benchmark recording scores for models that never answered: the
+  maintenance run benchmarks unscored free models against the Zen endpoint,
+  but a battery that errored on every task (expired key, 403, outage) was
+  still written to `data/benchmark_scores.json` as a real score (all-zero
+  coding/reasoning/instruction-following plus the vision floor — `beam-free`
+  and `nemotron-3.5-super-vl-free` both landed at 1.2). A model run with
+  zero answered tasks now records nothing and drops any stale entry; a
+  cached reference that answered nothing is dropped together with every
+  score derived against it, so those models revert to `missing` and are
+  re-benchmarked once the endpoint answers again. The benchmark also no
+  longer runs twice for an id listed in both the free and Go catalogs
+  (`detect_coverage_issues` now unions the two catalogs), and the score
+  reference table's Source column names the backup benchmark (`🧪 Benchmark`)
+  instead of falling through to `❌ Missing` for a model that carries a
+  benchmark score.
 - `ModelProtocolUnsupported` ("Model does not support this protocol")
   still hard-failing virtual turns after the `api` re-sync retry: the
   re-pointed catalog entry does not move an already-pinned session route,

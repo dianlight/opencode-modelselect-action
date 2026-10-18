@@ -182,6 +182,19 @@ def _passed_ids(results: dict[str, Any]) -> set[str]:
     return {tid for tid, r in results.items() if isinstance(r, dict) and r.get("passed")}
 
 
+def _answered_count(results: dict[str, Any]) -> int:
+    """Number of tasks the endpoint answered without a transport error.
+
+    A battery that answered nothing (expired key, 403, outage) carries no
+    signal about the model, so it must never be recorded as a score.
+    """
+    return sum(
+        1
+        for r in results.values()
+        if isinstance(r, dict) and r.get("error") is None
+    )
+
+
 def _reference_known_score(model_id: str, livebench: Any, subscore: str) -> float | None:
     # Lazy import to avoid circular import at module load.
     try:
@@ -269,7 +282,27 @@ def run_backup(
     cache = _load_cache(cache_path)
     cache.setdefault("models", {})
 
-    # Identify still-missing free models.
+    # A cached reference that answered nothing (expired key, 403, outage)
+    # anchors no score: drop it and every score derived against it, so those
+    # models revert to "missing" and are re-benchmarked once the endpoint
+    # answers again. Runs before the missing-model scan so they are retried.
+    ref_cached = cache.get("_reference") or {}
+    ref_results = ref_cached.get("results")
+    if isinstance(ref_results, dict) and _answered_count(ref_results) == 0:
+        dropped = sorted(cache.get("models", {}))
+        if dropped:
+            print(
+                "  w Reference unusable — dropping stale benchmark scores: "
+                + ", ".join(dropped)
+            )
+        cache["models"] = {}
+        cache.pop("_reference", None)
+        ref_cached = {}
+        ref_results = None
+
+    # Identify still-missing free models. Dedupe defensively: a free id can be
+    # listed in both the free and Go catalogs, and benchmarking the same model
+    # twice only burns requests.
     missing_ids: list[str] = []
     try:
         from opencode_maintenance import detect_coverage_issues
@@ -285,7 +318,7 @@ def run_backup(
     except Exception as e:  # noqa: BLE001
         print(f"  w benchmark: coverage detection unavailable: {e}")
 
-    missing_ids = missing_ids[:max_models]
+    missing_ids = list(dict.fromkeys(missing_ids))[:max_models]
 
     if not api_key:
         print("  w Backup benchmark skipped: no API key (OPENCODE_API_KEY)")
@@ -303,56 +336,74 @@ def run_backup(
 
     print(f"-> Backup benchmarking {len(missing_ids)} free model(s): {', '.join(missing_ids)}")
 
-    # Reference run (cached).
-    ref_cached = cache.get("_reference") or {}
-    if ref_cached.get("model") != reference_model or not isinstance(
-        ref_cached.get("results"), dict
+    # Reference run (cached). Run when absent or when the reference model
+    # changed; an unusable cached reference was already dropped above.
+    if (
+        ref_cached.get("model") != reference_model
+        or not isinstance(ref_results, dict)
     ):
         print(f"  -> Running reference battery on {reference_model}")
         ref_results = run_battery(reference_model, tasks, api_key)
-        ref_cached = {
+        cache["_reference"] = {
             "model": reference_model,
             "results": ref_results,
             "timestamp": datetime.now(UTC).isoformat(),
         }
-        cache["_reference"] = ref_cached
-    reference_results = ref_cached["results"]
+
+    if _answered_count(ref_results) == 0:
+        print(
+            f"  w Backup benchmark skipped: reference {reference_model} answered "
+            f"0/{len(ref_results)} task(s) — models stay missing"
+        )
+        cache.pop("_reference", None)
+        if not dry_run:
+            _save_cache(cache, cache_path)
+        return cache
 
     for mid in missing_ids:
         print(f"  -> Benchmarking {mid}")
         try:
             results = run_battery(mid, tasks, api_key)
-            scored = _scores_from_results(
-                results, tasks, reference_results, livebench, reference_model
-            )
-            token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-            for r in results.values():
-                u = r.get("usage") or {}
-                token_usage["prompt_tokens"] += int(u.get("prompt_tokens") or u.get("input_tokens") or 0)
-                token_usage["completion_tokens"] += int(u.get("completion_tokens") or u.get("output_tokens") or 0)
-                token_usage["total_tokens"] += int(u.get("total_tokens") or 0)
-            if token_usage["total_tokens"] == 0 and (
-                token_usage["prompt_tokens"] or token_usage["completion_tokens"]
-            ):
-                token_usage["total_tokens"] = (
-                    token_usage["prompt_tokens"] + token_usage["completion_tokens"]
+            if _answered_count(results) == 0:
+                # Nothing came back (403/timeout on every task): a score here
+                # would be noise, so drop any stale entry and stay missing.
+                print(
+                    f"     x {mid}: 0/{len(results)} task(s) answered — "
+                    "no score recorded, stays missing"
                 )
-            cache["models"][mid] = {
-                "scores": scored["scores"],
-                "passed_task_ids": scored["passed_task_ids"],
-                "failed_task_ids": scored["failed_task_ids"],
-                "raw_pass_count": scored["raw_pass_count"],
-                "task_count": scored["task_count"],
-                "token_usage": token_usage,
-                "source": "benchmark",
-                "confidence": "low (backup benchmark)",
-                "reference_model": reference_model,
-                "timestamp": datetime.now(UTC).isoformat(),
-            }
-            print(
-                f"     v {mid}: "
-                + ", ".join(f"{k}={v}" for k, v in scored["scores"].items())
-            )
+                cache["models"].pop(mid, None)
+            else:
+                scored = _scores_from_results(
+                    results, tasks, ref_results, livebench, reference_model
+                )
+                token_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                for r in results.values():
+                    u = r.get("usage") or {}
+                    token_usage["prompt_tokens"] += int(u.get("prompt_tokens") or u.get("input_tokens") or 0)
+                    token_usage["completion_tokens"] += int(u.get("completion_tokens") or u.get("output_tokens") or 0)
+                    token_usage["total_tokens"] += int(u.get("total_tokens") or 0)
+                if token_usage["total_tokens"] == 0 and (
+                    token_usage["prompt_tokens"] or token_usage["completion_tokens"]
+                ):
+                    token_usage["total_tokens"] = (
+                        token_usage["prompt_tokens"] + token_usage["completion_tokens"]
+                    )
+                cache["models"][mid] = {
+                    "scores": scored["scores"],
+                    "passed_task_ids": scored["passed_task_ids"],
+                    "failed_task_ids": scored["failed_task_ids"],
+                    "raw_pass_count": scored["raw_pass_count"],
+                    "task_count": scored["task_count"],
+                    "token_usage": token_usage,
+                    "source": "benchmark",
+                    "confidence": "low (backup benchmark)",
+                    "reference_model": reference_model,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                }
+                print(
+                    f"     v {mid}: "
+                    + ", ".join(f"{k}={v}" for k, v in scored["scores"].items())
+                )
         except Exception as e:  # noqa: BLE001
             print(f"     x {mid}: benchmark failed: {e}")
         time.sleep(0.5)
