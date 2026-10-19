@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-10-18T01:50:23.721807+00:00",
+  "timestamp": "2026-10-19T02:07:27.870110+00:00",
   "livebench_snapshot": "2026_06_25",
   "livebench_source": "https://livebench.ai/table_2026_06_25.csv",
-  "livebench_models": 357,
+  "livebench_models": 315,
   "free_models": 11,
   "go_models": 37,
   "cost_blend": {
@@ -11,8 +11,8 @@
   },
   "pricing_source": "https://opencode.ai/docs/it/zen#pricing",
   "model_config": {
-    "updated": false,
-    "timestamp": "2026-10-18T01:50:23.721811+00:00",
+    "updated": true,
+    "timestamp": "2026-10-19T02:07:27.870116+00:00",
     "livebench_snapshot": "2026_06_25"
   }
 }
