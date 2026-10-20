@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>ms harness</title>
+<style>html,body{margin:0;background:#888;} iframe{border:0;width:100%;display:block;}</style>
+</head>
+<body>
+<iframe id="ms" src="../status/index.html" height="24"></iframe>
+<script>
+const CH = 'openchamber.sdk';
+const tokens = {
+  background:'#ffffff', elevated:'#f7f7f7', foreground:'#2b2b2b', muted:'#6b7280',
+  subtle:'#eef0f3', border:'#e5e7eb', hover:'#f3f4f6', selection:'#e0e7ff',
+  focus:'#6366f1', primary:'#4f46e5', mutedSurface:'#f3f4f6', elevatedForeground:'#2b2b2b',
+  active:'#e5e7eb', selectionForeground:'#312e81', primaryForeground:'#ffffff',
+  primaryText:'#312e81', successText:'#166534', warningText:'#92400e',
+  errorText:'#991b1b', infoText:'#1e40af', success:'#22c55e', warning:'#f59e0b',
+  error:'#ef4444', info:'#3b82f6', font:'-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  mono:'ui-monospace, SFMono-Regular, Menlo, monospace', radius:'9px'
+};
+const files = new Map([
+  ['.opencode/.modelselect-cache/status-ses_1.json', JSON.stringify({freeExhausted:false, updatedAt: Date.now()})],
+]);
+let idc = 0;
+const iframe = document.getElementById('ms');
+let pending = [];
+window.addEventListener('message', (e) => {
+  const m = e.data;
+  if (!m || m.channel !== CH) return;
+  if (m.type === 'hello') {
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => iframe.contentWindow.postMessage({
+        channel: CH, v: 1, type: 'ready',
+        payload: { theme: { mode: 'light', tokens }, locale: 'en', directory: '/project',
+          session: { id: 'ses_1', title: 't', busy: false, model: 'opencode/beam-free', agent: 'build' },
+          surface: 'status', connection: {}, settings: {} } }, '*'), 40 * i);
+    }
+    return;
+  }
+  if (m.type === 'file-stat') {
+    const f = files.get(m.payload.path);
+    reply(m, f ? { kind: 'file', size: f.length, mtime: Date.now() } : { kind: 'missing', size: 0, mtime: 0 });
+  } else if (m.type === 'file-read') {
+    const f = files.get(m.payload.path);
+    if (f === undefined) replyErr(m, 'NOT_FOUND'); else reply(m, { content: f });
+  } else if (m.type === 'workspace-read') {
+    reply(m, { kind: 'projects', state: 'ready', projects: [] });
+  } else if (m.type === 'workspace-subscribe' || m.type === 'workspace-unsubscribe' || m.type === 'storage' || m.type === 'toast' || m.type === 'file-write') {
+    reply(m, {});
+  } else if (m.type === 'resize') {
+    document.getElementById('ms').style.height = m.payload.height + 'px';
+    reply(m, {});
+  }
+});
+function reply(m, payload) { pending.push({ channel: CH, v: 1, type: 'result', id: m.id, ok: true, payload }); }
+function replyErr(m, code) { pending.push({ channel: CH, v: 1, type: 'result', id: m.id, ok: false, error: code, code }); }
+setInterval(() => { for (const m of pending.splice(0, pending.length)) { iframe.contentWindow.postMessage(m, '*'); } }, 0);
+</script>
+</body>
+</html>
