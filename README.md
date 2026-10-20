@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-19 02:07 UTC**.
+> Last updated: **2026-10-20 02:23 UTC**.
 > LiveBench data: **315 models scored**.
 > LiveBench snapshot: **2026_06_25**.
 > Source: https://livebench.ai/table_2026_06_25.csv
@@ -136,6 +136,7 @@ automatically at their next run.
 | `minimax-m2.5` | Go (Paid) | ✅ LiveBench | Plan, Review | 60.3 | 59.3 | 62.3 | 31.3 | 62.2 | $0.3 | $1.2 | $0.525 | 114.9 |
 | `minimax-m2.7` | Go (Paid) | ✅ LiveBench | Plan, Review | 65.0 | 52.0 | 72.4 | 34.0 | 67.4 | $0.3 | $1.2 | $0.525 | 123.8 |
 | `minimax-m3` | Go (Paid) | ✅ LiveBench | Plan, Review | 67.5 | 51.7 | 76.7 | 50.2 | 66.9 | $0.3 | $1.2 | $0.525 | 128.6 |
+| `minimax-m3.1-flash-free` | Free | ✅ LiveBench | Plan, Review | 67.5 | 51.7 | 76.7 | 50.2 | 66.9 | Free | Free | Free | — |
 | `muse-spark-1.2-contributor` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.1 | $0.2 | $0.125 | — |
 | `muse-spark-1.3-contributor` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.1 | $0.2 | $0.125 | — |
 | `nemotron-3.5-lightning-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 36.2 | 58.0 | 5.0 | 72.0 | Free | Free | Free | — |
@@ -146,8 +147,6 @@ automatically at their next run.
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
 | `qwen3.8-flash` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.15 | $0.47 | $0.23 | — |
 | `qwen3.8-max` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $2 | $6 | $3 | — |
-| `space-bunny` | Go (Paid) | 📋 Fallback | Plan, Review | 30.0 | 28.0 | 40.0 | 38.0 | 35.0 | $0.15 | $0.6 | $0.2625 | 114.3 |
-| `space-bunny-free` | Free | 📋 Fallback | Plan, Review | 30.0 | 28.0 | 40.0 | 38.0 | 35.0 | Free | Free | Free | — |
 | `step-5-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 74.0 | 72.0 | 87.0 | 65.0 | 72.0 | $1 | $2.7 | $1.425 | 51.9 |
 ## Sponsor
 

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-19T02:07:26.848829+00:00",
+  "timestamp": "2026-10-20T02:23:10.528297+00:00",
   "livebench_snapshot": "2026_06_25",
   "livebench_source": "https://livebench.ai/table_2026_06_25.csv",
   "zen_models_count": 85,
@@ -496,16 +496,6 @@
         "rank": 24
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 71.11,
-        "rank": 25
-      },
-      {
         "model": "gpt-5.3-codex",
         "score": 79.3,
         "source": "livebench",
@@ -513,7 +503,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 16.48,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "gpt-5.5",
@@ -523,7 +513,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.99,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "gpt-5.5-pro",
@@ -533,7 +523,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.16,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "kimi-k2.6",
@@ -543,7 +533,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 45.49,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "gpt-5.1-codex",
@@ -553,7 +543,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 26.34,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -563,7 +553,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 22.4,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "qwen3.6-plus",
@@ -573,7 +563,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 68.44,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "kimi-k2.7-code",
@@ -583,6 +573,16 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 44.91,
+        "rank": 32
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 76.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 33
       },
       {
@@ -776,6 +776,16 @@
         "rank": 52
       },
       {
+        "model": "gemini-3-flash",
+        "score": 54.8,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 48.71,
+        "rank": 53
+      },
+      {
         "model": "gpt-5-nano",
         "score": 48.4,
         "source": "livebench",
@@ -783,7 +793,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 352.0,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -793,7 +803,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 7.97,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -803,16 +813,6 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.95,
-        "rank": 55
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 40.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 56
       },
       {
@@ -928,16 +928,6 @@
         "rank": 9
       },
       {
-        "model": "gemini-3-flash",
-        "score": 77.8,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 69.16,
-        "rank": 10
-      },
-      {
         "model": "gemini-3.5-flash",
         "score": 77.6,
         "source": "livebench",
@@ -945,7 +935,7 @@
         "output_cost": 9.0,
         "blended_cost": 3.375,
         "value": 22.99,
-        "rank": 11
+        "rank": 10
       },
       {
         "model": "gpt-5.4",
@@ -955,7 +945,7 @@
         "output_cost": 15.0,
         "blended_cost": 5.625,
         "value": 13.17,
-        "rank": 12
+        "rank": 11
       },
       {
         "model": "gemini-4-argon",
@@ -965,7 +955,7 @@
         "output_cost": 20.0,
         "blended_cost": 8.0,
         "value": 9.25,
-        "rank": 13
+        "rank": 12
       },
       {
         "model": "gpt-5.3-codex",
@@ -975,7 +965,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 15.38,
-        "rank": 14
+        "rank": 13
       },
       {
         "model": "gpt-5.5",
@@ -985,7 +975,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.56,
-        "rank": 15
+        "rank": 14
       },
       {
         "model": "gpt-5.5-pro",
@@ -995,7 +985,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.09,
-        "rank": 16
+        "rank": 15
       },
       {
         "model": "mimo-v2.6-flash-free",
@@ -1005,7 +995,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 17
+        "rank": 16
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -1015,7 +1005,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 18
+        "rank": 17
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -1025,7 +1015,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 20.68,
-        "rank": 19
+        "rank": 18
       },
       {
         "model": "claude-opus-4-6",
@@ -1035,7 +1025,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 7.07,
-        "rank": 20
+        "rank": 19
       },
       {
         "model": "deepseek-v4-pro",
@@ -1045,7 +1035,7 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 32.32,
-        "rank": 21
+        "rank": 20
       },
       {
         "model": "grok-build-0.1",
@@ -1055,7 +1045,7 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 56.16,
-        "rank": 22
+        "rank": 21
       },
       {
         "model": "gpt-5.2",
@@ -1065,7 +1055,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 23
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
@@ -1075,7 +1065,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 24
+        "rank": 23
       },
       {
         "model": "claude-opus-4-8",
@@ -1085,7 +1075,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 6.99,
-        "rank": 25
+        "rank": 24
       },
       {
         "model": "gpt-5.1",
@@ -1095,7 +1085,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 23.88,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "kimi-k2.6",
@@ -1105,7 +1095,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 40.7,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "glm-5.1",
@@ -1115,7 +1105,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 32.33,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "deepseek-v4-flash",
@@ -1125,7 +1115,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "test",
@@ -1135,7 +1125,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "claude-sonnet-5",
@@ -1145,7 +1135,7 @@
         "output_cost": 10.0,
         "blended_cost": 4.0,
         "value": 17.12,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "glm-5.2",
@@ -1155,7 +1145,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 31.72,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "claude-fable-5",
@@ -1165,7 +1155,7 @@
         "output_cost": 50.0,
         "blended_cost": 20.0,
         "value": 3.39,
-        "rank": 33
+        "rank": 32
       },
       {
         "model": "qwen3.6-plus",
@@ -1175,7 +1165,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 60.18,
-        "rank": 34
+        "rank": 33
       },
       {
         "model": "minimax-m2.7",
@@ -1185,7 +1175,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 128.38,
-        "rank": 35
+        "rank": 34
       },
       {
         "model": "claude-sonnet-4-6",
@@ -1195,6 +1185,16 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 11.2,
+        "rank": 35
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 66.9,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 36
       },
       {
@@ -1348,6 +1348,16 @@
         "rank": 51
       },
       {
+        "model": "gemini-3-flash",
+        "score": 50.2,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 44.62,
+        "rank": 52
+      },
+      {
         "model": "jev-1.13-free",
         "score": 50.0,
         "source": "fallback",
@@ -1355,7 +1365,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "jev-1.13",
@@ -1365,7 +1375,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 1587.3,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -1375,7 +1385,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 8.32,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -1385,7 +1395,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.55,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "gpt-5.4-mini",
@@ -1395,7 +1405,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 22.87,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "gpt-5.4-nano",
@@ -1405,16 +1415,6 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 76.11,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 35.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ],
@@ -1660,16 +1660,6 @@
         "rank": 24
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 71.11,
-        "rank": 25
-      },
-      {
         "model": "gpt-5.3-codex",
         "score": 79.3,
         "source": "livebench",
@@ -1677,7 +1667,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 16.48,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "gpt-5.5",
@@ -1687,7 +1677,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.99,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "gpt-5.5-pro",
@@ -1697,7 +1687,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.16,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "kimi-k2.6",
@@ -1707,7 +1697,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 45.49,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "gpt-5.1-codex",
@@ -1717,7 +1707,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 26.34,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -1727,7 +1717,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 22.4,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "qwen3.6-plus",
@@ -1737,7 +1727,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 68.44,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "kimi-k2.7-code",
@@ -1747,6 +1737,16 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 44.91,
+        "rank": 32
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 76.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 33
       },
       {
@@ -1940,6 +1940,16 @@
         "rank": 52
       },
       {
+        "model": "gemini-3-flash",
+        "score": 54.8,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 48.71,
+        "rank": 53
+      },
+      {
         "model": "gpt-5-nano",
         "score": 48.4,
         "source": "livebench",
@@ -1947,7 +1957,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 352.0,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -1957,7 +1967,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 7.97,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -1967,16 +1977,6 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.95,
-        "rank": 55
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 40.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 56
       },
       {
@@ -2082,16 +2082,6 @@
         "rank": 8
       },
       {
-        "model": "gemini-3-flash",
-        "score": 65.7,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 58.4,
-        "rank": 9
-      },
-      {
         "model": "claude-opus-4-8",
         "score": 64.9,
         "source": "livebench",
@@ -2099,7 +2089,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 6.49,
-        "rank": 10
+        "rank": 9
       },
       {
         "model": "gpt-5.3-codex",
@@ -2109,7 +2099,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 13.36,
-        "rank": 11
+        "rank": 10
       },
       {
         "model": "glm-5.3-flash-free",
@@ -2119,7 +2109,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 12
+        "rank": 11
       },
       {
         "model": "glm-5",
@@ -2129,7 +2119,7 @@
         "output_cost": 3.2,
         "blended_cost": 1.55,
         "value": 41.03,
-        "rank": 13
+        "rank": 12
       },
       {
         "model": "glm-5.3",
@@ -2139,7 +2129,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 29.58,
-        "rank": 14
+        "rank": 13
       },
       {
         "model": "glm-5.3-flash",
@@ -2149,7 +2139,7 @@
         "output_cost": 0.5,
         "blended_cost": 0.2375,
         "value": 267.79,
-        "rank": 15
+        "rank": 14
       },
       {
         "model": "claude-opus-4-5",
@@ -2159,7 +2149,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 6.23,
-        "rank": 16
+        "rank": 15
       },
       {
         "model": "glm-5.2",
@@ -2169,7 +2159,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 28.23,
-        "rank": 17
+        "rank": 16
       },
       {
         "model": "gpt-5.1",
@@ -2179,7 +2169,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 20.63,
-        "rank": 18
+        "rank": 17
       },
       {
         "model": "claude-opus-4-7",
@@ -2189,7 +2179,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 6.03,
-        "rank": 19
+        "rank": 18
       },
       {
         "model": "glm-5.1",
@@ -2199,6 +2189,16 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 28.05,
+        "rank": 19
+      },
+      {
+        "model": "gemini-3-flash",
+        "score": 59.4,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 52.8,
         "rank": 20
       },
       {
@@ -2392,6 +2392,16 @@
         "rank": 39
       },
       {
+        "model": "minimax-m3.1-flash-free",
+        "score": 50.2,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
+        "rank": 40
+      },
+      {
         "model": "minimax-m3",
         "score": 50.2,
         "source": "livebench",
@@ -2399,7 +2409,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 95.62,
-        "rank": 40
+        "rank": 41
       },
       {
         "model": "deepseek-v4-flash",
@@ -2409,7 +2419,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 41
+        "rank": 42
       },
       {
         "model": "qwen3.5-plus",
@@ -2419,7 +2429,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.45,
         "value": 93.33,
-        "rank": 42
+        "rank": 43
       },
       {
         "model": "gpt-5.1-codex",
@@ -2429,7 +2439,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 14.31,
-        "rank": 43
+        "rank": 44
       },
       {
         "model": "test",
@@ -2439,7 +2449,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 44
+        "rank": 45
       },
       {
         "model": "longcat-2.5-preview-free",
@@ -2449,20 +2459,10 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 45
-      },
-      {
-        "model": "mimo-v2.6-flash-free",
-        "score": 38.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 46
       },
       {
-        "model": "space-bunny-free",
+        "model": "mimo-v2.6-flash-free",
         "score": 38.0,
         "source": "fallback",
         "input_cost": 0.0,
@@ -2944,6 +2944,16 @@
         "rank": 36
       },
       {
+        "model": "gemini-3-flash",
+        "score": 57.4,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 51.02,
+        "rank": 37
+      },
+      {
         "model": "claude-sonnet-4-6",
         "score": 57.3,
         "source": "livebench",
@@ -2951,7 +2961,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 9.55,
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "kimi-k2.7-code",
@@ -2961,7 +2971,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 33.28,
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "gpt-5-codex",
@@ -2971,7 +2981,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 19.4,
-        "rank": 39
+        "rank": 40
       },
       {
         "model": "gpt-5.5",
@@ -2981,7 +2991,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 4.99,
-        "rank": 40
+        "rank": 41
       },
       {
         "model": "gpt-5.5-pro",
@@ -2991,7 +3001,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 0.83,
-        "rank": 41
+        "rank": 42
       },
       {
         "model": "qwen3.6-plus",
@@ -3001,7 +3011,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 49.87,
-        "rank": 42
+        "rank": 43
       },
       {
         "model": "deepseek-v4-pro",
@@ -3011,16 +3021,6 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 24.64,
-        "rank": 43
-      },
-      {
-        "model": "gemini-3-flash",
-        "score": 53.6,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 47.64,
         "rank": 44
       },
       {
@@ -3064,6 +3064,16 @@
         "rank": 48
       },
       {
+        "model": "minimax-m3.1-flash-free",
+        "score": 51.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
+        "rank": 49
+      },
+      {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
@@ -3071,7 +3081,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 98.48,
-        "rank": 49
+        "rank": 50
       },
       {
         "model": "deepseek-v4-flash",
@@ -3081,7 +3091,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 50
+        "rank": 51
       },
       {
         "model": "claude-haiku-4-5",
@@ -3091,7 +3101,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 24.45,
-        "rank": 51
+        "rank": 52
       },
       {
         "model": "gpt-5-nano",
@@ -3101,7 +3111,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 320.0,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "gpt-5.4-nano",
@@ -3111,7 +3121,7 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 88.65,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "gpt-5.4-mini",
@@ -3121,7 +3131,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 23.76,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -3131,7 +3141,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "jev-1.13-free",
@@ -3141,7 +3151,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "jev-1.13",
@@ -3151,16 +3161,6 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 952.38,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 28.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ],
@@ -3526,6 +3526,16 @@
         "rank": 36
       },
       {
+        "model": "gemini-3-flash",
+        "score": 57.4,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 51.02,
+        "rank": 37
+      },
+      {
         "model": "claude-sonnet-4-6",
         "score": 57.3,
         "source": "livebench",
@@ -3533,7 +3543,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 9.55,
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "kimi-k2.7-code",
@@ -3543,7 +3553,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 33.28,
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "gpt-5-codex",
@@ -3553,7 +3563,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 19.4,
-        "rank": 39
+        "rank": 40
       },
       {
         "model": "gpt-5.5",
@@ -3563,7 +3573,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 4.99,
-        "rank": 40
+        "rank": 41
       },
       {
         "model": "gpt-5.5-pro",
@@ -3573,7 +3583,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 0.83,
-        "rank": 41
+        "rank": 42
       },
       {
         "model": "qwen3.6-plus",
@@ -3583,7 +3593,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 49.87,
-        "rank": 42
+        "rank": 43
       },
       {
         "model": "deepseek-v4-pro",
@@ -3593,16 +3603,6 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 24.64,
-        "rank": 43
-      },
-      {
-        "model": "gemini-3-flash",
-        "score": 53.6,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 47.64,
         "rank": 44
       },
       {
@@ -3646,6 +3646,16 @@
         "rank": 48
       },
       {
+        "model": "minimax-m3.1-flash-free",
+        "score": 51.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
+        "rank": 49
+      },
+      {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
@@ -3653,7 +3663,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 98.48,
-        "rank": 49
+        "rank": 50
       },
       {
         "model": "deepseek-v4-flash",
@@ -3663,7 +3673,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 50
+        "rank": 51
       },
       {
         "model": "claude-haiku-4-5",
@@ -3673,7 +3683,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 24.45,
-        "rank": 51
+        "rank": 52
       },
       {
         "model": "gpt-5-nano",
@@ -3683,7 +3693,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 320.0,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "gpt-5.4-nano",
@@ -3693,7 +3703,7 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 88.65,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "gpt-5.4-mini",
@@ -3703,7 +3713,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 23.76,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -3713,7 +3723,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "jev-1.13-free",
@@ -3723,7 +3733,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "jev-1.13",
@@ -3733,16 +3743,6 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 952.38,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 28.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ],
@@ -3838,16 +3838,6 @@
         "rank": 9
       },
       {
-        "model": "gemini-3-flash",
-        "score": 77.8,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 69.16,
-        "rank": 10
-      },
-      {
         "model": "gemini-3.5-flash",
         "score": 77.6,
         "source": "livebench",
@@ -3855,7 +3845,7 @@
         "output_cost": 9.0,
         "blended_cost": 3.375,
         "value": 22.99,
-        "rank": 11
+        "rank": 10
       },
       {
         "model": "gpt-5.4",
@@ -3865,7 +3855,7 @@
         "output_cost": 15.0,
         "blended_cost": 5.625,
         "value": 13.17,
-        "rank": 12
+        "rank": 11
       },
       {
         "model": "gemini-4-argon",
@@ -3875,7 +3865,7 @@
         "output_cost": 20.0,
         "blended_cost": 8.0,
         "value": 9.25,
-        "rank": 13
+        "rank": 12
       },
       {
         "model": "gpt-5.3-codex",
@@ -3885,7 +3875,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 15.38,
-        "rank": 14
+        "rank": 13
       },
       {
         "model": "gpt-5.5",
@@ -3895,7 +3885,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.56,
-        "rank": 15
+        "rank": 14
       },
       {
         "model": "gpt-5.5-pro",
@@ -3905,7 +3895,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.09,
-        "rank": 16
+        "rank": 15
       },
       {
         "model": "mimo-v2.6-flash-free",
@@ -3915,7 +3905,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 17
+        "rank": 16
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -3925,7 +3915,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 18
+        "rank": 17
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -3935,7 +3925,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 20.68,
-        "rank": 19
+        "rank": 18
       },
       {
         "model": "claude-opus-4-6",
@@ -3945,7 +3935,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 7.07,
-        "rank": 20
+        "rank": 19
       },
       {
         "model": "deepseek-v4-pro",
@@ -3955,7 +3945,7 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 32.32,
-        "rank": 21
+        "rank": 20
       },
       {
         "model": "grok-build-0.1",
@@ -3965,7 +3955,7 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 56.16,
-        "rank": 22
+        "rank": 21
       },
       {
         "model": "gpt-5.2",
@@ -3975,7 +3965,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 23
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
@@ -3985,7 +3975,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 24
+        "rank": 23
       },
       {
         "model": "claude-opus-4-8",
@@ -3995,7 +3985,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 6.99,
-        "rank": 25
+        "rank": 24
       },
       {
         "model": "gpt-5.1",
@@ -4005,7 +3995,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 23.88,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "kimi-k2.6",
@@ -4015,7 +4005,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 40.7,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "glm-5.1",
@@ -4025,7 +4015,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 32.33,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "deepseek-v4-flash",
@@ -4035,7 +4025,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "test",
@@ -4045,7 +4035,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "claude-sonnet-5",
@@ -4055,7 +4045,7 @@
         "output_cost": 10.0,
         "blended_cost": 4.0,
         "value": 17.12,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "glm-5.2",
@@ -4065,7 +4055,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 31.72,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "claude-fable-5",
@@ -4075,7 +4065,7 @@
         "output_cost": 50.0,
         "blended_cost": 20.0,
         "value": 3.39,
-        "rank": 33
+        "rank": 32
       },
       {
         "model": "qwen3.6-plus",
@@ -4085,7 +4075,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 60.18,
-        "rank": 34
+        "rank": 33
       },
       {
         "model": "minimax-m2.7",
@@ -4095,7 +4085,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 128.38,
-        "rank": 35
+        "rank": 34
       },
       {
         "model": "claude-sonnet-4-6",
@@ -4105,6 +4095,16 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 11.2,
+        "rank": 35
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 66.9,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 36
       },
       {
@@ -4258,6 +4258,16 @@
         "rank": 51
       },
       {
+        "model": "gemini-3-flash",
+        "score": 50.2,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 44.62,
+        "rank": 52
+      },
+      {
         "model": "jev-1.13-free",
         "score": 50.0,
         "source": "fallback",
@@ -4265,7 +4275,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "jev-1.13",
@@ -4275,7 +4285,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 1587.3,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -4285,7 +4295,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 8.32,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -4295,7 +4305,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.55,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "gpt-5.4-mini",
@@ -4305,7 +4315,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 22.87,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "gpt-5.4-nano",
@@ -4315,16 +4325,6 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 76.11,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 35.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ],
@@ -4570,16 +4570,6 @@
         "rank": 24
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 71.11,
-        "rank": 25
-      },
-      {
         "model": "gpt-5.3-codex",
         "score": 79.3,
         "source": "livebench",
@@ -4587,7 +4577,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 16.48,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "gpt-5.5",
@@ -4597,7 +4587,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.99,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "gpt-5.5-pro",
@@ -4607,7 +4597,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.16,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "kimi-k2.6",
@@ -4617,7 +4607,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 45.49,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "gpt-5.1-codex",
@@ -4627,7 +4617,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 26.34,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -4637,7 +4627,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 22.4,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "qwen3.6-plus",
@@ -4647,7 +4637,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 68.44,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "kimi-k2.7-code",
@@ -4657,6 +4647,16 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 44.91,
+        "rank": 32
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 76.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 33
       },
       {
@@ -4850,6 +4850,16 @@
         "rank": 52
       },
       {
+        "model": "gemini-3-flash",
+        "score": 54.8,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 48.71,
+        "rank": 53
+      },
+      {
         "model": "gpt-5-nano",
         "score": 48.4,
         "source": "livebench",
@@ -4857,7 +4867,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 352.0,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -4867,7 +4877,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 7.97,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -4877,16 +4887,6 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.95,
-        "rank": 55
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 40.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 56
       },
       {
@@ -5272,6 +5272,16 @@
         "rank": 36
       },
       {
+        "model": "gemini-3-flash",
+        "score": 57.4,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 51.02,
+        "rank": 37
+      },
+      {
         "model": "claude-sonnet-4-6",
         "score": 57.3,
         "source": "livebench",
@@ -5279,7 +5289,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 9.55,
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "kimi-k2.7-code",
@@ -5289,7 +5299,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 33.28,
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "gpt-5-codex",
@@ -5299,7 +5309,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 19.4,
-        "rank": 39
+        "rank": 40
       },
       {
         "model": "gpt-5.5",
@@ -5309,7 +5319,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 4.99,
-        "rank": 40
+        "rank": 41
       },
       {
         "model": "gpt-5.5-pro",
@@ -5319,7 +5329,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 0.83,
-        "rank": 41
+        "rank": 42
       },
       {
         "model": "qwen3.6-plus",
@@ -5329,7 +5339,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 49.87,
-        "rank": 42
+        "rank": 43
       },
       {
         "model": "deepseek-v4-pro",
@@ -5339,16 +5349,6 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 24.64,
-        "rank": 43
-      },
-      {
-        "model": "gemini-3-flash",
-        "score": 53.6,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 47.64,
         "rank": 44
       },
       {
@@ -5392,6 +5392,16 @@
         "rank": 48
       },
       {
+        "model": "minimax-m3.1-flash-free",
+        "score": 51.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
+        "rank": 49
+      },
+      {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
@@ -5399,7 +5409,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 98.48,
-        "rank": 49
+        "rank": 50
       },
       {
         "model": "deepseek-v4-flash",
@@ -5409,7 +5419,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 50
+        "rank": 51
       },
       {
         "model": "claude-haiku-4-5",
@@ -5419,7 +5429,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 24.45,
-        "rank": 51
+        "rank": 52
       },
       {
         "model": "gpt-5-nano",
@@ -5429,7 +5439,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 320.0,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "gpt-5.4-nano",
@@ -5439,7 +5449,7 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 88.65,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "gpt-5.4-mini",
@@ -5449,7 +5459,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 23.76,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -5459,7 +5469,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "jev-1.13-free",
@@ -5469,7 +5479,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "jev-1.13",
@@ -5479,16 +5489,6 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 952.38,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 28.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ],
@@ -5734,16 +5734,6 @@
         "rank": 24
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 71.11,
-        "rank": 25
-      },
-      {
         "model": "gpt-5.3-codex",
         "score": 79.3,
         "source": "livebench",
@@ -5751,7 +5741,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 16.48,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "gpt-5.5",
@@ -5761,7 +5751,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.99,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "gpt-5.5-pro",
@@ -5771,7 +5761,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.16,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "kimi-k2.6",
@@ -5781,7 +5771,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 45.49,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "gpt-5.1-codex",
@@ -5791,7 +5781,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 26.34,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -5801,7 +5791,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 22.4,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "qwen3.6-plus",
@@ -5811,7 +5801,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 68.44,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "kimi-k2.7-code",
@@ -5821,6 +5811,16 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 44.91,
+        "rank": 32
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 76.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 33
       },
       {
@@ -6014,6 +6014,16 @@
         "rank": 52
       },
       {
+        "model": "gemini-3-flash",
+        "score": 54.8,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 48.71,
+        "rank": 53
+      },
+      {
         "model": "gpt-5-nano",
         "score": 48.4,
         "source": "livebench",
@@ -6021,7 +6031,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 352.0,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -6031,7 +6041,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 7.97,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -6041,16 +6051,6 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.95,
-        "rank": 55
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 40.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 56
       },
       {
@@ -6436,6 +6436,16 @@
         "rank": 36
       },
       {
+        "model": "gemini-3-flash",
+        "score": 57.4,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 51.02,
+        "rank": 37
+      },
+      {
         "model": "claude-sonnet-4-6",
         "score": 57.3,
         "source": "livebench",
@@ -6443,7 +6453,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 9.55,
-        "rank": 37
+        "rank": 38
       },
       {
         "model": "kimi-k2.7-code",
@@ -6453,7 +6463,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 33.28,
-        "rank": 38
+        "rank": 39
       },
       {
         "model": "gpt-5-codex",
@@ -6463,7 +6473,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 19.4,
-        "rank": 39
+        "rank": 40
       },
       {
         "model": "gpt-5.5",
@@ -6473,7 +6483,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 4.99,
-        "rank": 40
+        "rank": 41
       },
       {
         "model": "gpt-5.5-pro",
@@ -6483,7 +6493,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 0.83,
-        "rank": 41
+        "rank": 42
       },
       {
         "model": "qwen3.6-plus",
@@ -6493,7 +6503,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 49.87,
-        "rank": 42
+        "rank": 43
       },
       {
         "model": "deepseek-v4-pro",
@@ -6503,16 +6513,6 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 24.64,
-        "rank": 43
-      },
-      {
-        "model": "gemini-3-flash",
-        "score": 53.6,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 47.64,
         "rank": 44
       },
       {
@@ -6556,6 +6556,16 @@
         "rank": 48
       },
       {
+        "model": "minimax-m3.1-flash-free",
+        "score": 51.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
+        "rank": 49
+      },
+      {
         "model": "minimax-m3",
         "score": 51.7,
         "source": "livebench",
@@ -6563,7 +6573,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 98.48,
-        "rank": 49
+        "rank": 50
       },
       {
         "model": "deepseek-v4-flash",
@@ -6573,7 +6583,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 50
+        "rank": 51
       },
       {
         "model": "claude-haiku-4-5",
@@ -6583,7 +6593,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 24.45,
-        "rank": 51
+        "rank": 52
       },
       {
         "model": "gpt-5-nano",
@@ -6593,7 +6603,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 320.0,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "gpt-5.4-nano",
@@ -6603,7 +6613,7 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 88.65,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "gpt-5.4-mini",
@@ -6613,7 +6623,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 23.76,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -6623,7 +6633,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "jev-1.13-free",
@@ -6633,7 +6643,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "jev-1.13",
@@ -6643,16 +6653,6 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 952.38,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 28.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ],
@@ -6898,16 +6898,6 @@
         "rank": 24
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 71.11,
-        "rank": 25
-      },
-      {
         "model": "gpt-5.3-codex",
         "score": 79.3,
         "source": "livebench",
@@ -6915,7 +6905,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 16.48,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "gpt-5.5",
@@ -6925,7 +6915,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.99,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "gpt-5.5-pro",
@@ -6935,7 +6925,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.16,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "kimi-k2.6",
@@ -6945,7 +6935,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 45.49,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "gpt-5.1-codex",
@@ -6955,7 +6945,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 26.34,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -6965,7 +6955,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 22.4,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "qwen3.6-plus",
@@ -6975,7 +6965,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 68.44,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "kimi-k2.7-code",
@@ -6985,6 +6975,16 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 44.91,
+        "rank": 32
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 76.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 33
       },
       {
@@ -7178,6 +7178,16 @@
         "rank": 52
       },
       {
+        "model": "gemini-3-flash",
+        "score": 54.8,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 48.71,
+        "rank": 53
+      },
+      {
         "model": "gpt-5-nano",
         "score": 48.4,
         "source": "livebench",
@@ -7185,7 +7195,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 352.0,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -7195,7 +7205,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 7.97,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -7205,16 +7215,6 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.95,
-        "rank": 55
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 40.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 56
       },
       {
@@ -7480,16 +7480,6 @@
         "rank": 24
       },
       {
-        "model": "gemini-3-flash",
-        "score": 80.0,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 71.11,
-        "rank": 25
-      },
-      {
         "model": "gpt-5.3-codex",
         "score": 79.3,
         "source": "livebench",
@@ -7497,7 +7487,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 16.48,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "gpt-5.5",
@@ -7507,7 +7497,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.99,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "gpt-5.5-pro",
@@ -7517,7 +7507,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.16,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "kimi-k2.6",
@@ -7527,7 +7517,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 45.49,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "gpt-5.1-codex",
@@ -7537,7 +7527,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 26.34,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -7547,7 +7537,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 22.4,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "qwen3.6-plus",
@@ -7557,7 +7547,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 68.44,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "kimi-k2.7-code",
@@ -7567,6 +7557,16 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 44.91,
+        "rank": 32
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 76.7,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 33
       },
       {
@@ -7760,6 +7760,16 @@
         "rank": 52
       },
       {
+        "model": "gemini-3-flash",
+        "score": 54.8,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 48.71,
+        "rank": 53
+      },
+      {
         "model": "gpt-5-nano",
         "score": 48.4,
         "source": "livebench",
@@ -7767,7 +7777,7 @@
         "output_cost": 0.4,
         "blended_cost": 0.1375,
         "value": 352.0,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -7777,7 +7787,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 7.97,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -7787,16 +7797,6 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.95,
-        "rank": 55
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 40.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 56
       },
       {
@@ -7912,16 +7912,6 @@
         "rank": 9
       },
       {
-        "model": "gemini-3-flash",
-        "score": 77.8,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 69.16,
-        "rank": 10
-      },
-      {
         "model": "gemini-3.5-flash",
         "score": 77.6,
         "source": "livebench",
@@ -7929,7 +7919,7 @@
         "output_cost": 9.0,
         "blended_cost": 3.375,
         "value": 22.99,
-        "rank": 11
+        "rank": 10
       },
       {
         "model": "gpt-5.4",
@@ -7939,7 +7929,7 @@
         "output_cost": 15.0,
         "blended_cost": 5.625,
         "value": 13.17,
-        "rank": 12
+        "rank": 11
       },
       {
         "model": "gemini-4-argon",
@@ -7949,7 +7939,7 @@
         "output_cost": 20.0,
         "blended_cost": 8.0,
         "value": 9.25,
-        "rank": 13
+        "rank": 12
       },
       {
         "model": "gpt-5.3-codex",
@@ -7959,7 +7949,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 15.38,
-        "rank": 14
+        "rank": 13
       },
       {
         "model": "gpt-5.5",
@@ -7969,7 +7959,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.56,
-        "rank": 15
+        "rank": 14
       },
       {
         "model": "gpt-5.5-pro",
@@ -7979,7 +7969,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.09,
-        "rank": 16
+        "rank": 15
       },
       {
         "model": "mimo-v2.6-flash-free",
@@ -7989,7 +7979,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 17
+        "rank": 16
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -7999,7 +7989,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 18
+        "rank": 17
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -8009,7 +7999,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 20.68,
-        "rank": 19
+        "rank": 18
       },
       {
         "model": "claude-opus-4-6",
@@ -8019,7 +8009,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 7.07,
-        "rank": 20
+        "rank": 19
       },
       {
         "model": "deepseek-v4-pro",
@@ -8029,7 +8019,7 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 32.32,
-        "rank": 21
+        "rank": 20
       },
       {
         "model": "grok-build-0.1",
@@ -8039,7 +8029,7 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 56.16,
-        "rank": 22
+        "rank": 21
       },
       {
         "model": "gpt-5.2",
@@ -8049,7 +8039,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 23
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
@@ -8059,7 +8049,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 24
+        "rank": 23
       },
       {
         "model": "claude-opus-4-8",
@@ -8069,7 +8059,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 6.99,
-        "rank": 25
+        "rank": 24
       },
       {
         "model": "gpt-5.1",
@@ -8079,7 +8069,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 23.88,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "kimi-k2.6",
@@ -8089,7 +8079,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 40.7,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "glm-5.1",
@@ -8099,7 +8089,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 32.33,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "deepseek-v4-flash",
@@ -8109,7 +8099,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "test",
@@ -8119,7 +8109,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "claude-sonnet-5",
@@ -8129,7 +8119,7 @@
         "output_cost": 10.0,
         "blended_cost": 4.0,
         "value": 17.12,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "glm-5.2",
@@ -8139,7 +8129,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 31.72,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "claude-fable-5",
@@ -8149,7 +8139,7 @@
         "output_cost": 50.0,
         "blended_cost": 20.0,
         "value": 3.39,
-        "rank": 33
+        "rank": 32
       },
       {
         "model": "qwen3.6-plus",
@@ -8159,7 +8149,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 60.18,
-        "rank": 34
+        "rank": 33
       },
       {
         "model": "minimax-m2.7",
@@ -8169,7 +8159,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 128.38,
-        "rank": 35
+        "rank": 34
       },
       {
         "model": "claude-sonnet-4-6",
@@ -8179,6 +8169,16 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 11.2,
+        "rank": 35
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 66.9,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 36
       },
       {
@@ -8332,6 +8332,16 @@
         "rank": 51
       },
       {
+        "model": "gemini-3-flash",
+        "score": 50.2,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 44.62,
+        "rank": 52
+      },
+      {
         "model": "jev-1.13-free",
         "score": 50.0,
         "source": "fallback",
@@ -8339,7 +8349,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "jev-1.13",
@@ -8349,7 +8359,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 1587.3,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -8359,7 +8369,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 8.32,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -8369,7 +8379,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.55,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "gpt-5.4-mini",
@@ -8379,7 +8389,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 22.87,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "gpt-5.4-nano",
@@ -8389,16 +8399,6 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 76.11,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 35.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ],
@@ -8494,16 +8494,6 @@
         "rank": 9
       },
       {
-        "model": "gemini-3-flash",
-        "score": 77.8,
-        "source": "livebench",
-        "input_cost": 0.5,
-        "output_cost": 3.0,
-        "blended_cost": 1.125,
-        "value": 69.16,
-        "rank": 10
-      },
-      {
         "model": "gemini-3.5-flash",
         "score": 77.6,
         "source": "livebench",
@@ -8511,7 +8501,7 @@
         "output_cost": 9.0,
         "blended_cost": 3.375,
         "value": 22.99,
-        "rank": 11
+        "rank": 10
       },
       {
         "model": "gpt-5.4",
@@ -8521,7 +8511,7 @@
         "output_cost": 15.0,
         "blended_cost": 5.625,
         "value": 13.17,
-        "rank": 12
+        "rank": 11
       },
       {
         "model": "gemini-4-argon",
@@ -8531,7 +8521,7 @@
         "output_cost": 20.0,
         "blended_cost": 8.0,
         "value": 9.25,
-        "rank": 13
+        "rank": 12
       },
       {
         "model": "gpt-5.3-codex",
@@ -8541,7 +8531,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 15.38,
-        "rank": 14
+        "rank": 13
       },
       {
         "model": "gpt-5.5",
@@ -8551,7 +8541,7 @@
         "output_cost": 30.0,
         "blended_cost": 11.25,
         "value": 6.56,
-        "rank": 15
+        "rank": 14
       },
       {
         "model": "gpt-5.5-pro",
@@ -8561,7 +8551,7 @@
         "output_cost": 180.0,
         "blended_cost": 67.5,
         "value": 1.09,
-        "rank": 16
+        "rank": 15
       },
       {
         "model": "mimo-v2.6-flash-free",
@@ -8571,7 +8561,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 17
+        "rank": 16
       },
       {
         "model": "nemotron-3.5-lightning-free",
@@ -8581,7 +8571,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 18
+        "rank": 17
       },
       {
         "model": "gpt-5.1-codex-max",
@@ -8591,7 +8581,7 @@
         "output_cost": 10.0,
         "blended_cost": 3.4375,
         "value": 20.68,
-        "rank": 19
+        "rank": 18
       },
       {
         "model": "claude-opus-4-6",
@@ -8601,7 +8591,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 7.07,
-        "rank": 20
+        "rank": 19
       },
       {
         "model": "deepseek-v4-pro",
@@ -8611,7 +8601,7 @@
         "output_cost": 3.48,
         "blended_cost": 2.175,
         "value": 32.32,
-        "rank": 21
+        "rank": 20
       },
       {
         "model": "grok-build-0.1",
@@ -8621,7 +8611,7 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 56.16,
-        "rank": 22
+        "rank": 21
       },
       {
         "model": "gpt-5.2",
@@ -8631,7 +8621,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 23
+        "rank": 22
       },
       {
         "model": "gpt-5.2-codex",
@@ -8641,7 +8631,7 @@
         "output_cost": 14.0,
         "blended_cost": 4.8125,
         "value": 14.57,
-        "rank": 24
+        "rank": 23
       },
       {
         "model": "claude-opus-4-8",
@@ -8651,7 +8641,7 @@
         "output_cost": 25.0,
         "blended_cost": 10.0,
         "value": 6.99,
-        "rank": 25
+        "rank": 24
       },
       {
         "model": "gpt-5.1",
@@ -8661,7 +8651,7 @@
         "output_cost": 8.5,
         "blended_cost": 2.9275,
         "value": 23.88,
-        "rank": 26
+        "rank": 25
       },
       {
         "model": "kimi-k2.6",
@@ -8671,7 +8661,7 @@
         "output_cost": 4.0,
         "blended_cost": 1.7125,
         "value": 40.7,
-        "rank": 27
+        "rank": 26
       },
       {
         "model": "glm-5.1",
@@ -8681,7 +8671,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 32.33,
-        "rank": 28
+        "rank": 27
       },
       {
         "model": "deepseek-v4-flash",
@@ -8691,7 +8681,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 29
+        "rank": 28
       },
       {
         "model": "test",
@@ -8701,7 +8691,7 @@
         "output_cost": null,
         "blended_cost": null,
         "value": null,
-        "rank": 30
+        "rank": 29
       },
       {
         "model": "claude-sonnet-5",
@@ -8711,7 +8701,7 @@
         "output_cost": 10.0,
         "blended_cost": 4.0,
         "value": 17.12,
-        "rank": 31
+        "rank": 30
       },
       {
         "model": "glm-5.2",
@@ -8721,7 +8711,7 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 31.72,
-        "rank": 32
+        "rank": 31
       },
       {
         "model": "claude-fable-5",
@@ -8731,7 +8721,7 @@
         "output_cost": 50.0,
         "blended_cost": 20.0,
         "value": 3.39,
-        "rank": 33
+        "rank": 32
       },
       {
         "model": "qwen3.6-plus",
@@ -8741,7 +8731,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.125,
         "value": 60.18,
-        "rank": 34
+        "rank": 33
       },
       {
         "model": "minimax-m2.7",
@@ -8751,7 +8741,7 @@
         "output_cost": 1.2,
         "blended_cost": 0.525,
         "value": 128.38,
-        "rank": 35
+        "rank": 34
       },
       {
         "model": "claude-sonnet-4-6",
@@ -8761,6 +8751,16 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 11.2,
+        "rank": 35
+      },
+      {
+        "model": "minimax-m3.1-flash-free",
+        "score": 66.9,
+        "source": "livebench",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 36
       },
       {
@@ -8914,6 +8914,16 @@
         "rank": 51
       },
       {
+        "model": "gemini-3-flash",
+        "score": 50.2,
+        "source": "livebench",
+        "input_cost": 0.5,
+        "output_cost": 3.0,
+        "blended_cost": 1.125,
+        "value": 44.62,
+        "rank": 52
+      },
+      {
         "model": "jev-1.13-free",
         "score": 50.0,
         "source": "fallback",
@@ -8921,7 +8931,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0,
         "value": null,
-        "rank": 52
+        "rank": 53
       },
       {
         "model": "jev-1.13",
@@ -8931,7 +8941,7 @@
         "output_cost": 0.0,
         "blended_cost": 0.0315,
         "value": 1587.3,
-        "rank": 53
+        "rank": 54
       },
       {
         "model": "claude-sonnet-4-5",
@@ -8941,7 +8951,7 @@
         "output_cost": 15.0,
         "blended_cost": 6.0,
         "value": 8.32,
-        "rank": 54
+        "rank": 55
       },
       {
         "model": "claude-haiku-4-5",
@@ -8951,7 +8961,7 @@
         "output_cost": 5.0,
         "blended_cost": 2.0,
         "value": 20.55,
-        "rank": 55
+        "rank": 56
       },
       {
         "model": "gpt-5.4-mini",
@@ -8961,7 +8971,7 @@
         "output_cost": 4.5,
         "blended_cost": 1.6875,
         "value": 22.87,
-        "rank": 56
+        "rank": 57
       },
       {
         "model": "gpt-5.4-nano",
@@ -8971,16 +8981,6 @@
         "output_cost": 1.25,
         "blended_cost": 0.4625,
         "value": 76.11,
-        "rank": 57
-      },
-      {
-        "model": "space-bunny-free",
-        "score": 35.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
         "rank": 58
       }
     ]
