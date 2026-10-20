@@ -809,8 +809,8 @@ function mount() {
     var msStyle = document.createElement('style');
     msStyle.textContent = [
       '* { box-sizing: border-box; }',
-      'html, body { margin: 0; padding: 0; background: transparent; color: var(--oc-fg); font: 12px/1.45 var(--oc-font); }',
-      'body { padding: 8px 10px; }',
+      'html, body { margin: 0; padding: 0; background: transparent; color: var(--oc-fg); font: 12px/1.45 var(--oc-font); overflow: hidden; }',
+      'body { padding: 4px 10px 2px; }',
       '.ms { display: flex; flex-direction: column; gap: 6px; }',
       '.ms-ico { margin-left: 6px; font-size: 0.875rem; font-weight: 700; line-height: 1; cursor: pointer; }',
       '.ms-ico.go-ok { color: var(--oc-success-text); }',
