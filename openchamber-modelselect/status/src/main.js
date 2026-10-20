@@ -837,7 +837,7 @@ function mount() {
       '.ms-fallback-badge { display: inline-block; padding: 0 7px; border-radius: 999px; border: 1px solid ButtonBorder; background: ButtonFace; color: ButtonText; white-space: nowrap; font-size: 11px; }',
       '.ms-fallback-tab { appearance: none; border: 1px solid ButtonBorder; background: ButtonFace; color: ButtonText; font: inherit; font-size: 11px; padding: 2px 8px; border-radius: 6px; cursor: pointer; }',
       '.ms-fallback-tab.on { background: Highlight; color: HighlightText; }'
-    ].join('\\n');
+    ].join('\n');
     document.head.append(msStyle);
   } catch (e) { /* styles are best-effort */ }
   try {
