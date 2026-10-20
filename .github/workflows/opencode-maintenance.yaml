@@ -11,6 +11,12 @@ on:
     paths:
       - .github/workflows/opencode-maintenance.yaml
 
+# Serialize runs on the same ref. The maintenance script rewrites README.md and
+# data/ on every run, so overlapping runs race on the push to main.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 # Permissions required to read files, update README.md, manage Issues, and
 # open/supersede the auto-fix coverage PRs
 permissions:
@@ -70,6 +76,7 @@ jobs:
       - name: Commit changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         run: |
           git config user.name "opencode-maintenance[bot]"
           git config user.email "opencode-maintenance[bot]@users.noreply.github.com"
@@ -82,6 +89,18 @@ jobs:
             git commit -m "📝 docs: update model recommendations, audit results and model config"
             # Explicit auth and branch to avoid push failures with GITHUB_TOKEN
             git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            # A re-run or an overlapping run may have pushed since checkout —
+            # rebase onto the remote tip so the push stays a fast-forward
+            # instead of being rejected as non-fast-forward.
+            git fetch origin "${GITHUB_REF_NAME}"
+            if ! git rebase "origin/${GITHUB_REF_NAME}"; then
+              git rebase --abort
+              echo "⚠ Rebase onto origin/${GITHUB_REF_NAME} conflicted — regenerating from the new base"
+              git reset --hard "origin/${GITHUB_REF_NAME}"
+              python scripts/opencode_maintenance.py
+              git add README.md data/ 2>/dev/null || true
+              git commit -m "📝 docs: update model recommendations, audit results and model config"
+            fi
             git push origin "HEAD:${GITHUB_REF_NAME}"
             echo "✓ Changes committed and pushed"
           fi
@@ -291,7 +310,10 @@ jobs:
           task-type: generic
           tier: auto
           opencode-token: ${{ secrets.OPENCODE_API_KEY }}
-
+          # Escape hatch: when both tiers are unavailable (e.g. the token has no
+          # active Go subscription and the free probe 403s) the step would
+          # otherwise hard-stop the run before the fix PR can be opened.
+          fallback-model: opencode/longcat-2.5-preview-free
       - name: Run OpenCode to fix coverage issues
         if: steps.coverage.outputs.tasks != ''
         id: opencode
