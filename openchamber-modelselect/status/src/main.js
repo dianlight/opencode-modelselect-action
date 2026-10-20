@@ -803,10 +803,47 @@ function refresh() {
 }
 
 function mount() {
+  // Inject the frame's theme-aware styles (mirrors resource-monitor's
+  // status view): only --oc-* tokens, transparent background, host font.
+  try {
+    var msStyle = document.createElement('style');
+    msStyle.textContent = [
+      '* { box-sizing: border-box; }',
+      'html, body { margin: 0; padding: 0; background: transparent; color: var(--oc-fg); font: 12px/1.45 var(--oc-font); }',
+      'body { padding: 8px 10px; }',
+      '.ms { display: flex; flex-direction: column; gap: 6px; }',
+      '.ms-ico { margin-left: 6px; font-size: 0.875rem; font-weight: 700; line-height: 1; cursor: pointer; }',
+      '.ms-ico.go-ok { color: var(--oc-success-text); }',
+      '.ms-ico.go-out { color: var(--oc-error-text); }',
+      '.ms-ico.go-unknown { color: var(--oc-muted); }',
+      '.ms-ico.suggest { color: var(--oc-warning-text); }',
+      '.ms-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }',
+      '.ms-title { font-weight: 600; font-size: 12px; white-space: nowrap; }',
+      '.ms-tabs { min-width: 0; }',
+      '.ms-hint { font-size: 11px; color: var(--oc-muted); }',
+      '.ms-grid { display: flex; flex-direction: column; gap: 6px; padding: 2px 0; }',
+      '.ms-field { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }',
+      '.ms-k { flex: 0 0 auto; font-size: 0.875rem; color: var(--oc-muted); }',
+      '.ms-v { flex: 1 1 auto; min-width: 0; font-size: 0.875rem; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+      '.ms-v.mono { font-family: var(--oc-mono); }',
+      '.ms-grid.stale .ms-grid, .ms-grid.stale { opacity: 0.55; }',
+      '.ms-badges { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }',
+      '.ms-badges:empty { display: none; }',
+      '.ms-freequota { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--oc-warning-text); cursor: pointer; }',
+      '.ms-fq-label { flex: 0 0 auto; font-size: 0.875rem; font-weight: 600; color: var(--oc-warning-text); white-space: nowrap; }',
+      '.ms-fq-count { flex: 1 1 auto; min-width: 0; font-size: 0.875rem; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }',
+      '.ms-note { font-size: 12px; color: var(--oc-muted); }',
+      '.ms-error { color: var(--oc-error-text); font-size: 12px; }',
+      '.ms-fallback-badge { display: inline-block; padding: 0 7px; border-radius: 999px; border: 1px solid ButtonBorder; background: ButtonFace; color: ButtonText; white-space: nowrap; font-size: 11px; }',
+      '.ms-fallback-tab { appearance: none; border: 1px solid ButtonBorder; background: ButtonFace; color: ButtonText; font: inherit; font-size: 11px; padding: 2px 8px; border-radius: 6px; cursor: pointer; }',
+      '.ms-fallback-tab.on { background: Highlight; color: HighlightText; }'
+    ].join('\\n');
+    document.head.append(msStyle);
+  } catch (e) { /* styles are best-effort */ }
   try {
     host.onReady(function (ctx) {
       try {
-        if (ctx && ctx.theme) applyHostReady(ctx, document.documentElement);
+        if (ctx && ctx.theme && ctx.theme.tokens) applyHostReady(ctx, document.documentElement);
       } catch (e) { /* theme is best-effort */ }
       if (ctx && ctx.session) currentSession = ctx.session;
       if (ctx) subscribeSessionPrune(ctx.directory);
