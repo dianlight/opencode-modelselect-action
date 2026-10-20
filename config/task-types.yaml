@@ -6,6 +6,16 @@
 # `think` is the reasoning-effort hint (default|minimal|low|medium|high|xhigh)
 # published into data/model-config.json and written into the plugin status
 # file, so the OpenChamber Work Status view can show the pick's effort level.
+#
+# LiveBench v2 subscores: long_agentic, reasoning, coding, browser,
+# data_analysis, research, design.
+# LiveBench v1 subscores: coding, reasoning, vision, instruction_following.
+#
+# `priority` / `relevant_subscores` are the v1 subscore names (kept for
+# v1-only models). `priority_v2` / `relevant_subscores_v2` are the v2
+# subscore names used when a model has LiveBench v2 data. For task types
+# whose v1 subscore has no v2 equivalent (instruction_following, speed),
+# the v2 fields keep the v1 name and the scorer falls back to static scores.
 
 task_types:
   - name: "plan"
@@ -14,7 +24,9 @@ task_types:
     jev_criteria: "Planning and architecture work: decide structure, decompose tasks, weigh trade-offs across files and modules."
     agent: "plan"
     relevant_subscores: ["reasoning", "instruction_following"]
+    relevant_subscores_v2: ["reasoning", "long_agentic"]
     priority: "reasoning"
+    priority_v2: "reasoning"
     think: "xhigh"
 
   - name: "issue-triage"
@@ -22,7 +34,9 @@ task_types:
     description: "Triage, label, categorize, route issues"
     jev_criteria: "Triage work: read an issue, decide what it is, how urgent it is, where it belongs and what happens next."
     relevant_subscores: ["instruction_following", "speed"]
+    relevant_subscores_v2: ["instruction_following", "speed"]
     priority: "instruction_following"
+    priority_v2: "instruction_following"
     think: "low"
 
   - name: "review"
@@ -31,7 +45,9 @@ task_types:
     jev_criteria: "Review work: read diffs and pull requests, judge correctness and risks, decide what must change before merge."
     agent: "plan"
     relevant_subscores: ["reasoning"]
+    relevant_subscores_v2: ["reasoning"]
     priority: "reasoning"
+    priority_v2: "reasoning"
     think: "high"
 
   - name: "ui-design"
@@ -40,7 +56,9 @@ task_types:
     jev_criteria: "UI design work: decide components, layout and visual structure, design-system and styling choices."
     agent: "build"
     relevant_subscores: ["vision", "coding"]
+    relevant_subscores_v2: ["design", "coding"]
     priority: "vision"
+    priority_v2: "design"
     requires_vision: true
     think: "medium"
 
@@ -50,7 +68,9 @@ task_types:
     jev_criteria: "Frontend testing work: reason about user flows and E2E scenarios with Playwright or Cypress, decide what to assert."
     agent: "build"
     relevant_subscores: ["coding"]
+    relevant_subscores_v2: ["coding", "browser"]
     priority: "coding"
+    priority_v2: "coding"
     think: "medium"
 
   - name: "api-testing"
@@ -59,7 +79,9 @@ task_types:
     jev_criteria: "API testing work: reason about endpoints, contracts and integration cases with OpenAPI or Postman."
     agent: "build"
     relevant_subscores: ["coding", "reasoning"]
+    relevant_subscores_v2: ["coding", "reasoning"]
     priority: "coding"
+    priority_v2: "coding"
     think: "medium"
 
   - name: "docs"
@@ -67,7 +89,9 @@ task_types:
     description: "Documentation, READMEs, changelogs, docstrings"
     jev_criteria: "Documentation work: explain, summarize or document behavior in READMEs, changelogs and docstrings."
     relevant_subscores: ["instruction_following"]
+    relevant_subscores_v2: ["instruction_following"]
     priority: "instruction_following"
+    priority_v2: "instruction_following"
     think: "low"
 
   - name: "debug"
@@ -76,7 +100,9 @@ task_types:
     jev_criteria: "Debugging work: diagnose crashes, exceptions and reproductions from traces and symptoms to root cause."
     agent: "build"
     relevant_subscores: ["reasoning", "coding"]
+    relevant_subscores_v2: ["reasoning", "coding"]
     priority: "reasoning"
+    priority_v2: "reasoning"
     think: "high"
 
   - name: "refactor"
@@ -85,7 +111,9 @@ task_types:
     jev_criteria: "Refactoring work: restructure and clean up code across modules while preserving behavior."
     agent: "build"
     relevant_subscores: ["coding"]
+    relevant_subscores_v2: ["coding"]
     priority: "coding"
+    priority_v2: "coding"
     think: "medium"
 
   - name: "security"
@@ -93,7 +121,9 @@ task_types:
     description: "Security review, vulnerabilities, hardening"
     jev_criteria: "Security work: spot vulnerabilities, judge exploitability and the hardening needed."
     relevant_subscores: ["reasoning", "coding"]
+    relevant_subscores_v2: ["reasoning", "coding"]
     priority: "reasoning"
+    priority_v2: "reasoning"
     think: "high"
 
   - name: "code"
@@ -102,7 +132,9 @@ task_types:
     jev_criteria: "Implementation work: write features, functions and endpoints from requirements to working code."
     agent: "build"
     relevant_subscores: ["coding"]
+    relevant_subscores_v2: ["coding"]
     priority: "coding"
+    priority_v2: "coding"
     think: "medium"
 
   - name: "mechanical-engineer"
@@ -110,7 +142,9 @@ task_types:
     description: "Mechanical engineering, calculations, CAD, thermodynamics, materials"
     jev_criteria: "Mechanical engineering work: calculations, CAD, thermodynamics and material decisions."
     relevant_subscores: ["reasoning", "coding"]
+    relevant_subscores_v2: ["reasoning", "coding"]
     priority: "reasoning"
+    priority_v2: "reasoning"
     think: "xhigh"
 
   - name: "web-search"
@@ -119,7 +153,9 @@ task_types:
     jev_criteria: "Research work: gather, compare and synthesize answers from multiple web sources."
     agent: "plan"
     relevant_subscores: ["reasoning", "instruction_following"]
+    relevant_subscores_v2: ["reasoning", "research"]
     priority: "reasoning"
+    priority_v2: "reasoning"
     think: "medium"
 
   - name: "generic"
@@ -127,7 +163,9 @@ task_types:
     description: "General Q&A, explanations, analysis, everything else"
     jev_criteria: "General work: explanations, analysis and Q&A not covered by other categories."
     relevant_subscores: ["instruction_following", "reasoning"]
+    relevant_subscores_v2: ["instruction_following", "reasoning"]
     priority: "instruction_following"
+    priority_v2: "instruction_following"
     think: "default"
 
   - name: "small-model"
@@ -135,7 +173,9 @@ task_types:
     description: "Lightweight utility tasks: commit messages, session titles/renames, summaries"
     jev_criteria: "Trivial mechanical work: commit messages, session titles and renames, short summaries with no design judgement."
     relevant_subscores: ["instruction_following", "speed"]
+    relevant_subscores_v2: ["instruction_following", "speed"]
     priority: "instruction_following"
+    priority_v2: "instruction_following"
     think: "minimal"
 
 # Free-first policy: if free model scores within this % of best paid, prefer free

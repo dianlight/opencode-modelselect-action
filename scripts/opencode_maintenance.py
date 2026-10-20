@@ -82,6 +82,18 @@ LIVEBENCH_GITHUB_IO_RAW_BASE = (
     "https://raw.githubusercontent.com/LiveBench/livebench.github.io/main/public"
 )
 
+# LiveBench 2.0 data: served from livebench.ai/data/<release>/table.csv
+# Release IDs are YYYYMMDD (no underscores). The release list is hardcoded
+# in the site's JS bundle as _e=["20261014"].
+LIVEBENCH_V2_DATA_BASE = "https://livebench.ai/data"
+
+# v2 subscore aliases: when a v1 subscore is requested for a v2 model,
+# look up the v2 equivalent. instruction_following has no v2 equivalent
+# (returns None → falls back to static scores).
+_V2_SUBSCORE_ALIASES = {
+    "vision": "design",
+}
+
 FREE_FIRST_THRESHOLD_PCT = 5  # % within best paid to prefer free
 
 # Default blended-cost weights (input-heavy 3:1) when the config omits them.
@@ -311,6 +323,73 @@ def parse_livebench_csv(csv_text: str) -> dict[str, dict[str, float]]:
     except (csv.Error, KeyError, ValueError, TypeError) as e:
         print(f"  x CSV parse error: {e}")
     return result
+
+
+# v2 suite columns (order matters for overall computation)
+_V2_SUITE_COLUMNS = (
+    "long_agentic",
+    "reasoning",
+    "coding",
+    "browser",
+    "data_analysis",
+    "research",
+    "design",
+)
+
+
+def parse_livebench_v2_csv(csv_text: str) -> dict[str, dict[str, float]]:
+    """Parse LiveBench v2 CSV into model_name -> {suite scores..., overall}.
+
+    v2 CSV columns: model, long_agentic, reasoning, coding, browser,
+    data_analysis, research, design.  No 'overall' column — computed as
+    the mean of all 7 suite scores.
+    """
+    result: dict[str, dict[str, float]] = {}
+    try:
+        reader = csv.DictReader(io.StringIO(csv_text))
+        for row in reader:
+            row_lc = {k.lower().strip(): v for k, v in row.items() if k}
+            model = row_lc.get("model") or row_lc.get("name")
+            if not model:
+                continue
+            subscores: dict[str, float] = {}
+            all_values: list[float] = []
+            for col in _V2_SUITE_COLUMNS:
+                v = _to_float(row_lc.get(col))
+                if v is not None:
+                    subscores[col] = v
+                    all_values.append(v)
+            if all_values:
+                subscores["overall"] = round(sum(all_values) / len(all_values), 1)
+                result[model] = subscores
+    except (csv.Error, KeyError, ValueError, TypeError) as e:
+        print(f"  x v2 CSV parse error: {e}")
+    return result
+
+
+def _discover_v2_releases() -> list[str]:
+    """Discover LiveBench v2 releases from the site's JS bundle.
+
+    The bundle hardcodes the release list as ``_e=["20261014"]`` (YYYYMMDD
+    format, no underscores).  Returns release IDs newest first (the bundle
+    already lists them in chronological order, oldest first, so we reverse).
+    """
+    html = fetch_text(f"{LIVEBENCH_BASE}/")
+    if not html:
+        return []
+    m = re.search(r'src="\.(/static/js/main\.[a-f0-9]+\.js)"', html)
+    if not m:
+        print("  x Could not find LiveBench JS bundle URL")
+        return []
+    js = fetch_text(f"{LIVEBENCH_BASE}{m.group(1)}")
+    if not js:
+        return []
+    # _e=["20261014", "20261101", ...] — may also be empty _e=[]
+    m = re.search(r'_e=\[((?:"\d{8}",?\s*)*)\]', js)
+    if not m or not m.group(1).strip():
+        return []
+    ids = re.findall(r'"(\d{8})"', m.group(1))
+    return list(reversed(ids))  # newest first
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -702,26 +781,87 @@ def get_livebench_snapshot_dates() -> list[str]:
 
 
 def fetch_livebench() -> dict[str, Any]:
-    """Fetch and parse LiveBench leaderboard data.
+    """Fetch and parse LiveBench leaderboard data (v2 primary, v1 fallback).
 
-    Snapshot dates are discovered from the LiveBench/livebench.github.io git
-    tree (the source of the livebench.ai site), so the newest published data is
-    always used instead of the stale changelog. The newest snapshot is fetched
-    from `https://livebench.ai/table_YYYY_MM_DD.csv`, then any models missing
-    from it are filled in from older snapshots so all available data from
-    livebench.ai is retained (newest snapshot wins on conflicts).
+    LiveBench 2.0 (v2) is the primary source: releases are discovered from
+    the site's JS bundle and served from ``livebench.ai/data/<release>/table.csv``.
+    v1 snapshots (the legacy per-task CSV format) are still fetched so that
+    models absent from v2 retain their historical benchmark scores.
+    v2 entries overwrite v1 entries for models present in both.
     """
     print("-> Fetching LiveBench leaderboard...")
 
-    dates = get_livebench_snapshot_dates()
-    if not dates:
+    # --- 1. LiveBench v2 (primary) ---
+    v2_releases = _discover_v2_releases()
+    v2_models: dict[str, dict[str, float]] = {}
+    v2_snapshot: str | None = None
+    v2_source: str | None = None
+    if v2_releases:
+        release_id = v2_releases[0]
+        v2_snapshot = f"{release_id[:4]}-{release_id[4:6]}-{release_id[6:8]}"
+        v2_source = f"{LIVEBENCH_V2_DATA_BASE}/{release_id}/table.csv"
+        csv_text = fetch_text(v2_source)
+        if csv_text:
+            v2_models = parse_livebench_v2_csv(csv_text)
+            print(f"  v LiveBench v2 ({v2_snapshot}): {len(v2_models)} models parsed")
+        else:
+            print(f"  x Failed to fetch v2 CSV from {v2_source}")
+            v2_snapshot = None
+            v2_source = None
+    else:
+        print("  w No LiveBench v2 releases discovered")
+
+    # --- 2. LiveBench v1 (historical + models without v2 data) ---
+    v1_result = _fetch_livebench_v1()
+    v1_models: dict[str, dict[str, float]] = v1_result.get("models", {})
+    v1_snapshot = v1_result.get("_snapshot_date")
+    v1_source = v1_result.get("_source")
+
+    # --- 3. Merge: v2 takes priority, v1 fills gaps ---
+    merged = dict(v1_models)
+    for name, scores in v2_models.items():
+        merged[name] = scores
+
+    v2_count = len(v2_models)
+    v1_only = len(merged) - v2_count
+
+    if not merged:
         print("  w No LiveBench data available, using empty scores")
         save_json(LIVEBENCH_PATH, {"models": {}})
         return {"models": {}}
-    print(f"  v Discovered {len(dates)} LiveBench snapshot(s); newest: {dates[0]}")
 
-    # 1. Primary snapshot: newest date whose CSV parses (livebench.ai first,
-    #    github.io raw mirror as fallback).
+    result: dict[str, Any] = {
+        "_snapshot_date": v2_snapshot or v1_snapshot,
+        "_source": v2_source or v1_source,
+        "_v1_snapshot_date": v1_snapshot,
+        "_v1_source": v1_source,
+        "models": merged,
+    }
+    save_json(LIVEBENCH_PATH, result)
+
+    if v2_count:
+        print(f"  v LiveBench v2: {v2_count} models")
+    if v1_only:
+        print(f"  v LiveBench v1-only: {v1_only} models (kept for coverage)")
+    print(f"  v Total models: {len(merged)}")
+    return result
+
+
+def _fetch_livebench_v1() -> dict[str, Any]:
+    """Fetch and merge LiveBench v1 (legacy) snapshot CSVs.
+
+    Snapshot dates are discovered from the LiveBench/livebench.github.io git
+    tree. The newest snapshot is fetched from ``livebench.ai`` (or the
+    github.io raw mirror), then any models missing from it are filled in
+    from older snapshots (newest wins on conflicts).
+    Returns ``{"_snapshot_date", "_source", "models"}`` — empty dicts on failure.
+    """
+    dates = get_livebench_snapshot_dates()
+    if not dates:
+        return {"_snapshot_date": None, "_source": None, "models": {}}
+    print(f"  v v1: discovered {len(dates)} snapshot(s); newest: {dates[0]}")
+
+    # Primary snapshot: newest date whose CSV parses.
     primary = None
     for date_str in dates:
         csv_text = fetch_livebench_csv(date_str)
@@ -731,14 +871,11 @@ def fetch_livebench() -> dict[str, Any]:
         if scores:
             primary = (date_str, scores)
             break
-
     if not primary:
-        print("  w No LiveBench CSV parseable, using empty scores")
-        save_json(LIVEBENCH_PATH, {"models": {}})
-        return {"models": {}}
+        return {"_snapshot_date": None, "_source": None, "models": {}}
 
     snapshot_date, scores = primary
-    # 2. Merge models missing from the newest snapshot from older snapshots.
+    # Merge models missing from the newest snapshot from older snapshots.
     merged = dict(scores)
     merged_from: list[tuple[str, int]] = []
     for date_str in dates:
@@ -756,18 +893,17 @@ def fetch_livebench() -> dict[str, Any]:
         if missing:
             merged_from.append((date_str, len(missing)))
 
-    result = {
+    print(f"  v v1 CSV ({snapshot_date}): {len(scores)} models parsed")
+    for date_str, count in merged_from:
+        print(f"  v  + merged {count} model(s) from {date_str}")
+    if merged_from:
+        print(f"  v v1 total after merge: {len(merged)}")
+
+    return {
         "_snapshot_date": snapshot_date,
         "_source": f"{LIVEBENCH_BASE}/table_{snapshot_date}.csv",
         "models": merged,
     }
-    save_json(LIVEBENCH_PATH, result)
-    print(f"  v LiveBench CSV ({snapshot_date}): {len(scores)} models parsed")
-    for date_str, count in merged_from:
-        print(f"  v  + merged {count} model(s) from {date_str}")
-    if merged_from:
-        print(f"  v Total models after merge: {len(merged)}")
-    return result
 
 
 # Central Model Config ---
@@ -841,17 +977,22 @@ def _rank_models_for_config(
     price_lookup: dict[str, dict[str, Any]] | None,
     cost_blend: tuple[float, float],
     engine: str,
+    tt: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Rank models best-to-worst for a config tier entry.
 
     Ordered by LiveBench score descending (blended-cost ascending, then name,
     as tie-breaks). Each entry carries prefixed model, score and in/out/blended
     $/1M costs (None when unknown). Models without a score are excluded.
+    When `tt` (task-type dict) is given, per-model priorities are used
+    (v2 models get `priority_v2`); otherwise the single `priority` string
+    applies to all models.
     """
     w_in, w_out = cost_blend
     ranked = []
     for mid in model_ids:
-        score = get_model_score(mid, livebench, priority)
+        prio = _model_priority(tt, mid, livebench) if tt else priority
+        score = get_model_score(mid, livebench, prio)
         if score is None:
             continue
         cost = (
@@ -915,7 +1056,8 @@ def generate_model_config(
             price_lookup, blend, threshold_pct,
         )
         best_free, best_go = apply_free_first_rule(
-            best_free, best_go, livebench, priority, threshold_pct
+            best_free, best_go, livebench, priority, threshold_pct,
+            task_types=task_types, task_type=name,
         )
         task_map[name] = {
             "go": _add_model_prefix(best_go, go_ids) if best_go else None,
@@ -929,11 +1071,11 @@ def generate_model_config(
             # can walk down to a cheaper fit when `max-cost` filters the pick.
             "go_ranked": _rank_models_for_config(
                 tier_go_ids, livebench, priority, price_lookup, blend,
-                engine="opencode-go",
+                engine="opencode-go", tt=tt,
             ),
             "free_ranked": _rank_models_for_config(
                 free_ids, livebench, priority, price_lookup, blend,
-                engine="opencode",
+                engine="opencode", tt=tt,
             ),
         }
 
@@ -1135,11 +1277,49 @@ def get_model_score(model_name: str, livebench: dict[str, Any], subscore: str) -
     return s[0] if s else None
 
 
+def _model_priority(tt: dict[str, Any], model_id: str, livebench: dict[str, Any]) -> str:
+    """Get the priority subscore for a task type, preferring v2 when the model has v2 data.
+
+    Task types carry both `priority` (v1 subscore name) and `priority_v2`
+    (v2 subscore name).  For v2 models the v2 name is used; for v1-only
+    models the v1 name is used.  Falls back to `priority` when `priority_v2`
+    is absent.
+    """
+    if get_model_source(model_id, livebench) == "livebench-v2":
+        return tt.get("priority_v2", tt.get("priority", "overall"))
+    return tt.get("priority", "overall")
+
+
+def _is_v2_entry(scores: dict[str, Any]) -> bool:
+    """True when a LiveBench model entry came from v2 data (has long_agentic)."""
+    return "long_agentic" in scores
+
+
+def _lb_get_subscore(
+    scores: dict[str, Any], subscore: str
+) -> tuple[float | None, str]:
+    """Get a subscore from a LiveBench model entry, applying v2 aliases.
+
+    Returns ``(score, source)`` where source is ``"livebench-v2"`` when the
+    entry is v2 data, ``"livebench"`` when it is v1 data.  For v2 entries a
+    missing subscore is retried through ``_V2_SUBSCORE_ALIASES`` (e.g.
+    ``vision`` → ``design``); if the alias is also absent the score is None
+    and callers fall back to static scores.
+    """
+    score = scores.get(subscore)
+    source = "livebench-v2" if _is_v2_entry(scores) else "livebench"
+    if score is None and source == "livebench-v2":
+        alias = _V2_SUBSCORE_ALIASES.get(subscore)
+        if alias:
+            score = scores.get(alias)
+    return score, source
+
+
 def _get_model_score_and_source(
     model_name: str, livebench: dict, subscore: str
 ) -> tuple[float | None, str] | None:
     """Like get_model_score but returns (score, source) where source is
-    'livebench', 'fallback', or 'benchmark'."""
+    'livebench-v2', 'livebench', 'fallback', or 'benchmark'."""
     models = _lb_models(livebench)
     target = _normalise_model_for_lookup(model_name)
     target_base = _canonical_model_base(model_name)
@@ -1147,25 +1327,25 @@ def _get_model_score_and_source(
     # 1. Try LiveBench data
     for k, v in models.items():
         if _normalise_model_for_lookup(k) == target:
-            return (v.get(subscore), "livebench")
+            return _lb_get_subscore(v, subscore)
     # Canonical base match: `muse-spark-1.3-contributor` (catalog) and
     # `muse-spark-1.3-xhigh` (LiveBench) both reduce to `muse-spark-1.3`.
     # When several LiveBench rows share a base, prefer the highest subscore.
     best: tuple[float | None, str] | None = None
     for k, v in models.items():
         if _canonical_model_base(k) == target_base and target_base:
-            score = v.get(subscore)
+            score, src = _lb_get_subscore(v, subscore)
             if best is None or (
                 score is not None
                 and (best[0] is None or score > best[0])
             ):
-                best = (score, "livebench")
+                best = (score, src)
     if best is not None:
         return best
     for k, v in models.items():
         k_norm = _normalise_model_for_lookup(k)
         if target and (target in k_norm or k_norm in target):
-            return (v.get(subscore), "livebench")
+            return _lb_get_subscore(v, subscore)
 
     # 2. Try static fallback config
     fallback = _get_fallback_scores()
@@ -1206,7 +1386,7 @@ def _get_model_score_and_source(
 
 
 def get_model_source(model_name: str, livebench: dict[str, Any]) -> str:
-    """Determine the data source for a model: 'livebench', 'fallback', 'benchmark', or 'missing'."""
+    """Determine the data source for a model: 'livebench-v2', 'livebench', 'fallback', 'benchmark', or 'missing'."""
     s = _get_model_score_and_source(model_name, livebench, "overall")
     if s:
         return s[1]
@@ -1440,15 +1620,14 @@ def get_best_models_for_task(
     if not tt:
         return None, None
 
-    priority = tt.get("priority", "overall")
-
     # Filter models by tier
     free_ids = [m["id"] for m in free_models]
     go_ids = [m["id"] for m in go_models]
 
-    # Score all models
+    # Score all models (per-model priority: v2 models use priority_v2)
     scored = []
     for model_id in free_ids + go_ids:
+        priority = _model_priority(tt, model_id, livebench)
         score = get_model_score(model_id, livebench, priority)
         if score is not None:
             tier = "free" if model_id in free_ids else "go"
@@ -1522,14 +1701,13 @@ def get_best_zen_model_for_task(
     if not tt:
         return None, None, None
 
-    priority = tt.get("priority", "overall")
-
     zen_ids = [m["id"] for m in zen_models]
     scored = []
     for model_id in zen_ids:
         # Exclude Go-only models from Best Zen consideration
         if go_ids and model_id in go_ids:
             continue
+        priority = _model_priority(tt, model_id, livebench)
         score = get_model_score(model_id, livebench, priority)
         if score is not None:
             scored.append((model_id, score))
@@ -1539,7 +1717,7 @@ def get_best_zen_model_for_task(
 
     scored.sort(key=lambda x: x[1], reverse=True)
     best_id, best_score = scored[0]
-    return best_id, best_score, priority
+    return best_id, best_score, tt.get("priority", "overall")
 
 
 def score_all_zen_models(
@@ -1566,9 +1744,9 @@ def score_all_zen_models(
     result = {}
     for tt in task_types:
         name = tt["name"]
-        priority = tt.get("priority", "overall")
         scored = []
         for model_id in zen_ids:
+            priority = _model_priority(tt, model_id, livebench)
             score = get_model_score(model_id, livebench, priority)
             source = get_model_source(model_id, livebench)
             if score is not None:
@@ -1629,7 +1807,8 @@ def get_benchmark_summary(
     best_go_per_task = {}
     for tt in task_types:
         name = tt["name"]
-        priority = tt.get("priority", "overall")
+        # "subscore" is a display label; use the v1 name for consistency
+        subscore_label = tt.get("priority", "overall")
 
         # Best Zen
         zid, zscore, _ = get_best_zen_model_for_task(
@@ -1638,7 +1817,7 @@ def get_benchmark_summary(
         best_zen_per_task[name] = {
             "model": zid,
             "score": zscore,
-            "subscore": priority,
+            "subscore": subscore_label,
             **(_cost_fields(zid) if zid else {}),
         }
 
@@ -1648,6 +1827,7 @@ def get_benchmark_summary(
         for model_id in zen_ids:
             if model_id not in go_ids:
                 continue
+            priority = _model_priority(tt, model_id, livebench)
             score = get_model_score(model_id, livebench, priority)
             if score is not None:
                 go_scored.append((model_id, score))
@@ -1657,14 +1837,14 @@ def get_benchmark_summary(
             best_go_per_task[name] = {
                 "model": gid,
                 "score": gscore,
-                "subscore": priority,
+                "subscore": subscore_label,
                 **_cost_fields(gid),
             }
         else:
             best_go_per_task[name] = {
                 "model": None,
                 "score": None,
-                "subscore": priority,
+                "subscore": subscore_label,
             }
 
     all_zen_ranked = score_all_zen_models(
@@ -1684,13 +1864,27 @@ def apply_free_first_rule(
     livebench: dict[str, Any],
     priority: str,
     threshold_pct: float = 5.0,
+    task_types: list[dict[str, Any]] | None = None,
+    task_type: str | None = None,
 ) -> tuple[str, str]:
-    """Apply free-first policy: if free within threshold% of paid, prefer free."""
+    """Apply free-first policy: if free within threshold% of paid, prefer free.
+
+    When `task_types` and `task_type` are given, per-model priorities are
+    used (v2 models get `priority_v2`); otherwise the single `priority`
+    string is applied to both models.
+    """
     if not best_free or not best_go:
         return best_free, best_go
 
-    free_score = get_model_score(best_free, livebench, priority)
-    go_score = get_model_score(best_go, livebench, priority)
+    tt = None
+    if task_types and task_type:
+        tt = next((t for t in task_types if t["name"] == task_type), None)
+
+    free_prio = _model_priority(tt, best_free, livebench) if tt else priority
+    go_prio = _model_priority(tt, best_go, livebench) if tt else priority
+
+    free_score = get_model_score(best_free, livebench, free_prio)
+    go_score = get_model_score(best_go, livebench, go_prio)
 
     if free_score is not None and go_score is not None and go_score > 0:
         pct_diff = ((go_score - free_score) / go_score) * 100
@@ -1967,18 +2161,31 @@ def generate_model_recommendation_table(
         livebench.get("_snapshot_date") if isinstance(livebench, dict) else None
     )
     source = livebench.get("_source") if isinstance(livebench, dict) else None
+    v1_snapshot = (
+        livebench.get("_v1_snapshot_date") if isinstance(livebench, dict) else None
+    )
+    v1_source = livebench.get("_v1_source") if isinstance(livebench, dict) else None
+
+    # Count v2 vs v1 models
+    v2_count = sum(1 for v in models.values() if _is_v2_entry(v))
+    v1_count = len(models) - v2_count
 
     header_lines = [
         "## Model Recommendations by Task Type",
         "",
         "> Automatically updated by `opencode-maintenance` workflow.",
         f"> Last updated: **{datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}**.",
-        f"> LiveBench data: **{len(models)} models scored**.",
+        f"> LiveBench data: **{len(models)} models scored** "
+        f"({v2_count} v2, {v1_count} v1-only).",
     ]
     if snapshot_date:
-        header_lines.append(f"> LiveBench snapshot: **{snapshot_date}**.")
+        header_lines.append(f"> LiveBench v2 snapshot: **{snapshot_date}**.")
     if source:
-        header_lines.append(f"> Source: {source}")
+        header_lines.append(f"> v2 Source: {source}")
+    if v1_snapshot:
+        header_lines.append(f"> LiveBench v1 fallback snapshot: **{v1_snapshot}**.")
+    if v1_source:
+        header_lines.append(f"> v1 Source: {v1_source}")
     w_in, w_out = cost_blend or DEFAULT_COST_BLEND
     header_lines.extend(
         [
@@ -2014,7 +2221,8 @@ def generate_model_recommendation_table(
             price_lookup, (w_in, w_out), threshold_pct,
         )
         best_free, best_go = apply_free_first_rule(
-            best_free, best_go, livebench, priority, threshold_pct
+            best_free, best_go, livebench, priority, threshold_pct,
+            task_types=task_types, task_type=name,
         )
 
         # Best Zen model (overall best from all Zen models, excluding Go-only)
@@ -2023,9 +2231,13 @@ def generate_model_recommendation_table(
         )
 
         free_score = (
-            get_model_score(best_free, livebench, priority) if best_free else None
+            get_model_score(best_free, livebench, _model_priority(tt, best_free, livebench))
+            if best_free else None
         )
-        go_score = get_model_score(best_go, livebench, priority) if best_go else None
+        go_score = (
+            get_model_score(best_go, livebench, _model_priority(tt, best_go, livebench))
+            if best_go else None
+        )
 
         # Prefix model IDs for display
         zen_id_disp = _add_model_prefix(zen_id, engine="opencode") if zen_id else None
@@ -2109,7 +2321,7 @@ def generate_score_reference_table(
         for model_id in all_model_ids:
             task_scores = []
             for tt in task_types:
-                priority = tt.get("priority", "overall")
+                priority = _model_priority(tt, model_id, livebench)
                 score = get_model_score(model_id, livebench, priority)
                 if score is not None:
                     task_scores.append((tt["name"], score))
@@ -2153,7 +2365,9 @@ def generate_score_reference_table(
     for model_id in all_model_ids:
         tier = "Free" if model_id in free_ids else "Go (Paid)"
         source = get_model_source(model_id, livebench)
-        if source == "livebench":
+        if source == "livebench-v2":
+            src_icon = "\u2705 LiveBench v2"
+        elif source == "livebench":
             src_icon = "\u2705 LiveBench"
         elif source == "fallback":
             src_icon = "\U0001f4cb Fallback"
@@ -2311,6 +2525,9 @@ def main() -> None:
             "livebench_source": livebench.get("_source")
             if isinstance(livebench, dict)
             else None,
+            "livebench_v1_snapshot": livebench.get("_v1_snapshot_date")
+            if isinstance(livebench, dict)
+            else None,
             "zen_models_count": len(all_zen_models),
             "go_models_count": len(go_models),
             "cost_blend": {
@@ -2347,6 +2564,12 @@ def main() -> None:
             if isinstance(livebench, dict)
             else None,
             "livebench_source": livebench.get("_source")
+            if isinstance(livebench, dict)
+            else None,
+            "livebench_v1_snapshot": livebench.get("_v1_snapshot_date")
+            if isinstance(livebench, dict)
+            else None,
+            "livebench_v1_source": livebench.get("_v1_source")
             if isinstance(livebench, dict)
             else None,
             "livebench_models": len(_lb_models(livebench)),

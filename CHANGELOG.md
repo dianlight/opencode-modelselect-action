@@ -1,5 +1,19 @@
 ## [Unreleased]
 ### Added
+- LiveBench 2.0 (v2) as the primary benchmark source: the maintenance run
+  now discovers v2 releases from the livebench.ai JS bundle
+  (`_e=["20261014"]`, YYYYMMDD ids) and fetches
+  `https://livebench.ai/data/<release>/table.csv` — the 7-suite v2 format
+  (`long_agentic`, `reasoning`, `coding`, `browser`, `data_analysis`,
+  `research`, `design`, `overall` computed as their mean). The v1 snapshot
+  chain keeps running alongside it, so models absent from v2 (23 OpenCode
+  ids, 17 Zen + 6 Go) retain their historical scores: v2 entries overwrite
+  v1 on conflict, v1-only models are kept. `data/livebench.json` records
+  both (`_snapshot_date`/`_source` = v2, `_v1_snapshot_date`/`_v1_source` =
+  the v1 fallback), the README header reports the split
+  (e.g. "362 models scored (49 v2, 313 v1-only)"), and the score
+  reference's Source column distinguishes `✅ LiveBench v2` from
+  `✅ LiveBench`.
 - Thinking-level selection on the virtual models:
   `modelselect/auto-free-first` and `modelselect/auto-go-first` register
   the six config think levels (`default`, `minimal`, `low`, `medium`,
@@ -17,6 +31,17 @@
   override); the Work Status view shows the effective level with the
   task default beside a manual override (e.g. `Low (manual, task High)`).
 ### Changed
+- Task types carry a LiveBench v2 subscore mapping:
+  `config/task-types.yaml` gains `priority_v2` and
+  `relevant_subscores_v2` beside the v1 `priority`/`relevant_subscores`
+  (e.g. `ui-design` is `vision` on v1 data, `design` on v2; `web-search`
+  and `plan` gain the v2 `research`/`long_agentic` suites, `ui-testing`
+  gains `browser`). The scorer picks the pair per model through
+  `_model_priority` — v2 models rank on `priority_v2`, v1-only models on
+  the unchanged `priority` — so task types whose v1 subscore has no v2
+  equivalent (`instruction_following`, `speed`) keep their old behaviour
+  and fall back to static scores. `data/task-types.json` is unaffected
+  (it still publishes only label/description/jev_criteria/agent).
 - Single virtual provider: the dual `opencode/auto` + `opencode-go/auto`
   anchors are replaced by one plugin-owned `modelselect` provider with
   two models — `modelselect/auto-free-first` (pins free-first) and

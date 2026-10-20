@@ -357,9 +357,27 @@ jobs:
                numbers (Terminal-Bench, SWE-bench, GPQA, IFEval/IFBench, HLE)
                1:1 — discount them against comparable models in
                `data/livebench.json`.
-            4. `vision` is bimodal: text-only models get `5.0`, models with a
-               vision encoder get ~40+. Confirm modality with both HF tags and
-               the Artificial Analysis page before scoring.
+            4. LiveBench has two schemas and `data/livebench.json` mixes them.
+               A row containing `long_agentic` is LiveBench v2: long_agentic,
+               reasoning, coding, browser, data_analysis, research, design —
+               no `vision`, no `instruction_following`. Every other row is v1:
+               coding, reasoning, vision, instruction_following. Where a model
+               appears in both, v2 wins.
+            5. `config/model-scores.yaml` is the v1-shaped static fallback and
+               is only consulted for models absent from LiveBench. Write v1
+               keys there only (coding, reasoning, instruction_following,
+               overall, vision); never add v2 keys.
+            6. `vision` in `config/model-scores.yaml` is bimodal: text-only
+               models get `5.0`, models with a vision encoder get ~40+. This
+               applies to fallback entries only. For a v2 model the scorer uses
+               `design` (continuous 0–100) in place of `vision`: never copy a v2
+               `design` value into `vision`, and for a model that already has v2
+               data do not score `vision` at all — it is a stale fallback,
+               remove the entry instead. Note the README "Vision" column for
+               `✅ LiveBench v2` rows is the `design` score, so v2 and fallback
+               vision numbers are not comparable. Confirm modality with both HF
+               tags and the Artificial Analysis page before scoring a fallback
+               entry.
 
             The tasks produce changes to `config/model-scores.yaml` only
             (never touch `data/model-config.json` — it is auto-committed by
