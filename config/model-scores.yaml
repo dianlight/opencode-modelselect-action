@@ -5,6 +5,12 @@ model_scores:
     overall: 67.3             # LiveBench Global 67.3 (SWEN.AI / LiveBench 08-24)
     reasoning: 89.9           # GPQA Diamond 89.9 (Artificial Analysis, max effort)
     vision: 5.0               # text-only, no vision encoder
+  claude-haiku-5-5:
+    coding: 91.4             # LiveBench v2 coding 91.4 (same model, LiveBench variant row `claude-haiku-5.5`); BenchLM vendor raws FrontierCode 46.4 / SciCode 55.0 discounted
+    instruction_following: 75.0  # estimate: no IFBench/IFEval row for Haiku 5.5; Claude-line IF precedent (claude-3-7-sonnet 75.6, gemini-3.5-flash 77.6)
+    overall: 75.6             # LiveBench v2 overall 75.6 (variant row `claude-haiku-5.5`); BenchLM aggregate 67.23 (#26/959) is lower
+    reasoning: 82.4           # LiveBench v2 reasoning 82.4; BenchLM AA-LCR 82.7 and ARC-AGI-1 89.0 support
+    vision: 60.0              # multimodal text+image input (AA model page + BenchLM multimodal suite); bimodal baseline ~40+, ParseBench 57.4 / Chartography 46.4; not copied from v2 design 83.1
   fledge-alpha-free:
     coding: 68.0              # 61/61 executable code checks vs LongCat 59/61 (Echeve) + 15/15 bug-fix battery vs Big Pickle 12/15 (Soares); longcat-2.0-class, discounted for tiny single-harness samples
     instruction_following: 55.0  # no IF data; conservative estimate for stealth model (cf. omen-alpha 62, ling-3.0-flash-free 50)
@@ -59,6 +65,12 @@ model_scores:
     overall: 45.0             # AA Intelligence Index 24; PinchBench 85.4; BenchLM overall 26.6
     reasoning: 58.0           # GPQA Diamond 75.4, HLE 11.7, AA-LCR 52.0
     vision: 5.0               # text-only, no vision encoder
+  nemotron-3.5-super-vl-free:
+    coding: 65.5             # LiveBench v2 coding 65.5 (same model, LiveBench variant row `nemotron-super-vl-3.5`); BenchLM SWE-bench Verified 71.1 / LiveCodeBench v6 88.2 discounted
+    instruction_following: 71.0  # IFBench 70.9 (NVIDIA model card; HF card + BenchLM both cite it — single vendor source)
+    overall: 51.5             # LiveBench v2 overall 51.5 (variant row `nemotron-super-vl-3.5`); BenchLM aggregate 49.38 agrees (#102/959)
+    reasoning: 78.8           # LiveBench v2 reasoning 78.8; BenchLM GPQA-D 89.5 / AA-LCR 68.6 support
+    vision: 55.0              # multimodal image-text-to-text (HF tags) + AA text+image page; V* 85.6 / MathVision 78.2 / CharXiv 80.8; not copied from v2 design 60.7
   north-mini-code-free:
     coding: 35.0        # AA Coding Index 33.4
     instruction_following: 40.0
@@ -119,12 +131,6 @@ model_scores:
     overall: 60.0             # free tier estimate
     reasoning: 80.0           # free tier estimate
     vision: 38.0              # free tier estimate
-  mimo-v2.6-pro:
-    coding: 80.0             # Terminal-Bench 2.1 89.9, DeepSWE 1.1 71.9, SWE-bench Verified 78.0 (BenchLM / Xiaomi)
-    instruction_following: 82.0  # Tau2 Telecom 95.0, strong agentic performance
-    overall: 70.0             # LLM Stats Score 49.8 (#19); AA Intelligence Index 46 (Artificial Analysis)
-    reasoning: 88.0           # GPQA Diamond 87.0 (Xiaomi MiMo V2-Pro benchmark)
-    vision: 50.0              # multimodal: text, image, speech, video input (Xiaomi MiMo)
   longcat-2.0:
     coding: 70.0             # Terminal-Bench 2.1 70.8, SWE-bench Pro 59.5, SWE-bench Multilingual 77.3
     instruction_following: 90.0  # IFEval 90.0 (publisher, dual-corroborated), WritingBench 83.8
@@ -143,15 +149,3 @@ model_scores:
     overall: 30.0             # no LiveBench/AA data; LM Market Cap bottom 1% (433/436) on 4 benchmarks
     reasoning: 40.0           # mandatory reasoning with effort adjustment; no GPQA/AIME data; estimated
     vision: 38.0              # multimodal: text+image input confirmed; no vision benchmark data
-  step-5-preview-free:
-    coding: 72.0             # TB2.1 85.0, DeepSWE 67.7, CyberGym 84.7, ProgramBench 80.5, sweMarathon 72.7 (HF SHSLab card + BenchLM, both citing StepFun); discounted vs kimi-k3 LB 69.9 / ds-v4.1-flash LB 78.4
-    instruction_following: 72.0  # no IFEval/IFBench data; estimated vs kimi-k3 74.9 / glm-5.3 72.3; strong tool use (Toolathlon 74.1, MCP Atlas 85.6)
-    overall: 74.0             # AA Intelligence Index 44 (AA page; BenchLM 43.7) ties kimi-k3 (LB 79.5); preview + estimated IF -> conservative; BenchLM aggregate 70.17 (#17/889) cross-check
-    reasoning: 87.0           # GPQA Diamond 93.5 (HF card + BenchLM) calibrated to kimi-k3 (GPQA ~93.5 -> LB 87.0); AA-LCR 88.3, HLE 46.5 support
-    vision: 65.0              # multimodal: text+image input per AA page + HF image-text-to-text (vit weights); MMMU-Pro 76% (HF card + BenchLM); between glm-5.3 60.2 and kimi-k3 72.6
-  gemini-4-argon-contributor:
-    coding: 66.0             # Terminal-Bench 4.0 57.4% (~GPT-6 Astra level, -9 vs Opus 5.5 whose LB coding is 71.7) + DeepSWE v1.1 77.9% SOTA + Vibe Code Bench 91.9% (DeepMind model card 2026-10-13); vs LB terra-max 64.3 / sol-max 67.3
-    instruction_following: 74.0  # no IFEval/IFBench data; Gemini-line IF precedent (gemini-3.5-flash LB 77.6, 3.6-flash 76.5); Vals Finance Agent v2 65.4% + Harvey Legal 19.6% agentic work (DeepMind card); vs kimi-k3 74.9 / sol-max 75.0
-    overall: 82.0             # AA Intelligence Index 53 (#8/216, AA v4.3.2) vs kimi-k3 AA 44 -> LB 79.5; beats GPT-6 Astra on most model-card benchmarks (DeepSWE/Vals/AutomationBench/Vibe Code); >= gpt-5.6-sol-max LB 81.6
-    reasoning: 90.5           # Vals Index 68.9%, RiemannBench 76.0, LABBench 2 88.8, GraphWalks 99.7/84.2, ALE 39.5% (DeepMind card); no GPQA/AIME published; between opus-5-max 89.7 and sol-max 92.0
-    vision: 74.0              # multimodal: text+image+video+audio input (AA page + DeepMind model card + models.opencode.ai); Chartography 71.6% + LVBench 91.7% (DeepMind card); vs opus-5-max 74.7 / sol-max 79.1
