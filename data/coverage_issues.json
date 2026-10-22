@@ -1,73 +1,8 @@
 {
-  "stale_fallback": [
-    {
-      "model": "mimo-v2.6-pro",
-      "livebench_scores": {
-        "long_agentic": 47.5,
-        "reasoning": 79.6,
-        "coding": 81.5,
-        "browser": 88.0,
-        "data_analysis": 72.3,
-        "research": 76.7,
-        "design": 78.5,
-        "overall": 74.9
-      }
-    },
-    {
-      "model": "mimo-v2.6-pro-free",
-      "livebench_scores": {
-        "long_agentic": 47.5,
-        "reasoning": 79.6,
-        "coding": 81.5,
-        "browser": 88.0,
-        "data_analysis": 72.3,
-        "research": 76.7,
-        "design": 78.5,
-        "overall": 74.9
-      }
-    },
-    {
-      "model": "step-5-preview-free",
-      "livebench_scores": {
-        "long_agentic": 27.5,
-        "reasoning": 83.8,
-        "coding": 85.6,
-        "browser": 24.0,
-        "data_analysis": 63.5,
-        "research": 72.8,
-        "design": 76.9,
-        "overall": 62.0
-      }
-    },
-    {
-      "model": "step-5-preview",
-      "livebench_scores": {
-        "long_agentic": 27.5,
-        "reasoning": 83.8,
-        "coding": 85.6,
-        "browser": 24.0,
-        "data_analysis": 63.5,
-        "research": 72.8,
-        "design": 76.9,
-        "overall": 62.0
-      }
-    },
-    {
-      "model": "gemini-4-argon-contributor",
-      "livebench_scores": {}
-    },
-    {
-      "model": "gemini-4-argon-contributor-free",
-      "livebench_scores": {}
-    }
-  ],
+  "stale_fallback": [],
   "missing_scores": [
     {
-      "model": "claude-haiku-5-5",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "nemotron-3.5-super-vl-free",
+      "model": "flint-40b-free",
       "tier": "Free"
     }
   ],
