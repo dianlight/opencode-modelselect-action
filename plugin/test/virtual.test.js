@@ -411,6 +411,75 @@ describe('thinking levels (task default, manual variant wins)', () => {
   });
 });
 
+describe('virtual wire compatibility (reasoning carry-over)', () => {
+  const virtualEntry = (seen, id = 'auto-free-first') => seen.catalog.get('modelselect').models.get(id);
+
+  it('copies the real pick catalog compatibility onto the virtual entry', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'opencode/g', free: 'opencode/thinker-free' } } });
+      const seen = await setupV2(iso.dir);
+      const compatibility = {
+        reasoningField: 'reasoning_content',
+        requireReasoning: true,
+        maxTokensField: 'max_completion_tokens',
+      };
+      seen.catalog.get('opencode').models.set('thinker-free', {
+        id: 'thinker-free',
+        modelID: 'thinker-free',
+        providerID: 'opencode',
+        compatibility,
+      });
+
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+
+      assert.deepEqual(virtualEntry(seen).compatibility, compatibility, 'every real compatibility field carried over');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('derives requireReasoning for a deepseek pick the catalog does not describe', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'opencode/g', free: 'opencode/deepseek-v4.1-flash-free' } } });
+      const seen = await setupV2(iso.dir);
+
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+
+      assert.deepEqual(
+        virtualEntry(seen).compatibility,
+        { requireReasoning: true },
+        'replayed assistant turns must always carry reasoning_content',
+      );
+      assert.equal(
+        virtualEntry(seen, 'auto-go-first').compatibility,
+        undefined,
+        'the sibling virtual model stays untouched',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('clears a stale compatibility when the pick no longer needs one', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'opencode/g', free: 'opencode/deepseek-v4.1-flash-free' } } });
+      const seen = await setupV2(iso.dir);
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+      assert.deepEqual(virtualEntry(seen).compatibility, { requireReasoning: true });
+
+      seedCache(iso.dir, { 'task-types': { review: { go: 'opencode/g', free: 'opencode/plain-free' } } });
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+
+      assert.equal(virtualEntry(seen).compatibility, undefined, 'stale requireReasoning is dropped');
+    } finally {
+      iso.restore();
+    }
+  });
+});
+
 describe('/modelselect command', () => {
   it('prints routing-sync, host/source and a no-status hint via synthetic output', async () => {
     const iso = withIsolation(undefined);

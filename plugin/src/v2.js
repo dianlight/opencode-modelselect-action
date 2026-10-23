@@ -203,6 +203,53 @@ function virtualLimitFor(models) {
   };
 }
 
+/**
+ * Wire `compatibility` for a virtual entry: the real pick's catalog object,
+ * completed with the host's own requirement rule.
+ *
+ * The chat serializer decides whether a replayed assistant message must
+ * carry its reasoning field back (`requireReasoning` -> `reasoning_content`,
+ * empty when the turn stored no reasoning) from the REQUEST model: its
+ * `compatibility`, `provider`, base URL or id. A virtual pick hides all of
+ * them (id `auto-free-first`, provider `modelselect`, base URL the localhost
+ * proxy), so a history turn without a reasoning part would replay without
+ * `reasoning_content` and a thinking upstream rejects the whole request
+ * ("The `reasoning_content` in the thinking mode must be passed back to the
+ * API"). Copying the real entry's object keeps every field the real
+ * dispatch would have used (`reasoningField`, `requireReasoning`,
+ * `maxTokensField`, ...); when the live entry carries none, the host's
+ * id/provider/baseURL rule is mirrored so a deepseek pick still requires it.
+ */
+function compatibilityFor(pick, realModel, upstreamBaseURL) {
+  const source = realModel && typeof realModel === 'object' ? realModel.compatibility : null;
+  const out = source && typeof source === 'object' ? { ...source } : {};
+  const providerID = String(pick?.providerID ?? '').toLowerCase();
+  const bare = String(pick?.id ?? '').split('/').pop().toLowerCase();
+  const baseURL = String(upstreamBaseURL ?? '').toLowerCase();
+  const derived = providerID === 'deepseek' || baseURL.includes('deepseek.com') || bare.includes('deepseek');
+  if (out.requireReasoning === undefined && (derived || out.reasoningField !== undefined)) {
+    out.requireReasoning = true;
+  }
+  return out;
+}
+
+/** Real catalog model entry behind a pick (`{providerID, id}`), or null. */
+function catalogModel(editor, providerID, id) {
+  if (!editor || typeof editor.get !== 'function' || !providerID || !id) return null;
+  try {
+    const live = editor.get(providerID);
+    const models = live && live.models;
+    const key = String(id);
+    const bare = key.split('/').pop();
+    if (models instanceof Map) return models.get(key) || models.get(bare) || null;
+    if (Array.isArray(models)) return models.find((m) => m && (m.id === key || m.id === bare)) || null;
+    if (models && typeof models === 'object') return models[key] || models[bare] || null;
+  } catch {
+    // absent provider/model: the derivation covers it
+  }
+  return null;
+}
+
 /** Is this Model.Ref a virtual pick on the single virtual provider? */
 function isVirtualRef(ref) {
   return Boolean(
@@ -427,7 +474,7 @@ async function setup(ctx) {
   // catalog materialize. The catalog is process-global: concurrent virtual
   // sessions overwrite each other's wanted state — accepted (serialized
   // turns, the norm, are exact).
-  const virtualApiWanted = new Map(); // virtual model id -> { endpoint, id }
+  const virtualApiWanted = new Map(); // virtual model id -> { providerID, id, endpoint }
   // Desired task-think default per virtual model (see THINK_VARIANTS):
   // reasoningEffort/reasoning_effort for a concrete level, absent for
   // `default`/null (no effort forced — upstream default applies). A manual
@@ -459,9 +506,10 @@ async function setup(ctx) {
     }
   }
 
-  // Per-turn protocol applier: patches each virtual model's `api` from
-  // virtualApiWanted. Registered AFTER the registration cb (so it sees the
-  // fresh entries the registration cb re-materializes) and re-run via
+  // Per-turn pick applier: patches each virtual model's `api` (wire
+  // protocol) and `compatibility` (reasoning/max-tokens wire expectations)
+  // from virtualApiWanted. Registered AFTER the registration cb (so it sees
+  // the fresh entries the registration cb re-materializes) and re-run via
   // `reload()`/`transform()` whenever the wanted state changes.
   function applyVirtualApi(editor) {
     try {
@@ -497,6 +545,26 @@ async function setup(ctx) {
           }
         } else if (patched.api) {
           delete patched.api; // restore the provider default protocol
+          changed = true;
+        }
+        // Real-pick wire compatibility: mirror the real model's catalog
+        // `compatibility` (reasoning field/requirement, max-tokens field) so
+        // the virtual id does not hide it from the request serializer. See
+        // compatibilityFor() for why a missing requireReasoning breaks
+        // thinking upstreams (deepseek: "reasoning_content ... must be
+        // passed back to the API").
+        const pick = wanted || null;
+        const real = pick ? catalogModel(editor, pick.providerID, pick.id) : null;
+        const compat = pick
+          ? compatibilityFor(pick, real, (upstream.get(pick.providerID) || {}).baseURL)
+          : {};
+        const hasCompat = Object.keys(compat).length > 0;
+        const sameCompat = hasCompat
+          ? Boolean(patched.compatibility) && JSON.stringify(patched.compatibility) === JSON.stringify(compat)
+          : !patched.compatibility;
+        if (!sameCompat) {
+          if (hasCompat) patched.compatibility = compat;
+          else delete patched.compatibility;
           changed = true;
         }
         // Task-think default: mirror the wanted effort onto the entry's
@@ -554,13 +622,14 @@ async function setup(ctx) {
     }
   }
 
-  // Point a virtual model's catalog `api` at the pick's wire protocol
-  // and re-materialize so the NEXT route resolution (URL + body + decoder)
-  // matches. Must run in the context/aux hooks — the runner picks the
-  // route when it resolves the model, so an http.request-time write would
-  // be too late for the current attempt (the routing hook re-assert below
-  // only covers retries / next attempts). Best-effort: without a usable
-  // SDK hook the proxy still forwards on the driver's default route.
+  // Point a virtual model's catalog `api` (wire protocol) and
+  // `compatibility` at the pick and re-materialize so the NEXT route
+  // resolution (URL + body + decoder) matches. Must run in the
+  // context/aux hooks — the runner picks the route when it resolves the
+  // model, so an http.request-time write would be too late for the current
+  // attempt (the routing hook re-assert below only covers retries / next
+  // attempts). Best-effort: without a usable SDK hook the proxy still
+  // forwards on the driver's default route.
   async function syncVirtualApiFor(pick, virtualId) {
     try {
       if (!pick || !pick.id || !virtualId) return;
@@ -573,7 +642,7 @@ async function setup(ctx) {
         const bare = String(pick.id).split('/').pop();
         endpoint = map && typeof map[bare] === 'string' ? map[bare] : null;
       }
-      virtualApiWanted.set(virtualId, { endpoint, id: pick.id });
+      virtualApiWanted.set(virtualId, { providerID: pick.providerID || null, id: pick.id, endpoint });
       virtualThinkWanted.set(virtualId, normalizeThink(pick.think));
       if (typeof ctx.provider?.reload === 'function') {
         await ctx.provider.reload();
@@ -1388,6 +1457,7 @@ module.exports = {
   id: ID,
   setup,
   virtualLimitFor,
+  compatibilityFor,
   FALLBACK_VIRTUAL_LIMIT,
   FREE_RETRY_TTL_MS,
   PROTOCOL_RETRY_TTL_MS,

@@ -53,6 +53,21 @@
   mode); free-exhaustion arms the forced retry without moving the
   session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
+- The virtual models now carry the real pick's wire `compatibility`
+  (`plugin/src/v2.js`, patched per turn next to `api`): the request
+  serializer derives "must every replayed assistant message repeat its
+  reasoning field" from the request model's `compatibility`, provider, base
+  URL or id (`deepseek`), and a virtual pick hid all four (`auto-free-first`
+  / `modelselect` / the localhost proxy). A history turn that stored no
+  reasoning part then replayed without `reasoning_content` and the thinking
+  upstream rejected the whole request with "The `reasoning_content` in the
+  thinking mode must be passed back to the API" — typically after per-turn
+  routing moved the session from a non-thinking pick (longcat) to a deepseek
+  thinking one. The real catalog entry's object is copied verbatim (also
+  fixing `maxTokensField`, which the proxy base URL otherwise hid), with the
+  host's id/provider/baseURL rule as fallback when the entry describes
+  none; the field is cleared again when the next pick needs no such
+  compatibility.
 - Backup benchmark recording scores for models that never answered: the
   maintenance run benchmarks unscored free models against the Zen endpoint,
   but a battery that errored on every task (expired key, 403, outage) was
