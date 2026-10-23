@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-22 02:11 UTC**.
+> Last updated: **2026-10-23 02:17 UTC**.
 > LiveBench data: **362 models scored** (49 v2, 313 v1-only).
 > LiveBench v2 snapshot: **2026-10-14**.
 > v2 Source: https://livebench.ai/data/20261014/table.csv
@@ -138,7 +138,7 @@ automatically at their next run.
 | `minimax-m2.5` | Go (Paid) | ✅ LiveBench | Plan, Review | 60.3 | 59.3 | 62.3 | 31.3 | 62.2 | $0.3 | $1.2 | $0.525 | 114.9 |
 | `minimax-m2.7` | Go (Paid) | ✅ LiveBench | Plan, Review | 65.0 | 52.0 | 72.4 | 34.0 | 67.4 | $0.3 | $1.2 | $0.525 | 123.8 |
 | `minimax-m3` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 53.7 | 70.9 | 74.5 | 66.2 | — | $0.3 | $1.2 | $0.525 | 102.3 |
-| `minimax-m3.1-flash-free` | Free | ✅ LiveBench v2 | UITest, APITest | 73.1 | 83.9 | 82.9 | 74.0 | — | Free | Free | Free | — |
+| `minimax-m3.1-flash` | Go (Paid) | ✅ LiveBench v2 | UITest, APITest | 73.1 | 83.9 | 82.9 | 74.0 | — | $0.15 | $0.6 | $0.2625 | 278.5 |
 | `muse-spark-1.2-contributor` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 62.4 | 78.2 | 90.0 | 67.1 | — | $0.1 | $0.2 | $0.125 | 499.2 |
 | `muse-spark-1.3-contributor` | Go (Paid) | ✅ LiveBench v2 | UITest, APITest | 74.8 | 90.2 | 89.7 | 74.8 | — | $0.1 | $0.2 | $0.125 | 598.4 |
 | `nemotron-3.5-lightning-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 36.2 | 58.0 | 5.0 | 72.0 | Free | Free | Free | — |
