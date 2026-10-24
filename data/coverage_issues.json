@@ -2,13 +2,77 @@
   "stale_fallback": [],
   "missing_scores": [
     {
+      "model": "beam-free",
+      "tier": "Free"
+    },
+    {
+      "model": "deepseek-v4.1-flash",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "deepseek-v4.1-flash-free",
+      "tier": "Free"
+    },
+    {
       "model": "flint-40b-free",
       "tier": "Free"
+    },
+    {
+      "model": "gemini-4-argon-contributor",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "gpt-6-luna",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "grok-4.6",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "grok-4.7",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "kimi-k3",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "kimi-k3.1-pro",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "mimo-v2.6-pro",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "muse-spark-1.2-contributor",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "muse-spark-1.3-contributor",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "qwen3.8-flash",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "qwen3.8-max",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "step-5-preview",
+      "tier": "Go (Paid)"
     }
   ],
   "missing_prices": [
     {
       "model": "omen-alpha",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "qwen3.7-max",
       "tier": "Go (Paid)"
     }
   ],
