@@ -1,4 +1,22 @@
 model_scores:
+  beam-free:
+    coding: 67.0              # SWE-bench Verified 81.6 / Terminal-Bench 80.1 / SWE-bench Pro 66.1 (Reflection AI HF card + vendor); calibrated vs LB models with similar raw SWE/TB scores (longcat-2.0 LB coding 70.0 @ TB 70.8, gpt-5.4-xhigh LB coding 63.3)
+    instruction_following: 80.0  # IFBench 79.6 (Reflection AI HF card + BenchLM); calibrated vs kimi-k3 IF precedent
+    overall: 65.0             # BenchLM 51.49 (#95/992) + LiveBench 2.0 55.5; calibrated up vs raw benchmark strength (GPQA 90.6, SWE-Verified 81.6); BenchLM 51.49 is conservative, estimate reflects comparable MoE models
+    reasoning: 87.0           # GPQA Diamond 90.6 (Reflection AI HF card + vendor), HLE 36.0-51.1, AIME 2026 97.7; calibrated vs kimi-k3 GPQA 93.5→reasoning 89.0, gpt-5.5-high reasoning 90.8
+    vision: 5.0               # text-only per BenchLM + HF (no image input, no multimodal benchmarks found); confirmed no vision encoder
+  deepseek-v4.1-flash:
+    coding: 77.0              # Terminal-Bench 2.1 90.6 / DeepSWE 74.2→77.0 / CyberGym 88.1 (HF model card + BenchLM + NVIDIA card); LiveBench 2.0 overall 78.0; calibrated vs nemotron-super-vl-3.5 LB coding 65.5 @ SWE-Verified 71.1
+    instruction_following: 74.0  # AA-LCR 84.0 discounted to IF-scale; no IFBench/IFEval yet; estimate vs deepseek-v4-pro LB instruction_following 70.3, claude-haiku-5.5 IF 75.0
+    overall: 72.0             # LiveBench 2.0 overall 78.0 (single source: livebench.ai snippet); BenchLM 65.63 (#35/992, 1017 variant); calibrated down from LB 78.0 for conservative estimate vs deepseek-v4-pro LB overall 72.6
+    reasoning: 89.0           # GPQA Diamond 90.9 (HF card + NVIDIA card, dual-corroborated); HLE 36.8→42.6; Terminal-Bench 90.6; calibrated vs gpt-5.5 reasoning 90.7 @ similar GPQA range
+    vision: 45.0              # multimodal: text+image input, DeepSeek-ViT trained from scratch (HF tags + DeepSeek blog); ParseBench 65.72 + Chartography 78.9; multimodal baseline ~40+, conservative
+  deepseek-v4.1-flash-free:
+    coding: 77.0              # same model weights as deepseek-v4.1-flash; free-tier routing alias per DeepSeek API docs (free until 2026-11-01)
+    instruction_following: 74.0  # same as deepseek-v4.1-flash
+    overall: 72.0             # same as deepseek-v4.1-flash
+    reasoning: 89.0           # same as deepseek-v4.1-flash
+    vision: 45.0              # same as deepseek-v4.1-flash
   deepseek-flash:
     coding: 69.2              # LiveBench Coding 69.23 (#48 LiveBench 08-24)
     instruction_following: 80.4  # IFEval 80.4% (AnotherWrapper/TrustedRouter)
@@ -149,3 +167,81 @@ model_scores:
     overall: 30.0             # no LiveBench/AA data; LM Market Cap bottom 1% (433/436) on 4 benchmarks
     reasoning: 40.0           # mandatory reasoning with effort adjustment; no GPQA/AIME data; estimated
     vision: 38.0              # multimodal: text+image input confirmed; no vision benchmark data
+  flint-40b-free:
+    coding: 70.0              # SWE-bench Verified 74.2 / SWE-bench Pro v2 89.7 / LiveCodeBench v6 80.3 (Recursive blog + HF card, single vendor source); calibrated vs longcat-2.0 coding 70.0 / big-pickle coding 67.0
+    instruction_following: 89.0  # IFBench 89.2 / IFEval 88.1 (Recursive blog + MarkTechPost, single vendor source); strong IF for coding model
+    overall: 65.0             # no BenchLM/LiveBench yet (released Oct 21, 2026); composite ~ mean of subscores; consistent with deepseek-flash 67.3 / mimo-v2.5 62.0
+    reasoning: 68.0           # no GPQA published; AIME 2026 partial data; conservative estimate for coding-focused model vs big-pickle reasoning 61.5 / ling-3.0 reasoning 48.0
+    vision: 5.0               # text-only per Recursive blog + HF tags (text-generation only); no image input support
+  gemini-4-argon:
+    coding: 77.0              # DeepSWE 77.9 (Google model card + DeepMind eval methodology); Terminal-Bench 4.0 57.4; calibrated vs nemotron-super-vl-3.5 LB coding 65.5
+    instruction_following: 80.0  # OSWorld 2.0 69.2 / AutomationBench 51.3 (Google card); IFBench not published; estimate vs gemini-3.5-flash LB instruction_following 77.6 / claude-fable-5 LB instruction_following 78.3
+    overall: 78.0             # BenchLM 82.81 (#5/992) + AA Intelligence 53; calibrated vs claude-fable-5 LB overall 80.1 / gpt-5.5-xhigh LB overall 80.5; conservative discount for partial benchmark coverage
+    reasoning: 89.0           # FrontierMath v2 T1-3 85.97 + ARC-AGI-1 98.5 + ARC-AGI-2 91.3 (Google card + ARC Prize, dual-corroborated); AA-HLE 57.1; calibrated vs gpt-5.5 reasoning 90.7
+    vision: 58.0              # multimodal text+image (Google DeepMind model card + AA page); LVBench 91.7 / Chartography 71.6 / BabyVision; strong vision benchmarks → ~58 multimodal baseline
+  gpt-6-luna:
+    coding: 75.0              # DeepSWE 66.6 (OpenAI blog); LiveBench coding 84.5 (AI Agent Store / livebench.ai, 2026-10-23); Terminal-Bench 4.0 12.6 (AA); calibrated vs gpt-5.5 coding 64.1 / gpt-5.4 coding 63.3
+    instruction_following: 76.0  # no IFBench/IFEval found; IFI estimate from LB instruction_following column (gpt-5.5 76.8, gpt-5.4 74.1); conservative for new model
+    overall: 66.0             # BenchLM 66.41 (#32/992) + LiveBench 69.4; calibrated vs gpt-5.5 LB overall 80.5 / gpt-5.4 LB overall 78.8; lower overall consistent with AA Intelligence 38
+    reasoning: 91.0           # LiveBench reasoning 81.8 + ARC-AGI-1 86.67 + FrontierMath v2 T1-3 78.95 (OpenAI + ARC Prize, dual-corroborated); AA-LCR 83.3; calibrated vs gpt-5-high reasoning 94.9 / gpt-5-codex reasoning 96.1
+    vision: 48.0              # multimodal text+image (OpenAI blog + AA page); AA-MMMU-Pro 79.7; multimodal baseline ~40+, strong MMMU score → ~48
+  grok-4.6:
+    coding: 74.0              # AA Coding Index 76.8 / LiveBench coding 76.8 (AI Agent Store, 2026-10-23); CursorBench 3.2 70.8 / CursorBench 4.0 41.4; calibrated vs gpt-5.4 coding 63.3 / claude-haiku-5.5 coding 91.4
+    instruction_following: 72.0  # LiveBench instruction_following 71.9 (AI Agent Store / livebench.ai, 2026-10-23); AA-HLE 42.9; calibrated vs grok-4.3 LB instruction_following 68.4
+    overall: 70.0             # BenchLM 67.04 (#27/992) + LiveBench 74.9 + AA Intelligence 44; calibrated vs grok-4.3 LB overall 63.3 / minimax-m3 LB overall 67.5
+    reasoning: 91.0           # GPQA Diamond 94.9 (AA + Vals AI, dual-corroborated) + AA-LCR 80.3 + ARC-AGI-1 87.0; calibrated vs gpt-5-high reasoning 94.9 / claude-opus-4-7 reasoning 83.6
+    vision: 48.0              # multimodal text+image (xAI + AA page); no strong vision-specific benchmarks; multimodal baseline ~40+, conservative for vision capability
+  grok-4.7:
+    coding: 70.0              # DeepSWE 71.0 (xAI launch post) / CursorBench 4.0 46.3 (Cursor); Terminal-Bench 4.0 25.8 (AA); weaker on coding than 4.6; calibrated vs grok-4.3 LB coding 39.1 / grok-4.6 coding 74.0
+    instruction_following: 72.0  # no direct IFBench; Hermes Bench 74.4 / Hermes Index 39.3 (Nous Research); GDPval-AA 60.7; estimate vs grok-4.6 IF 72.0
+    overall: 70.0             # LiveBench 74.1 + AA Intelligence 46; BenchLM unranked (37/706 benchmarks, partial); calibrated vs grok-4.6 overall 70.0 / grok-4.3 LB overall 63.3
+    reasoning: 90.0           # AA-LCR 76.7 + ARC-AGI-1 89.5 + ARC-AGI-2 61.4 (ARC Prize); AA-HLE 43.1; calibrated vs grok-4.6 reasoning 91.0 (slightly lower on math: FrontierMath T1-3 53.0 vs 66.0)
+    vision: 48.0              # multimodal text+image (xAI + AA page); same modality as grok-4.6; conservative multimodal baseline
+  kimi-k3:
+    coding: 69.0              # AA Coding Index 76.2 / DeepSWE 67.5 (Moonshot blog + BenchLM); Terminal-Bench 2.1 88.3 / SciCode 59.5; calibrated vs longcat-2.0 coding 70.0 / mimo-v2.6-flash coding 75.0
+    instruction_following: 72.0  # Hermes Bench 71.5 (Nous Research); no IFBench/IFEval; estimate vs gemini-3.5-flash LB instruction_following 77.6 / kimi-k2.6 LB instruction_following 69.7
+    overall: 67.0             # BenchLM 69.93 (#16/992) + AA Intelligence 44; LiveBench 63.4; calibrated vs deepseek-flash LB overall 67.3 / mimo-v2.5 LB overall 62.0
+    reasoning: 90.0           # GPQA Diamond 93.5 (Moonshot blog + BenchLM, corroborated) + HLE 56.0 + AA-LCR 88.7 + ARC-AGI-1 94.5; calibrated vs longcat-2.0 reasoning 89.0 / gpt-5.5 reasoning 90.7
+    vision: 48.0              # multimodal text+image (Moonshot blog + AA page); MMMU-Pro not yet published for K3; multimodal baseline ~40+
+  kimi-k3.1-pro:
+    coding: 76.0              # DeepSWE 75.5 / Kimi Code Bench v2 77.1 (Moonshot blog + BenchLM); Terminal-Bench 4.0 65.7 / SciCode 60.8; calibrated vs nemotron-super-vl-3.5 LB coding 65.5 / mimo-v2.6-flash coding 75.0
+    instruction_following: 76.0  # no IFBench/IFEval yet (released Oct 23); GDPval-AA 67.3; estimate vs kimi-k3 IF 72.0 / gemini-3.5-flash LB instruction_following 77.6; bump for newer model
+    overall: 72.0             # AA Intelligence 55 (highest AA of all 3); BenchLM unranked (57/706 benchmarks, too new); composite from subscores; consistent with kimi-k3 67.0 + improvement delta
+    reasoning: 91.0           # GPQA Diamond 94.2 (Moonshot blog + BenchLM) + HLE 70.0 + AA-LCR 86.3 + APEX-Agents 67.2; calibrated vs kimi-k3 reasoning 90.0 / gpt-5.5 reasoning 90.7; stronger than K3
+    vision: 50.0              # multimodal text+image (Moonshot blog + AA page); MMMU-Pro 84.1 / MMMU-Pro w/Python 90.0 (Moonshot blog); strong vision benchmarks → ~50
+  mimo-v2.6-pro:
+    coding: 74.0              # DeepSWE 71.9 / Terminal-Bench 2.1 89.9 / CyberGym 94.0 (Xiaomi tech report + BenchLM); calibrated vs mimo-v2.6-flash coding 75.0 / longcat-2.0 coding 70.0
+    instruction_following: 70.0  # no IFBench/IFEval; AA-Omniscience 34.8 (weak IF signal); estimate vs mimo-v2.5-pro IF 74.0 / qwen3.6-plus LB instruction_following 67.7
+    overall: 73.0             # BenchLM 73.47 (#12/992) + AA Intelligence 46; calibrated vs nemotron-super-vl-3.5 LB overall 51.5 (much higher BenchLM); strong open-weight model
+    reasoning: 88.0           # GPQA Diamond not published; AA-LCR 86.3 + HLE 49.4 + AutomationBench 53.1→58.6; calibrated vs mimo-v2.6-flash reasoning 84.0 / kimi-k3 reasoning 90.0
+    vision: 50.0              # multimodal text+image+speech+video (Xiaomi tech report + HF tags + AA page); most capable multimodal of the MiMo line; multimodal baseline ~40+, multi-modal → ~50
+  muse-spark-1.2-contributor:
+    coding: 62.0              # Terminal-Bench 2.1 82.9 / DeepSWE 59.3 (Meta blog + opencode.ai/data); calibrated vs mimo-v2.5 coding 60.0 / omen-alpha coding 57.9
+    instruction_following: 70.0  # Agentic IF Index 46.2 (opencode.ai/data); low IF signal; estimate vs nemotron-3.5-lightning-free IF 72.0 / jev-1.13-free IF 50.0
+    overall: 66.0             # BenchLM 65.85 + LiveBench 57.6; calibrated vs mimo-v2.5 LB overall 62.0 / big-pickle overall 61.5
+    reasoning: 79.0           # MCP Atlas 90.3 / DeepSearchQA 85.9 F1 (Meta blog + opencode.ai/data); no GPQA; estimate vs claude-haiku-5.5 reasoning 82.4 / deepseek-flash reasoning 89.9
+    vision: 45.0              # multimodal text+image+video+PDF+audio (Meta blog + OpenCode data); multimodal baseline ~40+, conservative
+  muse-spark-1.3-contributor:
+    coding: 72.0              # Terminal-Bench 2.1 88.8 / DeepSWE 75.4 (Meta blog + opencode.ai/data); calibrated vs mimo-v2.5-pro coding 66.0 / deepseek-flash coding 69.2
+    instruction_following: 75.0  # Agentic IF Index 57.8 (opencode.ai/data); AutomationBench 49.6; estimate vs muse-spark-1.2 IF 70.0 / gemini-3.5-flash LB IF 77.6
+    overall: 70.0             # BenchLM ~72 (vs 65.85 for 1.2, from BenchLM compare); LiveBench 57.6; calibrated vs kimi-k3 overall 67.0 / qwen3.7-max LB overall 74.1
+    reasoning: 82.0           # MRCR 256K-1M 98.1→98.5 / DeepSearchQA 90.3 F1 (Meta blog + opencode.ai/data); OSWorld 2.0 32.0→66.9; estimate vs kimi-k3 reasoning 90.0 / claude-haiku-5.5 reasoning 82.4
+    vision: 48.0              # multimodal text+image+video+PDF+audio (Meta blog + OpenCode data); improved over 1.2; multimodal baseline ~40+
+  qwen3.8-flash:
+    coding: 68.0              # SWE-bench Pro 62.5 / DeepSWE 58.7 / LiveCodeBench v6 91.9 (Qwen blog + HF card); GPQA 91.7; calibrated vs mimo-v2.5 LB coding 52.0 / qwen3.6-plus LB coding 56.1
+    instruction_following: 77.0  # IFBench 81.3 (HF card); AA-LCR not published; estimate vs qwen3.7-max LB instruction_following 76.6 / qwen3.6-plus LB instruction_following 67.7
+    overall: 66.0             # BenchLM 62.76 + LiveBench 68.8; calibrated vs qwen3.6-plus LB overall 69.0 / mimo-v2.5 LB overall 62.0
+    reasoning: 88.0           # GPQA Diamond 91.7 (HF card + llm-stats, corroborated) + HLE 35.9; calibrated vs kimi-k3 reasoning 90.0 / qwen3.7-max reasoning 82.4
+    vision: 50.0              # multimodal text+image+video (Qwen blog + HF tags); MathVision 90.6 / RealWorldQA 88.5 / LVBench 76.6; strong vision → ~50
+  qwen3.8-max:
+    coding: 76.0              # SWE-bench Pro 67.7 / DeepSWE 69.3 / Terminal-Bench 2.1 86.6 (Qwen blog + Vals AI); calibrated vs qwen3.7-max LB coding 55.8 / nemotron-super-vl-3.5 LB coding 65.5
+    instruction_following: 74.0  # IFBench 82.8 (Qwen blog); estimate vs qwen3.7-max LB instruction_following 76.6 / gemini-3.5-flash LB instruction_following 77.6
+    overall: 72.0             # BenchLM 69.68 (#18/992) + AA Intelligence 40; LiveBench 78.5; calibrated vs qwen3.7-max LB overall 74.1 / kimi-k3 overall 67.0
+    reasoning: 90.0           # GPQA Diamond 92.6→93.7 (Qwen blog + Vals AI, corroborated) + HLE 43.6 + MMMU-Pro 82.3; calibrated vs gpt-5.5 reasoning 90.7 / kimi-k3.1-pro reasoning 91.0
+    vision: 55.0              # multimodal text+image+video (Qwen blog + HF tags); MathVision 95.2 / MMMU-Pro 82.3 / RealWorldQA 88.0 / Video-MME 90.4; strong vision → ~55
+  step-5-preview:
+    coding: 72.0              # DeepSWE 67.7 / Terminal-Bench 2.1 85.0 / ProgramBench 80.5 / CyberGym 84.7 (StepFun + HF card + BenchLM); calibrated vs mimo-v2.5-pro coding 66.0 / longcat-2.0 coding 70.0
+    instruction_following: 70.0  # no IFBench/IFEval; estimate vs qwen3.6-plus LB instruction_following 67.7 / omen-alpha IF 62.0
+    overall: 69.0             # BenchLM 69.45 (#19/992) + AA Intelligence 44; calibrated vs kimi-k3 overall 67.0 / qwen3.7-max LB overall 74.1
+    reasoning: 89.0           # GPQA Diamond 93.5 (StepFun + HF card, corroborated) + HLE 46.5→59.4 + AA-LCR 88.3 + DRACO 83.3; calibrated vs kimi-k3 reasoning 90.0 / longcat-2.0 reasoning 89.0
+    vision: 45.0              # multimodal text+image (StepFun + HF tags); MMMU-Pro 76% (moderate vision); multimodal baseline ~40+
