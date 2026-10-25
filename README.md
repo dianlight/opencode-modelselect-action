@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-24 02:14 UTC**.
+> Last updated: **2026-10-25 02:01 UTC**.
 > LiveBench data: **315 models scored** (0 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026_06_25**.
 > v2 Source: https://livebench.ai/table_2026_06_25.csv
@@ -112,7 +112,7 @@ automatically at their next run.
 | `deepseek-v4.1-flash` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.3 | $1.2 | $0.525 | — |
 | `deepseek-v4.1-flash-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `flint-40b-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
-| `gemini-4-argon-contributor` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $4 | $20 | $8 | — |
+| `gemini-4-argon` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $4 | $20 | $8 | — |
 | `glm-5.1` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.6 | 63.1 | 75.6 | 60.3 | 69.5 | $1.4 | $4.4 | $2.15 | 32.8 |
 | `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 73.4 | 63.0 | 82.1 | 60.7 | 68.2 | $1.4 | $4.4 | $2.15 | 34.1 |
 | `glm-5.3` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $1.4 | $4.4 | $2.15 | 32.0 |
@@ -124,6 +124,7 @@ automatically at their next run.
 | `grok-4.7` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $2 | $6 | $3 | — |
 | `hy3` | Go (Paid) | 📋 Fallback | Plan, Review | 54.0 | 55.0 | 60.0 | 8.0 | 58.0 | $0.14 | $0.58 | $0.25 | 216.0 |
 | `hy4-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 79.2 | 68.9 | 85.0 | 84.0 | 78.0 | $0.834 | $2.501 | $1.2508 | 63.3 |
+| `iceman-contributor-free` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | — | — | — | — |
 | `jev-1.13` | Free | 📋 Fallback | Plan, Review | 67.8 | 30.0 | 67.8 | 5.0 | 50.0 | $0.042 | $0 | $0.0315 | 2152.4 |
 | `jev-1.13-free` | Free | 📋 Fallback | Plan, Review | 67.8 | 30.0 | 67.8 | 5.0 | 50.0 | Free | Free | Free | — |
 | `kimi-k2.6` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.9 | 59.6 | 77.9 | 58.1 | 69.7 | $0.95 | $4 | $1.7125 | 41.4 |

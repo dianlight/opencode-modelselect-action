@@ -18,7 +18,7 @@
       "tier": "Free"
     },
     {
-      "model": "gemini-4-argon-contributor",
+      "model": "gemini-4-argon",
       "tier": "Go (Paid)"
     },
     {
@@ -31,6 +31,10 @@
     },
     {
       "model": "grok-4.7",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "iceman-contributor-free",
       "tier": "Go (Paid)"
     },
     {
@@ -67,6 +71,10 @@
     }
   ],
   "missing_prices": [
+    {
+      "model": "iceman-contributor-free",
+      "tier": "Go (Paid)"
+    },
     {
       "model": "omen-alpha",
       "tier": "Go (Paid)"
