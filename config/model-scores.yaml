@@ -149,3 +149,99 @@ model_scores:
     overall: 30.0             # no LiveBench/AA data; LM Market Cap bottom 1% (433/436) on 4 benchmarks
     reasoning: 40.0           # mandatory reasoning with effort adjustment; no GPQA/AIME data; estimated
     vision: 38.0              # multimodal: text+image input confirmed; no vision benchmark data
+  beam-free:
+    coding: 55.0              # TB2.1 82.6 (reflection.ai) + DeepSWE 43.3 (BenchLM comparison); discounted vs Qwen3.8-Flash-Next (62.76 overall, DeepSWE 58.7)
+    instruction_following: 50.0  # no IF data; conservative for open-weight reasoning model
+    overall: 52.0             # BenchLM 51.49 (#95/992) + Vals Index 43.42 — both below-average-for-tier
+    reasoning: 50.0           # AA II 30 + no GPQA/AIME/HLE data; weak corroboration, single-source for reasoning category
+    vision: 5.0               # text-only confirmed (AA: no image input)
+  deepseek-v4.1-flash:
+    coding: 70.0              # DeepSWE 77.0 (HF+BenchLM) + TB2.1 90.6 (HF+BenchLM) + CyberGym 88.1; corroborated
+    instruction_following: 60.0  # Gray Swan IPI 51.8 (BenchLM); single-source for IF, conservative
+    overall: 66.0             # BenchLM 65.78 (#35/992) + AA II 39.5 — both above-average
+    reasoning: 72.0           # GPQA-D 90.9 (HF+BenchLM+AA, 3 sources) + HLE 42.6 + AA-LCR 84.0; discounted to LiveBench scale
+    vision: 45.0              # multimodal text+image; MMMU-Pro 77.0 (AA) + BabyVision 92.5 (HF); bimodal ~40+
+  deepseek-v4.1-flash-free:
+    coding: 70.0              # same model weights as deepseek-v4.1-flash (free API tier)
+    instruction_following: 60.0  # same as paid
+    overall: 66.0             # same model, same benchmarks
+    reasoning: 72.0           # same model
+    vision: 45.0              # same model
+  flint-40b-free:
+    coding: 62.0              # unverified single source: SWE-bench Verified 74.2 + SWE-bench Pro v2 89.7 + TB2.1 54.9 (Recursive self-report); discounted vs comparable models
+    instruction_following: 50.0  # unverified single source: no IF data; conservative for coding-focused MoE
+    overall: 58.0             # unverified single source: SWE-bench Verified 74.2 places between Beam (51.49) and Qwen3.8-Flash-Next (62.76)
+    reasoning: 55.0           # unverified single source: no GPQA/AIME; TB2.1 54.9 suggests moderate reasoning
+    vision: 5.0               # text-only per HF model card (text-generation, no vision tags)
+  gemini-4-argon:
+    coding: 78.0              # DeepSWE 77.9 (model card+BenchLM) + Vibe Code Bench 91.9 (model card) + SciCode 61.8 (AA)
+    instruction_following: 70.0  # no direct IF data; estimate from AA II 53 + agentic performance (GDPval-AA 56.2)
+    overall: 83.0             # BenchLM 82.79 (#5/992) + AA II 53 (#9/215) — top-tier
+    reasoning: 85.0           # ARC-AGI-1 98.5 + ARC-AGI-2 91.3 + Graphwalks 99.7 + AA-LCR 79.7 + FrontierMath 85.965
+    vision: 55.0              # LVBench 91.7 + Chartography 71.6 (model card); strong multimodal
+  gpt-6-luna:
+    coding: 67.0              # DeepSWE 66.6 (model card+BenchLM) + SciCode 54.6 (AA)
+    instruction_following: 60.0  # Hermes Bench 70.5 (Nous, single-source); conservative
+    overall: 66.0             # BenchLM 66.41 (#32/992) + AA II 38 — both above-average
+    reasoning: 72.0           # ARC-AGI-1 86.67 + ARC-AGI-2 59.3 + AA-LCR 83.3 + HealthBench 60.8
+    vision: 50.0              # MMMU-Pro 79.7 (AA); multimodal text+image confirmed
+  grok-4.6:
+    coding: 72.0              # DeepSWE 65.9 (xAI+BenchLM) + LiveCodeBench 88.2 (Vals) + CursorBench 70.8
+    instruction_following: 60.0  # Gray Swan IPI 51.8 (BenchLM); single-source for IF, conservative
+    overall: 67.0             # BenchLM 67.18 (#26/992); strong benchmark profile
+    reasoning: 76.0           # GPQA-D 94.9 (AA+BenchLM) + MMLU-Pro 89.4 (Vals) + ARC-AGI-1 87.0 + AA-LCR 80.3
+    vision: 5.0               # no multimodal benchmarks on BenchLM; assume text-only (CAVEAT: unconfirmed — if image input supported, should be ~40+)
+  grok-4.7:
+    coding: 68.0              # DeepSWE 71.0 (xAI+BenchLM) + SciCode 57.4 (AA) + TB2.1 73.4 (Vals)
+    instruction_following: 60.0  # no IF data; conservative for xAI model
+    overall: 69.0             # estimated: slightly above Grok 4.6 (67.18) based on GDPval-AA 1714, DeepSWE 71.0
+    reasoning: 74.0           # ARC-AGI-1 89.5 + ARC-AGI-2 61.4 + AA-LCR 76.7 + HealthBench 56.7; no GPQA-D listed
+    vision: 5.0               # no multimodal benchmarks; same caveat as grok-4.6
+  kimi-k3:
+    coding: 72.0              # DeepSWE 67.5 (Kimi+BenchLM) + FrontierSWE 81.2 + TB2.1 88.3 + LiveCodeBench 87.2
+    instruction_following: 60.0  # Gray Swan IPI 52.7 (BenchLM); single-source for IF
+    overall: 70.0             # BenchLM 70.02 (#16/992) + AA II 43.6 — both strong
+    reasoning: 80.0           # GPQA-D 93.5 (3 sources) + ARC-AGI-1 94.5 + AA-LCR 88.7 + HLE 56
+    vision: 55.0              # MMMU-Pro 81.6/80.5 (Kimi+AA) + MathVision 94.3 + CharXiv 91.3; excellent multimodal
+  kimi-k3.1-pro:
+    coding: 76.0              # DeepSWE 75.5 (Kimi+BenchLM) + Kimi Code Bench 77.1 + TB4.0 65.7 (AA)
+    instruction_following: 65.0  # no direct IF data; estimate from AA II 55.1 + AutomationBench 73.3
+    overall: 74.0             # estimated: higher than K3 (70.02) based on GPQA-D 94.2, HLE 70, DeepSWE 75.5; corroborated by AA II 55.1
+    reasoning: 84.0           # GPQA-D 94.2 + HLE 70 + AA-LCR 86.3 — top-tier
+    vision: 60.0              # MMMU-Pro 84.1/83.9 (Kimi+AA) + CharXiv 93.4 + BabyVision 95.4; excellent multimodal
+  mimo-v2.6-pro:
+    coding: 75.0              # DeepSWE 71.9 (HF+BenchLM) + TB2.1 89.9 (HF+BenchLM) + CyberGym 94.0
+    instruction_following: 76.0  # Toolathlon-Verified 76.9 (HF) + OSWorld-Verified 82 (HF) + AA AutomationBench 58.6
+    overall: 74.0             # BenchLM 73.62 (#12/992) + AA II 46.3 — strong
+    reasoning: 84.0           # AA-LCR 86.3 (AA) + CyberGym 94.0 (multi-step reasoning) + AA-HLE 49.4
+    vision: 40.0              # multimodal: hf=multimodal + aa=multimodal; no vision benchmarks; bimodal baseline ~40+
+  muse-spark-1.2-contributor:
+    coding: 65.0              # DeepSWE 59.3 (Meta+BenchLM) + TB2.1 82.9 (Meta+BenchLM) + VulcanBench 87.0
+    instruction_following: 58.0  # no IF data; conservative for Meta coding model
+    overall: 66.0             # BenchLM 65.98 (#34/992) + AA II 39.6
+    reasoning: 75.0           # GPQA-D 90.4 (AA) + MMLU-Pro 88.3 (Vals) + AA-LCR 79.0
+    vision: 5.0               # no multimodal benchmarks on BenchLM; assume text-only (CAVEAT: unconfirmed)
+  muse-spark-1.3-contributor:
+    coding: 73.0              # DeepSWE 75.4 (Meta+BenchLM) + TB2.1 88.8 (Meta+BenchLM) + SciCode 58.8 (AA)
+    instruction_following: 62.0  # Gray Swan IPI 15.9 (BenchLM, single-source, low) + agentic index 55.7
+    overall: 72.0             # estimated: above Muse Spark 1.2 (65.98); corroborated by AA II 48.1
+    reasoning: 80.0           # GPQA-D 93.5 (AA) + MRCRv2 98.5/98.1 (Meta) + AA-LCR 83.0 + FrontierMath 74.035
+    vision: 40.0              # multimodal per OpenCode data page (text, image, video, pdf, audio); no vision benchmarks; bimodal baseline
+  qwen3.8-flash:
+    coding: 65.0              # DeepSWE 58.7 (docs.b.ai+BenchLM comparison) + SWE-bench Pro 58.7 + CoWorkBench 73.9
+    instruction_following: 65.0  # estimate from CoWorkBench 73.9 + Toolathlon 73.5 (docs.b.ai)
+    overall: 64.0             # estimated: Flash-Next = 62.76 (#45/992), production Flash ~1M context → slight bump
+    reasoning: 72.0           # GPQA-D ~90.4 (Flash-Next, HF card); estimate for production Flash
+    vision: 45.0              # multimodal per docs.b.ai; Flash-Next has vision benchmarks; bimodal baseline
+  qwen3.8-max:
+    coding: 72.0              # DeepSWE 56.6 (Qwen+BenchLM) + FrontierSWE 73.5 + TB2.1 86.6 + LiveCodeBench 87.9
+    instruction_following: 75.0  # IFBench 82.8 (Qwen+BenchLM); corroborated
+    overall: 70.0             # BenchLM 69.82 (#17/992) + extensive benchmark profile
+    reasoning: 80.0           # GPQA-D 92.6 (3 sources) + MRCRv2 92.9 + IFBench 82.8 + FrontierMath 74.737
+    vision: 55.0              # MMMU-Pro 82.3 + MathVision 95.2 + BabyVision 91.3 + ScreenSpot Pro 84.5 + Video-MME 90.4
+  step-5-preview:
+    coding: 72.0              # DeepSWE 67.7 (StepFun+BenchLM) + TB2.1 85.0 (StepFun+BenchLM) + ProgramBench 80.5
+    instruction_following: 62.0  # AutomationBench 51.0 (AA) + Toolathlon 74.1 (StepFun)
+    overall: 69.0             # BenchLM 69.28 (#19/992) + AA II 43.7 — strong
+    reasoning: 80.0           # GPQA-D 93.5 (StepFun+BenchLM) + AA-LCR 88.3 + BrowseComp 88.7
+    vision: 50.0              # MMMU-Pro 76.0/76.4 (StepFun+AA) + OfficeQA Pro 60.3
