@@ -38,14 +38,15 @@ const CACHE = (dir) => path.join(dir, '.opencode', '.modelselect-cache');
 const FREE = { providerID: 'modelselect', id: 'auto-free-first' };
 const GO = { providerID: 'modelselect', id: 'auto-go-first' };
 // The six picker variants both virtual models register (literal, not derived:
-// the assertion must catch accidental shape changes in v2.js).
+// the assertion must catch accidental shape changes in v2.js). Wire values
+// are clamped to the upstream-accepted set: xhigh->high, minimal->low.
 const EXPECTED_VARIANTS = [
   { id: 'default' },
-  { id: 'minimal', settings: { reasoningEffort: 'minimal' }, body: { reasoning_effort: 'minimal' } },
+  { id: 'minimal', settings: { reasoningEffort: 'low' }, body: { reasoning_effort: 'low' } },
   { id: 'low', settings: { reasoningEffort: 'low' }, body: { reasoning_effort: 'low' } },
   { id: 'medium', settings: { reasoningEffort: 'medium' }, body: { reasoning_effort: 'medium' } },
   { id: 'high', settings: { reasoningEffort: 'high' }, body: { reasoning_effort: 'high' } },
-  { id: 'xhigh', settings: { reasoningEffort: 'xhigh' }, body: { reasoning_effort: 'xhigh' } },
+  { id: 'xhigh', settings: { reasoningEffort: 'high' }, body: { reasoning_effort: 'high' } },
 ];
 
 function tmp() {
@@ -380,8 +381,23 @@ describe('thinking levels (task default, manual variant wins)', () => {
       await seen['http.request'](h);
       const body = JSON.parse(await h.request.text());
       assert.equal(body.model, 'fb', 'live pick stamped');
-      assert.equal(virtualEntry(seen).settings.reasoningEffort, 'xhigh', 'resolve-on-the-spot syncs the default');
+      assert.equal(virtualEntry(seen).settings.reasoningEffort, 'high', 'resolve-on-the-spot syncs the clamped default');
       assert.equal(body.reasoning_effort, undefined, 'task default rides the catalog, not a body rewrite');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('clamps minimal to low on the wire (provider rejects minimal)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b', think: 'minimal' } } });
+      const seen = await setupV2(iso.dir);
+
+      await seen.context({ sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' });
+      const entry = virtualEntry(seen);
+      assert.equal(entry.settings.reasoningEffort, 'low');
+      assert.equal(entry.body.reasoning_effort, 'low');
     } finally {
       iso.restore();
     }

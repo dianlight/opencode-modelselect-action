@@ -26,7 +26,23 @@ function normalizeThink(v) {
   return ['default', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(s) ? s : null;
 }
 
+/**
+ * Map a normalized `think` level to a wire `reasoning_effort` value the
+ * upstream accepts (`none`/`low`/`medium`/`high`). `default`/null omits
+ * the field (upstream default applies). `xhigh` clamps to `high` and
+ * `minimal` clamps to `low` — the provider rejects `xhigh`/`minimal`/
+ * `default` with HTTP 400.
+ */
+function toWireEffort(think) {
+  const t = String(think ?? '').toLowerCase();
+  if (t === 'xhigh') return 'high';
+  if (t === 'minimal') return 'low';
+  if (t === 'low' || t === 'medium' || t === 'high') return t;
+  return null;
+}
+
 module.exports = {
   entryFor,
   normalizeThink,
+  toWireEffort,
 };

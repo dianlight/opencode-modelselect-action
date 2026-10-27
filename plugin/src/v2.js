@@ -90,7 +90,7 @@
 
 const path = require('node:path');
 const { detectRepoSignals } = require('./shared/detect');
-const { normalizeThink } = require('./shared/core/lookup');
+const { normalizeThink, toWireEffort } = require('./shared/core/lookup');
 const { refineTaskTypeWithJev, jevLabel } = require('./shared/jev');
 const {
   resolveWithHistory,
@@ -135,11 +135,13 @@ const VIRTUAL_MODELS = [VIRTUAL_FREE, VIRTUAL_GO];
 const VIRTUAL_REF = `${VIRTUAL_PROVIDER}/${VIRTUAL_FREE}`;
 // The six reasoning-effort levels from config/task-types.yaml, offered as
 // picker variants on both virtual models. `default` carries no overlay (the
-// host maps variant "default" to no merge), the rest overlay the effort onto
-// the outgoing request — `settings` for the driver-normalized spell and the
-// raw `body` key as the guaranteed passthrough (both converge to the same
-// `reasoning_effort` field on the chat protocol the virtual models dispatch
-// with, so applying both is idempotent).
+// host maps variant "default" to no merge), the rest overlay the clamped wire
+// effort onto the outgoing request — `settings` for the driver-normalized
+// spell and the raw `body` key as the guaranteed passthrough (both converge
+// to the same `reasoning_effort` field on the chat protocol the virtual
+// models dispatch with, so applying both is idempotent). The upstream only
+// accepts `none`/`low`/`medium`/`high`: `xhigh` clamps to `high`, `minimal`
+// clamps to `low` (see `toWireEffort`).
 const THINK_VARIANTS = ['default', 'minimal', 'low', 'medium', 'high', 'xhigh'];
 // Live-captured upstream bases, refreshed on every catalog materialize.
 // Hardcoded fallbacks are the live-verified Zen/Go inference bases.
@@ -481,11 +483,10 @@ async function setup(ctx) {
       // capabilities. The media filter in `resolveModel` then steers turns
       // with pdf/image requests to a pick that actually serves them.
       capabilities: { tools: true, input: ['text', 'image', 'pdf'], output: ['text'] },
-      variants: THINK_VARIANTS.map((level) =>
-        level === 'default'
-          ? { id: level }
-          : { id: level, settings: { reasoningEffort: level }, body: { reasoning_effort: level } },
-      ),
+      variants: THINK_VARIANTS.map((level) => {
+        const wire = toWireEffort(level);
+        return wire ? { id: level, settings: { reasoningEffort: wire }, body: { reasoning_effort: wire } } : { id: level };
+      }),
       time: { released: 0 },
       cost: [],
       status: 'active',
@@ -682,12 +683,13 @@ async function setup(ctx) {
           else delete patched.compatibility;
           changed = true;
         }
-        // Task-think default: mirror the wanted effort onto the entry's
-        // settings + body (concrete levels only; `default`/null clears a
-        // stale hint). A manual picker variant still wins — the host merges
-        // the variant overlay over these model-level values per dispatch.
+        // Task-think default: mirror the clamped wire effort onto the
+        // entry's settings + body (concrete levels only; `default`/null
+        // clears a stale hint). A manual picker variant still wins — the
+        // host merges the variant overlay over these model-level values
+        // per dispatch.
         const think = normalizeThink(virtualThinkWanted.get(m.id));
-        const wantEffort = think && think !== 'default' ? think : null;
+        const wantEffort = toWireEffort(think);
         const settings = { ...(patched.settings || {}) };
         const body = { ...(patched.body || {}) };
         let settingsChanged = false;
