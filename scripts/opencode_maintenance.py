@@ -955,8 +955,9 @@ def _endpoint_token(url: str | None) -> str | None:
     """Map a full endpoint URL to the wire-protocol token for the plugin.
 
     `responses` -> OpenAI Responses, `messages` -> Anthropic Messages,
-    `chat` -> OpenAI-compatible chat completions, `systemone` -> systemone.
-    Unknown paths (per-model Gemini routes) and empty values return None so
+    `chat` -> OpenAI-compatible chat completions, `systemone` -> systemone,
+    `google` -> Google Generative AI (`:generateContent`, per-model
+    `.../google/v1beta/models/<id>` routes). Empty values return None so
     callers keep the provider default protocol (chat).
     """
     if not url:
@@ -970,6 +971,8 @@ def _endpoint_token(url: str | None) -> str | None:
     ):
         if path.endswith(suffix):
             return token
+    if "/google/v1beta/" in path:
+        return "google"
     return None
 
 

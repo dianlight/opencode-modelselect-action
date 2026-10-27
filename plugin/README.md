@@ -297,9 +297,22 @@ session route on every turn — the picker *is* the switch:
   Qwen-plus rows) also re-point the virtual model's catalog `api` to the
   matching AI SDK package per turn, so OpenCode's route — URL, body
   shape and stream decoder — matches the pick. Without it those models
-  fail with `ModelProtocolUnsupported` on chat/completions. A built-in
+  fail with `ModelProtocolUnsupported` on chat/completions. Google picks
+  (per-model `.../google/v1beta/models/<id>` routes, token `google`)
+  additionally override the entry's `settings.baseURL` to the
+  provider's Google root (derived from the live upstream base — the
+  driver appends its own `v1beta/models/<id>` path), so they dispatch
+  natively instead of through the OpenAI-base proxy; leaving a google
+  pick drops the override again. A built-in
   fallback covers known non-chat models when the cached config predates
-  the map, and a `ModelProtocolUnsupported` failure re-syncs the `api`
+  the map. Picks with no servable endpoint (`omen-alpha`,
+  `systemone` — neither `chat`/`responses`/`messages`/`google`) are
+  filtered to the next ranked model in the same tier
+  before dispatch, so a top-scored but undispatchable pick
+  never goes on the wire. A
+  `ModelProtocolUnsupported` — or a bare `HTTP 404` with model context,
+  the same wrong-route failure without the wording (first-turn race,
+  warming/title aux request, unmapped pick) — re-syncs the `api`
   and retries once (virtual sessions only, never latched). When the
   re-synced retry would still dispatch on the pinned virtual chat route,
   the retry fails soft instead: the session is persisted onto the
@@ -309,6 +322,14 @@ session route on every turn — the picker *is* the switch:
   (`source` gains `+protocol-failsoft`). The proxy
   preserves the driver's path when forwarding, so protocols keep
   working end to end;
+- requested media shape the pick: prompt attachments (`files`) and
+  non-text message parts (`image`/`file`/audio/video) are detected per
+  turn and the resolver prefers the best-ranked model whose live-catalog
+  `capabilities.input` serves every requested modality (unknown
+  capabilities are fail-open). The virtual entry's `capabilities` sync
+  to the live pick each turn (the static registration advertises
+  `text`/`image`/`pdf`), and the status file records the turn's
+  `media`;
 - there is no mode gate — a virtual pick routes every turn regardless of
   the router-sync toggle (the toggle only gates the `routing.json`
   refresh);

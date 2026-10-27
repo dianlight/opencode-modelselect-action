@@ -638,6 +638,20 @@ class EndpointTokenTest(unittest.TestCase):
         self.assertIsNone(m._endpoint_token(""))
         self.assertIsNone(m._endpoint_token(None))
 
+    def test_google_per_model_routes(self):
+        self.assertEqual(
+            m._endpoint_token(
+                "https://opencode.ai/inference/google/v1beta/models/gemini-4-argon"
+            ),
+            "google",
+        )
+        self.assertEqual(
+            m._endpoint_token(
+                "https://opencode.ai/inference/go/google/v1beta/models/gemini-4-argon-contributor"
+            ),
+            "google",
+        )
+
     def test_endpoint_url_falls_back_to_canonical_base(self):
         endpoints = {
             "muse-spark-1.2": "https://opencode.ai/zen/v1/responses",

@@ -63,7 +63,24 @@ const DEPRECATED_MODEL_RE = /has\s+been\s+deprecated|is\s+deprecated|model\s+has
 // responses-only model (or vice versa). This is NOT quota exhaustion —
 // it must never latch — but a virtual session can recover by re-syncing
 // the virtual `api` to the pick's protocol and retrying once.
-const PROTOCOL_MISMATCH_RE = /model\s+does\s+not\s+support\s+this\s+protocol|modelprotocolunsupported/i;
+//
+// A wrong-route 404 is the same failure with less wording: the driver
+// pinned the session route before the per-turn re-point landed (first-turn
+// race, title/warming aux request, or a pick with no known endpoint token
+// such as a per-model Gemini route), so Zen answers `Provider request
+// failed with HTTP 404` with no model wording at all. On a virtual session
+// a 404 is virtually always routing, never quota — treat a 404 that
+// arrives with any model/provider/endpoint context as a mismatch so the
+// session re-syncs and retries once instead of sticking on a dead route.
+const PROTOCOL_MISMATCH_RE =
+  /model\s+does\s+not\s+support\s+this\s+protocol|modelprotocolunsupported|provider request failed with http 404|no such model|model .* does not exist/i;
+
+// A bare "HTTP 404" only counts with model-routing context — otherwise every
+// unrelated 404 (missing message fetch, bad URL) would look like a model
+// route miss. The haystack already flattens nested retry-hook shapes, so a
+// status-less send-time failure carrying the 404 in its message still hits.
+const BARE_404_RE = /(^|\D)404(\D|$)/;
+const ROUTE_CONTEXT_RE = /model|provider|endpoint|protocol|route|no such/i;
 
 /**
  * True when a failure is a wire-protocol mismatch rather than a model
@@ -121,12 +138,17 @@ function isProtocolMismatch(error, bodyText) {
   try {
     if (typeof error === 'string') {
       const text = bodyText === undefined ? error : `${error} ${bodyText ?? ''}`;
-      return PROTOCOL_MISMATCH_RE.test(text);
+      if (PROTOCOL_MISMATCH_RE.test(text)) return true;
+      return BARE_404_RE.test(text) && ROUTE_CONTEXT_RE.test(text);
     }
     if (!error || typeof error !== 'object') {
-      return PROTOCOL_MISMATCH_RE.test(String(bodyText ?? ''));
+      const text = String(bodyText ?? '');
+      if (PROTOCOL_MISMATCH_RE.test(text)) return true;
+      return BARE_404_RE.test(text) && ROUTE_CONTEXT_RE.test(text);
     }
-    return PROTOCOL_MISMATCH_RE.test(mismatchHaystack(error, bodyText));
+    const hay = mismatchHaystack(error, bodyText);
+    if (PROTOCOL_MISMATCH_RE.test(hay)) return true;
+    return BARE_404_RE.test(hay) && ROUTE_CONTEXT_RE.test(hay);
   } catch {
     return false;
   }

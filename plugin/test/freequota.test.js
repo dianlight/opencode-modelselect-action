@@ -154,6 +154,25 @@ describe('classifyFreeExhaustion', () => {
     assert.equal(isProtocolMismatch({ type: 'error', error: { type: 'other' } }), false);
     assert.equal(isProtocolMismatch(JSON.stringify(nested)), true);
   });
+
+  it('treats a wrong-route HTTP 404 with model context as a protocol mismatch (ses_e96f0168 shape)', () => {
+    // The warming/generation failure: `Provider request failed with HTTP
+    // 404` with no model wording — the model rode the wrong endpoint path.
+    assert.equal(isProtocolMismatch({ type: 'InvalidRequest', message: 'Provider request failed with HTTP 404' }), true);
+    assert.equal(isProtocolMismatch('Provider request failed with HTTP 404', 'model muse-spark not found'), true);
+    assert.equal(
+      isProtocolMismatch({ status: 404, message: 'model gemini-4-argon-contributor not found on this endpoint' }),
+      true,
+    );
+    // A context-free 404 (missing message fetch, bad URL) is NOT a model miss.
+    assert.equal(isProtocolMismatch({ status: 404, message: 'not found' }), false);
+    assert.equal(isProtocolMismatch('plain failure'), false);
+    // And it still never latches as quota exhaustion.
+    assert.deepEqual(classifyFreeFailure(404, 'Provider request failed with HTTP 404'), {
+      exhausted: false,
+      rateLimited: false,
+    });
+  });
 });
 
 describe('isFreeModelRef', () => {

@@ -197,7 +197,7 @@ describe('virtual provider registration', () => {
       assert.equal(free.modelID, 'auto-free-first');
       assert.equal(free.providerID, 'modelselect');
       assert.equal(free.name.length > 0, true);
-      assert.deepEqual(free.capabilities, { tools: true, input: ['text', 'image'], output: ['text'] });
+      assert.deepEqual(free.capabilities, { tools: true, input: ['text', 'image', 'pdf'], output: ['text'] });
       assert.deepEqual(free.variants, EXPECTED_VARIANTS, 'six thinking-level picker variants');
       assert.deepEqual(go.variants, EXPECTED_VARIANTS, 'both virtual models offer the levels');
       assert.deepEqual(free.time, { released: 0 });
@@ -1072,6 +1072,225 @@ describe('virtual protocol api (config endpoints map)', () => {
       };
       await seen.retry(r);
       assert.deepEqual(r.decision, { retry: false }, "hands-off sessions keep the host's decision");
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('a bare HTTP 404 with model context retries once like a protocol mismatch (ses_e96f0168 shape)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': { review: { go: 'opencode/gc', free: 'opencode/muse-spark-1.3-contributor-free' } },
+        endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+      });
+      const seen = await setupV2(iso.dir);
+      const e1 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      await seen.context(e1);
+      const mismatch = {
+        sessionID: 's1',
+        model: { ...FREE },
+        error: { type: 'InvalidRequest', message: 'Provider request failed with HTTP 404' },
+        attempt: 1,
+        decision: { retry: false },
+      };
+      await seen.retry(mismatch);
+      assert.deepEqual(mismatch.decision, { retry: true, delay: 0 }, 'wrong-route 404 retries once');
+      assert.deepEqual(
+        seen.switches,
+        [{ sessionID: 's1', model: { providerID: 'opencode', id: 'muse-spark-1.3-contributor-free' } }],
+        'wrong-route 404 fails soft onto the real pick',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+});
+
+describe('route refinement (unroutable endpoints + media)', () => {
+  const RANKED = {
+    'task-types': {
+      review: {
+        go: 'opencode-go/omen-alpha',
+        free: 'opencode/deepseek-v4.1-flash-free',
+        go_ranked: [
+          { model: 'opencode-go/omen-alpha', score: 96.0, blended_cost: null },
+          { model: 'opencode-go/gemini-4-argon-contributor', score: 95.1, blended_cost: 8.0 },
+          { model: 'opencode-go/grok-4.6', score: 91.2, blended_cost: 3.0 },
+          { model: 'opencode-go/longcat-2.0', score: 89.0, blended_cost: 0.525 },
+        ],
+        free_ranked: [{ model: 'opencode/deepseek-v4.1-flash-free', score: 86.7, blended_cost: 0.0 }],
+      },
+    },
+    endpoints: {
+      'grok-4.6': 'responses',
+      'longcat-2.0': 'chat',
+      'deepseek-v4.1-flash-free': 'chat',
+      'gemini-4-argon-contributor': 'google',
+    },
+  };
+
+  it('skips an endpoint-unknown top pick for the next routable ranked model', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, RANKED);
+      const picked = await resolveModel({
+        taskType: 'review',
+        opts: normalizeOptions({ tier: 'go' }),
+        cacheDir: CACHE(iso.dir),
+      });
+      assert.equal(picked.model, 'opencode-go/gemini-4-argon-contributor', 'omen (no endpoint) refined to gemini');
+      assert.equal(picked.endpoint, 'google');
+      assert.match(picked.source, /routed/);
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('keeps the top pick when it is routable and no media is requested', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, RANKED);
+      const picked = await resolveModel({
+        taskType: 'review',
+        opts: normalizeOptions({ tier: 'free' }),
+        cacheDir: CACHE(iso.dir),
+      });
+      assert.equal(picked.model, 'opencode/deepseek-v4.1-flash-free');
+      assert.deepEqual(picked.media, []);
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('steers a pdf request away from a text-only pick to a pdf-capable ranked model', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, RANKED);
+      const caps = (ref) =>
+        String(ref).includes('grok-4.6') ? ['text', 'image', 'pdf'] : ['text'];
+      const picked = await resolveModel({
+        taskType: 'review',
+        opts: normalizeOptions({ tier: 'go' }),
+        cacheDir: CACHE(iso.dir),
+        media: ['pdf'],
+        capabilitiesFor: caps,
+      });
+      assert.equal(picked.model, 'opencode-go/grok-4.6', 'omen skipped (endpoint), gemini skipped (text-only)');
+      assert.deepEqual(picked.media, ['pdf']);
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('keeps an unknown-capability pick (fail-open) when no ranked model is known-capable', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, RANKED);
+      const picked = await resolveModel({
+        taskType: 'review',
+        opts: normalizeOptions({ tier: 'go' }),
+        cacheDir: CACHE(iso.dir),
+        media: ['video'],
+        capabilitiesFor: () => null,
+      });
+      assert.equal(picked.model, 'opencode-go/gemini-4-argon-contributor', 'endpoint refinement only; unknown caps kept');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('detects media from file names and message parts', async () => {
+    const { detectMediaFromFiles, detectMediaFromParts, collectMedia } = require('../src/shared/select');
+    assert.deepEqual(detectMediaFromFiles(['shot.png', 'doc.pdf', 'note.txt']), ['image', 'pdf']);
+    assert.deepEqual(detectMediaFromFiles(['clip.mp4', 'voice.ogg']), ['video', 'audio']);
+    assert.deepEqual(detectMediaFromParts([{ type: 'text', text: 'hi' }]), []);
+    assert.deepEqual(detectMediaFromParts([{ type: 'image' }, { type: 'file', name: 'a.pdf' }]), [
+      'image',
+      'pdf',
+    ]);
+    assert.deepEqual(collectMedia({ files: ['a.png'], parts: [{ type: 'file', mime: 'audio/mpeg' }] }), [
+      'image',
+      'audio',
+    ]);
+  });
+
+  it('a google-route turn points the virtual entry at the google package + root', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, RANKED);
+      const seen = await setupV2(iso.dir, { tier: 'auto', token: 'probe-google-1', usageUrl: 'http://127.0.0.1:1/' });
+      // Production-shaped upstream base so the Google root is derivable.
+      seen.catalog.get('opencode-go').provider.settings.baseURL = 'https://opencode.ai/inference/go/openai/v1';
+      const e1 = {
+        sessionID: 's1',
+        model: { providerID: 'modelselect', id: 'auto-go-first' },
+        messages: [{ role: 'user', parts: [{ type: 'file', name: 'report.pdf' }] }],
+        agent: 'review',
+      };
+      await seen.context(e1);
+      const st = JSON.parse(fs.readFileSync(path.join(CACHE(iso.dir), 'status-s1.json'), 'utf8'));
+      assert.equal(st.model, 'opencode-go/gemini-4-argon-contributor', 'omen refined to gemini');
+      assert.deepEqual(st.media, ['pdf']);
+      const entry = seen.catalog.get('modelselect').models.get('auto-go-first');
+      assert.deepEqual(
+        entry.api,
+        { id: 'gemini-4-argon-contributor', type: 'aisdk', package: '@ai-sdk/google' },
+        'google driver package with the bare pick id',
+      );
+      assert.equal(
+        entry.settings.baseURL,
+        'https://opencode.ai/inference/go/google',
+        'native Google root (driver appends v1beta/models/<id>)',
+      );
+      // Unknown live capabilities keep the broad static default (fail-open).
+      assert.deepEqual(entry.capabilities, { tools: true, input: ['text', 'image', 'pdf'], output: ['text'] });
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('leaving a google pick drops the native Google root', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, RANKED);
+      const seen = await setupV2(iso.dir, { tier: 'auto', token: 'probe-google-2', usageUrl: 'http://127.0.0.1:1/' });
+      seen.catalog.get('opencode-go').provider.settings.baseURL = 'https://opencode.ai/inference/go/openai/v1';
+      const e1 = {
+        sessionID: 's1',
+        model: { providerID: 'modelselect', id: 'auto-go-first' },
+        messages: [],
+        agent: 'review',
+      };
+      await seen.context(e1);
+      const entry = () => seen.catalog.get('modelselect').models.get('auto-go-first');
+      assert.equal(entry().settings.baseURL, 'https://opencode.ai/inference/go/google', 'google turn sets the root');
+      // Same session, free-side pick next: the stale root must go.
+      seedCache(iso.dir, {
+        'task-types': {
+          review: {
+            go: 'opencode-go/grok-4.6',
+            free: 'opencode/longcat-free',
+            go_ranked: [{ model: 'opencode-go/grok-4.6', score: 91.2, blended_cost: 3.0 }],
+            free_ranked: [{ model: 'opencode/longcat-free', score: 70.0, blended_cost: 0.0 }],
+          },
+        },
+        endpoints: { 'grok-4.6': 'responses', 'longcat-free': 'chat' },
+      });
+      const e2 = {
+        sessionID: 's1',
+        model: { providerID: 'modelselect', id: 'auto-free-first' },
+        messages: [],
+        agent: 'review',
+      };
+      await seen.context(e2);
+      const free = seen.catalog.get('modelselect').models.get('auto-free-first');
+      assert.equal(free.settings, undefined, 'no stale Google root on the next pick');
+      assert.deepEqual(
+        free.api,
+        { id: 'longcat-free', type: 'aisdk', package: '@ai-sdk/openai-compatible' },
+        'chat pick back on the proxy route',
+      );
     } finally {
       iso.restore();
     }

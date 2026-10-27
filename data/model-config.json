@@ -4802,6 +4802,8 @@
     "qwen3.8-flash": "messages",
     "qwen3.7-plus": "messages",
     "kimi-k3.1-pro": "chat",
-    "iceman-contributor-free": "chat"
+    "iceman-contributor-free": "chat",
+    "gemini-4-argon": "google",
+    "gemini-4-argon-contributor": "google"
   }
 }

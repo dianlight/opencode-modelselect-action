@@ -99,7 +99,7 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce, loadConfig } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce, loadConfig, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
 const { syncRouting } = require('./shared/routing');
@@ -153,13 +153,32 @@ const FALLBACK_UPSTREAM = {
 // `auto` entry's `api` at the pick's protocol puts /responses-only picks
 // (e.g. muse-spark-1.3-*, GPT-6 Luna) on the right Zen endpoint instead of
 // inheriting the provider default chat/completions, which those models
-// reject with ModelProtocolUnsupported. Unknown/absent tokens keep the
-// provider default.
+// reject with ModelProtocolUnsupported. `google` additionally overrides
+// the entry's `settings.baseURL` to the provider's Google root (Google's
+// `:generateContent` paths live outside the OpenAI base the proxy
+// forwards to, so those picks dispatch natively). Unknown/absent tokens
+// (`systemone`, unmapped) keep the provider default — and the resolver
+// filters them out beforehand (see select.js `endpointRoutable`).
 const ENDPOINT_PACKAGES = {
   responses: '@ai-sdk/openai',
   messages: '@ai-sdk/anthropic',
   chat: '@ai-sdk/openai-compatible',
+  google: '@ai-sdk/google',
 };
+
+/**
+ * Google API root for a provider's OpenAI base. Per-model Google routes
+ * live beside the OpenAI base (`.../inference/google` /
+ * `.../inference/go/google`), and the driver appends its own
+ * `v1beta/models/<id>:...` path — so the entry base must be the root,
+ * not the full per-model URL. Returns null when the base has no
+ * recognized OpenAI root (then the pick stays on the proxy default).
+ */
+function googleBaseFor(upstreamBaseURL) {
+  const b = String(upstreamBaseURL ?? '').replace(/\/+$/, '');
+  if (b.endsWith('/openai/v1')) return b.slice(0, -'/openai/v1'.length) + '/google';
+  return null;
+}
 // Forced-retry arm window: a retry follows its failure within seconds, so
 // an arm older than this (consumed late) is stale and must not fire.
 const FREE_RETRY_TTL_MS = 60 * 1000;
@@ -360,6 +379,8 @@ async function setup(ctx) {
   });
   const rawOptions = ctx.options ?? {};
   const prompts = new Map(); // sessionID -> last prompt text
+  const promptFiles = new Map(); // sessionID -> last prompt file list (for media detection)
+  const lastMedia = new Map(); // sessionID -> last detected requested media (for aux/retry re-resolve)
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
@@ -370,6 +391,7 @@ async function setup(ctx) {
   const virtualIds = new Map(); // sessionID -> virtual model id (pins the preference)
   const lastVirtualPick = new Map(); // sessionID -> { providerID, id }: last resolved pick, for aux requests
   const upstream = new Map(); // providerID -> { baseURL, headers }: live-captured, refreshed per materialize
+  const liveCaps = new Map(); // "provider/bare" + bare -> live catalog input capabilities (media filter)
   const registrations = []; // provider/command transform registrations (disposed on cleanup)
   let proxy = null; // localhost forwarder; sessions dispatch through it, it forwards to Zen/Go
 
@@ -377,6 +399,26 @@ async function setup(ctx) {
   // headers (org id) per real provider. Runs inside every provider
   // transform replay, so the proxy always forwards to fresh values.
   // Unknown providers fall back to the live-verified bases (headers {}).
+  // Also snapshots live per-model `capabilities.input` for the media
+  // filter — the repo config carries no capabilities, so the live catalog
+  // is the only source. Unknown models stay fail-open (kept, not filtered).
+  function rememberCaps(models) {
+    try {
+      const list = models instanceof Map ? [...models.values()] : Array.isArray(models) ? models : [];
+      for (const m of list) {
+        if (!m || typeof m !== 'object') continue;
+        const bare = String(m.id ?? m.modelID ?? '').trim();
+        if (!bare) continue;
+        const input = m.capabilities && Array.isArray(m.capabilities.input) ? m.capabilities.input : null;
+        if (!input) continue;
+        const prov = String(m.providerID ?? '').trim();
+        liveCaps.set(bare.toLowerCase(), input);
+        if (prov) liveCaps.set(`${prov.toLowerCase()}/${bare.toLowerCase()}`, input);
+      }
+    } catch {
+      // never break setup
+    }
+  }
   function captureUpstream(editor) {
     try {
       if (typeof editor.get !== 'function') return;
@@ -389,9 +431,23 @@ async function setup(ctx) {
         const headers =
           info && info.headers && typeof info.headers === 'object' ? { ...info.headers } : {};
         upstream.set(providerID, { baseURL, headers });
+        if (live && live.models) rememberCaps(live.models);
       }
     } catch {
       // never break setup
+    }
+  }
+
+  /** Live-catalog `capabilities.input` for a "provider/model" ref, or null when unknown (fail-open). */
+  function liveCapabilitiesFor(modelRef) {
+    try {
+      const s = String(modelRef ?? '').trim().toLowerCase();
+      if (!s) return null;
+      if (liveCaps.has(s)) return liveCaps.get(s);
+      const bare = s.split('/').pop();
+      return liveCaps.get(bare) ?? null;
+    } catch {
+      return null;
     }
   }
 
@@ -419,7 +475,12 @@ async function setup(ctx) {
       modelID: id,
       providerID: VIRTUAL_PROVIDER,
       name,
-      capabilities: { tools: true, input: ['text', 'image'], output: ['text'] },
+      // Broad static input: the host capability-gates attachments off this
+      // list at prompt time (before the per-turn pick is known), while the
+      // per-turn `applyVirtualApi` sync narrows it to the live pick's real
+      // capabilities. The media filter in `resolveModel` then steers turns
+      // with pdf/image requests to a pick that actually serves them.
+      capabilities: { tools: true, input: ['text', 'image', 'pdf'], output: ['text'] },
       variants: THINK_VARIANTS.map((level) =>
         level === 'default'
           ? { id: level }
@@ -527,12 +588,20 @@ async function setup(ctx) {
       const next = current.map((m) => {
         if (!m || !VIRTUAL_MODELS.includes(m.id)) return m;
         const wanted = virtualApiWanted.get(m.id) || null;
-        const pkg = wanted && wanted.endpoint ? ENDPOINT_PACKAGES[wanted.endpoint] : undefined;
+        const pick0 = wanted || null;
+        const real0 = pick0 ? catalogModel(editor, pick0.providerID, pick0.id) : null;
+        // Live catalog first: a Zen-served model on a non-default endpoint
+        // carries its own package. Map fallback covers picks the live
+        // catalog does not describe.
+        const livePkg = real0 && typeof real0.package === 'string' && real0.package ? real0.package : null;
+        const pkg = livePkg || (wanted && wanted.endpoint ? ENDPOINT_PACKAGES[wanted.endpoint] : undefined);
         const patched = { ...m };
         if (pkg) {
-          // No url: inherits the provider base — the proxy. All three
-          // protocols share the one localhost base; the proxy preserves
-          // the driver's path when forwarding to the real base.
+          // No url: inherits the provider base — the proxy. All
+          // OpenAI-base protocols share the one localhost base; the proxy
+          // preserves the driver's path when forwarding to the real base.
+          // Google is the exception (see settings.baseURL below): its
+          // `:generateContent` paths live outside the OpenAI base.
           const api = { id: wanted.id, type: 'aisdk', package: pkg };
           const same =
             patched.api &&
@@ -547,14 +616,60 @@ async function setup(ctx) {
           delete patched.api; // restore the provider default protocol
           changed = true;
         }
+        // Google picks dispatch natively: point the entry at the
+        // provider's Google root (derived, never the full per-model URL —
+        // the driver appends its own `v1beta/models/<api.id>:...` path).
+        // Leaving a google pick drops a stale Google root so the next
+        // dispatch returns to the proxy base.
+        const wantBase =
+          wanted && wanted.endpoint === 'google' && pick0
+            ? googleBaseFor((upstream.get(pick0.providerID) || {}).baseURL)
+            : null;
+        const curBase =
+          patched.settings && typeof patched.settings.baseURL === 'string'
+            ? patched.settings.baseURL
+            : undefined;
+        if (wantBase) {
+          if (curBase !== wantBase) {
+            patched.settings = { ...(patched.settings || {}), baseURL: wantBase };
+            changed = true;
+          }
+        } else if (curBase && /\/google$/.test(curBase)) {
+          const s = { ...patched.settings };
+          delete s.baseURL;
+          if (Object.keys(s).length > 0) patched.settings = s;
+          else delete patched.settings;
+          changed = true;
+        }
         // Real-pick wire compatibility: mirror the real model's catalog
         // `compatibility` (reasoning field/requirement, max-tokens field) so
         // the virtual id does not hide it from the request serializer. See
         // compatibilityFor() for why a missing requireReasoning breaks
         // thinking upstreams (deepseek: "reasoning_content ... must be
         // passed back to the API").
-        const pick = wanted || null;
-        const real = pick ? catalogModel(editor, pick.providerID, pick.id) : null;
+        // Real-pick media capabilities: mirror the real model's catalog
+        // `capabilities.input` so the virtual id does not hide the pick's
+        // modalities from host gating/serialization (a text-only pick
+        // behind an image-advertising virtual id fails the turn). Unknown
+        // real capabilities keep the broad static default (fail-open).
+        // (`pick`/`real` resolved above for the package choice.)
+        const pick = pick0;
+        const real = real0;
+        const liveInput =
+          real && real.capabilities && Array.isArray(real.capabilities.input)
+            ? real.capabilities.input.filter((c) => typeof c === 'string' && c)
+            : null;
+        if (liveInput && liveInput.length > 0) {
+          const wantCaps = {
+            tools: Boolean(real.capabilities.tools ?? true),
+            input: [...liveInput],
+            output: Array.isArray(real.capabilities.output) ? [...real.capabilities.output] : ['text'],
+          };
+          if (JSON.stringify(patched.capabilities) !== JSON.stringify(wantCaps)) {
+            patched.capabilities = wantCaps;
+            changed = true;
+          }
+        }
         const compat = pick
           ? compatibilityFor(pick, real, (upstream.get(pick.providerID) || {}).baseURL)
           : {};
@@ -860,20 +975,21 @@ async function setup(ctx) {
   // previously applied pick (applied) and the last announced pick (covers
   // suggestOnly, where applied never moves); first turn counts as a switch.
   // Never throws — failures only log.
-  async function maybeAnnounce(event, text, { files = [], agent = undefined } = {}) {
+  async function maybeAnnounce(event, text, { files = [], agent = undefined, media } = {}) {
     // Returns the resolved pick (`{ picked, virtualId }`) when the turn
     // resolved one — even when deduped to silence — so the prompt-hook
     // pre-sync can reuse it instead of resolving (and Jev-refining) twice.
     // Null/undefined when nothing resolved (announce off, empty text, failure).
     if (opts.announce === 'off' || !text.trim() || !event.sessionID) return null;
     try {
+      const mediaReq = Array.isArray(media) ? media : collectMedia({ files });
       const { taskType, jev } = await resolveTask({ sessionID: event.sessionID, text, files, agent });
       // A virtual session announces its pinned preference (first turn can
       // still miss this: the prompt hook runs before the context hook
       // records the virtual id).
       const virtualId = virtualIds.get(event.sessionID);
       const effectiveOpts = virtualId ? { ...opts, autoPreference: preferenceForVirtualId(virtualId) } : opts;
-      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir });
+      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
       const key = picked.model;
       const resolved = { picked, virtualId };
       if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return resolved;
@@ -980,7 +1096,10 @@ async function setup(ctx) {
       const files = filesFromPrompt(event.prompt);
       const agent = agentFromPrompt(event.prompt) ?? event.agent;
       if (text.trim() && event.sessionID) prompts.set(event.sessionID, text);
-      const resolved = await maybeAnnounce(event, text, { files, agent });
+      if (event.sessionID) promptFiles.set(event.sessionID, files);
+      const mediaReq = collectMedia({ files });
+      if (event.sessionID) lastMedia.set(event.sessionID, mediaReq);
+      const resolved = await maybeAnnounce(event, text, { files, agent, media: mediaReq });
       // Pre-sync the virtual entry's wire protocol ahead of the context
       // hook: the runner may pin the dispatch route before the per-turn
       // re-point lands, so a synced api here gives the context reload a
@@ -1001,6 +1120,8 @@ async function setup(ctx) {
               taskType,
               opts: { ...opts, autoPreference: preferenceForVirtualId(virtualId) },
               cacheDir,
+              media: lastMedia.get(event.sessionID) ?? collectMedia({ files }),
+              capabilitiesFor: liveCapabilitiesFor,
             });
             const ref = splitModelRef(picked.model);
             pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
@@ -1060,15 +1181,23 @@ async function setup(ctx) {
       // fallback for non-virtual resolutions (announce, status reads).
       const prompt = prompts.get(sessionID) ?? promptTextFromMessages(event.messages);
       const assistantSnippet = lastAssistantSnippet(event.messages, 1000);
+      // Media requested this turn: prompt attachments (cached from the
+      // prompt hook — the context event carries no `files`) plus non-text
+      // message parts (images/files already in history).
+      const mediaReq = collectMedia({
+        files: promptFiles.get(sessionID) ?? [],
+        parts: event.messages,
+      });
+      if (sessionID) lastMedia.set(sessionID, mediaReq);
       const { taskType, jev } = await resolveTask({
         sessionID,
         text: prompt,
-        files: [],
+        files: promptFiles.get(sessionID) ?? [],
         agent: event.agent,
         assistantSnippet,
       });
       const effectiveOpts = { ...opts, autoPreference: preferenceForVirtualId(virtualId) };
-      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir });
+      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
       const ref = splitModelRef(picked.model);
       const key = `${ref.providerID}/${ref.id}`;
       writeStatus(cacheDir, sessionID ?? 'default', {
@@ -1082,6 +1211,7 @@ async function setup(ctx) {
         freeExhausted: picked.freeExhausted ?? null,
         source: picked.source,
         suggestOnly: opts.suggestOnly,
+        media: picked.media ?? mediaReq,
       });
       if (opts.suggestOnly) {
         // Trial mode: resolve everything but change nothing.
@@ -1094,7 +1224,7 @@ async function setup(ctx) {
         );
         // Still record the pick: aux requests (title/…) on a virtual
         // session need a dispatchable ref even in trial mode.
-        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null });
+        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq });
         return;
       }
       // The session stays on its virtual anchor for its whole life:
@@ -1102,7 +1232,7 @@ async function setup(ctx) {
       // past the proxy on the wrong driver) and nothing is ever persisted.
       // The `http.request` hook stamps the pick into routing headers +
       // body, and the proxy forwards it to the real base.
-      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null });
+      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq });
       // Point THIS virtual model's catalog `api` at the pick's protocol
       // before the runner resolves the model (per-model wanted state —
       // the two virtual models route independently).
@@ -1142,10 +1272,11 @@ async function setup(ctx) {
         virtualIds.set(sessionID, virtualId);
         let pick = lastVirtualPick.get(sessionID);
         if (!pick) {
+          const mediaReq = lastMedia.get(sessionID) ?? collectMedia({ files: promptFiles.get(sessionID) ?? [] });
           const { taskType } = await resolveTask({
             sessionID,
             text: prompts.get(sessionID) ?? '',
-            files: [],
+            files: promptFiles.get(sessionID) ?? [],
             agent: undefined,
             assistantSnippet: '',
           });
@@ -1153,9 +1284,11 @@ async function setup(ctx) {
             taskType,
             opts: { ...opts, autoPreference: preferenceForVirtualId(virtualId) },
             cacheDir,
+            media: mediaReq,
+            capabilitiesFor: liveCapabilitiesFor,
           });
           const ref = splitModelRef(picked.model);
-          pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
+          pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
           lastVirtualPick.set(sessionID, pick);
         }
         // Aux requests dispatch through the same route machinery — apply
@@ -1197,13 +1330,14 @@ async function setup(ctx) {
           : await resolveTask({
               sessionID,
               text: prompts.get(sessionID) ?? '',
-              files: [],
+              files: promptFiles.get(sessionID) ?? [],
               agent: undefined,
               assistantSnippet: '',
             });
-        const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir });
+        const mediaReq = lastMedia.get(sessionID) ?? (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []);
+        const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
         const ref = splitModelRef(picked.model);
-        pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
+        pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
         lastVirtualPick.set(sessionID, pick);
       }
       // Re-assert this virtual model's protocol (covers armed retries,
@@ -1315,15 +1449,20 @@ async function setup(ctx) {
       const err = event.error;
       // Wire-protocol mismatch on a virtual session: the virtual entry's
       // catalog `api` missed the pick's protocol (stale endpoints map,
-      // first-turn race, or a host that pins the session route before the
-      // per-turn re-point), so the driver dispatched on the wrong route
-      // and Zen answered ModelProtocolUnsupported. Re-sync the `api` to
-      // the pick's protocol AND move the session onto the real pick: the
+      // first-turn race, title/warming aux request, or a host that pins
+      // the session route before the per-turn re-point), so the driver
+      // dispatched on the wrong route and Zen answered
+      // ModelProtocolUnsupported — or a bare HTTP 404 when the model is
+      // not served on that endpoint at all. Re-sync the `api` to the
+      // pick's protocol AND move the session onto the real pick: the
       // virtual chat-default driver cannot speak a responses/messages
       // pick, while the real provider dispatches its own models natively
       // (a direct opencode/muse-spark-1.3-contributor-free turn succeeds
       // where the virtual dispatch 400s). The retried attempt then
-      // resolves its route against the real provider. This leaves virtual
+      // resolves its route against the real provider. The re-resolve
+      // below runs through the route refinement (unroutable endpoints and
+      // media-incompatible picks are skipped), so a retry after a 404 on
+      // a filtered pick lands on a dispatchable model. This leaves virtual
       // mode for the session (later turns are hands-off), but a working
       // real-model session beats a stuck virtual one. Never latched: a
       // routing miss is not quota exhaustion. One shot per window (see
@@ -1355,14 +1494,28 @@ async function setup(ctx) {
                 await resolveTask({
                   sessionID,
                   text: prompts.get(sessionID) ?? '',
-                  files: [],
+                  files: promptFiles.get(sessionID) ?? [],
                   agent: undefined,
                   assistantSnippet: '',
                 })
               ).taskType;
-          const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir });
+          const picked = await resolveModel({
+            taskType,
+            opts: { ...opts, autoPreference: preference },
+            cacheDir,
+            media:
+              lastMedia.get(sessionID) ??
+              (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []),
+            capabilitiesFor: liveCapabilitiesFor,
+          });
           const ref = splitModelRef(picked.model);
-          const pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
+          const pick = {
+            providerID: ref.providerID,
+            id: ref.id,
+            endpoint: picked.endpoint ?? null,
+            think: picked.think ?? null,
+            media: picked.media ?? lastMedia.get(sessionID) ?? [],
+          };
           lastVirtualPick.set(sessionID, pick);
           if (virtualId) await syncVirtualApiFor(pick, virtualId);
           // Fail soft off virtual mode: a re-synced catalog alone cannot
@@ -1396,6 +1549,7 @@ async function setup(ctx) {
               freeExhausted: prev.freeExhausted ?? picked.freeExhausted ?? null,
               source: `${picked.source}+protocol-failsoft`,
               suggestOnly: opts.suggestOnly,
+              media: picked.media ?? prev.media ?? [],
             });
           }
         } catch {

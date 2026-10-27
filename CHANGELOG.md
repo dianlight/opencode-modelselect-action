@@ -53,6 +53,41 @@
   mode); free-exhaustion arms the forced retry without moving the
   session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
+- Per-model Google routes (`.../google/v1beta/models/<id>`) now dispatch
+  natively instead of being filtered out: the maintenance script maps
+  them to a new `google` endpoint token (`data/model-config.json` gains
+  `gemini-4-argon-contributor: google`), the plugin points the virtual
+  entry's catalog `api` at `@ai-sdk/google` (live-catalog package wins
+  when present) and overrides `settings.baseURL` to the provider's
+  Google root derived from the live upstream base
+  (`.../inference[/go]/google` — the driver appends its own
+  `v1beta/models/<api.id>` path, so the top-scored `gemini-4-argon`
+  pick works on virtual sessions again instead of refining away). The
+  override is dropped when the session leaves a google pick. Verified
+  against the OpenCode binary's route allowlist (`@ai-sdk/google`).
+- Bare `Provider request failed with HTTP 404` hard-failing virtual turns
+  with no recovery: the warming/title/generation failure on
+  `ses_e96f0168affe1zz76NObqvP7Wh` (and siblings) was the same wrong-route
+  failure as `ModelProtocolUnsupported` but without the wording — the pick
+  (`gemini-4-argon-contributor`, top `go_ranked` in plan/review rows) has
+  no entry in the config `endpoints` map (per-model Google route), so the
+  virtual entry inherited the chat default and Zen 404d the dispatch.
+  `resolveModel` now filters same-tier ranked candidates to
+  proxy-routable endpoints (`chat`/`responses`/`messages`) before
+  dispatch, the 404-with-model-context shape counts as a protocol
+  mismatch (re-sync + one fail-soft retry, never latched), and the retry
+  re-resolve runs the same filter so it lands on a dispatchable model.
+  Unmapped `systemone` picks and the endpoint-less `omen-alpha` are
+  filtered the same way; an explicit `fallbackModel` is never filtered.
+- Virtual turns ignoring requested media: prompt attachments and non-text
+  message parts (image/pdf/audio/video) never reached `resolveModel`, so
+  a pdf/image turn could route to a text-only pick and fail on the wire
+  while the virtual entry statically advertised `image`. Media is now
+  detected per turn, the resolver prefers the best-ranked model whose
+  live-catalog `capabilities.input` serves every requested modality
+  (unknown capabilities are fail-open), the virtual entry's
+  `capabilities` sync to the live pick each turn, and the status file
+  records the turn's `media`.
 - The virtual models now carry the real pick's wire `compatibility`
   (`plugin/src/v2.js`, patched per turn next to `api`): the request
   serializer derives "must every replayed assistant message repeat its

@@ -47,6 +47,7 @@ describe('status file helpers', () => {
         'freeExhausted',
         'goOk',
         'jev',
+        'media',
         'model',
         'sessionID',
         'source',

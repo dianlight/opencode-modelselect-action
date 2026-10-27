@@ -243,6 +243,15 @@ const FALLBACK_ENDPOINTS = {
   'qwen3.7-max': 'messages',
   'qwen3.8-flash': 'messages',
   'jev-1.13-free': 'systemone',
+  'gemini-4-argon-contributor': 'google',
+  'gemini-4-argon': 'google',
+  'gemini-3-flash': 'google',
+  'gemini-3.1-pro': 'google',
+  'gemini-3.5-flash': 'google',
+  'gemini-3.5-flash-lite': 'google',
+  'gemini-3.6-flash': 'google',
+  'gemini-3.7-flash': 'google',
+  'gemini-3.8-flash': 'google',
 };
 function endpointFor(config, model) {
   if (!model) return null;
@@ -252,8 +261,182 @@ function endpointFor(config, model) {
   return typeof FALLBACK_ENDPOINTS[id] === 'string' ? FALLBACK_ENDPOINTS[id] : null;
 }
 
+/**
+ * Wire protocols the virtual dispatch can actually serve. `chat`,
+ * `responses` and `messages` share the provider's OpenAI base through the
+ * localhost proxy; `google` dispatches natively at the provider's Google
+ * root (per-model `.../google/v1beta/models/<id>` routes — see v2.js
+ * `googleBaseFor` + ENDPOINT_PACKAGES). `systemone` needs a different base
+ * with no known package mapping, and `null` (unknown — e.g. `omen-alpha`
+ * with no endpoint at all) inherits the chat default: both are filtered
+ * to the next ranked model (see refinePickForRoute). An explicit
+ * `fallbackModel` always wins.
+ */
+const ROUTABLE_ENDPOINTS = new Set(['chat', 'responses', 'messages', 'google']);
+function endpointRoutable(config, model) {
+  return ROUTABLE_ENDPOINTS.has(endpointFor(config, model));
+}
+
+// Requested-media detection (pure, testable). File entries arrive as
+// basename-ish strings (see v2 filesFromPrompt); message parts as OpenCode
+// `{ type, name?, url?, mime? }` shapes plus legacy `{ parts }`/`content`.
+const MEDIA_BY_EXT = {
+  png: 'image',
+  jpg: 'image',
+  jpeg: 'image',
+  gif: 'image',
+  webp: 'image',
+  svg: 'image',
+  bmp: 'image',
+  avif: 'image',
+  heic: 'image',
+  pdf: 'pdf',
+  mp3: 'audio',
+  wav: 'audio',
+  ogg: 'audio',
+  flac: 'audio',
+  m4a: 'audio',
+  aac: 'audio',
+  opus: 'audio',
+  mp4: 'video',
+  mov: 'video',
+  webm: 'video',
+  mkv: 'video',
+  avi: 'video',
+};
+function extOf(s) {
+  const m = /\.([a-z0-9]{2,5})(?:[?#].*)?$/i.exec(String(s ?? '').trim());
+  return m ? m[1].toLowerCase() : '';
+}
+function detectMediaFromFiles(files) {
+  const out = new Set();
+  for (const f of Array.isArray(files) ? files : []) {
+    if (typeof f !== 'string' || !f) continue;
+    // MIME-ish strings ("application/pdf", "image/png") work too.
+    const mime = /^([a-z]+)\//i.exec(f);
+    if (mime) {
+      const k = mime[1].toLowerCase();
+      if (k === 'image') out.add('image');
+      else if (k === 'audio') out.add('audio');
+      else if (k === 'video') out.add('video');
+      else if (/pdf/i.test(f)) out.add('pdf');
+      continue;
+    }
+    const t = MEDIA_BY_EXT[extOf(f)];
+    if (t) out.add(t);
+    else if (/pdf/i.test(f)) out.add('pdf');
+  }
+  return [...out];
+}
+function detectMediaFromParts(parts) {
+  const out = new Set();
+  const walk = (p) => {
+    if (p === undefined || p === null) return;
+    if (typeof p === 'string') return;
+    if (Array.isArray(p)) {
+      p.forEach(walk);
+      return;
+    }
+    if (typeof p !== 'object') return;
+    const t = String(p.type ?? '').toLowerCase();
+    if (t === 'image' || t === 'vision') {
+      out.add('image');
+      return;
+    }
+    if (t === 'audio') {
+      out.add('audio');
+      return;
+    }
+    if (t === 'video' || t === 'movie') {
+      out.add('video');
+      return;
+    }
+    if (t === 'file' || t === 'attachment' || t === 'document' || t === 'pdf') {
+      const mime = String(p.mime ?? p.mimeType ?? p.mediaType ?? '');
+      if (/^image\//i.test(mime)) out.add('image');
+      else if (/pdf/i.test(mime)) out.add('pdf');
+      else if (/^audio\//i.test(mime)) out.add('audio');
+      else if (/^video\//i.test(mime)) out.add('video');
+      else {
+        const cand = String(p.name ?? p.filename ?? p.url ?? p.uri ?? p.path ?? '');
+        const hit = MEDIA_BY_EXT[extOf(cand.split('?')[0])];
+        if (hit) out.add(hit);
+        else if (/pdf/i.test(cand)) out.add('pdf');
+      }
+      return;
+    }
+    if (p.parts) walk(p.parts);
+    if (p.content) walk(p.content);
+    if (p.data) walk(p.data);
+  };
+  walk(parts);
+  return [...out];
+}
+/** Union of requested non-text media across prompt files + message parts. */
+function collectMedia({ files, parts } = {}) {
+  return [...new Set([...detectMediaFromFiles(files), ...detectMediaFromParts(parts)])];
+}
+
+/**
+ * True when `model` may serve `media` (e.g. `['image']`, `['pdf']`).
+ * `capabilitiesFor(modelRef)` returns the live catalog `input` array or
+ * null when unknown — unknown is fail-open (kept), only a KNOWN
+ * incompatible model is skipped. With no media requested everything passes.
+ */
+function modelSupportsMedia(model, media, capabilitiesFor) {
+  if (!Array.isArray(media) || media.length === 0) return true;
+  let caps = null;
+  try {
+    caps = capabilitiesFor ? capabilitiesFor(model) : null;
+  } catch {
+    return true;
+  }
+  if (!caps) return true;
+  const have = new Set((Array.isArray(caps) ? caps : []).map((c) => String(c).toLowerCase()));
+  return media.every((m) => {
+    const k = String(m).toLowerCase();
+    if (have.has(k)) return true;
+    if (k === 'image' && have.has('vision')) return true;
+    return false;
+  });
+}
+
+/**
+ * Route refinement: keep `model` when its endpoint is proxy-routable AND
+ * it supports the requested `media`; otherwise walk the same tier's
+ * best-to-worst ranking for the first candidate that does (skipping
+ * freshly latched models and, under maxCost, provably over-budget rows —
+ * unknown cost is fail-open). Never throws without fallback: no suitable
+ * candidate keeps the original pick (the retry fail-soft still gets its
+ * chance). An explicit `fallbackModel` pick is never refined here.
+ */
+function refinePickForRoute(entry, tier, model, { config, cacheDir, media, capabilitiesFor, maxCost, verbose } = {}) {
+  if (!entry || !model) return model;
+  const ranked = entry[`${tier}_ranked`];
+  if (!Array.isArray(ranked) || ranked.length === 0) return model;
+  if (endpointRoutable(config, model) && modelSupportsMedia(model, media, capabilitiesFor)) return model;
+  const reason = !endpointRoutable(config, model)
+    ? `endpoint=${endpointFor(config, model) ?? 'unknown'}`
+    : `media=${(Array.isArray(media) ? media : []).join('+')}`;
+  for (const row of ranked) {
+    const cand = row && typeof row.model === 'string' ? row.model : '';
+    if (!cand || cand === model) continue;
+    if (!endpointRoutable(config, cand)) continue;
+    if (!modelSupportsMedia(cand, media, capabilitiesFor)) continue;
+    if (isFreeQuotaFresh(cacheDir, undefined, cand)) continue;
+    if (maxCost !== null && maxCost !== undefined) {
+      const c = row.blended_cost;
+      if (typeof c === 'number' && Number.isFinite(c) && c > maxCost) continue;
+    }
+    if (verbose) console.log(`[modelselect] route-refine (${reason}) ${model} → ${cand}`);
+    return cand;
+  }
+  if (verbose) console.log(`[modelselect] route-refine: no supporting candidate, keeping ${model} (${reason})`);
+  return model;
+}
+
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
-async function resolveModel({ taskType, opts, cacheDir }) {
+async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }) {
   const { config, source: source0, stale } = await loadConfig(opts, cacheDir);
   let source = source0;
   const { key, entry } = entryFor(config, taskType);
@@ -351,7 +534,28 @@ async function resolveModel({ taskType, opts, cacheDir }) {
       }
     }
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, endpoint: endpointFor(config, model) };
+  // Route refinement (protocol + media): keep `model` when its endpoint is
+  // proxy-routable AND it supports the requested `media`; otherwise walk
+  // the same tier's ranking for the first candidate that does. An explicit
+  // `fallbackModel` pick is never refined (the user named it; the retry
+  // fail-soft still gets its chance on a real failure).
+  const requestedMedia = Array.isArray(media) ? media.filter((m) => typeof m === 'string' && m) : [];
+  const isFallback = Boolean(opts.fallbackModel) && model === opts.fallbackModel;
+  if (!isFallback && (requestedMedia.length > 0 || !endpointRoutable(config, model))) {
+    const refined = refinePickForRoute(entry, tier, model, {
+      config,
+      cacheDir,
+      media: requestedMedia,
+      capabilitiesFor,
+      maxCost: opts.maxCost,
+      verbose: opts.verbose,
+    });
+    if (refined !== model) {
+      model = refined;
+      source = `${source}+routed`;
+    }
+  }
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, endpoint: endpointFor(config, model), media: requestedMedia };
 }
 
 module.exports = {
@@ -363,5 +567,12 @@ module.exports = {
   splitModelRef: splitModelRefStrict,
   checkGoQuota,
   clearQuotaCache,
+  endpointFor,
+  endpointRoutable,
+  detectMediaFromFiles,
+  detectMediaFromParts,
+  collectMedia,
+  modelSupportsMedia,
+  refinePickForRoute,
   DEFAULT_CONFIG_URL,
 };
