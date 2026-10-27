@@ -149,3 +149,105 @@ model_scores:
     overall: 30.0             # no LiveBench/AA data; LM Market Cap bottom 1% (433/436) on 4 benchmarks
     reasoning: 40.0           # mandatory reasoning with effort adjustment; no GPQA/AIME data; estimated
     vision: 38.0              # multimodal: text+image input confirmed; no vision benchmark data
+  beam-free:
+    coding: 58.0             # SWE-bench Verified 81.6, Terminal-Bench 2.1 80.1, DeepSWE 43.3, SWE-bench Pro 66.1 (BenchLM / HF card, dual-corroborated); discounted vs longcat-2.0 70.0 and kimi-k3 67.5 for DeepSWE-centric coding
+    instruction_following: 79.6  # IFBench 79.6 (Reflection model card via BenchLM, dual-corroborated)
+    overall: 56.5             # BenchLM overall 56.51 (#65/993)
+    reasoning: 76.0           # GPQA-D 90.6, AA-LCR 78.2, HLE w/o tools 36.0 (BenchLM / HF card); discounted vs kimi-k3 93.5->~90 composite reasoning
+    vision: 5.0               # text-only; no image input (Reflection Beam is text-in/text-out)
+  deepseek-v4.1-flash:
+    coding: 77.0             # DeepSWE 77.0, SWE-bench Verified (model card), CyberGym 88.1, Terminal-Bench 2.1 90.6 (HF card + BenchLM dual-corroborated); discounted for DeepSWE-centric scoring
+    instruction_following: 80.0  # estimate: deepseek-v4-flash IF 69.4, v4.1 significantly improved; consistent with AA-Omniscience Accuracy 46.4 and HLE 42.6; no IFBench row
+    overall: 65.9             # BenchLM overall 65.86 (#36/993)
+    reasoning: 87.0           # GPQA-D 90.9, AA-LCR 84.0, HLE 42.6 (HF card + BenchLM, triple-corroborated); discounted for HLE weakness
+    vision: 55.0              # multimodal text+image (HF tags); AA-MMMU-Pro 77.0, ParseBench 64.6, ExtractBench 87.1 (dual-corroborated); conservative multimodal baseline ~55
+  deepseek-v4.1-flash-free:
+    coding: 72.0             # free tier of deepseek-v4.1-flash; slight reduction vs paid (cf. mimo-v2.6-flash-free 71.0 vs flash 75.0)
+    instruction_following: 75.0  # free tier estimate; deepseek-v4.1-flash IF ~80, free tier reduction
+    overall: 62.0             # free tier estimate; deepseek-v4.1-flash 65.9, free tier reduction
+    reasoning: 83.0           # free tier estimate; deepseek-v4.1-flash 87.0, free tier reduction
+    vision: 50.0              # free tier estimate; multimodal text+image (same architecture as paid)
+  flint-40b-free:
+    coding: 72.0             # SWE-bench Pro v2 89.7, SWE-bench Verified 74.2, Terminal-Bench 2.1 54.9 (Recursive self-report via HF/Ollama, single vendor; MarkTechPost + Ollama dual-corroborate raw numbers); discounted for self-reported SWE-bench Pro outlier vs verified-only models
+    instruction_following: 65.0  # unverified single source: no IF data; estimate based on coding-first model with strong agentic performance
+    overall: 63.0             # composite ~ mean of subscores; consistent with other fast MoE coding models
+    reasoning: 70.0           # unverified single source: no GPQA/AIME data; estimate: strong SWE performance implies solid reasoning; discounted for narrow coding focus
+    vision: 5.0               # text-only; coding model, no image input (Recursive Flint is text-in/text-out)
+  gemini-4-argon:
+    coding: 77.9             # DeepSWE 77.9, FrontierSWE v2 55.0, AA-SciCode 61.8 (Google model card + BenchLM + AA, triple-corroborated)
+    instruction_following: 82.0  # Gray Swan IPI 0.7% at 15 attempts (Google model card via BenchLM); extremely strong IF; consistent with Vals Index 68.9 leadership
+    overall: 82.7             # BenchLM overall 82.72 (#5/993)
+    reasoning: 90.0           # GPQA-D (not shown separately but AA-HLE 57.1, ARC-AGI-1 98.5, ARC-AGI-2 91.3), AA-LCR 79.7; triple-corroborated across Google card/AA/ARC Prize
+    vision: 70.0              # multimodal text+image+video+audio (Google model card); LVBench 91.7, Chartography 71.6, Design Arena 1314; conservative vs gemini-3.1-pro ~74
+  gpt-6-luna:
+    coding: 66.6             # DeepSWE 66.6, AA-SciCode 54.6 (OpenAI launch post + AA, dual-corroborated)
+    instruction_following: 72.0  # unverified single source: no IFBench row; estimate: GPT-line IF precedent (gpt-5.5 73.8, gpt-5.5-high 76.0); Luna is value tier
+    overall: 66.4             # BenchLM overall 66.4 (#33/993)
+    reasoning: 84.0           # AA-LCR 83.3, ARC-AGI-1 86.7, ARC-AGI-2 59.3 (BenchLM + ARC Prize, dual-corroborated); discounted for weak ARC-AGI-2
+    vision: 55.0              # multimodal text+image (OpenAI model card); ExtractBench 91.01, ParseBench 64.3, AA-MMMU-Pro 79.7 (dual-corroborated); conservative vs gpt-5.5 ~70.7
+  grok-4.6:
+    coding: 66.0             # DeepSWE 65.9, AA-SciCode 56.5, VulcanBench 87.0 (xAI post + BenchLM + VulcanBench, triple-corroborated)
+    instruction_following: 70.0  # unverified single source: Gray Swan IPI 51.8% at 15 attempts (Google chart via BenchLM); moderate IF
+    overall: 67.3             # BenchLM overall 67.34 (#27/993)
+    reasoning: 86.0           # AA-GPQA Diamond 94.9, AA-LCR 80.3, ARC-AGI-1 87.0 (AA + ARC Prize, triple-corroborated)
+    vision: 50.0              # multimodal text+image (xAI docs); Design Arena 1288; conservative multimodal baseline
+  grok-4.7:
+    coding: 71.0             # DeepSWE 71.0, AA-SciCode 57.4 (xAI post + AA, dual-corroborated)
+    instruction_following: 72.0  # unverified single source: no IFBench row; estimate: slight improvement over grok-4.6 IF
+    overall: 68.0             # estimate: between grok-4.6 (67.34) and kimi-k3 (70.09); better DeepSWE than 4.6 but lower AA-LCR
+    reasoning: 87.0           # AA-LCR 76.7, ARC-AGI-1 89.5, AA-HLE 43.1 (AA + ARC Prize, dual-corroborated)
+    vision: 48.0              # multimodal text+image (xAI docs); Design Arena 1253; slightly below grok-4.6
+  iceman-contributor-free:
+    coding: 30.0             # stealth model (Oct 2026); StealthMark 19.2/100 composite; conservative estimate for coding subset
+    instruction_following: 35.0  # stealth model; no IF data; StealthMark shows below-most-models performance
+    overall: 19.0             # StealthMark 19.2/100 (stealthmodels.com, Oct 2026); rank 45/51
+    reasoning: 25.0           # StealthMark composite; below most models on all tests
+    vision: 5.0               # text-only (modelbenchmark.io confirms text input only); no vision encoder
+  kimi-k3:
+    coding: 67.5             # DeepSWE 67.5, AA-SciCode 59.5, FrontierSWE 81.2 (Moonshot blog + AA, dual-corroborated); discounted for self-reported FrontierSWE
+    instruction_following: 78.0  # Gray Swan IPI 52.7% at 15 attempts (Google chart via BenchLM); strong IF
+    overall: 70.1             # BenchLM overall 70.09 (#16/993)
+    reasoning: 90.0           # GPQA-D 93.5, AA-LCR 88.7, HLE 56.0 (Moonshot blog + AA, dual-corroborated)
+    vision: 65.0              # multimodal text+image (Moonshot blog); MMMU-Pro 81.6, ExtractBench 83.2, CharXiv 91.3 (dual-corroborated)
+  kimi-k3.1-pro:
+    coding: 75.5             # DeepSWE 75.5, AA-SciCode 60.8 (Moonshot blog + AA, dual-corroborated)
+    instruction_following: 80.0  # unverified single source: no IFBench row; estimate: improvement over kimi-k3 IF 78
+    overall: 72.0             # estimate: above kimi-k3 (70.1) based on better DeepSWE and GPQA; BenchLM unranked
+    reasoning: 91.0           # GPQA-D 94.2, AA-LCR 86.3, HLE 70.0 (Moonshot blog + AA, dual-corroborated)
+    vision: 72.0              # multimodal text+image (Moonshot blog); MMMU-Pro 84.1, AA-MMMU-Pro 83.9, CharXiv 93.4 (dual-corroborated)
+  mimo-v2.6-pro:
+    coding: 72.0             # DeepSWE 71.9, AA-SciCode 60.9, CyberGym 94.0 (Xiaomi report + AA, dual-corroborated)
+    instruction_following: 76.0  # unverified single source: no IFBench row; estimate: strong agentic performance implies solid IF
+    overall: 73.6             # BenchLM overall 73.63 (#13/993)
+    reasoning: 88.0           # AA-LCR 86.3, AA-HLE 49.4, AA-Intelligence 46.3 (Xiaomi report + AA, dual-corroborated)
+    vision: 55.0              # multimodal text+image+audio+video (Xiaomi); Design Arena 1306; conservative baseline
+  muse-spark-1.2-contributor:
+    coding: 59.3             # DeepSWE 59.3, SWE-bench (Vals) 86.6, AA-SciCode 57.4 (Meta + Vals + AA, triple-corroborated); discounted for self-reported SWE-bench
+    instruction_following: 74.0  # unverified single source: no IFBench row; estimate: Muse-line IF precedent
+    overall: 66.0             # BenchLM overall 66.03 (#35/993)
+    reasoning: 83.0           # AA-LCR 79.0, AA-GPQA Diamond 90.4, MMLU-Pro 88.3 (Vals + AA, dual-corroborated)
+    vision: 55.0              # multimodal text+image+video+pdf+audio (Meta); Design Arena 1311; conservative baseline
+  muse-spark-1.3-contributor:
+    coding: 75.4             # DeepSWE 75.4, AA-SciCode 58.8 (Meta + AA, dual-corroborated)
+    instruction_following: 79.0  # Gray Swan IPI 15.9% at 15 attempts (Google chart via BenchLM); moderate IF, improved over 1.2
+    overall: 69.0             # estimate: above muse-spark-1.2 (66.0) based on better DeepSWE; BenchLM unranked
+    reasoning: 87.0           # AA-LCR 83.0, AA-GPQA Diamond 93.5, AA-HLE 48.7 (AA + BenchLM, dual-corroborated)
+    vision: 60.0              # multimodal text+image+video+pdf+audio (Meta); Design Arena 1355; improved over 1.2
+  qwen3.8-flash:
+    coding: 59.0             # DeepSWE 58.7, AA-SciCode 50.6, SWE-bench Pro 62.5 (HF card + AA, dual-corroborated)
+    instruction_following: 81.3  # IFBench 81.3 (Qwen HF card via BenchLM, dual-corroborated)
+    overall: 62.9             # BenchLM overall 62.88 (#47/993)
+    reasoning: 86.0           # GPQA-D 91.7, AA-LCR 79.7, HLE 35.9 (HF card + AA, dual-corroborated)
+    vision: 60.0              # multimodal text+image (Qwen); MMMU-Pro 79.8, MathVision 90.6, CharXiv 90.6, AA-MMMU-Pro 79.8 (dual-corroborated)
+  qwen3.8-max:
+    coding: 60.0             # DeepSWE 56.6, SWE-bench Pro 67.7 (Qwen blog, single vendor); discounted for self-reported
+    instruction_following: 82.8  # IFBench 82.8 (Qwen blog via BenchLM, dual-corroborated)
+    overall: 71.0             # estimate: BenchLM 69.1; strong knowledge work justifies bump
+    reasoning: 90.0           # GPQA-D 92.6, MRCRv2 92.9, MMLU-Pro 88.6 (Vals + Qwen blog, dual-corroborated)
+    vision: 65.0              # multimodal text+image (Qwen); MMMU-Pro 82.3, MathVision 95.2, CharXiv 93.5, ScreenSpot Pro 84.5 (dual-corroborated)
+  step-5-preview:
+    coding: 68.0             # DeepSWE 67.7, SciCode 58.9, ProgramBench 80.5 (StepFun blog, single vendor); discounted for self-reported ProgramBench
+    instruction_following: 75.0  # unverified single source: no IFBench row; estimate: solid agentic IF
+    overall: 69.3             # BenchLM overall 69.29 (#20/993)
+    reasoning: 90.0           # GPQA-D 93.5, AA-LCR 88.3, HLE 46.5 (StepFun blog + AA, dual-corroborated)
+    vision: 50.0              # multimodal text+image (StepFun); MMMU-Pro 76.0, AA-MMMU-Pro 76.4 (dual-corroborated)
