@@ -99,6 +99,16 @@ class FetchHelpersTest(unittest.TestCase):
         with patch.object(m, "fetch_text", return_value="primary"):
             self.assertEqual(m.fetch_livebench_csv("2024_01_01"), "primary")
 
+    def test_discover_v2_releases_does_not_depend_on_bundle_variable_name(self):
+        html = '<script src="./static/js/main.4228bafc.js"></script>'
+        js = 'const releases=["20261014","20261025"];'
+
+        def fake(url, timeout=15):
+            return html if url == f"{m.LIVEBENCH_BASE}/" else js
+
+        with patch.object(m, "fetch_text", side_effect=fake):
+            self.assertEqual(m._discover_v2_releases(), ["20261025", "20261014"])
+
 
 class HtmlTableParserTest(unittest.TestCase):
     def test_extracts_tables(self):

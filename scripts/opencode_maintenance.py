@@ -84,7 +84,7 @@ LIVEBENCH_GITHUB_IO_RAW_BASE = (
 
 # LiveBench 2.0 data: served from livebench.ai/data/<release>/table.csv
 # Release IDs are YYYYMMDD (no underscores). The release list is hardcoded
-# in the site's JS bundle as _e=["20261014"].
+# in the site's JS bundle as an array of YYYYMMDD strings.
 LIVEBENCH_V2_DATA_BASE = "https://livebench.ai/data"
 
 # v2 subscore aliases: when a v1 subscore is requested for a v2 model,
@@ -384,9 +384,12 @@ def _discover_v2_releases() -> list[str]:
     js = fetch_text(f"{LIVEBENCH_BASE}{m.group(1)}")
     if not js:
         return []
-    # _e=["20261014", "20261101", ...] — may also be empty _e=[]
-    m = re.search(r'_e=\[((?:"\d{8}",?\s*)*)\]', js)
-    if not m or not m.group(1).strip():
+    # The minified bundle's variable name changes between releases (for
+    # example, `_e` became `Yt`), so match the date array rather than a
+    # particular generated identifier. An empty array is valid but means no
+    # releases are published.
+    m = re.search(r'\[((?:"\d{8}",?\s*)+)\]', js)
+    if not m:
         return []
     ids = re.findall(r'"(\d{8})"', m.group(1))
     return list(reversed(ids))  # newest first
