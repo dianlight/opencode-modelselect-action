@@ -1278,10 +1278,12 @@ function renderShell(data) {
       { id: 'extension', label: 'Extension' },
       { id: 'models', label: 'Models' }
     ],
-    activeId: 'plugin',
+    activeId: activeTabId,
     onChange: function (id) {
       // Commit the selection back: without this the kit keeps thinking
-      // 'plugin' is active and stops firing onChange for it.
+      // 'plugin' is active and stops firing onChange for it. The module
+      // level copy survives re-renders so a later ready keeps the tab.
+      activeTabId = id;
       tabs.update({ activeId: id });
       panes.plugin.hidden = id !== 'plugin';
       panes.extension.hidden = id !== 'extension';
@@ -1324,6 +1326,7 @@ function run() {
       globalPaths: parts[4],
       latch: parts[5]
     });
+    shellReady = true;
   }, function (err) {
     var root = $('root');
     clearNode(root);
@@ -1340,6 +1343,14 @@ function run() {
   });
 }
 
+// The host can push `ready` again mid-session (fresh snapshots while a
+// session runs). Rebuilding the shell then would yank the user back to
+// the Plugin tab and wipe unsaved edits — so the shell renders once and
+// later ready events only refresh the theme. Reopen the panel to reload
+// from disk after switching projects.
+var shellReady = false;
+var activeTabId = 'plugin';
+
 function mount() {
   mountStyles();
   try {
@@ -1349,7 +1360,8 @@ function mount() {
           applyHostReady(ctx, document.documentElement);
         }
       } catch (e) { /* theme is best-effort */ }
-      run();
+      if (!shellReady) run();
+      else fitHeight();
     });
   } catch (e) {
     var root = $('root');

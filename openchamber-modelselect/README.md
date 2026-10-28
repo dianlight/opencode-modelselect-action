@@ -234,6 +234,11 @@ what is already declared in `package.json`):
   so outright: when no row carries capability data it shows how to
   refresh the plugin cache).
 
+  The shell renders once: later host `ready` snapshots (pushed while a
+  session runs) only refresh the theme, so the active tab and unsaved
+  edits survive. Reopen the panel to reload from disk after switching
+  projects.
+
 `test/panel-frame.test.cjs` asserts hello, the seeded form values, the
 merge-preserving save, the blank-secret behavior, the missing-entry and
 unparseable-config states, and the extension-tab writes.

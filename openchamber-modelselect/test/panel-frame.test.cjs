@@ -620,4 +620,29 @@ describe('panel frame', () => {
     assert.match(textOf(frame.root), /No capability data in the plugin cache/);
     assert.match(textOf(frame.root), /model-config-cache\.json/);
   });
+
+  it('keeps the tab and unsaved edits when ready fires again', async () => {
+    // The host pushes fresh snapshots while a session runs; those must
+    // not rebuild the shell (and yank the user back to Plugin).
+    const frame = loadFrame({ files: fixtureFiles({ [MANAGED]: MANAGED_OBJECT }) });
+    await frame.ready();
+
+    findTab(frame.root, 'models').click();
+    await frame.settle();
+    assert.match(textOf(frame.root), /Save plugin settings/); // plugin form mounted
+    findTab(frame.root, 'plugin').click();
+    await frame.settle();
+    setField(frame.root, 'historyChars', '3000'); // unsaved edit
+
+    await frame.ready(); // second ready, as mid-session snapshots do
+    assert.equal(findTab(frame.root, 'plugin').attrs['aria-selected'], 'true');
+    assert.equal(fieldInput(frame.root, 'historyChars').value, '3000');
+    assert.equal(findButton(frame.root, 'Save plugin settings').disabled, false);
+
+    findTab(frame.root, 'extension').click();
+    await frame.settle();
+    await frame.ready();
+    assert.equal(findTab(frame.root, 'extension').attrs['aria-selected'], 'true');
+    assert.match(textOf(frame.root), /Save extension settings/);
+  });
 });

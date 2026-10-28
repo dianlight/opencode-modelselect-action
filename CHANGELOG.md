@@ -30,6 +30,10 @@
   assuming it shares the provider's default OpenAI route. This fixes the
   Go Gemini 4 Argon 404 and routes Claude/Anthropic Messages models through
   their published `inference/anthropic/v1` endpoints.
+- Settings panel: the shell renders once — later host `ready` snapshots
+  no longer rebuild the panel, so mid-session updates can't yank the tab
+  back to Plugin or wipe unsaved edits (reopen the panel to reload
+  after switching projects).
 - Settings panel: the Plugin tab commits its tab selection now, so it
   stays selectable after visiting the Extension tab; the plugin Save
   button is disabled until the form differs from the saved values
