@@ -16,6 +16,7 @@ const os = require('node:os');
 const path = require('node:path');
 const {
   USAGE_LIMITS_BASENAME,
+  SNAPSHOT_MAX_AGE_MS,
   usageLimitsFile,
   readUsageLimits,
   writeUsageLimits,
@@ -24,6 +25,12 @@ const {
   usagePorts,
   fetchLimitsSnapshot,
   refreshUsageLimits,
+  clearUsageVeto,
+  snapshotUsable,
+  worstWindow,
+  anyBudgetLimited,
+  goSoftVeto,
+  goVetoFromSnapshot,
 } = require('../src/shared/usage');
 
 let dir;
@@ -180,5 +187,96 @@ describe('fetchLimitsSnapshot', () => {
       'http://127.0.0.1:5001/api/experimental/usage/limits',
       'http://127.0.0.1:4096/api/experimental/usage/limits',
     ]);
+  });
+});
+
+describe('usage veto signals', () => {
+  const freshGo = (monthly, extra) => ({
+    fetchedAt: 100000,
+    source: 'limits',
+    go: { monthly, rolling: null, weekly: null },
+    budgets: [],
+    ...extra,
+  });
+
+  it('snapshotUsable enforces the age cap and shapes', () => {
+    assert.equal(snapshotUsable({ fetchedAt: 100000 }, 100001), true);
+    assert.equal(snapshotUsable({ fetchedAt: 100000 }, 100000 + SNAPSHOT_MAX_AGE_MS), false);
+    assert.equal(snapshotUsable(null, 1), false);
+    assert.equal(snapshotUsable({ fetchedAt: 'x' }, 1), false);
+    assert.equal(snapshotUsable({ fetchedAt: 1 }), false); // Date.now() default: epoch+1ms is stale
+    assert.equal(snapshotUsable({ fetchedAt: Date.now() }), true);
+  });
+
+  it('worstWindow picks the highest percent', () => {
+    assert.equal(worstWindow(null), null);
+    assert.deepEqual(
+      worstWindow({ monthly: { percent: 40 }, weekly: { percent: 70, limited: false } }),
+      { percent: 70, limited: false, resetsAt: undefined },
+    );
+  });
+
+  it('anyBudgetLimited flags explicit and spent budgets only', () => {
+    assert.equal(anyBudgetLimited(null), false);
+    assert.equal(anyBudgetLimited({ budgets: [] }), false);
+    assert.equal(anyBudgetLimited({ budgets: [{ id: 'a', percent: 50 }] }), false);
+    assert.equal(anyBudgetLimited({ budgets: [{ id: 'a', percent: 100 }] }), true);
+    assert.equal(anyBudgetLimited({ budgets: [{ id: 'a', limited: true }] }), true);
+  });
+
+  it('hard-vetoes limited or spent windows, fail-open otherwise', () => {
+    clearUsageVeto();
+    const limited = goVetoFromSnapshot(
+      freshGo({ percent: 42, limited: true, resetsAt: null }), { token: 't', now: 100001 },
+    );
+    assert.equal(limited.veto, true);
+    assert.equal(limited.percent, 42);
+    const spent = goVetoFromSnapshot(
+      freshGo({ percent: 100, limited: false, resetsAt: null }), { token: 't', now: 100001 },
+    );
+    assert.equal(spent.veto, true);
+    const healthy = goVetoFromSnapshot(
+      freshGo({ percent: 42, limited: false, resetsAt: null }), { token: 't2', now: 100001 },
+    );
+    assert.equal(healthy.veto, false);
+    assert.equal(healthy.percent, 42);
+    assert.equal(healthy.budgetLimited, false);
+    assert.equal(goVetoFromSnapshot(null, { token: 't' }), null);
+    assert.equal(goVetoFromSnapshot({ fetchedAt: 1, go: {} }, { token: 't', now: Date.now() }), null);
+  });
+
+  it('vetoes on spent budgets even with healthy windows', () => {
+    clearUsageVeto();
+    const v = goVetoFromSnapshot(
+      freshGo({ percent: 10, limited: false, resetsAt: null }, {
+        budgets: [{ id: 'b1', percent: 100, limited: true, resetsAt: null }],
+      }),
+      { token: 't', now: 100001 },
+    );
+    assert.equal(v.veto, true);
+    assert.equal(v.budgetLimited, true);
+  });
+
+  it('hysteresis: soft-vetoes at >=95, holds to 90, clears below', () => {
+    clearUsageVeto();
+    assert.equal(goSoftVeto('tok-h', 94), false);
+    assert.equal(goSoftVeto('tok-h', 95), true);
+    assert.equal(goSoftVeto('tok-h', 92), true); // sticky
+    assert.equal(goSoftVeto('tok-h', 90), true); // boundary holds
+    assert.equal(goSoftVeto('tok-h', 89), false); // re-admitted
+    assert.equal(goSoftVeto('', 100), false); // tokenless never vetoes
+    assert.equal(goSoftVeto('tok-h', NaN), false);
+  });
+
+  it('applies the hysteresis inside the snapshot verdict', () => {
+    clearUsageVeto();
+    const at = (p) => goVetoFromSnapshot(
+      freshGo({ percent: p, limited: false, resetsAt: null }), { token: 'tok-v', now: 100001 },
+    );
+    assert.equal(at(94).veto, false);
+    assert.equal(at(96).veto, true);
+    assert.equal(at(92).veto, true);
+    clearUsageVeto();
+    assert.equal(at(92).veto, false);
   });
 });

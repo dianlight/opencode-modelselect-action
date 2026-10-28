@@ -44,8 +44,11 @@ describe('status file helpers', () => {
       const raw = JSON.parse(fs.readFileSync(statusFile(cacheDir, 's1'), 'utf8'));
       assert.deepEqual(raw, payload);
       assert.deepEqual(Object.keys(raw).sort(), [
+        'budgetLimited',
         'freeExhausted',
+        'goLimited',
         'goOk',
+        'goPercent',
         'jev',
         'media',
         'model',

@@ -121,6 +121,35 @@ Tier `auto` probes the Go usage endpoint when a token is available
 (see [Token resolution](#token-resolution)) and degrades to the preferred tier
 instead of failing the session; without a token it uses `free`.
 
+## Usage-aware tier veto
+
+Beyond the boolean probe, `tier: auto` reads the usage snapshot
+(`.opencode/.modelselect-cache/usage-limits.json`, refreshed Node-side
+from `GET /api/experimental/usage/limits` with a Zen fallback — see
+below) and vetoes `go` when it shows spent quota:
+
+- hard veto: any rolling/weekly/monthly window `limited` or ≥ 100%, or a
+  spent live budget (`budgets[]` limited/≥ 100%) — even when the cached
+  live probe still says ok;
+- soft veto with hysteresis: worst window ≥ 95% vetoes `go`, holding
+  until back below 90% (no flapping at the boundary);
+- the free-quota latch stays supreme for the free side (only a real
+  failed request sets it; snapshot data never touches it). Both sides
+  spent keeps `go` and lets the fail-soft retry handle the real failure
+  instead of flip-flopping;
+- pinned tiers (`go`/`free`) are never overridden — the snapshot is only
+  recorded in the status file (`goPercent`, `goLimited`,
+  `budgetLimited`) and, when known, in the announce line
+  (`[modelselect: … (go 92%, resets in 3h)]`);
+- everything is fail-open: a missing/corrupt/stale snapshot (older than
+  10 min) reads as "no signal" and the turn resolves exactly as before.
+
+The probe itself is `resetsAt`-aware (a far-future reset holds a
+negative answer up to 30 minutes instead of re-probing every 5) and
+skips its fetch while a fresh (< 90s) snapshot already answers; every
+live Zen answer refreshes the display snapshot (Zen carries no budgets,
+so prior budgets are preserved).
+
 ## Token resolution
 
 A key is needed only for `tier: auto` (live Go-quota probe) and for Jev
@@ -194,6 +223,9 @@ best-effort per-session status file next to the caches — it never throws:
   "think": "high",        // task-type reasoning effort: default | minimal | low | medium | high | xhigh | null
   "variant": null,        // manual picker override (same levels | null); effective effort = variant ?? think
   "freeExhausted": null,  // soft-error latch: true | false | null (quota: 12h; rate limit: 1h)
+  "goPercent": null,      // worst Go window % from the usage snapshot (number | null)
+  "goLimited": null,      // a Go window is explicitly limited (boolean | null)
+  "budgetLimited": null,  // a live budget is spent (boolean | null)
   "source": "cache",      // remote | cache | cache-stale…
   "suggestOnly": false,
   "updatedAt": 1720000000000 // epoch ms

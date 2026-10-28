@@ -1,6 +1,6 @@
 {
   "name": "opencode-modelselect-plugin",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "description": "Auto-select the OpenCode model from project signals, prompt and agent tag (OpenCode v2)",
   "main": "./index.js",
   "license": "MIT",

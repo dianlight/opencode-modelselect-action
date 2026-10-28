@@ -1,5 +1,25 @@
-## [Unreleased]
+## [0.6.0] - 2026-10-28
 ### Added
+- Model select engine reads the usage snapshot (`usage-limits.json`,
+  from `GET /api/experimental/usage/limits` with a Zen fallback) when
+  resolving `tier: auto`: a limited/spent Go window or spent live budget
+  vetoes `go` (early soft-veto at 95% with hold-until-90% hysteresis),
+  while a fresh snapshot lets the quota probe skip its fetch and every
+  live Zen answer refreshes the display snapshot (budgets preserved).
+  The free-quota latch stays supreme for the free side and both-sides-spent
+  keeps `go` for the fail-soft retry; pinned tiers are never overridden.
+  The probe cache is `resetsAt`-aware (negative holds clamp at 30 min).
+  Status files record `goPercent`/`goLimited`/`budgetLimited` and the
+  announce line appends `(go 92%, resets in 3h)` when known.
+- Work Status section shows a Go monthly usage-status bar from the
+  plugin's usage snapshot (width = consumed percent, tone by
+  limited/thresholds, click for detail), hidden without usable data.
+- Settings panel Models tab: usage-status bars instead of cost bars (Go
+  rows show the consumed monthly window, free rows availability,
+  excluded rows the blocking reason; cost stays as text), the task combo
+  preselects the current session's task when known, media icons carry
+  tooltips + click-to-toast descriptions, and all panel/status icons are
+  themed SVGs (no emoji/glyphs).
 - Settings panel for the OpenChamber extension (`Model select` rail icon):
   a Plugin tab editing the modelselect entry's `options` in the
   OpenChamber managed OpenCode config (tier, autoPreference, taskType,

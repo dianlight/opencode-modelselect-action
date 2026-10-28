@@ -16,6 +16,15 @@ const { TASK_TYPES, normalizeAgentMap } = require('./detect');
 const { DEFAULT_TASK_TYPES_URL } = require('./tasktypes');
 const { resolveToken } = require('./auth');
 const { isFreeQuotaFresh } = require('./freequota');
+const { parseGoUsageWindows } = require('./core/probe');
+const {
+  readUsageLimits,
+  normalizeZenPayload,
+  writeUsageLimits,
+  goVetoFromSnapshot,
+  clearUsageVeto,
+  SNAPSHOT_SKIP_MS,
+} = require('./usage');
 const { isFreeModelString, firstPaidModel, splitModelRefStrict } = require('./core/model-ref');
 const { selectWithinBudget } = require('./core/budget');
 const { entryFor, normalizeThink } = require('./core/lookup');
@@ -88,10 +97,40 @@ function normalizeOptions(raw = {}, env = process.env) {
 }
 
 /** Terse chat-visible pick line. suggestOnly turns `→` into `would use`. */
-function formatAnnounce({ taskType, tier, model, suggestOnly, jev }) {
+function formatResetIn(ms) {
+  const s = Math.max(0, Math.ceil(Number(ms) / 1000));
+  if (!Number.isFinite(s)) return '';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (h > 0) return h + 'h ' + m + 'm';
+  if (m > 0) return m + 'm ' + (s % 60) + 's';
+  return s + 's';
+}
+
+/** Utilization suffix for the announce/suggest-only lines (`go 92%`,
+ * plus `limited` / `budget-limited` and the reset countdown when known).
+ * Empty when the snapshot carries no usable percent. Never throws. */
+function usageNote(usage) {
+  try {
+    if (!usage || typeof usage.percent !== 'number' || !Number.isFinite(usage.percent)) return '';
+    let s = `go ${Math.round(usage.percent)}%`;
+    if (usage.limited) s += ' limited';
+    else if (usage.budgetLimited) s += ' budget-limited';
+    if (typeof usage.resetsAt === 'number' && usage.resetsAt > 0) {
+      const left = formatResetIn(usage.resetsAt - Date.now());
+      if (left) s += `, resets in ${left}`;
+    }
+    return s;
+  } catch {
+    return '';
+  }
+}
+
+function formatAnnounce({ taskType, tier, model, suggestOnly, jev, usage }) {
   const verb = suggestOnly ? 'would use' : '→';
   const tail = jev ? ` jev=${jev}` : '';
-  return `[modelselect: task=${taskType} tier=${tier} ${verb} ${model}${tail}]`;
+  const note = usageNote(usage);
+  return `[modelselect: task=${taskType} tier=${tier} ${verb} ${model}${tail}${note ? ` (${note})` : ''}]`;
 }
 
 /**
@@ -171,45 +210,120 @@ async function loadConfig(opts, cacheDir) {
 }
 
 const GO_QUOTA_TTL_MS = 5 * 60 * 1000;
-const goQuotaCache = new Map(); // token -> { ok, at }
+// Proposal 3: a far-future `resetsAt` must never pin the negative cache
+// for the whole window — clamp the hold to 30 minutes (the monthly reset
+// can be ~30d out). Unknown/short resets keep the fixed 5 minutes.
+const GO_QUOTA_MAX_HOLD_MS = 30 * 60 * 1000;
+const goQuotaCache = new Map(); // token -> { ok, at, validUntil }
 let noTokenHinted = false; // verbose no-token hint, once per process
 
-async function checkGoQuotaLive(token, usageUrl) {
-  if (!token) return null; // unknown without a token: let preference decide
+/** Epoch-ms reset of the monthly Go window, or null. Never throws. */
+function monthlyResetAt(data, now) {
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const res = await fetch(usageUrl, {
-        signal: ctrl.signal,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 401 || res.status === 403 || res.status === 404) return false;
-      if (!res.ok) return null;
-      const data = await res.json().catch(() => null);
-      const pct = data?.usage?.monthly?.percent ?? data?.usage?.monthly?.usagePercent ?? null;
-      if (typeof pct === 'number' && pct >= 100) return false;
-      return true;
-    } finally {
-      clearTimeout(timer);
-    }
+    const at = now === undefined ? Date.now() : now;
+    const windows = parseGoUsageWindows(data);
+    const m = Array.isArray(windows) ? windows.find((w) => w && w.name === 'monthly') : null;
+    if (m && typeof m.resetSec === 'number' && Number.isFinite(m.resetSec)) return at + m.resetSec * 1000;
+    const root = data && data.usage && typeof data.usage === 'object' ? data.usage : data;
+    const w = root && (root.monthly || root.monthlyUsage);
+    const raw = w && (w.resetsAt ?? w.resetAt ?? w.reset_at ?? w.resets_at);
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
   } catch {
     return null;
   }
 }
 
-/** Cached wrapper: one quota probe per token per 5 minutes. */
-async function checkGoQuota(token, usageUrl) {
+function quotaValidUntil({ ok, at, resetsAt }) {
+  if (ok !== false || typeof resetsAt !== 'number' || !Number.isFinite(resetsAt)) return at + GO_QUOTA_TTL_MS;
+  if (resetsAt <= at) return at + GO_QUOTA_TTL_MS;
+  return Math.min(resetsAt, at + GO_QUOTA_MAX_HOLD_MS);
+}
+
+async function checkGoQuotaLive(token, usageUrl, fetchFn, now) {
+  if (!token) return { ok: null, resetsAt: null }; // unknown without a token: let preference decide
+  const at = now === undefined ? Date.now() : now;
+  const impl = fetchFn || globalThis.fetch;
+  if (typeof impl !== 'function') return { ok: null, resetsAt: null };
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const res = await impl(usageUrl, {
+        signal: ctrl.signal,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401 || res.status === 403 || res.status === 404) return { ok: false, resetsAt: null };
+      if (!res.ok) return { ok: null, resetsAt: null };
+      const data = await res.json().catch(() => null);
+      const pct = data?.usage?.monthly?.percent ?? data?.usage?.monthly?.usagePercent ?? null;
+      const resetsAt = monthlyResetAt(data, at);
+      if (typeof pct === 'number' && pct >= 100) return { ok: false, resetsAt, data };
+      return { ok: true, resetsAt, data };
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    return { ok: null, resetsAt: null };
+  }
+}
+
+/**
+ * Cached wrapper: one quota probe per token per window (resetsAt-aware —
+ * a far-future reset holds the negative answer up to 30 minutes instead
+ * of re-probing every 5). Proposal 5: when `cacheDir` carries a fresh
+ * (<90s) usage snapshot it answers without a fetch, and every live Zen
+ * answer upserts the display snapshot (merging: Zen carries no budgets,
+ * so prior budgets survive). Never throws without a token-shaped answer.
+ */
+async function checkGoQuota(token, usageUrl, cacheDir, opts = {}) {
   if (!token) return null; // unknown without a token: let preference decide
+  const at = opts.now === undefined ? Date.now() : opts.now;
   const cached = goQuotaCache.get(token);
-  if (cached && Date.now() - cached.at < GO_QUOTA_TTL_MS) return cached.ok;
-  const ok = await checkGoQuotaLive(token, usageUrl);
-  goQuotaCache.set(token, { ok, at: Date.now() });
-  return ok;
+  if (cached && at < cached.validUntil) return cached.ok;
+  if (cacheDir) {
+    try {
+      const snap = readUsageLimits(cacheDir);
+      if (snap && typeof snap.fetchedAt === 'number' && at - snap.fetchedAt < SNAPSHOT_SKIP_MS) {
+        // Fresh file answers without a fetch — but never enters the probe
+        // cache: a refreshed file must be able to clear a veto (e.g. the
+        // hysteresis re-admit) without waiting out a negative hold.
+        const verdict = goVetoFromSnapshot(snap, { token, now: at });
+        if (verdict && verdict.veto) return false;
+        if (verdict && verdict.percent !== null) return true;
+      }
+    } catch {
+      // unreadable snapshot: fall through to the live probe
+    }
+  }
+  const live = await checkGoQuotaLive(token, usageUrl, opts.fetchFn, at);
+  goQuotaCache.set(token, { ok: live.ok, at, validUntil: quotaValidUntil({ ok: live.ok, at, resetsAt: live.resetsAt }) });
+  if (cacheDir && live.data) {
+    // Upsert the display snapshot from the live Zen answer (proposal 5):
+    // never throws, never blocks the turn on failure.
+    try {
+      const fresh = normalizeZenPayload(live.data, at);
+      if (fresh) {
+        try {
+          const prev = readUsageLimits(cacheDir);
+          if (prev && Array.isArray(prev.budgets) && prev.budgets.length && !fresh.budgets.length) {
+            fresh.budgets = prev.budgets;
+          }
+        } catch {
+          // no prior budgets to preserve
+        }
+        writeUsageLimits(cacheDir, fresh);
+      }
+    } catch {
+      // best-effort only
+    }
+  }
+  return live.ok;
 }
 
 function clearQuotaCache() {
   goQuotaCache.clear();
+  clearUsageVeto(); // hysteresis is probe state too: a fresh test run starts unvetoed
   noTokenHinted = false;
 }
 
@@ -477,8 +591,17 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
   const freeExhausted = free
     ? isFreeQuotaFresh(cacheDir, undefined, free)
     : isFreeQuotaFresh(cacheDir); // no entry: report "something is latched"
+  // Usage-snapshot verdict (proposals 1/2/4/7): fail-open, never throws.
+  // The latch above is supreme for the free side; the snapshot only ever
+  // vetoes `go`. Pinned tiers are never overridden — only recorded.
+  let usage = null;
+  try {
+    usage = goVetoFromSnapshot(readUsageLimits(cacheDir), { token: opts.token });
+  } catch {
+    usage = null;
+  }
   if (!key || !entry) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted, endpoint: endpointFor(config, opts.fallbackModel), endpointPath: endpointPathFor(config, opts.fallbackModel) };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted, usage, endpoint: endpointFor(config, opts.fallbackModel), endpointPath: endpointPathFor(config, opts.fallbackModel) };
     throw new Error(`No model configured for task-type='${taskType}'.`);
   }
   let tier = opts.tier;
@@ -502,9 +625,20 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
       }
     } else {
       if (opts.verbose) console.log(`[modelselect] token source=${opts.tokenSource || 'option'}`);
-      goOk = await checkGoQuota(opts.token, opts.usageUrl);
-      if (freeExhausted && go) tier = 'go';
+      goOk = await checkGoQuota(opts.token, opts.usageUrl, cacheDir);
+      const vetoed = Boolean(usage && usage.veto);
+      if (vetoed && usage && usage.limited && opts.verbose) {
+        console.log(`[modelselect] go quota vetoed by usage snapshot (${usage.source || 'snapshot'}): ` +
+          `monthly ${usage.percent === null ? '?' : Math.round(usage.percent) + '%'}${usage.budgetLimited ? ', budget limited' : ''}`);
+      }
+      if (freeExhausted && go && vetoed) {
+        // Proposal 7: both sides spent — keep `go` and let the fail-soft
+        // retry handle the real failure instead of flip-flopping to free.
+        tier = 'go';
+        if (opts.verbose) console.log('[modelselect] go vetoed + free latched (both spent) — keeping go, fail-soft handles it');
+      } else if (freeExhausted && go) tier = 'go';
       else if (order[0] === 'free') tier = 'free';
+      else if (vetoed) tier = 'free';
       else tier = goOk === false ? 'free' : 'go';
       if (tier === 'go' && !go) tier = 'free';
       if (tier === 'free' && !free) tier = 'go';
@@ -530,7 +664,7 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
     }
   }
   if (!model) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted, endpoint: endpointFor(config, opts.fallbackModel), endpointPath: endpointPathFor(config, opts.fallbackModel) };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted, usage, endpoint: endpointFor(config, opts.fallbackModel), endpointPath: endpointPathFor(config, opts.fallbackModel) };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
   // Budget cap (mirrors the action): an over-budget pick is replaced by the
@@ -581,12 +715,13 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
       source = `${source}+routed`;
     }
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia };
 }
 
 module.exports = {
   normalizeOptions,
   formatAnnounce,
+  usageNote,
   shouldAnnounce,
   loadConfig,
   resolveModel,
@@ -594,6 +729,7 @@ module.exports = {
   splitModelRef: splitModelRefStrict,
   checkGoQuota,
   clearQuotaCache,
+  monthlyResetAt,
   endpointFor,
   endpointRoutable,
   detectMediaFromFiles,

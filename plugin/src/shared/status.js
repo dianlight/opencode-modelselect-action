@@ -14,7 +14,8 @@
  *   to `[A-Za-z0-9-_]`, best-effort, never throws — including suggestOnly
  *   runs). Schema:
  *   `{ sessionID, taskType, tier, model, jev, goOk, think, variant,
- *      freeExhausted, source, suggestOnly, media, updatedAt }`
+ *      freeExhausted, goPercent, goLimited, budgetLimited, source,
+ *      suggestOnly, media, updatedAt }`
  *   where `model` is `"provider/id"`, `jev` is `off|pinned|<choice>@<conf>`
  *   or `kept:<reason>`, `goOk` is the last quota-probe result
  *   (`true|false|null` when unknown / no probe ran), `think` is the task
@@ -24,7 +25,10 @@
  *   session's virtual ref (same level vocabulary; null when unset — the
  *   effective effort is `variant ?? think`), `freeExhausted` is the free-tier soft-error
  *   latch (`true|false|null`; 12h for spent quota, 1h for transient
- *   rate limiting — see shared/freequota.js),
+ *   rate limiting — see shared/freequota.js), `goPercent` is the worst Go
+ *   window percent from the usage snapshot (`number|null`),
+ *   `goLimited` flags an explicitly limited window (`boolean|null`),
+ *   `budgetLimited` flags a spent live budget (`boolean|null`),
  *   `source` is the config source (`remote|cache|cache-stale…`),
  *   `media` is the requested non-text modalities detected this turn
  *   (`[]` when text-only), and
@@ -110,6 +114,9 @@ function writeStatus(cacheDir, sessionID, fields = {}) {
       think: thinkLevel(fields.think),
       variant: thinkLevel(fields.variant),
       freeExhausted: typeof fields.freeExhausted === 'boolean' ? fields.freeExhausted : null,
+      goPercent: typeof fields.goPercent === 'number' && Number.isFinite(fields.goPercent) ? fields.goPercent : null,
+      goLimited: typeof fields.goLimited === 'boolean' ? fields.goLimited : null,
+      budgetLimited: typeof fields.budgetLimited === 'boolean' ? fields.budgetLimited : null,
       source: String(fields.source ?? ''),
       suggestOnly: Boolean(fields.suggestOnly ?? false),
       media: Array.isArray(fields.media) ? fields.media.filter((m) => typeof m === 'string' && m) : [],

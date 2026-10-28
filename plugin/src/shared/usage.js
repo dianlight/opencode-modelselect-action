@@ -37,6 +37,17 @@ const USAGE_REFRESH_MS = 60 * 1000;
 const LIMITS_TIMEOUT_MS = 2500;
 const ZEN_TIMEOUT_MS = 8000;
 const DEFAULT_PORT = 4096;
+// Engine signals (model-select resolution):
+// - SNAPSHOT_MAX_AGE_MS: a usage snapshot older than this carries no
+//   veto weight (fail-open); the refresh throttle above stays 60s.
+// - SNAPSHOT_SKIP_MS: a fresher snapshot lets the quota probe skip its
+//   live fetch (unified caches).
+// - SOFT_VETO_PCT / READMIT_PCT: hysteresis band for early avoidance —
+//   veto `go` at >= 95, keep vetoing until back below 90 (no flapping).
+const SNAPSHOT_MAX_AGE_MS = 10 * 60 * 1000;
+const SNAPSHOT_SKIP_MS = 90 * 1000;
+const SOFT_VETO_PCT = 95;
+const READMIT_PCT = 90;
 
 function usageLimitsFile(cacheDir) {
   return path.join(String(cacheDir), USAGE_LIMITS_BASENAME);
@@ -243,7 +254,7 @@ async function fetchZenSnapshot({ token, usageUrl, fetchFn, timeoutMs, now } = {
 }
 
 /**
- * Refresh the snapshot file: return the fresh file when younger than 60s,
+ * Refresh the snapshot file: return the fresh file when younger than 60s;
  * else try the local limits endpoint, fall back to Zen (needs `token`),
  * persist the first usable snapshot and return it. Returns the previous
  * file (or null) when nothing fresh could be fetched. Never throws.
@@ -294,9 +305,159 @@ async function refreshUsageLimits(cacheDir, opts = {}) {
   }
 }
 
+/**
+ * Engine signals: pure usage-snapshot veto for the resolver (proposals
+ * 1/2/4/7). All fail-open — anything unusable reads as "no signal", so a
+ * turn never fails because of quota data.
+ *
+ * Precedence (codified, proposal 7): the per-model free-quota latch is
+ * supreme and sticky for the free side (only a real failed request sets
+ * or clears it — snapshot data never touches it). The snapshot only ever
+ * vetoes the `go` side. Both-sides-spent keeps `go` and lets the
+ * fail-soft retry handle the real failure.
+ */
+
+// Sticky soft-veto state (proposal 2 hysteresis): token -> true while the
+// worst window sits at/above SOFT_VETO_PCT, cleared once back below
+// READMIT_PCT. In-memory per process; reset by clearUsageVeto (tests, and
+// select.js clearQuotaCache).
+const softVetoState = new Map();
+
+/** Drop the sticky hysteresis state. Never throws. */
+function clearUsageVeto() {
+  try {
+    softVetoState.clear();
+  } catch {
+    // never throws
+  }
+  return true;
+}
+
+/** A snapshot usable for decisions: parsed object, fresh timestamp. */
+function snapshotUsable(snap, now) {
+  try {
+    const at = now === undefined ? Date.now() : now;
+    if (!snap || typeof snap !== 'object' || Array.isArray(snap)) return false;
+    if (typeof snap.fetchedAt !== 'number' || !Number.isFinite(snap.fetchedAt)) return false;
+    if (at - snap.fetchedAt >= SNAPSHOT_MAX_AGE_MS) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Worst Go window by percent ({ percent, limited, resetsAt } | null). */
+function worstWindow(go) {
+  try {
+    if (!go || typeof go !== 'object') return null;
+    let best = null;
+    for (const k of ['rolling', 'weekly', 'monthly']) {
+      const w = go[k];
+      if (w && typeof w.percent === 'number' && Number.isFinite(w.percent)) {
+        if (!best || w.percent > best.percent) {
+          best = { percent: w.percent, limited: Boolean(w.limited), resetsAt: w.resetsAt };
+        }
+      }
+    }
+    return best;
+  } catch {
+    return null;
+  }
+}
+
+/** True while any live budget is spent (limited flag or >= 100%). */
+function anyBudgetLimited(snap) {
+  try {
+    const budgets = snap && Array.isArray(snap.budgets) ? snap.budgets : [];
+    for (const b of budgets) {
+      if (!b || typeof b !== 'object') continue;
+      if (b.limited === true) return true;
+      if (typeof b.percent === 'number' && Number.isFinite(b.percent) && b.percent >= 100) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Hysteresis gate for early avoidance (proposal 2): veto at/above
+ * SOFT_VETO_PCT, stay vetoed until back below READMIT_PCT. Keyed by token
+ * (quota is per account); empty token never vetoes. Never throws.
+ */
+function goSoftVeto(token, worstPercent) {
+  try {
+    const key = String(token || '').trim();
+    const p = Number(worstPercent);
+    if (!key || !Number.isFinite(p)) return false;
+    if (softVetoState.get(key)) {
+      if (p < READMIT_PCT) softVetoState.delete(key);
+      return softVetoState.has(key);
+    }
+    if (p >= SOFT_VETO_PCT) {
+      softVetoState.set(key, true);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Veto verdict for a usage snapshot (proposals 1/2/4). Returns null when
+ * the snapshot carries no signal (missing/corrupt/stale — fail-open), else
+ * `{ veto, percent, limited, resetsAt, budgetLimited, source }` where
+ * `percent` is the worst-window percent (or null) and `veto` covers the
+ * hard window veto, the hysteresis soft veto and the budget veto.
+ * `opts.token` feeds the hysteresis gate; `opts.now` is injectable.
+ * Never throws.
+ */
+function goVetoFromSnapshot(snap, opts = {}) {
+  try {
+    const at = opts.now === undefined ? Date.now() : opts.now;
+    if (!snapshotUsable(snap, at)) return null;
+    const go = snap.go && typeof snap.go === 'object' ? snap.go : null;
+    let hard = false;
+    let limited = false;
+    if (go) {
+      for (const k of ['rolling', 'weekly', 'monthly']) {
+        const w = go[k];
+        if (!w || typeof w !== 'object') continue;
+        const p = Number(w.percent);
+        if (w.limited === true || (Number.isFinite(p) && p >= 100)) {
+          hard = true;
+          limited = limited || w.limited === true;
+        }
+      }
+    }
+    const budgetLimited = anyBudgetLimited(snap);
+    const worst = worstWindow(go);
+    const soft = !hard && goSoftVeto(opts.token, worst ? worst.percent : NaN);
+    const veto = hard || budgetLimited || soft;
+    return {
+      veto,
+      percent: worst ? worst.percent : null,
+      limited: limited || (worst ? worst.limited : false),
+      resetsAt:
+        worst && typeof worst.resetsAt === 'number' && Number.isFinite(worst.resetsAt) && worst.resetsAt > 0
+          ? worst.resetsAt
+          : null,
+      budgetLimited,
+      source: typeof snap.source === 'string' ? snap.source : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   USAGE_LIMITS_BASENAME,
   USAGE_REFRESH_MS,
+  SNAPSHOT_MAX_AGE_MS,
+  SNAPSHOT_SKIP_MS,
+  SOFT_VETO_PCT,
+  READMIT_PCT,
   usageLimitsFile,
   readUsageLimits,
   writeUsageLimits,
@@ -307,4 +468,10 @@ module.exports = {
   fetchLimitsSnapshot,
   fetchZenSnapshot,
   refreshUsageLimits,
+  clearUsageVeto,
+  snapshotUsable,
+  worstWindow,
+  anyBudgetLimited,
+  goSoftVeto,
+  goVetoFromSnapshot,
 };

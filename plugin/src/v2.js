@@ -100,7 +100,7 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, shouldAnnounce, loadConfig, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, usageNote, shouldAnnounce, loadConfig, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
 const { syncRouting } = require('./shared/routing');
@@ -1015,6 +1015,7 @@ async function setup(ctx) {
         model: picked.model,
         suggestOnly: opts.suggestOnly,
         jev,
+        usage: picked.usage ?? null,
       });
       if (!appendPromptLine(event, line)) {
         console.error(`[modelselect] announce skipped: could not edit prompt for session ${event.sessionID}`);
@@ -1228,6 +1229,7 @@ async function setup(ctx) {
       const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
       const ref = splitModelRef(picked.model);
       const key = `${ref.providerID}/${ref.id}`;
+      const useNote = usageNote(picked.usage ?? null);
       writeStatus(cacheDir, sessionID ?? 'default', {
         taskType: picked.taskType,
         tier: picked.tier,
@@ -1237,6 +1239,9 @@ async function setup(ctx) {
         think: picked.think ?? null,
         variant: normalizeThink(event.model && event.model.variant),
         freeExhausted: picked.freeExhausted ?? null,
+        goPercent: picked.usage && typeof picked.usage.percent === 'number' ? picked.usage.percent : null,
+        goLimited: picked.usage && typeof picked.usage.limited === 'boolean' ? picked.usage.limited : null,
+        budgetLimited: picked.usage && typeof picked.usage.budgetLimited === 'boolean' ? picked.usage.budgetLimited : null,
         source: picked.source,
         suggestOnly: opts.suggestOnly,
         media: picked.media ?? mediaReq,
@@ -1248,7 +1253,7 @@ async function setup(ctx) {
             ? `${event.model.providerID}/${event.model.id}`
             : '?';
         console.log(
-          `[modelselect] (suggest-only) task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current} jev=${jev}`,
+          `[modelselect] (suggest-only) task=${picked.taskType} tier=${picked.tier} would-select=${key} current=${current} jev=${jev}${useNote ? ` (${useNote})` : ''}`,
         );
         // Still record the pick: aux requests (title/…) on a virtual
         // session need a dispatchable ref even in trial mode.
@@ -1581,6 +1586,9 @@ async function setup(ctx) {
               think: prev.think ?? picked.think ?? null,
               variant: null,
               freeExhausted: prev.freeExhausted ?? picked.freeExhausted ?? null,
+              goPercent: picked.usage && typeof picked.usage.percent === 'number' ? picked.usage.percent : (typeof prev.goPercent === 'number' ? prev.goPercent : null),
+              goLimited: picked.usage && typeof picked.usage.limited === 'boolean' ? picked.usage.limited : (typeof prev.goLimited === 'boolean' ? prev.goLimited : null),
+              budgetLimited: picked.usage && typeof picked.usage.budgetLimited === 'boolean' ? picked.usage.budgetLimited : (typeof prev.budgetLimited === 'boolean' ? prev.budgetLimited : null),
               source: `${picked.source}+protocol-failsoft`,
               suggestOnly: opts.suggestOnly,
               media: picked.media ?? prev.media ?? [],
