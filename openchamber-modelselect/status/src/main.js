@@ -77,6 +77,7 @@ import { syncRouting, FREE_QUOTA_FILE, freeQuotaFresh, latchEntries } from './ro
 var host = connectHost();
 
 var CACHE_DIR = '.opencode/.modelselect-cache';
+var USAGE_LIMITS_FILE = CACHE_DIR + '/usage-limits.json';
 var ROUTING_SYNC_FILE = CACHE_DIR + '/routing-sync.json';
 var SESSION_MAP_FILE = CACHE_DIR + '/openchamber-sessions.json';
 // Age window for session-map entries — must match the plugin read window
@@ -334,6 +335,23 @@ function loadFreeQuota() {
   );
 }
 
+// Usage snapshot (`usage-limits.json`, written Node-side by the plugin
+// from GET /api/experimental/usage/limits with a Zen fallback —
+// `plugin/src/shared/usage.js`). Never rejects — missing/unreadable
+// means "no usage data", and the bar is hidden.
+function loadUsageLimits() {
+  return existsPath(USAGE_LIMITS_FILE).then(function (exists) {
+    if (!exists) return { found: false };
+    return readJson(USAGE_LIMITS_FILE).then(
+      function (data) { return { found: true, data: data }; },
+      function () { return { found: false }; }
+    );
+  }).then(
+    function (r) { return r; },
+    function () { return { found: false }; }
+  );
+}
+
 // --- session map (host-detection evidence) ------------------------------
 // Single writer for SESSION_MAP_FILE = `{version:1, sessions:{<id>:
 // lastSeenEpochMs}}`. The plugin only reads it (shared/host.js): a fresh
@@ -529,7 +547,8 @@ function field(grid, key, value, mono, icon) {
     var ico = document.createElement('span');
     ico.className = 'ms-ico ' + icon.cls;
     ico.setAttribute('title', icon.tip);
-    ico.appendChild(text(icon.glyph));
+    ico.setAttribute('data-icon', icon.icon);
+    ico.appendChild(svgIcon(icon.icon, ''));
     (function (toast) {
       ico.addEventListener('click', function () {
         // Native title tooltips don't surface in the sandboxed frame,
@@ -545,28 +564,70 @@ function field(grid, key, value, mono, icon) {
   grid.appendChild(cell);
 }
 
+// Themed status icons: Remixicon-outline shapes (24x24, currentColor) in
+// the host theme — never unicode glyphs. Same contract as the SDK `icon()`
+// helper for the names it does not ship; falls back to an empty span
+// outside a DOM with createElementNS, always carrying `data-icon`.
+var SVG_NS = 'http://www.w3.org/2000/svg';
+var ICON_PATHS = {
+  check: 'M10 15.172l9.192-9.193 1.415 1.414L10 18l-6.364-6.364 1.414-1.414z',
+  close: 'M12 10.586l4.95-4.95 1.414 1.414-4.95 4.95 4.95 4.95-1.414 1.414-4.95-4.95-4.95 4.95-1.414-1.414 4.95-4.95-4.95-4.95L7.05 5.636z',
+  question: 'M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2zm1.4-6.9c-.5.5-1.4 1-1.4 1.9h-2c0-1.6 1.2-2.3 1.9-2.9.5-.4.6-.9.1-1.3-.4-.4-1-.5-1.6-.2-.5.3-.8.8-.8.8l-1.7-.7c.2-1.3 1.6-2.7 3.1-2.7.8 0 1.6.3 2.1.9.6.6.8 1.4.7 2.2z',
+  alert: 'M12 2L1 21h22L12 2zm-1 7h2v6h-2V7zm0 8h2v2h-2v-2z'
+};
+
+function svgIcon(name, cls) {
+  var svg = null;
+  try {
+    svg = document.createElementNS ? document.createElementNS(SVG_NS, 'svg') : document.createElement('span');
+  } catch (e) {
+    svg = document.createElement('span');
+  }
+  try {
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '14');
+    svg.setAttribute('height', '14');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('fill', 'currentColor');
+    if (cls) svg.setAttribute('class', cls);
+    svg.setAttribute('data-icon', name);
+    var d = ICON_PATHS[name];
+    if (d) {
+      var p = null;
+      try {
+        p = document.createElementNS ? document.createElementNS(SVG_NS, 'path') : document.createElement('span');
+      } catch (e2) {
+        p = document.createElement('span');
+      }
+      p.setAttribute('d', d);
+      svg.appendChild(p);
+    }
+  } catch (e) { /* icons are best-effort */ }
+  return svg;
+}
+
 function goIcon(goOk) {
   if (goOk === true) {
     return {
-      glyph: '✓', cls: 'go-ok', tip: 'Go auth OK — quota available',
+      icon: 'check', cls: 'go-ok', tip: 'Go auth OK — quota available',
       toast: { kind: 'success', message: 'Go auth OK — quota available, the paid tier can be used.' }
     };
   }
   if (goOk === false) {
     return {
-      glyph: '✕', cls: 'go-out', tip: 'Go auth exhausted — quota is out',
+      icon: 'close', cls: 'go-out', tip: 'Go auth exhausted — quota is out',
       toast: { kind: 'warning', message: 'Go auth exhausted — quota is out, the free tier is used.' }
     };
   }
   return {
-    glyph: '?', cls: 'go-unknown', tip: 'Go quota unknown — no probe ran',
+    icon: 'question', cls: 'go-unknown', tip: 'Go quota unknown — no probe ran',
     toast: { kind: 'info', message: 'Go quota unknown — no probe ran (no token found).' }
   };
 }
 
 function suggestIcon() {
   return {
-    glyph: '!', cls: 'suggest', tip: 'Suggest-only trial mode',
+    icon: 'alert', cls: 'suggest', tip: 'Suggest-only trial mode',
     toast: { kind: 'info', message: 'Suggest-only trial mode — the pick is logged but never applied.' }
   };
 }
@@ -683,6 +744,75 @@ function renderFreeQuotaRow(root, entry) {
   tick();
 }
 
+// Go usage-status bar, rendered from the plugin's usage snapshot whenever
+// it carries a monthly window. Global (not per-session/mode), hidden when
+// there is no usable data so the section stays compact. Width = consumed
+// monthly percent, tone by limited/thresholds — same semantics as the
+// Models-pane bars, cost never shown here. Clicking toasts the snapshot
+// detail, since native title tooltips don't surface in the sandboxed frame.
+function usageMonthly(usage) {
+  try {
+    var go = usage && usage.go;
+    if (!go || typeof go !== 'object') return null;
+    var m = go.monthly;
+    if (m && typeof m.percent === 'number' && isFinite(m.percent)) {
+      return { percent: m.percent, limited: Boolean(m.limited), resetsAt: m.resetsAt };
+    }
+    var best = null;
+    ['rolling', 'weekly', 'monthly'].forEach(function (k) {
+      var w = go[k];
+      if (w && typeof w.percent === 'number' && isFinite(w.percent)) {
+        if (!best || w.percent > best.percent) {
+          best = { percent: w.percent, limited: Boolean(w.limited), resetsAt: w.resetsAt };
+        }
+      }
+    });
+    return best;
+  } catch (e) {
+    return null;
+  }
+}
+
+function renderUsageBar(root, data) {
+  var u = usageMonthly(data);
+  if (!u || u.percent === null) return;
+  var pct = Math.max(3, Math.min(100, Math.round(u.percent)));
+  var tone = (u.limited || u.percent >= 100) ? 'err' : (u.percent >= 70 ? 'warn' : 'ok');
+  var row = document.createElement('div');
+  row.className = 'ms-usage';
+  var label = document.createElement('span');
+  label.className = 'ms-usage-label';
+  label.appendChild(text('Go monthly'));
+  var bar = document.createElement('div');
+  bar.className = 'ms-usage-bar';
+  var fill = document.createElement('div');
+  fill.className = 'ms-usage-fill ' + tone;
+  try {
+    fill.style.width = pct + '%';
+  } catch (e) { /* width is best-effort */ }
+  bar.appendChild(fill);
+  var count = document.createElement('span');
+  count.className = 'ms-usage-count';
+  var head = u.limited ? 'limited · ' + Math.round(u.percent) + '%' : Math.round(u.percent) + '%';
+  count.appendChild(text(head));
+  row.appendChild(label);
+  row.appendChild(bar);
+  row.appendChild(count);
+  root.appendChild(row);
+
+  var detail = 'Go monthly quota ' + Math.round(u.percent) + '%' +
+    (u.limited ? ' — limited' : '') +
+    (typeof u.resetsAt === 'number' && u.resetsAt > 0
+      ? ' — resets in ' + formatCountdown(u.resetsAt - Date.now()) : '') +
+    ' (usage snapshot)';
+  row.setAttribute('title', detail);
+  row.addEventListener('click', function () {
+    toPromise(function () {
+      return host.toast({ kind: u.limited ? 'warning' : 'info', message: detail });
+    }).then(noop, noop);
+  });
+}
+
 function renderFixBanner(root, err) {
   try {
     mountBanner(root, {
@@ -725,6 +855,7 @@ function render(state) {
     note.className = 'ms-note';
     note.appendChild(text('No active session — open a session to see the model pick.'));
     shell.appendChild(note);
+    renderUsageBar(shell, state.usage && state.usage.data);
     renderFreeQuota(shell, state.freeQuota && state.freeQuota.data);
     renderHeader(shell, currentSync);
     fitHeight();
@@ -748,7 +879,9 @@ function render(state) {
     renderStatusGrid(shell, null, state.knownTypes, autoSession);
   }
   // Free-tier suspension is global (not per-session/mode): always last
-  // before the router-sync switch, whenever the latch is fresh.
+  // before the router-sync switch, whenever the latch is fresh. The Go
+  // usage bar sits just above it.
+  renderUsageBar(shell, state.usage && state.usage.data);
   renderFreeQuota(shell, state.freeQuota && state.freeQuota.data);
   renderHeader(shell, currentSync);
   fitHeight();
@@ -785,10 +918,10 @@ function refresh() {
   var run = function () {
     refreshQueued = false;
     var sid = sessionIDOf(currentSession) || 'default';
-    Promise.all([loadStatus(sid), loadRoutingSync(), loadGlobalEntry(), loadKnownTaskTypes(), loadFreeQuota()]).then(
+    Promise.all([loadStatus(sid), loadRoutingSync(), loadGlobalEntry(), loadKnownTaskTypes(), loadFreeQuota(), loadUsageLimits()]).then(
       function (parts) {
         currentSync = parts[1];
-        render({ status: parts[0], globalEntry: parts[2], knownTypes: parts[3], freeQuota: parts[4] });
+        render({ status: parts[0], globalEntry: parts[2], knownTypes: parts[3], freeQuota: parts[4], usage: parts[5] });
         // Best-effort routing sync: never blocks or breaks the view.
         try {
           var sync = syncRouting(host);
@@ -796,7 +929,7 @@ function refresh() {
         } catch (e) { /* sync is best-effort */ }
       },
       function () {
-        render({ status: { found: false }, globalEntry: { checked: false, entry: false }, knownTypes: [], freeQuota: { found: false } });
+        render({ status: { found: false }, globalEntry: { checked: false, entry: false }, knownTypes: [], freeQuota: { found: false }, usage: { found: false } });
       }
     );
   };
@@ -815,7 +948,8 @@ function mount() {
       'html, body { margin: 0; padding: 0; background: transparent; color: var(--oc-fg); font: 12px/1.45 var(--oc-font); overflow: hidden; }',
       'body { padding: 4px 10px 2px; }',
       '.ms { display: flex; flex-direction: column; gap: 6px; }',
-      '.ms-ico { margin-left: 6px; font-size: 0.875rem; font-weight: 700; line-height: 1; cursor: pointer; }',
+      '.ms-ico { margin-left: 6px; display: inline-flex; vertical-align: baseline; line-height: 0; cursor: pointer; }',
+      '.ms-ico svg { width: 14px; height: 14px; display: block; }',
       '.ms-ico.go-ok { color: var(--oc-success-text); }',
       '.ms-ico.go-out { color: var(--oc-error-text); }',
       '.ms-ico.go-unknown { color: var(--oc-muted); }',
@@ -835,6 +969,14 @@ function mount() {
       '.ms-freequota { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--oc-warning-text); cursor: pointer; }',
       '.ms-fq-label { flex: 0 0 auto; font-size: 0.875rem; font-weight: 600; color: var(--oc-warning-text); white-space: nowrap; }',
       '.ms-fq-count { flex: 1 1 auto; min-width: 0; font-size: 0.875rem; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }',
+      '.ms-usage { display: flex; flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }',
+      '.ms-usage-label { flex: 0 0 auto; font-size: 0.875rem; color: var(--oc-muted); white-space: nowrap; }',
+      '.ms-usage-bar { flex: 1 1 auto; height: 6px; border-radius: 3px; background: var(--oc-hover); overflow: hidden; min-width: 24px; }',
+      '.ms-usage-fill { height: 100%; background: var(--oc-success); }',
+      '.ms-usage-fill.ok { background: var(--oc-success); }',
+      '.ms-usage-fill.warn { background: var(--oc-warning); }',
+      '.ms-usage-fill.err { background: var(--oc-error); }',
+      '.ms-usage-count { flex: 0 0 auto; font-size: 0.875rem; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }',
       '.ms-note { font-size: 12px; color: var(--oc-muted); }',
       '.ms-error { color: var(--oc-error-text); font-size: 12px; }',
       '.ms-fallback-badge { display: inline-block; padding: 0 7px; border-radius: 999px; border: 1px solid ButtonBorder; background: ButtonFace; color: ButtonText; white-space: nowrap; font-size: 11px; }',

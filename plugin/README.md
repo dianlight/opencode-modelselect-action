@@ -200,6 +200,19 @@ best-effort per-session status file next to the caches — it never throws:
 }
 ```
 
+Usage snapshot for the OpenChamber Models-pane usage-status bar:
+`<project>/.opencode/.modelselect-cache/usage-limits.json`
+(`{ fetchedAt, source: 'limits'|'zen', go: { rolling, weekly, monthly },
+budgets: [...] }`, each Go meter `{ percent, limited, resetsAt }` — the
+`UsageLimits.Go` shape). Written best-effort from the `context` hook
+(fire-and-forget, throttled to one fetch per 60s, never blocking the
+turn): primary source is the local OpenCode HTTP API
+(`GET /api/experimental/usage/limits` on 127.0.0.1 — port from
+`OPENCODE_PORT` / `OPENCODE_SERVER_PORT` / `PORT`, default 4096),
+fallback is the Zen Go usage endpoint via the probe token
+(`src/shared/usage.js`). The panel holds no token and makes no network
+calls — it only reads this file.
+
 The router-sync file `<project>/.opencode/.modelselect-cache/routing-sync.json`
 (`{"sync": true|false}`) gates the per-turn `~/.config/openchamber/routing.json`
 refresh (the on/off/auto modes are gone). Default ON — only an explicit

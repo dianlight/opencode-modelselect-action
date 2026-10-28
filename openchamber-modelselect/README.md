@@ -57,9 +57,10 @@ Folder/ZIP/URL source.
   `{"sync": true|false}` via `writeFile` and mirrors the value to
   `host.storage` `modelselect:sync`), with the hint below
   (`routing.json refreshes every turn` / `router update paused`).
-- Status icons: color-coded glyphs trailing the Tier value (Go auth:
-  `✓` ok / `✕` out / `?` unknown) and the Model value (`!` while the
-  plugin runs in suggest-only trial mode). Native tooltips don't surface
+- Status icons: themed SVG icons (Remixicon-outline shapes, `currentColor`,
+  host theme tokens) trailing the Tier value (Go auth: check ok / close
+  out / question unknown) and the Model value (alert while the plugin runs
+  in suggest-only trial mode). Native tooltips don't surface
   in the sandboxed frame, so clicking an icon shows the explanation in a
   host toast instead.
 - Key list (`ms-grid`): one row per field in Turn-stats style (muted
@@ -74,6 +75,11 @@ Folder/ZIP/URL source.
   the plugin's free-tier soft-error latch is fresh for the pick's model
   (12h for spent quota, 1h for transient rate limiting), and `Auto` while
   the session model is unset.
+- Usage bar (`ms-usage`): the Go monthly quota window from the plugin's
+  `usage-limits.json` snapshot (written Node-side from
+  `GET /api/experimental/usage/limits` with a Zen fallback) — width =
+  consumed percent, tone by limited/thresholds, click toasts the detail.
+  Global, hidden without usable data, sits above the free-tier rows.
 - Session-dependent fields: the pick grid + badges are shown only for
   auto-ish sessions (empty/unset model = OpenChamber auto, or the virtual
   `modelselect/auto-*` pick — the plugin routes only those). Any other model
@@ -216,15 +222,21 @@ what is already declared in `package.json`):
   effective side first (pinned tier, else the auto preference with
   free-quota failover), each side score-best-first. Rows show the model
   name, provider, context window (`200k ctx`, before the score), score,
-  blended + in/out costs, media icons top-right (📝 text, 🖼️ image,
-  📄 pdf, 🔊 audio, 🎬 video, 📎 file; unknown modalities render as
-  their name), and a cost-vs-limit bar
-  (scaled to `maxCost` when set, else to the chain max); excluded rows
+  blended + in/out costs, themed media icons top-right (file-text, image,
+  file-pdf, audio, video, attachment; unknown modalities render as their
+  name), each with a tooltip + click-to-toast description, and a
+  usage-status bar (Go rows: the consumed monthly quota window from the
+  plugin's `usage-limits.json` snapshot — width = percent, tone by
+  limited/thresholds; free rows: availability — full unless latched;
+  excluded rows: the blocking reason at full width); cost stays as text
+  in the meta line, never in the bar. Excluded rows
   are grayed with the reason (`quota latched · retry in …`,
   `over maxCost $…`, `off-side · …`, `no cost data`). The pick gets a
-  PICK badge. The task combo sits inline with an eye button (👁/🙈)
-  that hides/shows the excluded rows. Live Go monthly usage needs the
-  token and is never shown (the panel never holds it). The chain mirrors
+  PICK badge. The task combo sits inline with a themed eye / eye-off button
+  that hides/shows the excluded rows. Live Go monthly usage comes from the
+  plugin's `usage-limits.json` snapshot (written Node-side from
+  `GET /api/experimental/usage/limits` with a Zen fallback, never holding
+  a token in the panel). The chain mirrors
   `plugin/src/shared/select.js` without the live network probe, reusing
   the shared core (`lookup`, `model-ref`, `budget`, `free-quota`) via
   `panel/src/models.js`. Capability data comes from the catalog rows

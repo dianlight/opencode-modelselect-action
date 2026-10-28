@@ -248,12 +248,12 @@ function loadFrame({ files }) {
       }
     }
   };
-  const ready = async () => {
+  const ready = async (sessionID) => {
     deliver({
       channel: 'openchamber.sdk', v: 1, type: 'ready',
       payload: {
         theme: { mode: 'dark' }, locale: 'en', directory: '/project',
-        session: { sessionID: 'ses_test' }, surface: 'panel', connection: {}, settings: {},
+        session: { sessionID: sessionID || 'ses_test' }, surface: 'panel', connection: {}, settings: {},
       },
     });
     await settle();
@@ -524,42 +524,169 @@ describe('panel frame', () => {
     assert.match(txt, /cap \$2\/1M/);
     // Ranked rows carry provider, score and costs.
     assert.match(txt, /opencode-go.*score 95\.1.*\$8\.00\/1M/);
-    assert.match(txt, /\$0\.50 \/ \$2\.00 limit/);
-    // Exclusions are grayed with reasons.
+    // Bars are usage-status, not cost: no usage snapshot here, so every
+    // bar renders the row status at full width with a tone class.
+    const fills = findAll(frame.root, (n) => hasClass(n, 'mp-mo-fill'));
+    assert.deepEqual(fills.map((n) => n.style.width), ['100%', '100%', '100%']);
+    assert.deepEqual(fills.map((n) => n.attrs['data-tone']), ['err', 'ok', 'err']);
+    const barLabels = findAll(frame.root, (n) => hasClass(n, 'mp-mo-barlabel'))
+      .map((n) => textOf(n));
+    assert.match(barLabels[0], /over maxCost \$2/);
+    assert.equal(barLabels[1], 'PICK');
+    assert.match(barLabels[2], /quota latched · retry in 3h/);
     const excluded = findAll(frame.root, (n) =>
       String(n.className || '').split(' ').includes('mp-mo') &&
       String(n.className || '').split(' ').includes('excluded'));
     assert.equal(excluded.length, 2);
     assert.match(textOf(excluded[0]), /over maxCost \$2/);
     assert.match(textOf(excluded[1]), /quota latched · retry in 3h/);
-    // Limit bars: over-budget clamps to full, the pick sits at 25%.
-    const fills = findAll(frame.root, (n) => hasClass(n, 'mp-mo-fill'))
-      .map((n) => n.style.width);
-    assert.deepEqual(fills, ['100%', '25%', '0%']);
-    // Context window renders before the score; media icons sit top-right.
+    // Context window renders before the score; themed media icons sit top-right.
     const rowFor = (name) => findAll(frame.root, (n) =>
       hasClass(n, 'mp-mo') && textOf(n).includes(name))[0];
     assert.match(textOf(rowFor('deepseek-v4.1-flash-free')), /opencode · 128k ctx · score 90/);
-    assert.match(textOf(rowFor('gpt-5.6-luna')), /🖼️/);
-    assert.match(textOf(rowFor('gpt-5.6-luna')), /📄/);
+    const lunaIcons = findAll(rowFor('gpt-5.6-luna'), (n) =>
+      n.attrs && typeof n.attrs['data-icon'] === 'string').map((n) => n.attrs['data-icon']);
+    assert.ok(lunaIcons.includes('image'), `luna row lacks the image icon: ${lunaIcons}`);
+    assert.ok(lunaIcons.includes('file-pdf'), `luna row lacks the pdf icon: ${lunaIcons}`);
+    assert.ok(!lunaIcons.some((i) => /📝|🖼|📄|🔊|🎬|📎|👁|🙈/.test(i)), 'emoji icons remain');
     assert.match(textOf(rowFor('gemini-4-argon')), /1\.05M ctx/);
 
     // Eye toggle: hiding excluded models leaves only the pick; the
-    // button flips to the barred eye and back.
-    const eye = () => findButton(frame.root, modelsHidden ? '🙈' : '👁');
-    var modelsHidden = false;
-    eye().click();
+    // themed button flips between the eye and eye-off icons.
+    const eyeBtn = () => findAll(frame.root, (n) =>
+      String(n.className || '').split(' ').includes('mp-mo-eyebtn'))[0];
+    assert.ok(eyeBtn(), 'no eye toggle button');
+    assert.equal(eyeBtn().attrs['data-icon'], 'eye');
+    eyeBtn().click();
     await frame.settle();
-    modelsHidden = true;
+    assert.equal(eyeBtn().attrs['data-icon'], 'eye-off');
     assert.equal(findAll(frame.root, (n) =>
       String(n.className || '').split(' ').includes('excluded')).length, 0);
     assert.deepEqual(findAll(frame.root, (n) => hasClass(n, 'mp-mo-fill'))
-      .map((n) => n.style.width), ['25%']);
+      .map((n) => n.style.width), ['100%']);
     assert.match(textOf(frame.root), /Pick: opencode-go\/gpt-5\.6-luna/);
-    eye().click();
+    eyeBtn().click();
     await frame.settle();
-    modelsHidden = false;
+    assert.equal(eyeBtn().attrs['data-icon'], 'eye');
     assert.equal(findAll(frame.root, (n) => hasClass(n, 'mp-mo-fill')).length, 3);
+  });
+
+  it('drives the Go bars from the plugin usage snapshot', async () => {
+    const now = Date.now();
+    const files = fixtureFiles({
+      [MANAGED]: JSON.stringify({
+        plugins: [{
+          package: 'opencode-modelselect-plugin',
+          options: { tier: 'auto', autoPreference: 'go-first', defaultTaskType: 'generic' },
+        }],
+      }),
+      [CACHE_DIR + '/model-config-cache.json']: JSON.stringify({
+        fetchedAt: now,
+        config: {
+          'task-types': {
+            generic: {
+              go: 'opencode-go/gpt-5.6-luna',
+              free: 'opencode/x-free',
+              go_ranked: [
+                { model: 'opencode-go/gpt-5.6-luna', score: 93, input_cost: 0.2, output_cost: 1.2, blended_cost: 0.5, context: 1050000, modalities: ['text'] },
+              ],
+              free_ranked: [
+                { model: 'opencode/x-free', score: 80, input_cost: 0, output_cost: 0, blended_cost: 0 },
+              ],
+            },
+          },
+        },
+      }),
+      [CACHE_DIR + '/usage-limits.json']: JSON.stringify({
+        fetchedAt: now,
+        source: 'limits',
+        go: {
+          monthly: { percent: 42, limited: false, resetsAt: now + 3600e3 },
+          weekly: { percent: 10, limited: false, resetsAt: null },
+          rolling: { percent: null, limited: false, resetsAt: null },
+        },
+        budgets: [],
+      }),
+    });
+    const frame = loadFrame({ files });
+    await frame.ready();
+
+    findTab(frame.root, 'models').click();
+    await frame.settle();
+
+    const fills = findAll(frame.root, (n) => hasClass(n, 'mp-mo-fill'));
+    const labels = findAll(frame.root, (n) => hasClass(n, 'mp-mo-barlabel'))
+      .map((n) => textOf(n));
+    // Go pick shows the consumed monthly window; the off-side free row
+    // shows its exclusion reason instead of a cost ratio.
+    assert.deepEqual(fills.map((n) => n.style.width), ['42%', '100%']);
+    assert.deepEqual(fills.map((n) => n.attrs['data-tone']), ['ok', 'muted']);
+    assert.equal(labels[0], 'PICK · Go monthly 42%');
+    assert.match(labels[1], /off-side · auto → go-first/);
+  });
+
+  it('gives each media icon a tooltip and click-to-toast description', async () => {
+    const now = Date.now();
+    const files = fixtureFiles({
+      [MANAGED]: JSON.stringify({
+        plugins: [{
+          package: 'opencode-modelselect-plugin',
+          options: { tier: 'auto', autoPreference: 'free-first', maxCost: 10, defaultTaskType: 'generic' },
+        }],
+      }),
+      [CACHE_DIR + '/model-config-cache.json']: JSON.stringify({
+        fetchedAt: now,
+        config: {
+          'task-types': {
+            generic: {
+              go: 'opencode-go/m-a',
+              free: 'opencode/m-b',
+              go_ranked: [
+                { model: 'opencode-go/m-a', score: 90, input_cost: 1, output_cost: 2, blended_cost: 1.5, context: 1000, modalities: ['text', 'image', 'pdf', 'audio', 'video', 'file', 'mystery'] },
+              ],
+              free_ranked: [],
+            },
+          },
+        },
+      }),
+    });
+    const frame = loadFrame({ files });
+    await frame.ready();
+
+    findTab(frame.root, 'models').click();
+    await frame.settle();
+
+    const icons = findAll(frame.root, (n) => hasClass(n, 'mp-mo-ico'));
+    assert.ok(icons.length >= 7, `expected 7 media icons, got ${icons.length}`);
+    const expected = {
+      'file-text': 'Text input supported',
+      'image': 'Image input supported',
+      'file-pdf': 'PDF input supported',
+      'audio': 'Audio input supported',
+      'video': 'Video input supported',
+      'attachment': 'File input supported',
+    };
+    assert.equal(icons.length, 7);
+    for (const ico of icons) {
+      const inner = (ico.children || []).find((c) => c.attrs && c.attrs['data-icon']);
+      const title = typeof ico.getAttribute === 'function' ? ico.getAttribute('title') : ico.attrs.title;
+      if (inner) {
+        assert.equal(title, expected[inner.attrs['data-icon']]);
+      } else {
+        // Unknown modality renders as raw text with a generic tip.
+        assert.equal(ico.textContent, 'mystery');
+        assert.equal(title, 'Supports mystery');
+      }
+    }
+    // Clicking an icon toasts its description (native titles don't
+    // surface in the sandboxed frame). The click posts synchronously;
+    // inspect before settle() pumps (and drains) the outbox.
+    assert.ok(Array.isArray(icons[1].listeners.click) && icons[1].listeners.click.length > 0);
+    icons[1].click(); // image icon
+    const toast = frame.sent.find((m) => m.type === 'toast');
+    assert.ok(toast, 'icon click did not send a toast');
+    assert.equal(toast.payload.message, 'Image input supported');
+    await frame.settle();
   });
 
   it('shows the off-side chain grayed when the preference picks free', async () => {
@@ -644,5 +771,184 @@ describe('panel frame', () => {
     await frame.ready();
     assert.equal(findTab(frame.root, 'extension').attrs['aria-selected'], 'true');
     assert.match(textOf(frame.root), /Save extension settings/);
+  });
+
+  it('preselects the models task from the current session status file', async () => {
+    const now = Date.now();
+    const files = fixtureFiles({
+      [MANAGED]: JSON.stringify({
+        plugins: [{
+          package: 'opencode-modelselect-plugin',
+          options: { tier: 'go', defaultTaskType: 'generic' },
+        }],
+      }),
+      [CACHE_DIR + '/model-config-cache.json']: JSON.stringify({
+        fetchedAt: now,
+        config: {
+          'task-types': {
+            generic: {
+              go: 'go/generic-pick', free: '',
+              go_ranked: [{ model: 'go/generic-pick', score: 90, blended_cost: 1 }],
+              free_ranked: [],
+            },
+            code: {
+              go: 'go/code-pick', free: '',
+              go_ranked: [{ model: 'go/code-pick', score: 91, blended_cost: 1 }],
+              free_ranked: [],
+            },
+          },
+        },
+      }),
+      [CACHE_DIR + '/status-ses_test.json']: JSON.stringify({
+        sessionID: 'ses_test', taskType: 'code', tier: 'go',
+        model: 'go/code-pick', updatedAt: now,
+      }),
+    });
+    const frame = loadFrame({ files });
+    await frame.ready();
+
+    findTab(frame.root, 'models').click();
+    await frame.settle();
+    // Saved defaultTaskType is generic; the live session status wins.
+    assert.match(textOf(frame.root), /Pick: go\/code-pick/);
+  });
+
+  it('sanitizes the sessionID when locating the status file', async () => {
+    const now = Date.now();
+    const files = fixtureFiles({
+      [MANAGED]: JSON.stringify({
+        plugins: [{
+          package: 'opencode-modelselect-plugin',
+          options: { tier: 'go', defaultTaskType: 'generic' },
+        }],
+      }),
+      [CACHE_DIR + '/model-config-cache.json']: JSON.stringify({
+        fetchedAt: now,
+        config: {
+          'task-types': {
+            generic: {
+              go: 'go/generic-pick', free: '',
+              go_ranked: [{ model: 'go/generic-pick', score: 90, blended_cost: 1 }],
+              free_ranked: [],
+            },
+            code: {
+              go: 'go/code-pick', free: '',
+              go_ranked: [{ model: 'go/code-pick', score: 91, blended_cost: 1 }],
+              free_ranked: [],
+            },
+          },
+        },
+      }),
+      // 'a/b c' sanitizes to 'a_b_c' (mirror of status sanitizeSessionID).
+      [CACHE_DIR + '/status-a_b_c.json']: JSON.stringify({
+        sessionID: 'a/b c', taskType: 'code', tier: 'go',
+        model: 'go/code-pick', updatedAt: now,
+      }),
+    });
+    const frame = loadFrame({ files });
+    await frame.ready('a/b c');
+
+    findTab(frame.root, 'models').click();
+    await frame.settle();
+    assert.match(textOf(frame.root), /Pick: go\/code-pick/);
+  });
+
+  it('falls back to defaultTaskType when the session status task is unknown or unreadable', async () => {
+    const now = Date.now();
+    const catalog = JSON.stringify({
+      fetchedAt: now,
+      config: {
+        'task-types': {
+          generic: {
+            go: 'go/generic-pick', free: '',
+            go_ranked: [{ model: 'go/generic-pick', score: 90, blended_cost: 1 }],
+            free_ranked: [],
+          },
+          code: {
+            go: 'go/code-pick', free: '',
+            go_ranked: [{ model: 'go/code-pick', score: 91, blended_cost: 1 }],
+            free_ranked: [],
+          },
+        },
+      },
+    });
+    const managed = JSON.stringify({
+      plugins: [{
+        package: 'opencode-modelselect-plugin',
+        options: { tier: 'go', defaultTaskType: 'generic' },
+      }],
+    });
+    for (const status of [
+      JSON.stringify({ sessionID: 'ses_test', taskType: 'nope-unknown', updatedAt: now }),
+      '{ not json',
+    ]) {
+      const frame = loadFrame({ files: fixtureFiles({
+        [MANAGED]: managed,
+        [CACHE_DIR + '/model-config-cache.json']: catalog,
+        [CACHE_DIR + '/status-ses_test.json']: status,
+      }) });
+      await frame.ready();
+      findTab(frame.root, 'models').click();
+      await frame.settle();
+      assert.match(textOf(frame.root), /Pick: go\/generic-pick/, `status: ${status}`);
+    }
+    // Missing status file also falls back.
+    const missing = loadFrame({ files: fixtureFiles({
+      [MANAGED]: managed,
+      [CACHE_DIR + '/model-config-cache.json']: catalog,
+    }) });
+    await missing.ready();
+    findTab(missing.root, 'models').click();
+    await missing.settle();
+    assert.match(textOf(missing.root), /Pick: go\/generic-pick/);
+  });
+
+  it('keeps the preselected task when ready fires again', async () => {
+    const now = Date.now();
+    const files = fixtureFiles({
+      [MANAGED]: JSON.stringify({
+        plugins: [{
+          package: 'opencode-modelselect-plugin',
+          options: { tier: 'go', defaultTaskType: 'generic' },
+        }],
+      }),
+      [CACHE_DIR + '/model-config-cache.json']: JSON.stringify({
+        fetchedAt: now,
+        config: {
+          'task-types': {
+            generic: {
+              go: 'go/generic-pick', free: '',
+              go_ranked: [{ model: 'go/generic-pick', score: 90, blended_cost: 1 }],
+              free_ranked: [],
+            },
+            code: {
+              go: 'go/code-pick', free: '',
+              go_ranked: [{ model: 'go/code-pick', score: 91, blended_cost: 1 }],
+              free_ranked: [],
+            },
+          },
+        },
+      }),
+      [CACHE_DIR + '/status-ses_test.json']: JSON.stringify({
+        sessionID: 'ses_test', taskType: 'code', tier: 'go',
+        model: 'go/code-pick', updatedAt: now,
+      }),
+    });
+    const frame = loadFrame({ files });
+    await frame.ready();
+
+    findTab(frame.root, 'models').click();
+    await frame.settle();
+    assert.match(textOf(frame.root), /Pick: go\/code-pick/);
+
+    // The session now reports a different task on disk, but preselect
+    // happened once: a later ready must not reselect or rebuild.
+    files.set(CACHE_DIR + '/status-ses_test.json', JSON.stringify({
+      sessionID: 'ses_test', taskType: 'generic', tier: 'go',
+      model: 'go/generic-pick', updatedAt: Date.now(),
+    }));
+    await frame.ready();
+    assert.equal(findTab(frame.root, 'models').attrs['aria-selected'], 'true');
+    assert.match(textOf(frame.root), /Pick: go\/code-pick/);
   });
 });

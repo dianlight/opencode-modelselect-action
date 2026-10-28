@@ -117,6 +117,7 @@ const {
 
 const { startProxy, HEADER_PROVIDER, HEADER_MODEL, HEADER_ENDPOINT, HEADER_ENDPOINT_PATH, safeEndpointBasePath } = require('./proxy');
 const { resolveToken } = require('./shared/auth');
+const { refreshUsageLimits } = require('./shared/usage');
 
 const ID = 'modelselect';
 // Single virtual provider: `modelselect` owns one model per
@@ -1174,6 +1175,18 @@ async function setup(ctx) {
       // router-sync toggle inside syncRoutingNow), then gate on the
       // virtual pick — any other model is the user's hands-off choice.
       await syncRoutingNow();
+      // Usage snapshot for the Models-pane usage-status bar (best-effort,
+      // fire-and-forget: throttled to one fetch per 60s, never blocks the
+      // turn). Local `GET /api/experimental/usage/limits` first, Zen
+      // fallback via the probe token.
+      try {
+        refreshUsageLimits(cacheDir, { token: opts.token, usageUrl: opts.usageUrl }).then(
+          () => {},
+          () => {},
+        );
+      } catch {
+        // never break the turn
+      }
       // A retried turn that succeeded leaves its protocol arm behind;
       // without expiry that stale arm would swallow the next independent
       // mismatch, so arms older than the retry window are forgotten here

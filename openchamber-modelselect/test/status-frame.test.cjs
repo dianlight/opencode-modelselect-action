@@ -770,6 +770,83 @@ describe('modelselect status frame', () => {
     }
   });
 
+  it('shows the Go monthly usage bar from the plugin snapshot', async () => {
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
+        [`${STATUS_DIR}/usage-limits.json`, JSON.stringify({
+          fetchedAt: Date.now(),
+          source: 'limits',
+          go: { monthly: { percent: 42, limited: false, resetsAt: null } },
+          budgets: [],
+        })],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.match(txt, /Go monthly/);
+      assert.match(txt, /42%/);
+      const fills = findAll(frame.root, (el) => el.className && String(el.className).indexOf('ms-usage-fill') >= 0);
+      assert.equal(fills.length, 1);
+      assert.equal(fills[0].style.width, '42%');
+      assert.ok(String(fills[0].className).split(' ').includes('ok'));
+      // Clicking toasts the snapshot detail (native titles don't surface).
+      const rows = findAll(frame.root, (el) => el.className === 'ms-usage');
+      assert.equal(rows.length, 1);
+      rows[0].click();
+      await frame.settle();
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('warns the usage bar when the monthly window is limited', async () => {
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
+        [`${STATUS_DIR}/usage-limits.json`, JSON.stringify({
+          fetchedAt: Date.now(),
+          source: 'zen',
+          go: { monthly: { percent: 100, limited: true, resetsAt: Date.now() + 3600e3 } },
+          budgets: [],
+        })],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const txt = textOf(frame.root);
+      assert.match(txt, /limited · 100%/);
+      const fills = findAll(frame.root, (el) => el.className && String(el.className).indexOf('ms-usage-fill') >= 0);
+      assert.equal(fills.length, 1);
+      assert.ok(String(fills[0].className).split(' ').includes('err'));
+    } finally {
+      frame.close();
+    }
+  });
+
+  it('hides the usage bar without a snapshot', async () => {
+    const frame = loadFrame({
+      files: new Map([
+        [`${STATUS_DIR}/status-ses_1.json`, DEBUG_STATUS],
+        [`${STATUS_DIR}/routing-sync.json`, JSON.stringify({ sync: true })],
+      ]),
+      session: AUTO_SESSION,
+    });
+    try {
+      await frame.ready();
+      const fills = findAll(frame.root, (el) => el.className && String(el.className).indexOf('ms-usage-fill') >= 0);
+      assert.equal(fills.length, 0);
+      assert.doesNotMatch(textOf(frame.root), /Go monthly/);
+    } finally {
+      frame.close();
+    }
+  });
+
   // --- session map (host-detection evidence for the plugin) --------------
 
   it('upserts the active session into the host-detection session map', async () => {

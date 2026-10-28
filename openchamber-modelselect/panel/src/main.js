@@ -59,6 +59,7 @@ var CACHE_DIR = '.opencode/.modelselect-cache';
 var CONFIG_CACHE_FILE = CACHE_DIR + '/model-config-cache.json';
 var ROUTING_SYNC_FILE = CACHE_DIR + '/routing-sync.json';
 var FREE_QUOTA_FILE = CACHE_DIR + '/free-quota.json';
+var USAGE_LIMITS_FILE = CACHE_DIR + '/usage-limits.json';
 var PLUGIN_PACKAGE = 'opencode-modelselect-plugin';
 var MIN_HEIGHT = 240;
 var MAX_HEIGHT = 1600;
@@ -141,6 +142,39 @@ function existsPath(path) {
     function () { return true; },
     function () { return false; }
   );
+}
+
+function sanitizeSessionID(id) {
+  var clean = String(id == null ? 'default' : id).replace(/[^A-Za-z0-9-_]/g, '_').slice(0, 128);
+  return clean || 'default';
+}
+
+function sessionIDOf(snap) {
+  if (!snap || typeof snap !== 'object') return '';
+  return snap.sessionID || snap.sessionId || snap.id || '';
+}
+
+function statusPathFor(sessionID) {
+  return CACHE_DIR + '/status-' + sanitizeSessionID(sessionID) + '.json';
+}
+
+// Current-session preselect: the status file's taskType for the session
+// the panel was opened on, when it names a known catalog type. Missing /
+// unreadable / bad JSON / unknown task all yield '' (caller falls back
+// to the defaultTaskType/generic/first logic). Read once on first ready
+// only — never re-read on later session changes.
+function loadSessionTask(sessionID) {
+  if (!sessionID) return Promise.resolve('');
+  return existsPath(statusPathFor(sessionID)).then(function (exists) {
+    if (!exists) return '';
+    return readJson(statusPathFor(sessionID)).then(
+      function (data) {
+        var t = data && typeof data.taskType === 'string' ? data.taskType : '';
+        return t;
+      },
+      function () { return ''; }
+    );
+  }, function () { return ''; });
 }
 
 function writeJson(path, value) {
@@ -378,6 +412,17 @@ function loadFreeQuota() {
   return readJson(FREE_QUOTA_FILE).then(
     function (data) { return data; },
     function () { return null; } // missing/unreadable = no latch data
+  );
+}
+
+// Usage snapshot for the usage-status bars: written Node-side by the
+// plugin from GET /api/experimental/usage/limits (Zen fallback),
+// refreshed each turn. Missing/unreadable = the bars fall back to
+// row-status rendering without quota data.
+function loadUsageLimits() {
+  return readJson(USAGE_LIMITS_FILE).then(
+    function (data) { return (data && typeof data === 'object' && !Array.isArray(data)) ? data : null; },
+    function () { return null; }
   );
 }
 
@@ -1016,7 +1061,9 @@ function renderExtPane(pane, extConfig, syncOn, catalog) {
 
 var modelsState = null;
 
-function initialModelsTask(types, options) {
+function initialModelsTask(types, options, sessionTask) {
+  var sessionPreferred = str(sessionTask);
+  if (sessionPreferred && types.indexOf(sessionPreferred) >= 0) return sessionPreferred;
   var preferred = str(optOf(options, 'defaultTaskType', 'default-task-type', ''));
   if (preferred && types.indexOf(preferred) >= 0) return preferred;
   if (types.indexOf('generic') >= 0) return 'generic';
@@ -1035,18 +1082,159 @@ function formatCtx(v) {
   return String(v);
 }
 
-// Input-modality glyphs for the row's top-right corner. Unknown
-// modalities render as their raw name so no support data is lost.
-var MEDIA_ICONS = {
-  text: '📝',
-  image: '🖼️',
-  pdf: '📄',
-  audio: '🔊',
-  video: '🎬',
-  file: '📎'
+// Input-modality icons for the row's top-right corner. Remixicon-outline
+// shapes (24x24, currentColor) in the host theme — never emoji: emoji
+// render outside the OpenChamber theme and break its monochrome icon
+// language. Unknown modalities render as their raw name so no support
+// data is lost. Native title tooltips don't surface in the sandboxed
+// frame, so each icon also toasts its description on click (same pattern
+// as the status view's field() icons).
+var SVG_NS = 'http://www.w3.org/2000/svg';
+var ICON_PATHS = {
+  check: 'M10 15.172l9.192-9.193 1.415 1.414L10 18l-6.364-6.364 1.414-1.414z',
+  close: 'M12 10.586l4.95-4.95 1.414 1.414-4.95 4.95 4.95 4.95-1.414 1.414-4.95-4.95-4.95 4.95-1.414-1.414 4.95-4.95-4.95-4.95L7.05 5.636z',
+  question: 'M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2zm1.4-6.9c-.5.5-1.4 1-1.4 1.9h-2c0-1.6 1.2-2.3 1.9-2.9.5-.4.6-.9.1-1.3-.4-.4-1-.5-1.6-.2-.5.3-.8.8-.8.8l-1.7-.7c.2-1.3 1.6-2.7 3.1-2.7.8 0 1.6.3 2.1.9.6.6.8 1.4.7 2.2z',
+  alert: 'M12 2L1 21h22L12 2zm-1 7h2v6h-2V7zm0 8h2v2h-2v-2z',
+  'file-text': 'M6 2h8l4 4v16H6V2zm7 1.5V7h3.5L13 3.5zM8 12h8v2H8v-2zm0 4h8v2H8v-2z',
+  image: 'M4 4h16v16H4V4zm2 2v12h12V6H6zm2.7 2.3a1.3 1.3 0 100 2.6 1.3 1.3 0 000-2.6zM7 15l2.8-3.7 2.4 3 1.9-2.4L17.5 15H7z',
+  'file-pdf': 'M6 2h8l4 4v16H6V2zm7 1.5V7h3.5L13 3.5zM8 12h8v6H8v-6z',
+  audio: 'M4 9v6h4l5 4V5L8 9H4zm12.5 3a3 3 0 00-1.8-2.7v5.4a3 3 0 001.8-2.7zm-1.8-5.8v2a5 5 0 010 7.6v2a7 7 0 000-11.6z',
+  video: 'M3 5h18v14H3V5zm2 2v10h14V7H5zm5 2l5 3-5 3v-6z',
+  attachment: 'M20.6 13.4L13.4 20.6a2 2 0 01-2.8 0L2 12V2h10l8.6 8.6a2 2 0 010 2.8zM7 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3z',
+  eye: 'M2 12s3.6-6.5 10-6.5S20.4 10 22 12s-3.6 6.5-10 6.5S3.6 14 2 12zm10 3.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm0-2a1.5 1.5 0 110-3 1.5 1.5 0 010 3z',
+  'eye-off': 'M2 12s3.6-6.5 10-6.5c1.2 0 2.3.2 3.3.5L13 3.7 14 2.6l2.5 2.5c2.4.9 4.1 2.4 5.5 4.4L22 12l-2 2.9c-1.4 2-3.1 3.5-5.5 4.4L12 21.8l-1-1.1-2.5-2.5c-1-.3-2.1-.5-3.3-.5C3.6 18.5 2 12 2 12zm10 3.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm0-2a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM4 4l16 16-1.4 1.4L2.6 5.4 4 4z'
 };
 
-function modelRow(row, scale) {
+// Themed SVG icon: same contract as the SDK `icon()` helper (24x24,
+// currentColor) for the names it does not ship. Falls back to an empty
+// span outside a DOM with createElementNS (tests), always carrying
+// `data-icon` so tests can assert without emoji.
+function svgIcon(name, cls) {
+  var svg = null;
+  try {
+    svg = document.createElementNS ? document.createElementNS(SVG_NS, 'svg') : document.createElement('span');
+  } catch (e) {
+    svg = document.createElement('span');
+  }
+  try {
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '14');
+    svg.setAttribute('height', '14');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('fill', 'currentColor');
+    if (cls) svg.setAttribute('class', cls);
+    svg.setAttribute('data-icon', name);
+    var d = ICON_PATHS[name];
+    if (d) {
+      var p = null;
+      try {
+        p = document.createElementNS ? document.createElementNS(SVG_NS, 'path') : document.createElement('span');
+      } catch (e2) {
+        p = document.createElement('span');
+      }
+      p.setAttribute('d', d);
+      svg.appendChild(p);
+    }
+  } catch (e) { /* icons are best-effort */ }
+  return svg;
+}
+
+var MEDIA_TIPS = {
+  text: 'Text input supported',
+  image: 'Image input supported',
+  pdf: 'PDF input supported',
+  audio: 'Audio input supported',
+  video: 'Video input supported',
+  file: 'File input supported'
+};
+// Modality -> themed icon name (unknown modalities render as raw text).
+var MEDIA_ICON_FOR = {
+  text: 'file-text',
+  image: 'image',
+  pdf: 'file-pdf',
+  audio: 'audio',
+  video: 'video',
+  file: 'attachment'
+};
+
+// Preferred Go usage window from the plugin's usage-limits snapshot
+// (`usage-limits.json`, written Node-side from GET
+// /api/experimental/usage/limits with a Zen fallback): monthly first,
+// else the highest known window. Returns
+// `{ percent, limited, resetsAt }` or null. Never throws.
+function usageMonthly(usage) {
+  try {
+    var go = usage && usage.go;
+    if (!go || typeof go !== 'object') return null;
+    var m = go.monthly;
+    if (m && typeof m.percent === 'number' && isFinite(m.percent)) {
+      return { percent: m.percent, limited: Boolean(m.limited), resetsAt: m.resetsAt };
+    }
+    var best = null;
+    ['rolling', 'weekly', 'monthly'].forEach(function (k) {
+      var w = go[k];
+      if (w && typeof w.percent === 'number' && isFinite(w.percent)) {
+        if (!best || w.percent > best.percent) {
+          best = { percent: w.percent, limited: Boolean(w.limited), resetsAt: w.resetsAt };
+        }
+      }
+    });
+    return best;
+  } catch (e) {
+    return null;
+  }
+}
+
+function formatResetIn(resetsAt) {
+  try {
+    var s = Math.max(0, Math.ceil((Number(resetsAt) - Date.now()) / 1000));
+    if (!isFinite(s)) return '';
+    var h = Math.floor(s / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    if (h > 0) return h + 'h ' + m + 'm';
+    if (m > 0) return m + 'm ' + (s % 60) + 's';
+    return s + 's';
+  } catch (e) {
+    return '';
+  }
+}
+
+// Usage-status bar for one chain row: Go rows show the consumed quota
+// window (width = percent, tone by limited/thresholds); free rows have no
+// quota endpoint, so the bar shows their availability instead (fully
+// available unless latched). Cost stays as text in the meta line — the
+// bar is about current usage status, not cost. Returns
+// `{ pct, tone, label }` where tone is ok|warn|err|muted.
+function usageBar(row, usage) {
+  if (row.status === 'excluded') {
+    var reason = row.reason || 'excluded';
+    var toneX = 'muted';
+    if (/quota latched/.test(reason)) toneX = 'err';
+    else if (/rate-limited/.test(reason)) toneX = 'warn';
+    else if (/over maxCost|no cost data/.test(reason)) toneX = 'err';
+    return { pct: 100, tone: toneX, label: reason };
+  }
+  var u = usageMonthly(usage);
+  if (row.side === 'go' && u && u.percent !== null) {
+    var pct = Math.max(3, Math.min(100, Math.round(u.percent)));
+    var tone = (u.limited || u.percent >= 100) ? 'err' : (u.percent >= 70 ? 'warn' : 'ok');
+    var label = 'Go monthly ' + Math.round(u.percent) + '%';
+    if (u.limited) {
+      label += ' · limited';
+      var left = formatResetIn(u.resetsAt);
+      if (left) label += ' · resets ' + left;
+    } else if (row.status === 'pick') {
+      label = 'PICK · ' + label;
+    }
+    return { pct: pct, tone: tone, label: label };
+  }
+  if (row.status === 'pick') {
+    return { pct: 100, tone: 'ok', label: row.side === 'free' ? 'PICK · free' : 'PICK' };
+  }
+  return { pct: 45, tone: 'muted', label: row.side === 'free' ? 'free · no quota cap' : 'standby' };
+}
+
+function modelRow(row, usage) {
   var wrap = el('div', 'mp-mo' + (row.status === 'excluded' ? ' excluded' : ''));
   var head = el('div', 'mp-mo-head');
   var name = el('span', 'mp-mo-name');
@@ -1055,7 +1243,18 @@ function modelRow(row, scale) {
   var right = el('span', 'mp-mo-right');
   (row.modalities || []).forEach(function (mod) {
     var ico = el('span', 'mp-mo-ico');
-    ico.textContent = MEDIA_ICONS[mod] || mod;
+    var tip = MEDIA_TIPS[mod] || ('Supports ' + mod);
+    if (MEDIA_ICON_FOR[mod]) ico.appendChild(svgIcon(MEDIA_ICON_FOR[mod], ''));
+    else ico.textContent = mod;
+    try { ico.setAttribute('title', tip); } catch (e) { /* title is best-effort */ }
+    try { ico.style.cursor = 'pointer'; } catch (e) { /* cursor is best-effort */ }
+    (function (message) {
+      ico.addEventListener('click', function () {
+        toPromise(function () {
+          return host.toast({ kind: 'info', message: message });
+        }).then(noop, noop);
+      });
+    })(tip);
     right.append(ico);
   });
   if (row.status === 'pick') {
@@ -1086,19 +1285,18 @@ function modelRow(row, scale) {
   meta.textContent = bits.join(' · ');
   wrap.append(meta);
 
-  if (row.cost !== null && scale > 0) {
-    var barWrap = el('div', 'mp-mo-barwrap');
-    var bar = el('div', 'mp-mo-bar');
-    var fill = el('div', 'mp-mo-fill');
-    var pct = Math.max(0, Math.min(100, Math.round((row.cost / scale) * 100)));
-    fill.style.width = pct + '%';
-    bar.append(fill);
-    barWrap.append(bar);
-    var barLabel = el('span', 'mp-mo-barlabel');
-    barLabel.textContent = formatCost(row.cost) + ' / ' + formatCost(scale) + ' limit';
-    barWrap.append(barLabel);
-    wrap.append(barWrap);
-  }
+  var barState = usageBar(row, usage);
+  var barWrap = el('div', 'mp-mo-barwrap');
+  var bar = el('div', 'mp-mo-bar');
+  var fill = el('div', 'mp-mo-fill ' + barState.tone);
+  fill.style.width = barState.pct + '%';
+  try { fill.setAttribute('data-tone', barState.tone); } catch (e) { /* tone is best-effort */ }
+  bar.append(fill);
+  barWrap.append(bar);
+  var barLabel = el('span', 'mp-mo-barlabel');
+  barLabel.textContent = barState.label;
+  barWrap.append(barLabel);
+  wrap.append(barWrap);
   if (row.latchText) {
     var latch = el('div', 'mp-mo-latch');
     latch.textContent = row.latchText;
@@ -1109,12 +1307,13 @@ function modelRow(row, scale) {
 
 function renderModelsPane(pane, ctx) {
   clearNode(pane);
-  modelsState = { task: initialModelsTask(ctx.catalog.types, ctx.options), showExcluded: true };
+  modelsState = { task: initialModelsTask(ctx.catalog.types, ctx.options, ctx.sessionTask), showExcluded: true };
 
   var note = el('div', 'mp-file');
   note.textContent = 'Read-only preview from the saved options + catalog cache. ' +
-    'The live Go quota probe can still adjust the auto pick; monthly usage % ' +
-    'needs the token and is not shown here.';
+    'The live Go quota probe can still adjust the auto pick; the bars show ' +
+    'the plugin usage snapshot (local /api/experimental/usage/limits, Zen ' +
+    'fallback), refreshed each turn — cost stays as text.';
   pane.append(note);
 
   var cellRef = {};
@@ -1171,32 +1370,35 @@ function renderModelsPane(pane, ctx) {
           : (view.chain.length ? 'All rows excluded — toggle the eye to show them.' : 'No ranked rows for this task.');
         chainWrap.append(empty);
       }
-      var scale = view.maxCost !== null ? view.maxCost : 0;
-      if (view.maxCost === null) {
-        rows.forEach(function (r) {
-          if (r.cost !== null && r.cost > scale) scale = r.cost;
-        });
-        if (scale <= 0) scale = 1;
-      }
       rows.forEach(function (row) {
-        chainWrap.append(modelRow(row, scale));
+        chainWrap.append(modelRow(row, ctx.usage));
       });
     }
     fitHeight();
   };
 
-  eyeRef.handle = mountButton(eyeWrap, {
-    label: '👁',
-    size: 'xs',
-    variant: 'secondary',
-    onClick: function () {
-      modelsState.showExcluded = !modelsState.showExcluded;
-      try {
-        eyeRef.handle.update({ label: modelsState.showExcluded ? '👁' : '🙈' });
-      } catch (e) { /* label is best-effort */ }
-      repaintChain();
-    }
+  // Eye toggle: a themed icon button (eye / eye-off), not an emoji label —
+  // the SDK kit button only takes text, so this paints the SVG directly.
+  var eyeBtn = el('button', 'mp-mo-eyebtn');
+  eyeBtn.type = 'button';
+  var paintEye = function () {
+    clearNode(eyeBtn);
+    var show = modelsState.showExcluded;
+    eyeBtn.appendChild(svgIcon(show ? 'eye' : 'eye-off', ''));
+    try {
+      eyeBtn.setAttribute('aria-label', show ? 'Hide excluded models' : 'Show excluded models');
+      eyeBtn.setAttribute('title', show ? 'Hide excluded models' : 'Show excluded models');
+      eyeBtn.setAttribute('data-icon', show ? 'eye' : 'eye-off');
+    } catch (e) { /* labels are best-effort */ }
+  };
+  eyeBtn.addEventListener('click', function () {
+    modelsState.showExcluded = !modelsState.showExcluded;
+    paintEye();
+    repaintChain();
   });
+  paintEye();
+  eyeWrap.append(eyeBtn);
+  eyeRef.handle = { update: paintEye };
   cellRef.cell = mkSelect(selectWrap, {
     label: 'task',
     value: modelsState.task,
@@ -1243,13 +1445,20 @@ function mountStyles() {
       '.mp-mo-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }',
       '.mp-mo-name { font-family: var(--oc-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
       '.mp-mo-right { margin-left: auto; display: flex; gap: 4px; align-items: center; }',
-      '.mp-mo-ico { font-size: 11px; line-height: 1; }',
+      '.mp-mo-ico { display: inline-flex; line-height: 0; cursor: pointer; color: var(--oc-muted); }',
+      '.mp-mo-ico svg { width: 14px; height: 14px; display: block; }',
       '.mp-mo-pick { flex: 0 0 auto; font-size: 10px; font-weight: 700; color: var(--oc-success-text); }',
       '.mp-mo-why { flex: 0 0 auto; font-size: 10px; color: var(--oc-muted); text-align: right; }',
       '.mp-mo-meta { font-size: 11px; color: var(--oc-muted); }',
       '.mp-mo-barwrap { display: flex; align-items: center; gap: 6px; }',
       '.mp-mo-bar { flex: 1 1 auto; height: 6px; border-radius: 3px; background: var(--oc-hover); overflow: hidden; }',
       '.mp-mo-fill { height: 100%; background: var(--oc-primary); }',
+      '.mp-mo-fill.ok { background: var(--oc-success); }',
+      '.mp-mo-fill.warn { background: var(--oc-warning); }',
+      '.mp-mo-fill.err { background: var(--oc-error); }',
+      '.mp-mo-fill.muted { background: var(--oc-muted); }',
+      '.mp-mo-eyebtn { display: inline-flex; align-items: center; justify-content: center; padding: 3px 7px; border: 1px solid var(--oc-border); border-radius: 6px; background: transparent; color: var(--oc-fg); cursor: pointer; }',
+      '.mp-mo-eyebtn svg { width: 14px; height: 14px; display: block; }',
       '.mp-mo-barlabel { flex: 0 0 auto; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--oc-muted); }',
       '.mp-mo-latch { font-size: 11px; color: var(--oc-warning-text); }'
     ].join('\n');
@@ -1304,19 +1513,24 @@ function renderShell(data) {
   renderModelsPane(panes.models, {
     catalog: data.catalog,
     options: (data.managed.entry && data.managed.entry.options) || {},
-    latch: data.latch
+    latch: data.latch,
+    sessionTask: data.sessionTask,
+    usage: data.usage
   });
   fitHeight();
 }
 
-function run() {
+function run(initialSessionID) {
+  var sessionTaskJob = loadSessionTask(initialSessionID || '');
   Promise.all([
     loadManaged(),
     loadExtensionConfig(),
     loadRoutingSync(),
     loadCatalog(),
     loadGlobalNote(),
-    loadFreeQuota()
+    loadFreeQuota(),
+    sessionTaskJob,
+    loadUsageLimits()
   ]).then(function (parts) {
     renderShell({
       managed: parts[0],
@@ -1324,7 +1538,9 @@ function run() {
       syncOn: parts[2],
       catalog: parts[3],
       globalPaths: parts[4],
-      latch: parts[5]
+      latch: parts[5],
+      sessionTask: parts[6],
+      usage: parts[7]
     });
     shellReady = true;
   }, function (err) {
@@ -1360,7 +1576,7 @@ function mount() {
           applyHostReady(ctx, document.documentElement);
         }
       } catch (e) { /* theme is best-effort */ }
-      if (!shellReady) run();
+      if (!shellReady) run(sessionIDOf(ctx && ctx.session));
       else fitHeight();
     });
   } catch (e) {
