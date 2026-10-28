@@ -35,6 +35,9 @@ README_PATH = ROOT / "README.md"
 
 TASK_TYPES_PATH = CONFIG_DIR / "task-types.yaml"
 MODEL_SCORES_PATH = CONFIG_DIR / "model-scores.yaml"
+# Curated per-model capabilities (context window + input modalities):
+# wins over the models.dev lookup for the ids listed here.
+MODEL_CAPABILITIES_PATH = CONFIG_DIR / "model-capabilities.yaml"
 
 # Data files
 ZEN_MODELS_PATH = DATA_DIR / "zen_models.json"
@@ -68,6 +71,10 @@ ZEN_PRICING_URL = "https://opencode.ai/docs/it/zen#pricing"
 # at $0.10/$0.20) that have no row on the Zen pricing page. Same table shape
 # plus an extra trailing "Usage" column.
 GO_PRICING_URL = "https://opencode.ai/docs/go"
+# models.dev registry: per-model context window (`limit.context`) and input
+# modalities (`modalities.input`). Fills capability gaps the curated table
+# does not cover; fail-soft (curated-only) when unreachable.
+MODELS_DEV_URL = "https://models.dev/api.json"
 LIVEBENCH_BASE = "https://livebench.ai"
 # LiveBench/LiveBench changelog is a secondary date hint (lags the live site)
 LIVEBENCH_CHANGELOG_URL = (
@@ -604,7 +611,123 @@ def fetch_go_pricing() -> tuple[dict[str, dict[str, Any]], dict[str, str]] | Non
     return _parse_pricing_html(html)
 
 
+# --- Model Capabilities (context window + input modalities) ---
+# Rows in data/model-config.json carry `context` (tokens, int) and
+# `modalities` (input list) so the OpenChamber Models tab can show them.
+# Lookup order per bare model id: curated config/model-capabilities.yaml
+# first (full "provider/id" key, bare id fallback), then models.dev —
+# same-provider (opencode/opencode-go) exact match preferred, then any
+# other provider's normalized exact match. Unknown stays None.
+
+
+def _norm_model_key(name: str) -> str:
+    """Normalize a model id for cross-registry matching."""
+    return re.sub(r"[^a-z0-9]", "", name.lower())
+
+
+def fetch_models_dev() -> dict[str, Any] | None:
+    """Fetch the models.dev registry ({provider: {models: {...}}}).
+
+    Fail-soft: None keeps the curated table as the only source.
+    """
+    print("-> Fetching models.dev registry...")
+    data = fetch_json(MODELS_DEV_URL, timeout=30)
+    if not data:
+        print("  w models.dev unreachable: capabilities fall back to curated-only")
+        return None
+    print(f"  v models.dev: {len(data)} providers")
+    return data
+
+
+def load_curated_capabilities() -> dict[str, dict[str, Any]]:
+    """Load config/model-capabilities.yaml ({full-or-bare-id: {...}})."""
+    raw = load_yaml(MODEL_CAPABILITIES_PATH)
+    caps = raw.get("capabilities") if isinstance(raw, dict) else None
+    if not isinstance(caps, dict):
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for key, val in caps.items():
+        if not isinstance(key, str) or not isinstance(val, dict):
+            continue
+        context = val.get("context")
+        modalities = val.get("modalities")
+        out[key] = {
+            "context": context if isinstance(context, int) and context > 0 else None,
+            "modalities": [str(m).lower() for m in modalities]
+            if isinstance(modalities, list)
+            else None,
+        }
+    return out
+
+
+def build_capability_map(
+    model_ids: list[str],
+    models_dev: dict[str, Any] | None,
+    curated: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Map bare model id -> {"context", "modalities", "source"}.
+
+    `model_ids` are bare Zen/Go ids (no provider prefix). `source` is
+    "curated", "models.dev:<provider>/<api>" or "unknown".
+    """
+    # Normalized api-name index across every models.dev provider.
+    index: dict[str, list[tuple[str, str, Any, Any]]] = {}
+    if models_dev:
+        for provider, pdata in models_dev.items():
+            if not isinstance(pdata, dict):
+                continue
+            for api, entry in (pdata.get("models") or {}).items():
+                if not isinstance(api, str) or not isinstance(entry, dict):
+                    continue
+                limit = entry.get("limit") or {}
+                mods = entry.get("modalities") or {}
+                index.setdefault(_norm_model_key(api), []).append(
+                    (
+                        provider,
+                        api,
+                        limit.get("context")
+                        if isinstance(limit.get("context"), int)
+                        else None,
+                        mods.get("input")
+                        if isinstance(mods.get("input"), list)
+                        else None,
+                    )
+                )
+    resolved: dict[str, dict[str, Any]] = {}
+    curated_bare = {k.split("/")[-1]: v for k, v in curated.items()}
+    for mid in model_ids:
+        bare = mid.split("/", 1)[-1]
+        prefixed = mid if "/" in mid else None
+        hit = None
+        source = "unknown"
+        if prefixed and prefixed in curated:
+            hit = curated[prefixed]
+            source = "curated"
+        elif bare in curated:
+            hit = curated[bare]
+            source = "curated"
+        elif bare in curated_bare:
+            hit = curated_bare[bare]
+            source = "curated"
+        else:
+            provider = mid.split("/", 1)[0] if "/" in mid else ""
+            candidates = index.get(_norm_model_key(bare), [])
+            same = [c for c in candidates if c[0] == provider]
+            pool = same or sorted(candidates, key=lambda c: c[0])
+            if pool:
+                provider, _api, context, modalities = pool[0]
+                hit = {"context": context, "modalities": modalities}
+                source = f"models.dev:{provider}/{_api}"
+        resolved[mid] = {
+            "context": (hit or {}).get("context"),
+            "modalities": (hit or {}).get("modalities"),
+            "source": source if hit else "unknown",
+        }
+    return resolved
+
+
 # --- Model Fetching ---
+
 def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Fetch Zen (free) and Go (paid) model catalogs.
 
@@ -1009,6 +1132,7 @@ def _rank_models_for_config(
     cost_blend: tuple[float, float],
     engine: str,
     tt: dict[str, Any] | None = None,
+    capabilities: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Rank models best-to-worst for a config tier entry.
 
@@ -1017,7 +1141,10 @@ def _rank_models_for_config(
     $/1M costs (None when unknown). Models without a score are excluded.
     When `tt` (task-type dict) is given, per-model priorities are used
     (v2 models get `priority_v2`); otherwise the single `priority` string
-    applies to all models.
+    applies to all models. When `capabilities` (bare id ->
+    {"context", "modalities"}) is given, each entry also carries `context`
+    (tokens) and `modalities` (input list), None when unknown; when omitted
+    the keys are left out (legacy shape).
     """
     w_in, w_out = cost_blend
     ranked = []
@@ -1031,15 +1158,18 @@ def _rank_models_for_config(
             if price_lookup is not None
             else {"input": None, "output": None, "blended": None}
         )
-        ranked.append(
-            {
-                "model": _add_model_prefix(mid, engine=engine),
-                "score": score,
-                "input_cost": cost["input"],
-                "output_cost": cost["output"],
-                "blended_cost": cost["blended"],
-            }
-        )
+        row: dict[str, Any] = {
+            "model": _add_model_prefix(mid, engine=engine),
+            "score": score,
+            "input_cost": cost["input"],
+            "output_cost": cost["output"],
+            "blended_cost": cost["blended"],
+        }
+        if capabilities is not None:
+            caps = capabilities.get(mid, {})
+            row["context"] = caps.get("context")
+            row["modalities"] = caps.get("modalities")
+        ranked.append(row)
     ranked.sort(
         key=lambda e: (
             -e["score"],
@@ -1060,6 +1190,7 @@ def generate_model_config(
     go_ids: set[str],
     price_lookup: dict[str, dict[str, Any]] | None = None,
     cost_blend: tuple[float, float] | None = None,
+    capabilities: dict[str, dict[str, Any]] | None = None,
 ) -> bool:
     """Compute the central model config and write it directly.
 
@@ -1102,11 +1233,11 @@ def generate_model_config(
             # can walk down to a cheaper fit when `max-cost` filters the pick.
             "go_ranked": _rank_models_for_config(
                 tier_go_ids, livebench, priority, price_lookup, blend,
-                engine="opencode-go", tt=tt,
+                engine="opencode-go", tt=tt, capabilities=capabilities,
             ),
             "free_ranked": _rank_models_for_config(
                 free_ids, livebench, priority, price_lookup, blend,
-                engine="opencode", tt=tt,
+                engine="opencode", tt=tt, capabilities=capabilities,
             ),
         }
 
@@ -1944,6 +2075,7 @@ def detect_coverage_issues(
     go_models: list[dict[str, Any]],
     livebench: dict[str, Any],
     price_lookup: dict[str, dict[str, Any]] | None = None,
+    capability_map: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Detect stale fallback entries and models missing scores entirely.
 
@@ -1951,11 +2083,14 @@ def detect_coverage_issues(
         "stale_fallback": [{"model": str, "livebench_scores": {...}}],
         "missing_scores": [{"model": str, "tier": str}],
         "missing_prices": [{"model": str, "tier": str}],
+        "missing_capabilities": [{"model": str, "tier": str}],
         "fallback_mismatch": [{"model": str, "fallback_vision": float,
             "signals": {"hf": str, "aa": str}, "suggested_vision": float}],
     }
     `missing_prices` lists paid models with no in/out pricing (unknown cost);
     free-tier models default to Free and are never listed there.
+    `missing_capabilities` lists models with neither curated nor models.dev
+    context/modality data (shown as unknown in the Models tab).
     `fallback_mismatch` is filled in by main() via
     detect_fallback_modality_mismatches() (HF tags + AA page must agree).
     """
@@ -1963,6 +2098,7 @@ def detect_coverage_issues(
         "stale_fallback": [],
         "missing_scores": [],
         "missing_prices": [],
+        "missing_capabilities": [],
         "fallback_mismatch": [],
     }
     lb_models = _lb_models(livebench)
@@ -2011,6 +2147,16 @@ def detect_coverage_issues(
             if price_in is None or price_out is None:
                 issues["missing_prices"].append(
                     {"model": model_id, "tier": "Go (Paid)"}
+                )
+
+    # Check all models for missing context/modality data
+    if capability_map is not None:
+        for model_id in sorted(all_ids):
+            caps = capability_map.get(model_id, {})
+            if caps.get("context") is None and not caps.get("modalities"):
+                tier = "Free" if model_id in free_ids else "Go (Paid)"
+                issues["missing_capabilities"].append(
+                    {"model": model_id, "tier": tier}
                 )
 
     return issues
@@ -2584,12 +2730,27 @@ def main() -> None:
     # 5. Update README
     _ = update_readme(model_table, score_table)
 
+    # 5b. Resolve per-model capabilities (context + modalities) for the
+    # config rows: curated table first, models.dev fills the gaps.
+    print("-> Resolving model capabilities...")
+    curated_caps = load_curated_capabilities()
+    models_dev = fetch_models_dev()
+    capability_ids = list(dict.fromkeys(
+        [m["id"] for m in free_models] + [m["id"] for m in go_models]
+    ))
+    capability_map = build_capability_map(
+        capability_ids, models_dev, curated_caps,
+    )
+    known = sum(1 for v in capability_map.values() if v["source"] != "unknown")
+    print(f"  v capabilities: {known}/{len(capability_map)} known "
+          f"({sum(1 for v in capability_map.values() if v['source'] == 'curated')} curated)")
+
     # 6. Recompute the central model config and write it directly — the
     # workflow commits it, so the new models immediately become the target.
     # `config_updated` reports whether the models actually changed this run.
     config_updated = generate_model_config(
         free_models, go_models, livebench, task_types, threshold_pct, go_ids,
-        price_lookup, cost_blend,
+        price_lookup, cost_blend, capability_map,
     )
 
     # 6b. Publish the task-type definitions for the plugin's Jev refinement
@@ -2634,7 +2795,7 @@ def main() -> None:
     # 7. Detect coverage issues (stale fallback, missing scores/prices)
     print("-> Checking model coverage...")
     coverage = detect_coverage_issues(
-        free_models, go_models, livebench, price_lookup
+        free_models, go_models, livebench, price_lookup, capability_map
     )
     # 7b. Secondary-source vision check (HF tags + AA pages, both must agree
     # to flag; fail-soft offline). Numeric coding/IF/reasoning raws stay
@@ -2657,6 +2818,9 @@ def main() -> None:
     if coverage.get("missing_prices"):
         for m in coverage["missing_prices"]:
             print(f"  w Missing prices: {m['model']} ({m['tier']}) — cost unknown")
+    if coverage.get("missing_capabilities"):
+        for m in coverage["missing_capabilities"]:
+            print(f"  w Missing capabilities: {m['model']} ({m['tier']}) — context/modalities unknown")
     if coverage.get("fallback_mismatch"):
         for m in coverage["fallback_mismatch"]:
             print(f"  w Vision mismatch: {m['model']} fallback={m['fallback_vision']} suggested={m['suggested_vision']} (hf={m['signals']['hf']}, aa={m['signals']['aa']})")

@@ -308,7 +308,10 @@ function loadGlobalEntry() {
 function loadKnownTaskTypes() {
   return readJson(CONFIG_CACHE_FILE).then(
     function (data) {
-      var bucket = (data && (data['task-types'] || data.taskTypes)) || {};
+      // Real cache shape is { fetchedAt, config } with the table at
+      // config['task-types']; tolerate a bare table too.
+      var cfg = (data && data.config) || data || {};
+      var bucket = (cfg['task-types'] || cfg.taskTypes) || {};
       return Object.keys(bucket);
     },
     function () { return []; }

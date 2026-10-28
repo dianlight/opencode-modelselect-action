@@ -1,15 +1,15 @@
 {
   "name": "openchamber-modelselect",
-  "version": "0.1.4",
-  "description": "Work Status section surfacing the modelselect plugin's per-session pick (shown for auto/virtual sessions) plus the auto-update-router on/off switch.",
+  "version": "0.2.0",
+  "description": "Work Status section surfacing the modelselect plugin's per-session pick (shown for auto/virtual sessions) plus the auto-update-router on/off switch, and a settings panel for the plugin options and the extension config.",
   "license": "MIT",
   "type": "module",
   "dependencies": {
     "@openchamber/sdk": "2.5.2"
   },
   "scripts": {
-    "build": "openchamber-guest-bundle status/src/main.js status/main.js",
-    "check": "node --check status/main.js",
+    "build": "openchamber-guest-bundle status/src/main.js status/main.js && openchamber-guest-bundle panel/src/main.js panel/main.js",
+    "check": "node --check status/main.js && node --check panel/main.js",
     "test": "node --test test/"
   },
   "openchamber": {
@@ -21,7 +21,8 @@
       "panel": {
         "id": "model-select",
         "name": "Model select",
-        "icon": "window"
+        "icon": "window",
+        "entry": "panel/index.html"
       },
       "statusSection": {
         "entry": "status/index.html",

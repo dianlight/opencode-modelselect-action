@@ -65,6 +65,7 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 - `.yamllint` — 180-char line limit for GitHub Actions expressions, 2-space indent, truthy rule relaxed
 - `config/task-types.yaml` — task type definitions with priority subscores
 - `config/model-scores.yaml` — static fallback scores for models not on LiveBench
+- `config/model-capabilities.yaml` — curated per-model context/modalities (wins over the models.dev lookup; rows carry `context` + `modalities`, null when unknown)
 - `ruff.toml` — ruff linter configuration (Python)
 
 ## Workflow conventions

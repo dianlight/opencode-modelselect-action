@@ -1,0 +1,16 @@
+# Curated model capabilities: wins over the models.dev lookup in
+# scripts/opencode_maintenance.py. Use this for models models.dev does
+# not know (OpenCode-curated codenames such as omen-alpha, jev-1.13) or
+# to correct a wrong automatic match.
+#
+# Key: full "provider/id" as in data/model-config.json rows (a bare id
+# without the provider also matches). Values researchers verified by hand:
+#   context: context window in tokens (int)
+#   modalities: input modalities, subset of
+#     [text, image, pdf, audio, video, file]
+#
+# Example:
+# "opencode/omen-alpha":
+#   context: 200000
+#   modalities: [text, image]
+capabilities: {}

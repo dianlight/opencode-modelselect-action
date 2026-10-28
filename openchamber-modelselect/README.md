@@ -5,10 +5,11 @@ per-session pick (task, tier, model, Jev reason, Go quota, config source)
 plus the auto-update-router on/off switch, and records session activity
 into the host-detection session map the plugin reads.
 
-Status-only extension: no panel, no background service, no commands.
-Source is `status/src/main.js` (ESM, imports `connectHost` from
-`@openchamber/sdk`); the runnable `status/main.js` is a committed IIFE
-bundle built with `bun run build` — never edit it by hand.
+Status section plus a settings panel; no background service, no commands.
+Sources are `status/src/main.js` and `panel/src/main.js` (ESM, import
+`connectHost` from `@openchamber/sdk`); the runnable `status/main.js` and
+`panel/main.js` are committed IIFE bundles built with `bun run build` —
+never edit them by hand.
 
 Requires OpenChamber >= 2.0 (web/desktop only; the status iframe needs
 a web view). The session map it writes is what lets the plugin detect
@@ -34,15 +35,15 @@ only when autoset is enabled there — reads/writes `settings.json` +
 ```sh
 cd openchamber-modelselect
 bun install
-bun run build   # openchamber-guest-bundle status/src/main.js status/main.js
-bun run check   # node --check on the bundle
-bun run test    # node --test test/ — frame smoke test (fake guest frame
-                # speaking the SDK wire protocol; asserts hello, the
-                # per-session pick, the mode switch, and the fix hint)
+bun run build   # openchamber-guest-bundle for status/ and panel/
+bun run check   # node --check on both bundles
+bun run test    # node --test test/ — frame smoke tests (fake guest frames
+                # speaking the SDK wire protocol)
 ```
 
-Always rebuild + commit `status/main.js` after editing `status/src/main.js`
-(`status/index.html` loads the bundle, not the source).
+Always rebuild + commit both bundles after editing a source file
+(`status/index.html` and `panel/index.html` load the bundles, not the
+sources).
 
 ## Update
 
@@ -172,6 +173,70 @@ virtual `modelselect/auto-*` models are the routing switch now):
   defaults to the small model). Both follow the same go/free
   preference and active free-tier latch window as the categories, write
   only on diff, and never touch `variant`.
+
+## Settings panel
+
+The `Model select` rail icon (`panel/index.html` → `panel/main.js`) opens
+a two-tab settings panel (same `files` capability, no new paths beyond
+what is already declared in `package.json`):
+
+- **Plugin tab** — the modelselect entry's `options` inside the OpenChamber
+  managed OpenCode config (`~/.config/openchamber/opencode.managed.json`,
+  the only OpenCode config OpenChamber's own server loads). Covers tier,
+  autoPreference, taskType, defaultTaskType, announce, the OpenChamber
+  host force, the maxCost slider (0 … catalog max, rightmost = No limit,
+  with tick labels for the catalog min/max blended cost from the plugin's
+  `model-config-cache.json`), verbose / suggestOnly / continuation,
+  historyChars, configRefreshMinutes, the Jev fields, configUrl,
+  taskTypesUrl, fallbackModel, agentTaskMap (JSON), and the write-only
+  `token` / `jevToken` password fields (blank = keep the stored value,
+  never rendered). Save is read-modify-write: unknown option keys and
+  unknown top-level config keys are preserved, and the Save button stays
+  disabled until something actually changed (secret drafts count as a
+  change; after a successful save the drafts clear and the button gates
+  again). String / tuple entries are
+  converted to `{ package, options }` in place. A missing entry shows an
+  "Add to managed config" button that disappears once the entry exists
+  (re-clicking cannot duplicate it). An unparseable config shows an error
+  banner and no form — nothing is ever written over it. After a
+  successful save, a "restart required" warning banner asks to quit and
+  reopen OpenChamber so its server reloads the plugin options (no
+  programmatic reload exists: the SDK exposes no server/config reload
+  call, and a raw file write bypasses the Settings-save path that
+  restarts the managed server — so this is a manual-reopen notice, not
+  a confirm-then-reload flow).
+- **Extension tab** — the router-sync switch (project
+  `.opencode/.modelselect-cache/routing-sync.json`, same file the status
+  section toggles) plus `~/.config/openchamber/modelselect.json`
+  (`autoSmallModel`, `autoWalkthroughModel`, `smallModelTask`,
+  `walkthroughModelTask`; created on first save, unknown keys preserved).
+  Applies on the next turn — no restart.
+- **Models tab** (read-only preview) — a task combo plus the model chain
+  for that task in the order the saved configuration would use it:
+  effective side first (pinned tier, else the auto preference with
+  free-quota failover), each side score-best-first. Rows show the model
+  name, provider, context window (`200k ctx`, before the score), score,
+  blended + in/out costs, media icons top-right (📝 text, 🖼️ image,
+  📄 pdf, 🔊 audio, 🎬 video, 📎 file; unknown modalities render as
+  their name), and a cost-vs-limit bar
+  (scaled to `maxCost` when set, else to the chain max); excluded rows
+  are grayed with the reason (`quota latched · retry in …`,
+  `over maxCost $…`, `off-side · …`, `no cost data`). The pick gets a
+  PICK badge. The task combo sits inline with an eye button (👁/🙈)
+  that hides/shows the excluded rows. Live Go monthly usage needs the
+  token and is never shown (the panel never holds it). The chain mirrors
+  `plugin/src/shared/select.js` without the live network probe, reusing
+  the shared core (`lookup`, `model-ref`, `budget`, `free-quota`) via
+  `panel/src/models.js`. Capability data comes from the catalog rows
+  (`context` + `modalities`, enriched by maintenance from the curated
+  `config/model-capabilities.yaml` table + the models.dev registry;
+  rows without data omit the ctx segment and icons, and the pane says
+  so outright: when no row carries capability data it shows how to
+  refresh the plugin cache).
+
+`test/panel-frame.test.cjs` asserts hello, the seeded form values, the
+merge-preserving save, the blank-secret behavior, the missing-entry and
+unparseable-config states, and the extension-tab writes.
 
 ## Fix hint (plugin-missing)
 

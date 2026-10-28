@@ -1,5 +1,47 @@
 ## [Unreleased]
 ### Added
+- Settings panel for the OpenChamber extension (`Model select` rail icon):
+  a Plugin tab editing the modelselect entry's `options` in the
+  OpenChamber managed OpenCode config (tier, autoPreference, taskType,
+  defaultTaskType, announce, host force, maxCost slider from 0 to No
+  limit with catalog min/max tick labels, behavior switches, numeric and
+  URL fields, agentTaskMap JSON, write-only token/jevToken), and an
+  Extension tab for the router-sync switch plus `modelselect.json`.
+  Saves are read-modify-write (unknown keys preserved, unparseable
+  configs never clobbered); managed-config saves ask to reopen
+  OpenChamber so its server reloads the plugin.
+- Settings panel: new read-only Models tab previewing the per-task model
+  chain in configuration use order (pick badge, grayed exclusions with
+  reasons, cost-vs-limit bars), plus a drive-by fix — the panel and
+  status catalog loaders now read the real `{ fetchedAt, config }`
+  cache shape (`config['task-types']`) instead of a top-level table
+  that never exists, so task-type selects and the slider bounds
+  actually follow the catalog.
+- Settings panel Models tab: task combo and eye toggle share one row;
+  the eye button (👁/🙈) hides/shows the excluded models. Rows show the
+  context window before the score plus top-right media icons, fed by new
+  `context` + `modalities` catalog row keys enriched by maintenance
+  (curated `config/model-capabilities.yaml` wins, models.dev fills gaps;
+  unknown models surface in the coverage audit as `missing_capabilities`).
+  When no chain row carries capability data, the Models tab shows how to
+  refresh the stale plugin cache instead of silently hiding icons.
+### Fixed
+- Virtual routing now honors each model catalog's API base path instead of
+  assuming it shares the provider's default OpenAI route. This fixes the
+  Go Gemini 4 Argon 404 and routes Claude/Anthropic Messages models through
+  their published `inference/anthropic/v1` endpoints.
+- Settings panel: the Plugin tab commits its tab selection now, so it
+  stays selectable after visiting the Extension tab; the plugin Save
+  button is disabled until the form differs from the saved values
+  (secret drafts count as a change and clear on save); the "Add to
+  managed config" button disappears once the entry exists and cannot
+  duplicate it.
+- Settings panel: the post-save notice is now an explicit "restart
+  required" warning (quit and reopen OpenChamber). Verified against SDK
+  2.5.2 that no extension-side reload exists — no server/config reload
+  call, and `request`/`serviceRequest` cannot reach OpenChamber's
+  internal config-reload route — so a confirm-then-reload flow is not
+  possible and the manual reopen stands.
 - LiveBench 2.0 (v2) as the primary benchmark source: the maintenance run
   now discovers v2 releases from the livebench.ai JS bundle
   (`_e=["20261014"]`, YYYYMMDD ids) and fetches
@@ -53,10 +95,6 @@
   mode); free-exhaustion arms the forced retry without moving the
   session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
-- Virtual routing now honors each model catalog's API base path instead of
-  assuming it shares the provider's default OpenAI route. This fixes the
-  Go Gemini 4 Argon 404 and routes Claude/Anthropic Messages models through
-  their published `inference/anthropic/v1` endpoints.
 - Per-model Google routes (`.../google/v1beta/models/<id>`) now dispatch
   natively instead of being filtered out: the maintenance script maps
   them to a new `google` endpoint token (`data/model-config.json` gains

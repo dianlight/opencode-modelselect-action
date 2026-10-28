@@ -1005,3 +1005,85 @@ class ScoreTableSourceTest(unittest.TestCase):
         cell = self._source_cell("bench-free")
         self.assertIn("Benchmark", cell)
         self.assertNotIn("Missing", cell)
+
+
+class ModelCapabilitiesTest(unittest.TestCase):
+    def _dev(self):
+        return {
+            "opencode": {
+                "models": {
+                    "beam-free": {
+                        "limit": {"context": 128000},
+                        "modalities": {"input": ["text"], "output": ["text"]},
+                    },
+                },
+            },
+            "upstream": {
+                "models": {
+                    "beam-free": {
+                        "limit": {"context": 64000},
+                        "modalities": {"input": ["text", "image"], "output": ["text"]},
+                    },
+                    "kimi-k3": {
+                        "limit": {"context": 262144},
+                        "modalities": {"input": ["text"], "output": ["text"]},
+                    },
+                },
+            },
+        }
+
+    def test_curated_wins_over_models_dev(self):
+        cmap = m.build_capability_map(
+            ["beam-free"],
+            self._dev(),
+            {"opencode/beam-free": {"context": 1, "modalities": ["text"]}},
+        )
+        self.assertEqual(cmap["beam-free"]["context"], 1)
+        self.assertEqual(cmap["beam-free"]["source"], "curated")
+
+    def test_bare_curated_key_matches_prefixed_lookup(self):
+        cmap = m.build_capability_map(["opencode/beam-free"], self._dev(), {"beam-free": {"context": 7, "modalities": None}})
+        self.assertEqual(cmap["opencode/beam-free"]["context"], 7)
+
+    def test_models_dev_fills_gaps(self):
+        cmap = m.build_capability_map(["kimi-k3", "ghost-x"], self._dev(), {})
+        self.assertEqual(cmap["kimi-k3"]["context"], 262144)
+        self.assertEqual(cmap["kimi-k3"]["modalities"], ["text"])
+        self.assertTrue(cmap["kimi-k3"]["source"].startswith("models.dev:"))
+        self.assertEqual(cmap["ghost-x"]["source"], "unknown")
+        self.assertIsNone(cmap["ghost-x"]["context"])
+        self.assertIsNone(cmap["ghost-x"]["modalities"])
+
+    def test_no_registry_is_curated_only(self):
+        cmap = m.build_capability_map(
+            ["kimi-k3"], None, {"kimi-k3": {"context": 5, "modalities": ["text"]}}
+        )
+        self.assertEqual(cmap["kimi-k3"]["context"], 5)
+        cmap = m.build_capability_map(["kimi-k3"], None, {})
+        self.assertEqual(cmap["kimi-k3"]["source"], "unknown")
+
+    def test_rank_rows_carry_capabilities(self):
+        lb = {"models": {"a": {"overall": 90.0}}}
+        ranked = m._rank_models_for_config(
+            ["a"], lb, "overall", None, (0.5, 0.5), engine="opencode",
+            capabilities={"a": {"context": 200000, "modalities": ["text", "image"], "source": "curated"}},
+        )
+        self.assertEqual(ranked[0]["context"], 200000)
+        self.assertEqual(ranked[0]["modalities"], ["text", "image"])
+
+    def test_rank_rows_legacy_shape_without_capabilities(self):
+        lb = {"models": {"a": {"overall": 90.0}}}
+        ranked = m._rank_models_for_config(
+            ["a"], lb, "overall", None, (0.5, 0.5), engine="opencode"
+        )
+        self.assertNotIn("context", ranked[0])
+        self.assertNotIn("modalities", ranked[0])
+
+    def test_coverage_lists_missing_capabilities(self):
+        issues = m.detect_coverage_issues(
+            [{"id": "ghost-free"}], [{"id": "paid-x"}], {"models": {}},
+            None, {"paid-x": {"context": 1, "modalities": ["text"], "source": "curated"}},
+        )
+        missing = {i["model"] for i in issues["missing_capabilities"]}
+        self.assertIn("ghost-free", missing)
+        self.assertNotIn("paid-x", missing)
