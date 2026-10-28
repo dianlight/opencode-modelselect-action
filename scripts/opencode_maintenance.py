@@ -1100,6 +1100,62 @@ def _endpoint_token(url: str | None) -> str | None:
     return None
 
 
+# Wire-protocol tokens the dispatch can actually serve. Mirrors the
+# plugin's ROUTABLE_ENDPOINTS (plugin/src/shared/select.js): `systemone`
+# (Jev refinement models) has no package mapping, and `None` (unknown)
+# inherits a default the refine step refuses — both are filtered to the
+# next ranked model at runtime. Ranking them would poison the budget
+# walk (the GitHub Action has no refine step) and mislead the Models
+# tab, so they are excluded from the per-task chains here.
+ROUTABLE_TOKENS = frozenset({"chat", "responses", "messages", "google"})
+
+# Mirror of the plugin's FALLBACK_ENDPOINTS (plugin/src/shared/select.js)
+# for models whose config entry is missing. Same precedence as the
+# plugin's endpointFor: config `endpoints` map first, then the `claude-`
+# prefix rule, then this table. Keep in sync — both sides point at each
+# other.
+FALLBACK_ENDPOINTS = {
+    "muse-spark-1.3-contributor-free": "responses",
+    "muse-spark-1.2-contributor-free": "responses",
+    "muse-spark-1.3-contributor": "responses",
+    "muse-spark-1.2-contributor": "responses",
+    "gpt-5.6-luna": "responses",
+    "gpt-6-luna": "responses",
+    "grok-4.5": "responses",
+    "grok-4.6": "responses",
+    "grok-4.7": "responses",
+    "qwen3.5-plus": "messages",
+    "qwen3.6-plus": "messages",
+    "qwen3.7-plus": "messages",
+    "qwen3.7-max": "messages",
+    "qwen3.8-flash": "messages",
+    "jev-1.13-free": "systemone",
+    "gemini-4-argon-contributor": "google",
+    "gemini-4-argon": "google",
+    "gemini-3-flash": "google",
+    "gemini-3.1-pro": "google",
+    "gemini-3.5-flash": "google",
+    "gemini-3.5-flash-lite": "google",
+    "gemini-3.6-flash": "google",
+    "gemini-3.7-flash": "google",
+    "gemini-3.8-flash": "google",
+}
+
+
+def resolve_endpoint_token(model_id: str, endpoints_map: dict[str, str]) -> str | None:
+    """Resolve a bare model id to its wire-protocol token.
+
+    Mirrors the plugin's endpointFor: config `endpoints` map first, then
+    the `claude-` prefix rule, then FALLBACK_ENDPOINTS, else None.
+    """
+    token = endpoints_map.get(model_id)
+    if isinstance(token, str):
+        return token
+    if model_id.startswith("claude-"):
+        return "messages"
+    return FALLBACK_ENDPOINTS.get(model_id)
+
+
 def _endpoint_base_path(url: str | None) -> str | None:
     """Return the provider-relative API base path for a model endpoint URL.
 
@@ -1133,6 +1189,7 @@ def _rank_models_for_config(
     engine: str,
     tt: dict[str, Any] | None = None,
     capabilities: dict[str, dict[str, Any]] | None = None,
+    routable: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     """Rank models best-to-worst for a config tier entry.
 
@@ -1144,11 +1201,17 @@ def _rank_models_for_config(
     applies to all models. When `capabilities` (bare id ->
     {"context", "modalities"}) is given, each entry also carries `context`
     (tokens) and `modalities` (input list), None when unknown; when omitted
-    the keys are left out (legacy shape).
+    the keys are left out (legacy shape). When `routable` (a set of bare
+    ids) is given, models outside it are skipped: only dispatchable wire
+    protocols belong in a routing chain — `systemone` refinement models
+    and endpoint-less ids would fail at dispatch (the plugin's refine
+    step filters them; the GitHub Action has no such step).
     """
     w_in, w_out = cost_blend
     ranked = []
     for mid in model_ids:
+        if routable is not None and mid not in routable:
+            continue
         prio = _model_priority(tt, mid, livebench) if tt else priority
         score = get_model_score(mid, livebench, prio)
         if score is None:
@@ -1209,6 +1272,21 @@ def generate_model_config(
     blend = cost_blend or DEFAULT_COST_BLEND
     free_ids = [m["id"] for m in free_models]
     tier_go_ids = [m["id"] for m in go_models]
+    # Routing chains only admit dispatchable wire protocols (mirrors the
+    # plugin's refine filter; the Action's budget walk has no such step).
+    endpoint_tokens = {
+        m["id"]: _endpoint_token(m["endpoint"])
+        for m in (*free_models, *go_models)
+        if m.get("id") and m.get("endpoint") and _endpoint_token(m["endpoint"])
+    }
+    routable_ids = {
+        mid
+        for mid in list(dict.fromkeys([*free_ids, *tier_go_ids]))
+        if resolve_endpoint_token(mid, endpoint_tokens) in ROUTABLE_TOKENS
+    }
+    excluded = sorted({*free_ids, *tier_go_ids} - routable_ids)
+    if excluded:
+        print(f"  w Excluding {len(excluded)} unroutable from rankings: {', '.join(excluded)}")
     for tt in task_types:
         name = tt["name"]
         priority = tt.get("priority", "overall")
@@ -1234,10 +1312,12 @@ def generate_model_config(
             "go_ranked": _rank_models_for_config(
                 tier_go_ids, livebench, priority, price_lookup, blend,
                 engine="opencode-go", tt=tt, capabilities=capabilities,
+                routable=routable_ids,
             ),
             "free_ranked": _rank_models_for_config(
                 free_ids, livebench, priority, price_lookup, blend,
                 engine="opencode", tt=tt, capabilities=capabilities,
+                routable=routable_ids,
             ),
         }
 

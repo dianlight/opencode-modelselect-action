@@ -422,15 +422,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 65.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/mimo-v2.5",
           "score": 64.0,
           "input_cost": 0.14,
@@ -551,24 +542,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 67.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 67.8,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         },
         {
           "model": "opencode/big-pickle",
@@ -865,15 +838,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 62.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 58.0,
           "input_cost": 0.14,
@@ -966,24 +930,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 50.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 50.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -1407,15 +1353,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 65.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/mimo-v2.5",
           "score": 64.0,
           "input_cost": 0.14,
@@ -1536,24 +1473,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 67.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 67.8,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         },
         {
           "model": "opencode/big-pickle",
@@ -1969,15 +1888,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 40.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/minimax-m2.7",
           "score": 34.0,
           "input_cost": 0.3,
@@ -2141,15 +2051,6 @@
           ]
         },
         {
-          "model": "opencode/jev-1.13-free",
-          "score": 5.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 5.0,
           "input_cost": 0.0,
@@ -2159,15 +2060,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 5.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -2544,15 +2436,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 57.9,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/kimi-k2.7-code",
           "score": 57.0,
           "input_cost": 0.95,
@@ -2742,24 +2625,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 30.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 30.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -3136,15 +3001,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 57.9,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/kimi-k2.7-code",
           "score": 57.0,
           "input_cost": 0.95,
@@ -3334,24 +3190,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 30.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 30.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -3626,15 +3464,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 62.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 58.0,
           "input_cost": 0.14,
@@ -3727,24 +3556,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 50.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 50.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -4168,15 +3979,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 65.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/mimo-v2.5",
           "score": 64.0,
           "input_cost": 0.14,
@@ -4297,24 +4099,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 67.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 67.8,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         },
         {
           "model": "opencode/big-pickle",
@@ -4713,15 +4497,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 57.9,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/kimi-k2.7-code",
           "score": 57.0,
           "input_cost": 0.95,
@@ -4911,24 +4686,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 30.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 30.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -5352,15 +5109,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 65.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/mimo-v2.5",
           "score": 64.0,
           "input_cost": 0.14,
@@ -5481,24 +5229,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 67.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 67.8,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         },
         {
           "model": "opencode/big-pickle",
@@ -5897,15 +5627,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 57.9,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/kimi-k2.7-code",
           "score": 57.0,
           "input_cost": 0.95,
@@ -6095,24 +5816,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 30.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 30.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -6536,15 +6239,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 65.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/mimo-v2.5",
           "score": 64.0,
           "input_cost": 0.14,
@@ -6665,24 +6359,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 67.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 67.8,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         },
         {
           "model": "opencode/big-pickle",
@@ -7128,15 +6804,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 65.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/mimo-v2.5",
           "score": 64.0,
           "input_cost": 0.14,
@@ -7257,24 +6924,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 67.8,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 67.8,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         },
         {
           "model": "opencode/big-pickle",
@@ -7571,15 +7220,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 62.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 58.0,
           "input_cost": 0.14,
@@ -7672,24 +7312,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 50.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 50.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     },
@@ -7964,15 +7586,6 @@
           ]
         },
         {
-          "model": "opencode-go/omen-alpha",
-          "score": 62.0,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": null,
-          "modalities": null
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 58.0,
           "input_cost": 0.14,
@@ -8065,24 +7678,6 @@
           "modalities": [
             "text"
           ]
-        },
-        {
-          "model": "opencode/jev-1.13-free",
-          "score": 50.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": null,
-          "modalities": null
-        },
-        {
-          "model": "opencode/jev-1.13",
-          "score": 50.0,
-          "input_cost": 0.042,
-          "output_cost": 0.0,
-          "blended_cost": 0.0315,
-          "context": null,
-          "modalities": null
         }
       ]
     }

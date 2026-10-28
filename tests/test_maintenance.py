@@ -9,6 +9,7 @@ Run with: python3 -m unittest discover -s tests -v
 import csv
 import io
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -1087,3 +1088,48 @@ class ModelCapabilitiesTest(unittest.TestCase):
         missing = {i["model"] for i in issues["missing_capabilities"]}
         self.assertIn("ghost-free", missing)
         self.assertNotIn("paid-x", missing)
+
+
+class ModelRoutabilityTest(unittest.TestCase):
+    def test_rank_skips_unroutable_models(self):
+        lb = {"models": {
+            "ok-chat": {"overall": 90.0},
+            "jev-1.13-free": {"overall": 99.0},
+            "omen-alpha": {"overall": 99.0},
+            "qwen3.7-max": {"overall": 80.0},
+            "claude-haiku-5-5": {"overall": 70.0},
+        }}
+        lookup = {m: {"input": 1.0, "output": 1.0} for m in lb["models"]}
+        ranked = m._rank_models_for_config(
+            list(lb["models"]), lb, "overall", lookup, (0.5, 0.5),
+            engine="opencode",
+            routable={"ok-chat", "qwen3.7-max", "claude-haiku-5-5"},
+        )
+        ids = [r["model"] for r in ranked]
+        self.assertIn("opencode/ok-chat", ids)
+        # qwen3.7-max has no config endpoint entry but is FALLBACK-covered
+        self.assertIn("opencode/qwen3.7-max", ids)
+        self.assertIn("opencode/claude-haiku-5-5", ids)
+        self.assertNotIn("opencode/jev-1.13-free", ids)
+        self.assertNotIn("opencode/omen-alpha", ids)
+
+    def test_endpoint_resolution_mirrors_plugin(self):
+        self.assertEqual(
+            m.resolve_endpoint_token("qwen3.7-max", {}), "messages"
+        )  # fallback table
+        self.assertEqual(
+            m.resolve_endpoint_token("claude-haiku-5-5", {}), "messages"
+        )  # claude- rule
+        self.assertEqual(
+            m.resolve_endpoint_token("gpt-5.6-luna", {"gpt-5.6-luna": "chat"}),
+            "chat",
+        )  # config map wins
+        self.assertIsNone(m.resolve_endpoint_token("omen-alpha", {}))
+        self.assertEqual(m.resolve_endpoint_token("jev-1.13-free", {}), "systemone")
+
+    def test_fallback_table_matches_plugin(self):
+        src = (ROOT / "plugin" / "src" / "shared" / "select.js").read_text()
+        block = re.search(r"const FALLBACK_ENDPOINTS = \{(.*?)\};", src, re.DOTALL)
+        self.assertIsNotNone(block, "plugin FALLBACK_ENDPOINTS not found")
+        js_map = dict(re.findall(r"'([^']+)': '([^']+)'", block.group(1)))
+        self.assertEqual(js_map, m.FALLBACK_ENDPOINTS)

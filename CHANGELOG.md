@@ -46,6 +46,14 @@
   call, and `request`/`serviceRequest` cannot reach OpenChamber's
   internal config-reload route — so a confirm-then-reload flow is not
   possible and the manual reopen stands.
+- Unroutable models no longer ranked: maintenance excludes `systemone`
+  refinement models (`jev-1.13`, `jev-1.13-free`) and endpoint-less ids
+  (`omen-alpha`) from every task's `go_ranked`/`free_ranked` chains (45
+  rows), mirroring the plugin's refine filter including the fallback
+  table (so `qwen3.7-max` stays). This also closes the hole where the
+  GitHub Action's budget walk — which has no refine step — could output
+  an undispatchable model, and the Models tab stops listing jev for
+  tasks it cannot serve.
 - LiveBench 2.0 (v2) as the primary benchmark source: the maintenance run
   now discovers v2 releases from the livebench.ai JS bundle
   (`_e=["20261014"]`, YYYYMMDD ids) and fetches

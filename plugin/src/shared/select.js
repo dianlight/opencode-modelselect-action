@@ -225,7 +225,9 @@ function clearQuotaCache() {
  * responses-only pick with no token, the virtual `api` stays on chat, and
  * Zen rejects the dispatch with ModelProtocolUnsupported. `chat` needs no
  * fallback row — it IS the provider default. Keep in sync with the
- * maintenance script's endpoint table (`scripts/opencode_maintenance.py`).
+ * maintenance script's endpoint table (`FALLBACK_ENDPOINTS` +
+ * `ROUTABLE_TOKENS` in scripts/opencode_maintenance.py, which excludes
+ * unroutable models from the rankings).
  */
 const FALLBACK_ENDPOINTS = {
   'muse-spark-1.3-contributor-free': 'responses',
