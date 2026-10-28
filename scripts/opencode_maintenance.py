@@ -16,6 +16,7 @@ import csv
 import io
 import json
 import re
+from urllib.parse import urlsplit
 from html.parser import HTMLParser
 from datetime import datetime, timedelta, UTC
 from pathlib import Path
@@ -976,6 +977,30 @@ def _endpoint_token(url: str | None) -> str | None:
     return None
 
 
+def _endpoint_base_path(url: str | None) -> str | None:
+    """Return the provider-relative API base path for a model endpoint URL.
+
+    Model endpoints are not always rooted at the provider's default OpenAI
+    base (for example, Claude uses `/inference/anthropic/v1` and Gemini uses
+    `/inference/google`). The plugin proxy combines this path with the live
+    provider origin, preserving host-specific auth while honoring the model's
+    actual endpoint.
+    """
+    if not url:
+        return None
+    try:
+        path = urlsplit(url).path.rstrip("/")
+    except (TypeError, ValueError):
+        return None
+    for suffix in ("/chat/completions", "/responses", "/messages"):
+        if path.endswith(suffix):
+            return path[: -len(suffix)] or "/"
+    marker = "/v1beta/models/"
+    if "/google" in path and marker in path:
+        return path.split(marker, 1)[0].rstrip("/") or "/"
+    return None
+
+
 def _rank_models_for_config(
     model_ids: list[str],
     livebench: dict[str, Any],
@@ -1099,6 +1124,16 @@ def generate_model_config(
             m["id"]: _endpoint_token(m["endpoint"])
             for m in (*free_models, *go_models)
             if m.get("id") and m.get("endpoint") and _endpoint_token(m["endpoint"])
+        },
+        # Fully qualified model ref -> provider-relative API base path. The
+        # same bare model id may be published on different paths by Zen and
+        # Go, so unlike `endpoints` this map is keyed by provider/model.
+        "endpoint_paths": {
+            f"{engine}/{model['id']}": base_path
+            for engine, models in (("opencode", free_models), ("opencode-go", go_models))
+            for model in models
+            if model.get("id")
+            and (base_path := _endpoint_base_path(model.get("endpoint")))
         },
     }
 

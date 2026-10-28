@@ -53,6 +53,10 @@
   mode); free-exhaustion arms the forced retry without moving the
   session, and the retry re-resolves with the fresh latch preferring go.
 ### Fixed
+- Virtual routing now honors each model catalog's API base path instead of
+  assuming it shares the provider's default OpenAI route. This fixes the
+  Go Gemini 4 Argon 404 and routes Claude/Anthropic Messages models through
+  their published `inference/anthropic/v1` endpoints.
 - Per-model Google routes (`.../google/v1beta/models/<id>`) now dispatch
   natively instead of being filtered out: the maintenance script maps
   them to a new `google` endpoint token (`data/model-config.json` gains

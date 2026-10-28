@@ -731,6 +731,7 @@ describe('virtual protocol api (config endpoints map)', () => {
           docs: { go: 'opencode/gc', free: 'opencode/plain-free' },
         },
         endpoints: { 'muse-spark-1.3-contributor-free': 'responses' },
+        endpoint_paths: { 'opencode/muse-spark-1.3-contributor-free': '/inference/openai/v1' },
       });
       const withEndpoint = await resolveModel({
         taskType: 'review',
@@ -739,12 +740,33 @@ describe('virtual protocol api (config endpoints map)', () => {
       });
       assert.equal(withEndpoint.model, 'opencode/muse-spark-1.3-contributor-free');
       assert.equal(withEndpoint.endpoint, 'responses');
+      assert.equal(withEndpoint.endpointPath, '/inference/openai/v1');
       const without = await resolveModel({
         taskType: 'docs',
         opts: normalizeOptions({ tier: 'free' }),
         cacheDir: CACHE(iso.dir),
       });
       assert.equal(without.endpoint, null, 'models missing from the map keep the provider default');
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('falls back to the Anthropic protocol and base path for Claude models', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': {
+          review: { go: 'opencode-go/claude-opus-5', free: 'opencode/free-model' },
+        },
+      });
+      const picked = await resolveModel({
+        taskType: 'review',
+        opts: normalizeOptions({ tier: 'go' }),
+        cacheDir: CACHE(iso.dir),
+      });
+      assert.equal(picked.endpoint, 'messages');
+      assert.equal(picked.endpointPath, '/inference/anthropic/v1');
     } finally {
       iso.restore();
     }
@@ -1144,6 +1166,7 @@ describe('route refinement (unroutable endpoints + media)', () => {
       'deepseek-v4.1-flash-free': 'chat',
       'gemini-4-argon-contributor': 'google',
     },
+    endpoint_paths: { 'opencode-go/gemini-4-argon-contributor': '/inference/google' },
   };
 
   it('skips an endpoint-unknown top pick for the next routable ranked model', async () => {
@@ -1256,7 +1279,7 @@ describe('route refinement (unroutable endpoints + media)', () => {
       );
       assert.equal(
         entry.settings.baseURL,
-        'https://opencode.ai/inference/go/google',
+        'https://opencode.ai/inference/google',
         'native Google root (driver appends v1beta/models/<id>)',
       );
       // Unknown live capabilities keep the broad static default (fail-open).
@@ -1280,7 +1303,7 @@ describe('route refinement (unroutable endpoints + media)', () => {
       };
       await seen.context(e1);
       const entry = () => seen.catalog.get('modelselect').models.get('auto-go-first');
-      assert.equal(entry().settings.baseURL, 'https://opencode.ai/inference/go/google', 'google turn sets the root');
+      assert.equal(entry().settings.baseURL, 'https://opencode.ai/inference/google', 'Google uses its catalog endpoint root');
       // Same session, free-side pick next: the stale root must go.
       seedCache(iso.dir, {
         'task-types': {
@@ -1387,6 +1410,34 @@ describe('virtual routing headers', () => {
       const e2 = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
       await seen.context(e2);
       assert.deepEqual(e2.model, FREE);
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('stamps the catalog endpoint path for Claude Messages picks', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, {
+        'task-types': {
+          review: { go: 'opencode-go/claude-haiku-5-5', free: 'opencode/free-model' },
+        },
+        endpoints: { 'claude-haiku-5-5': 'messages' },
+        endpoint_paths: { 'opencode-go/claude-haiku-5-5': '/inference/anthropic/v1' },
+      });
+      const seen = await setupV2(iso.dir, { tier: 'go' });
+      await seen.context({ sessionID: 'claude', model: { ...GO }, messages: [], agent: 'review' });
+      const entry = seen.catalog.get('modelselect').models.get('auto-go-first');
+      assert.deepEqual(entry.api, {
+        id: 'claude-haiku-5-5',
+        type: 'aisdk',
+        package: '@ai-sdk/anthropic',
+      });
+
+      const h = httpEvent('claude', 'modelselect', 'auto-go-first', 'auto-go-first');
+      await seen['http.request'](h);
+      assert.equal(h.request.headers.get('x-modelselect-endpoint-path'), '/inference/anthropic/v1');
+      assert.equal((await bodyOf(h)).model, 'claude-haiku-5-5');
     } finally {
       iso.restore();
     }

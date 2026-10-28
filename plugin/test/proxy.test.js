@@ -10,7 +10,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 
-const { startProxy, HEADER_PROVIDER, HEADER_MODEL } = require('../src/proxy');
+const { startProxy, HEADER_PROVIDER, HEADER_MODEL, HEADER_ENDPOINT_PATH } = require('../src/proxy');
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -171,6 +171,37 @@ describe('modelselect proxy', () => {
       });
       assert.equal(r.status, 200);
       assert.equal(stub.seen.requests[0].body, 'not json{');
+    } finally {
+      await proxy.close();
+      await stub.close();
+    }
+  });
+
+  it('routes model-specific Anthropic endpoints instead of the provider default base', async () => {
+    const stub = await startStub(async (_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end('{}');
+    });
+    const proxy = await startProxy({
+      getUpstream: (providerID) =>
+        providerID === 'opencode-go' ? { baseURL: `http://127.0.0.1:${stub.port}/inference/go/openai/v1` } : null,
+      getToken: () => 'tok-1',
+    });
+    try {
+      const r = await fetch(`http://127.0.0.1:${proxy.port}/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          [HEADER_PROVIDER]: 'opencode-go',
+          [HEADER_MODEL]: 'claude-haiku-5-5',
+          [HEADER_ENDPOINT_PATH]: '/inference/anthropic/v1',
+        },
+        body: JSON.stringify({ model: 'auto-go-first', messages: [] }),
+      });
+      assert.equal(r.status, 200);
+      assert.equal(stub.seen.requests[0].url, '/inference/anthropic/v1/messages');
+      assert.equal(stub.seen.requests[0].headers[HEADER_ENDPOINT_PATH], undefined, 'routing path is not forwarded upstream');
+      assert.equal(JSON.parse(stub.seen.requests[0].body).model, 'claude-haiku-5-5');
     } finally {
       await proxy.close();
       await stub.close();

@@ -8,10 +8,10 @@
  * `opencode-go` → `.../inference/go/openai/v1`). A standalone virtual
  * provider can therefore only reach both real endpoints by BEING the
  * endpoint: the plugin registers `modelselect` with a `baseURL` pointing
- * here, and this proxy forwards each request to the real base, preserving
- * the path the driver chose (the per-turn `api` sync keeps pointing the
- * virtual models at the pick's protocol, so chat/completions vs /responses
- * keeps working exactly as before).
+ * here, and this proxy forwards each request to the provider origin using
+ * the model's published base path when available, preserving the path the
+ * driver chose (the per-turn `api` sync keeps pointing the virtual models at
+ * the pick's protocol, so chat/completions vs /responses vs /messages works).
  *
  * Routing metadata arrives on `x-modelselect-*` headers stamped by the
  * `http.request` hook (which already resolved the real pick through the
@@ -30,6 +30,7 @@ const http = require('node:http');
 const HEADER_PROVIDER = 'x-modelselect-provider';
 const HEADER_MODEL = 'x-modelselect-model';
 const HEADER_ENDPOINT = 'x-modelselect-endpoint';
+const HEADER_ENDPOINT_PATH = 'x-modelselect-endpoint-path';
 
 // Hop-by-hop / framing headers that must never be forwarded.
 const SKIP_REQUEST_HEADERS = new Set([
@@ -46,6 +47,7 @@ const SKIP_REQUEST_HEADERS = new Set([
   HEADER_PROVIDER,
   HEADER_MODEL,
   HEADER_ENDPOINT,
+  HEADER_ENDPOINT_PATH,
 ]);
 
 const SKIP_RESPONSE_HEADERS = new Set(['content-length', 'transfer-encoding', 'connection', 'content-encoding']);
@@ -83,6 +85,14 @@ function upstreamPath(incomingPathname) {
   return incomingPathname;
 }
 
+function safeEndpointBasePath(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw.startsWith('/') || raw.startsWith('//') || !/^\/[A-Za-z0-9._~/-]*$/.test(raw)) return null;
+  const parts = raw.split('/').filter(Boolean);
+  if (parts.some((part) => part === '.' || part === '..')) return null;
+  return parts.length ? `/${parts.join('/')}` : '/';
+}
+
 function sendJson(res, status, obj) {
   const text = JSON.stringify(obj);
   res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(text) });
@@ -113,6 +123,7 @@ async function startProxy({ getUpstream, getToken, verbose } = {}) {
         sendJson(res, 502, { error: { message: `modelselect proxy: no upstream for provider '${providerID}'` } });
         return;
       }
+      const endpointBasePath = safeEndpointBasePath(req.headers[HEADER_ENDPOINT_PATH]);
       let out = raw.length ? raw.toString('utf8') : '';
       if (out) {
         try {
@@ -126,7 +137,10 @@ async function startProxy({ getUpstream, getToken, verbose } = {}) {
         }
       }
       const inUrl = new URL(req.url || '/', 'http://127.0.0.1');
-      const target = `${String(up.baseURL).replace(/\/+$/, '')}${upstreamPath(inUrl.pathname)}${inUrl.search}`;
+      const upstreamBase = endpointBasePath
+        ? `${new URL(up.baseURL).origin}${endpointBasePath}`
+        : String(up.baseURL).replace(/\/+$/, '');
+      const target = `${upstreamBase}${upstreamPath(inUrl.pathname)}${inUrl.search}`;
       const headers = {};
       for (const [k, v] of Object.entries(up.headers || {})) {
         if (v !== undefined) headers[String(k).toLowerCase()] = v;
@@ -150,7 +164,7 @@ async function startProxy({ getUpstream, getToken, verbose } = {}) {
         delete headers['content-type'];
       }
       if (verbose) {
-        console.log(`[modelselect] proxy → ${providerID}/${model} (${method} ${upstreamPath(inUrl.pathname)})`);
+        console.log(`[modelselect] proxy → ${providerID}/${model} (${method} ${new URL(target).pathname})`);
       }
       const upstreamRes = await fetch(target, {
         method,
@@ -217,5 +231,7 @@ module.exports = {
   HEADER_PROVIDER,
   HEADER_MODEL,
   HEADER_ENDPOINT,
+  HEADER_ENDPOINT_PATH,
   upstreamPath,
+  safeEndpointBasePath,
 };

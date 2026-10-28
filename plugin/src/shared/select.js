@@ -258,19 +258,43 @@ function endpointFor(config, model) {
   const id = String(model).split('/').pop();
   const map = config && config.endpoints;
   if (map && typeof map === 'object' && typeof map[id] === 'string') return map[id];
+  if (/^claude-/.test(id)) return 'messages';
   return typeof FALLBACK_ENDPOINTS[id] === 'string' ? FALLBACK_ENDPOINTS[id] : null;
+}
+
+/** Provider-relative API base path published with the model's full endpoint URL. */
+function endpointPathFor(config, model) {
+  if (!model) return null;
+  const ref = String(model).trim();
+  const id = ref.split('/').pop();
+  const paths = config && config.endpoint_paths;
+  if (paths && typeof paths === 'object') {
+    if (typeof paths[ref] === 'string') return paths[ref];
+    if (typeof paths[id] === 'string') return paths[id];
+  }
+  // A cached config may predate endpoint_paths. Keep the known special
+  // provider routes working during the cache TTL; default OpenAI routes
+  // continue to inherit the live provider base.
+  const endpoint = endpointFor(config, model);
+  if (endpoint === 'google') return '/inference/google';
+  if (endpoint === 'messages') {
+    if (/^qwen3\.7-/.test(id)) return '/inference/go/anthropic/v1';
+    if (/^claude-/.test(id) || /^qwen3\.(?:5|6|8)-/.test(id)) {
+      return '/inference/anthropic/v1';
+    }
+  }
+  return null;
 }
 
 /**
  * Wire protocols the virtual dispatch can actually serve. `chat`,
- * `responses` and `messages` share the provider's OpenAI base through the
- * localhost proxy; `google` dispatches natively at the provider's Google
- * root (per-model `.../google/v1beta/models/<id>` routes — see v2.js
- * `googleBaseFor` + ENDPOINT_PACKAGES). `systemone` needs a different base
- * with no known package mapping, and `null` (unknown — e.g. `omen-alpha`
- * with no endpoint at all) inherits the chat default: both are filtered
- * to the next ranked model (see refinePickForRoute). An explicit
- * `fallbackModel` always wins.
+ * `responses` and `messages` go through the localhost proxy, which uses the
+ * model's published endpoint base path when present; `google` dispatches
+ * natively at its published root (per-model `.../google/v1beta/models/<id>`
+ * routes). `systemone` needs a different base with no known package mapping,
+ * and `null` (unknown — e.g. `omen-alpha` with no endpoint at all) inherits
+ * the chat default: both are filtered to the next ranked model (see
+ * refinePickForRoute). An explicit `fallbackModel` always wins.
  */
 const ROUTABLE_ENDPOINTS = new Set(['chat', 'responses', 'messages', 'google']);
 function endpointRoutable(config, model) {
@@ -452,7 +476,7 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
     ? isFreeQuotaFresh(cacheDir, undefined, free)
     : isFreeQuotaFresh(cacheDir); // no entry: report "something is latched"
   if (!key || !entry) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted, endpoint: endpointFor(config, opts.fallbackModel) };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType, tier: opts.tier, source: `${source}+fallback`, goOk: null, think: null, freeExhausted, endpoint: endpointFor(config, opts.fallbackModel), endpointPath: endpointPathFor(config, opts.fallbackModel) };
     throw new Error(`No model configured for task-type='${taskType}'.`);
   }
   let tier = opts.tier;
@@ -504,7 +528,7 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
     }
   }
   if (!model) {
-    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted, endpoint: endpointFor(config, opts.fallbackModel) };
+    if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted, endpoint: endpointFor(config, opts.fallbackModel), endpointPath: endpointPathFor(config, opts.fallbackModel) };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
   // Budget cap (mirrors the action): an over-budget pick is replaced by the
@@ -555,7 +579,7 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
       source = `${source}+routed`;
     }
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, endpoint: endpointFor(config, model), media: requestedMedia };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia };
 }
 
 module.exports = {
@@ -564,6 +588,7 @@ module.exports = {
   shouldAnnounce,
   loadConfig,
   resolveModel,
+  endpointPathFor,
   splitModelRef: splitModelRefStrict,
   checkGoQuota,
   clearQuotaCache,

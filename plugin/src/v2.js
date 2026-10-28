@@ -57,9 +57,10 @@
  *   gone): a session on either is routed every turn, any other model is
  *   hands-off. The provider's baseURL points at a localhost proxy started
  *   in `setup` (see `./proxy.js`), which forwards each request to the
- *   real Zen/Go base — THAT is what routes, because the dispatch endpoint
- *   stays pinned to the session provider and the two real bases differ
- *   (verified live). The session always stays on its virtual anchor (the
+ *   provider origin using the model's catalog-published endpoint base path
+ *   — THAT is what routes, because the dispatch endpoint stays pinned to
+ *   the session provider and model paths differ by protocol and tier. The
+ *   session always stays on its virtual anchor (the
  *   model picker IS the switch) while the `http.request` hook stamps the
  *   resolved pick into routing headers + body per physical attempt. There
  *   are no anchor hops and no leaving virtual mode: every pick, whatever
@@ -99,7 +100,7 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, formatAnnounce, shouldAnnounce, loadConfig, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, shouldAnnounce, loadConfig, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
 const { syncRouting } = require('./shared/routing');
@@ -114,7 +115,7 @@ const {
   readModelTable,
 } = require('./shared/freequota');
 
-const { startProxy, HEADER_PROVIDER, HEADER_MODEL, HEADER_ENDPOINT } = require('./proxy');
+const { startProxy, HEADER_PROVIDER, HEADER_MODEL, HEADER_ENDPOINT, HEADER_ENDPOINT_PATH, safeEndpointBasePath } = require('./proxy');
 const { resolveToken } = require('./shared/auth');
 
 const ID = 'modelselect';
@@ -156,9 +157,8 @@ const FALLBACK_UPSTREAM = {
 // (e.g. muse-spark-1.3-*, GPT-6 Luna) on the right Zen endpoint instead of
 // inheriting the provider default chat/completions, which those models
 // reject with ModelProtocolUnsupported. `google` additionally overrides
-// the entry's `settings.baseURL` to the provider's Google root (Google's
-// `:generateContent` paths live outside the OpenAI base the proxy
-// forwards to, so those picks dispatch natively). Unknown/absent tokens
+// the entry's `settings.baseURL` to the catalog-published Google root
+// (`:generateContent` dispatches natively outside the proxy). Unknown/absent tokens
 // (`systemone`, unmapped) keep the provider default — and the resolver
 // filters them out beforehand (see select.js `endpointRoutable`).
 const ENDPOINT_PACKAGES = {
@@ -169,17 +169,24 @@ const ENDPOINT_PACKAGES = {
 };
 
 /**
- * Google API root for a provider's OpenAI base. Per-model Google routes
- * live beside the OpenAI base (`.../inference/google` /
- * `.../inference/go/google`), and the driver appends its own
- * `v1beta/models/<id>:...` path — so the entry base must be the root,
- * not the full per-model URL. Returns null when the base has no
- * recognized OpenAI root (then the pick stays on the proxy default).
+ * Legacy Google-root derivation for cached configs without endpoint_paths.
+ * Current catalogs may publish a different route (for example, Go Gemini
+ * uses `/inference/google`), so endpointBaseURLFor is preferred.
  */
 function googleBaseFor(upstreamBaseURL) {
   const b = String(upstreamBaseURL ?? '').replace(/\/+$/, '');
   if (b.endsWith('/openai/v1')) return b.slice(0, -'/openai/v1'.length) + '/google';
   return null;
+}
+
+function endpointBaseURLFor(upstreamBaseURL, endpointPath) {
+  const path = safeEndpointBasePath(endpointPath);
+  if (!path) return null;
+  try {
+    return `${new URL(String(upstreamBaseURL)).origin}${path}`;
+  } catch {
+    return null;
+  }
 }
 // Forced-retry arm window: a retry follows its failure within seconds, so
 // an arm older than this (consumed late) is stale and must not fire.
@@ -461,8 +468,9 @@ async function setup(ctx) {
   // picker always shows routing. `modelselect` owns one model per
   // auto-preference and points at the plugin's localhost proxy (started
   // below — the port must exist before registration). The proxy forwards
-  // each request to the real Zen/Go base, so cross-provider picks need no
-  // anchor hop and sessions never leave virtual mode. Registration is
+  // each request to the provider origin and catalog-published model base,
+  // so cross-provider picks need no anchor hop and sessions never leave
+  // virtual mode. Registration is
   // idempotent (remove + add on every replay). The virtual `limit` stays
   // at the large fallback: OpenCode compacts off the SESSION model's
   // window, and a small virtual window would compact early. The model
@@ -622,10 +630,10 @@ async function setup(ctx) {
         // the driver appends its own `v1beta/models/<api.id>:...` path).
         // Leaving a google pick drops a stale Google root so the next
         // dispatch returns to the proxy base.
-        const wantBase =
-          wanted && wanted.endpoint === 'google' && pick0
-            ? googleBaseFor((upstream.get(pick0.providerID) || {}).baseURL)
-            : null;
+        const providerBase = pick0 ? (upstream.get(pick0.providerID) || {}).baseURL : null;
+        const wantBase = wanted && wanted.endpoint === 'google' && pick0
+          ? endpointBaseURLFor(providerBase, wanted.endpointPath) || googleBaseFor(providerBase)
+          : null;
         const curBase =
           patched.settings && typeof patched.settings.baseURL === 'string'
             ? patched.settings.baseURL
@@ -751,6 +759,7 @@ async function setup(ctx) {
     try {
       if (!pick || !pick.id || !virtualId) return;
       let endpoint = typeof pick.endpoint === 'string' ? pick.endpoint : null;
+      let endpointPath = typeof pick.endpointPath === 'string' ? pick.endpointPath : null;
       if (!endpoint) {
         // Picks stored without an endpoint — derive it from the config's
         // bare-id map.
@@ -759,7 +768,11 @@ async function setup(ctx) {
         const bare = String(pick.id).split('/').pop();
         endpoint = map && typeof map[bare] === 'string' ? map[bare] : null;
       }
-      virtualApiWanted.set(virtualId, { providerID: pick.providerID || null, id: pick.id, endpoint });
+      if (!endpointPath) {
+        const { config } = await loadConfig(opts, cacheDir);
+        endpointPath = endpointPathFor(config, `${pick.providerID}/${String(pick.id).split('/').pop()}`);
+      }
+      virtualApiWanted.set(virtualId, { providerID: pick.providerID || null, id: pick.id, endpoint, endpointPath });
       virtualThinkWanted.set(virtualId, normalizeThink(pick.think));
       if (typeof ctx.provider?.reload === 'function') {
         await ctx.provider.reload();
@@ -1114,7 +1127,7 @@ async function setup(ctx) {
           let virtualId = virtualIds.get(event.sessionID);
           if (resolved && resolved.picked) {
             const ref = splitModelRef(resolved.picked.model);
-            pick = { providerID: ref.providerID, id: ref.id, endpoint: resolved.picked.endpoint ?? null, think: resolved.picked.think ?? null };
+            pick = { providerID: ref.providerID, id: ref.id, endpoint: resolved.picked.endpoint ?? null, endpointPath: resolved.picked.endpointPath ?? null, think: resolved.picked.think ?? null };
             virtualId = resolved.virtualId ?? virtualId;
           } else if (opts.announce === 'off') {
             const { taskType } = await resolveTask({ sessionID: event.sessionID, text, files, agent });
@@ -1126,7 +1139,7 @@ async function setup(ctx) {
               capabilitiesFor: liveCapabilitiesFor,
             });
             const ref = splitModelRef(picked.model);
-            pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null };
+            pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null };
           }
           if (pick && virtualId) await syncVirtualApiFor(pick, virtualId);
         } catch {
@@ -1226,7 +1239,7 @@ async function setup(ctx) {
         );
         // Still record the pick: aux requests (title/…) on a virtual
         // session need a dispatchable ref even in trial mode.
-        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq });
+        if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq });
         return;
       }
       // The session stays on its virtual anchor for its whole life:
@@ -1234,11 +1247,11 @@ async function setup(ctx) {
       // past the proxy on the wrong driver) and nothing is ever persisted.
       // The `http.request` hook stamps the pick into routing headers +
       // body, and the proxy forwards it to the real base.
-      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq });
+      if (virtual && sessionID) lastVirtualPick.set(sessionID, { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq });
       // Point THIS virtual model's catalog `api` at the pick's protocol
       // before the runner resolves the model (per-model wanted state —
       // the two virtual models route independently).
-      await syncVirtualApiFor({ providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null }, virtualId);
+      await syncVirtualApiFor({ providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null }, virtualId);
       // A resolved free pick with no fresh latch closes the previous
       // free episode so a later exhaustion can arm a new retry.
       if (virtual && sessionID) {
@@ -1290,7 +1303,7 @@ async function setup(ctx) {
             capabilitiesFor: liveCapabilitiesFor,
           });
           const ref = splitModelRef(picked.model);
-          pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
+          pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
           lastVirtualPick.set(sessionID, pick);
         }
         // Aux requests dispatch through the same route machinery — apply
@@ -1339,7 +1352,7 @@ async function setup(ctx) {
         const mediaReq = lastMedia.get(sessionID) ?? (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []);
         const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
         const ref = splitModelRef(picked.model);
-        pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
+        pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
         lastVirtualPick.set(sessionID, pick);
       }
       // Re-assert this virtual model's protocol (covers armed retries,
@@ -1353,6 +1366,8 @@ async function setup(ctx) {
         event.request.headers.set(HEADER_MODEL, pick.id);
         if (pick.endpoint) event.request.headers.set(HEADER_ENDPOINT, pick.endpoint);
         else event.request.headers.delete(HEADER_ENDPOINT);
+        if (pick.endpointPath) event.request.headers.set(HEADER_ENDPOINT_PATH, pick.endpointPath);
+        else event.request.headers.delete(HEADER_ENDPOINT_PATH);
       } catch {
         return;
       }
@@ -1378,6 +1393,9 @@ async function setup(ctx) {
         next.headers.set(HEADER_PROVIDER, pick.providerID);
         next.headers.set(HEADER_MODEL, pick.id);
         if (pick.endpoint) next.headers.set(HEADER_ENDPOINT, pick.endpoint);
+        else next.headers.delete(HEADER_ENDPOINT);
+        if (pick.endpointPath) next.headers.set(HEADER_ENDPOINT_PATH, pick.endpointPath);
+        else next.headers.delete(HEADER_ENDPOINT_PATH);
         event.request = next;
       } catch {
         return;
@@ -1515,6 +1533,7 @@ async function setup(ctx) {
             providerID: ref.providerID,
             id: ref.id,
             endpoint: picked.endpoint ?? null,
+            endpointPath: picked.endpointPath ?? null,
             think: picked.think ?? null,
             media: picked.media ?? lastMedia.get(sessionID) ?? [],
           };
@@ -1629,4 +1648,3 @@ module.exports = {
   HEADER_ENDPOINT,
 };
 module.exports.default = module.exports;
-

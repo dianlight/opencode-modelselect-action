@@ -652,6 +652,25 @@ class EndpointTokenTest(unittest.TestCase):
             "google",
         )
 
+    def test_endpoint_base_paths_preserve_model_specific_routes(self):
+        self.assertEqual(
+            m._endpoint_base_path("https://opencode.ai/inference/google/v1beta/models/gemini-4-argon"),
+            "/inference/google",
+        )
+        self.assertEqual(
+            m._endpoint_base_path("https://opencode.ai/inference/anthropic/v1/messages"),
+            "/inference/anthropic/v1",
+        )
+        self.assertEqual(
+            m._endpoint_base_path("https://opencode.ai/inference/go/anthropic/v1/messages"),
+            "/inference/go/anthropic/v1",
+        )
+        self.assertEqual(
+            m._endpoint_base_path("https://opencode.ai/inference/go/openai/v1/responses"),
+            "/inference/go/openai/v1",
+        )
+        self.assertIsNone(m._endpoint_base_path(""))
+
     def test_endpoint_url_falls_back_to_canonical_base(self):
         endpoints = {
             "muse-spark-1.2": "https://opencode.ai/zen/v1/responses",
@@ -754,8 +773,14 @@ class ModelConfigThinkTest(unittest.TestCase):
 
         with patch.object(m, "MODEL_CONFIG_PATH", Path(tmp) / "model-config.json"):
             m.generate_model_config(
-                free_models=[{"id": "f-a"}],
-                go_models=[{"id": "g-a"}],
+                free_models=[
+                    {"id": "f-a"},
+                    {"id": "claude-haiku-5-5", "endpoint": "https://opencode.ai/inference/anthropic/v1/messages"},
+                ],
+                go_models=[
+                    {"id": "g-a"},
+                    {"id": "gemini-4-argon", "endpoint": "https://opencode.ai/inference/google/v1beta/models/gemini-4-argon"},
+                ],
                 livebench={"models": {}},
                 task_types=task_types,
                 threshold_pct=5,
@@ -787,6 +812,8 @@ class ModelConfigThinkTest(unittest.TestCase):
         self.assertEqual(types["plan-x"]["think"], "xhigh")
         self.assertEqual(types["small-x"]["think"], "minimal")
         self.assertEqual(types["generic-x"]["think"], "default")
+        self.assertEqual(data["endpoint_paths"]["opencode/claude-haiku-5-5"], "/inference/anthropic/v1")
+        self.assertEqual(data["endpoint_paths"]["opencode-go/gemini-4-argon"], "/inference/google")
 
     def test_yaml_think_values_are_valid(self):
         cfg = m.load_yaml(ROOT / "config" / "task-types.yaml")
