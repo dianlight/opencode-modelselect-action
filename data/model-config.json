@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-27T11:20:00.230128+00:00",
+  "timestamp": "2026-10-28T02:49:15.009024+00:00",
   "livebench_snapshot": "2026-10-25",
   "task-types": {
     "plan": {
@@ -4803,7 +4803,6 @@
     "qwen3.7-plus": "messages",
     "kimi-k3.1-pro": "chat",
     "iceman-contributor-free": "chat",
-    "gemini-4-argon": "google",
-    "gemini-4-argon-contributor": "google"
+    "gemini-4-argon": "google"
   }
 }
