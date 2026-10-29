@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-28T02:49:15.009024+00:00",
+  "timestamp": "2026-10-29T03:11:40.633060+00:00",
   "livebench_snapshot": "2026-10-25",
   "task-types": {
     "plan": {
@@ -33,18 +33,6 @@
             "text",
             "image",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/grok-4.6",
-          "score": 91.2,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
           ]
         },
         {
@@ -239,17 +227,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 82.4,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 82.1,
           "input_cost": 1.4,
@@ -288,19 +265,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 77.9,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3-flash",
           "score": 77.6,
           "input_cost": 0.15,
@@ -312,19 +276,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 77.0,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
           ]
         },
         {
@@ -365,34 +316,12 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 75.6,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 74.0,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 72.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -433,17 +362,6 @@
             "image",
             "audio",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -632,17 +550,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 76.6,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 76.0,
           "input_cost": 0.14,
@@ -717,60 +624,12 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 69.7,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/glm-5.1",
-          "score": 69.5,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 68.2,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 67.7,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 67.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -822,17 +681,6 @@
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.2,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -964,18 +812,6 @@
             "text",
             "image",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/grok-4.6",
-          "score": 91.2,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
           ]
         },
         {
@@ -1170,17 +1006,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 82.4,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 82.1,
           "input_cost": 1.4,
@@ -1219,19 +1044,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 77.9,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3-flash",
           "score": 77.6,
           "input_cost": 0.15,
@@ -1243,19 +1055,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 77.0,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
           ]
         },
         {
@@ -1296,34 +1095,12 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 75.6,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 74.0,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 72.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -1364,17 +1141,6 @@
             "image",
             "audio",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -1537,18 +1303,6 @@
             "text",
             "image",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/grok-4.6",
-          "score": 79.8,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
           ]
         },
         {
@@ -1724,17 +1478,6 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 60.3,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/claude-haiku-5-5",
           "score": 60.0,
           "input_cost": 0.1,
@@ -1754,30 +1497,6 @@
           "output_cost": 0.47,
           "blended_cost": 0.23,
           "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 58.7,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 58.1,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
           "modalities": [
             "text",
             "image",
@@ -1848,19 +1567,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 52.5,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/minimax-m3",
           "score": 50.2,
           "input_cost": 0.3,
@@ -1885,28 +1591,6 @@
             "image",
             "audio",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 34.0,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 31.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -2124,18 +1808,6 @@
           ]
         },
         {
-          "model": "opencode-go/grok-4.6",
-          "score": 89.1,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/step-5-preview",
           "score": 85.6,
           "input_cost": 1.0,
@@ -2276,17 +1948,6 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 63.1,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -2363,19 +2024,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 59.6,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/muse-spark-1.2-contributor",
           "score": 59.3,
           "input_cost": 0.1,
@@ -2385,17 +2033,6 @@
           "modalities": [
             "text",
             "image"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 59.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -2449,30 +2086,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 56.1,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 55.8,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -2490,17 +2103,6 @@
           "output_cost": 3.48,
           "blended_cost": 2.175,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 52.0,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -2689,18 +2291,6 @@
           ]
         },
         {
-          "model": "opencode-go/grok-4.6",
-          "score": 89.1,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/step-5-preview",
           "score": 85.6,
           "input_cost": 1.0,
@@ -2841,17 +2431,6 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 63.1,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -2928,19 +2507,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 59.6,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/muse-spark-1.2-contributor",
           "score": 59.3,
           "input_cost": 0.1,
@@ -2950,17 +2516,6 @@
           "modalities": [
             "text",
             "image"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 59.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -3014,30 +2569,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 56.1,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 55.8,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -3055,17 +2586,6 @@
           "output_cost": 3.48,
           "blended_cost": 2.175,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 52.0,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -3258,17 +2778,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 76.6,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 76.0,
           "input_cost": 0.14,
@@ -3343,60 +2852,12 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 69.7,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/glm-5.1",
-          "score": 69.5,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 68.2,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 67.7,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 67.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -3448,17 +2909,6 @@
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.2,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -3590,18 +3040,6 @@
             "text",
             "image",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/grok-4.6",
-          "score": 91.2,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
           ]
         },
         {
@@ -3796,17 +3234,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 82.4,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 82.1,
           "input_cost": 1.4,
@@ -3845,19 +3272,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 77.9,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3-flash",
           "score": 77.6,
           "input_cost": 0.15,
@@ -3869,19 +3283,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 77.0,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
           ]
         },
         {
@@ -3922,34 +3323,12 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 75.6,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 74.0,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 72.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -3990,17 +3369,6 @@
             "image",
             "audio",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -4185,18 +3553,6 @@
           ]
         },
         {
-          "model": "opencode-go/grok-4.6",
-          "score": 89.1,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/step-5-preview",
           "score": 85.6,
           "input_cost": 1.0,
@@ -4337,17 +3693,6 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 63.1,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -4424,19 +3769,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 59.6,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/muse-spark-1.2-contributor",
           "score": 59.3,
           "input_cost": 0.1,
@@ -4446,17 +3778,6 @@
           "modalities": [
             "text",
             "image"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 59.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -4510,30 +3831,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 56.1,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 55.8,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -4551,17 +3848,6 @@
           "output_cost": 3.48,
           "blended_cost": 2.175,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 52.0,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -4720,18 +4006,6 @@
             "text",
             "image",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/grok-4.6",
-          "score": 91.2,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
           ]
         },
         {
@@ -4926,17 +4200,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 82.4,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 82.1,
           "input_cost": 1.4,
@@ -4975,19 +4238,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 77.9,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3-flash",
           "score": 77.6,
           "input_cost": 0.15,
@@ -4999,19 +4249,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 77.0,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
           ]
         },
         {
@@ -5052,34 +4289,12 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 75.6,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 74.0,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 72.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -5120,17 +4335,6 @@
             "image",
             "audio",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -5315,18 +4519,6 @@
           ]
         },
         {
-          "model": "opencode-go/grok-4.6",
-          "score": 89.1,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/step-5-preview",
           "score": 85.6,
           "input_cost": 1.0,
@@ -5467,17 +4659,6 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 63.1,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -5554,19 +4735,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 59.6,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/muse-spark-1.2-contributor",
           "score": 59.3,
           "input_cost": 0.1,
@@ -5576,17 +4744,6 @@
           "modalities": [
             "text",
             "image"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 59.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -5640,30 +4797,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 56.1,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 55.8,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -5681,17 +4814,6 @@
           "output_cost": 3.48,
           "blended_cost": 2.175,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 52.0,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -5853,18 +4975,6 @@
           ]
         },
         {
-          "model": "opencode-go/grok-4.6",
-          "score": 91.2,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/kimi-k3.1-pro",
           "score": 91.1,
           "input_cost": 2.0,
@@ -6056,17 +5166,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 82.4,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 82.1,
           "input_cost": 1.4,
@@ -6105,19 +5204,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 77.9,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3-flash",
           "score": 77.6,
           "input_cost": 0.15,
@@ -6129,19 +5215,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 77.0,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
           ]
         },
         {
@@ -6182,34 +5255,12 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 75.6,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 74.0,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 72.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -6250,17 +5301,6 @@
             "image",
             "audio",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -6418,18 +5458,6 @@
           ]
         },
         {
-          "model": "opencode-go/grok-4.6",
-          "score": 91.2,
-          "input_cost": 2.0,
-          "output_cost": 6.0,
-          "blended_cost": 3.0,
-          "context": 500000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/kimi-k3.1-pro",
           "score": 91.1,
           "input_cost": 2.0,
@@ -6621,17 +5649,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 82.4,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 82.1,
           "input_cost": 1.4,
@@ -6670,19 +5687,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 77.9,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3-flash",
           "score": 77.6,
           "input_cost": 0.15,
@@ -6694,19 +5698,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 77.0,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
           ]
         },
         {
@@ -6747,34 +5738,12 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.1",
-          "score": 75.6,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 74.0,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 72.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -6815,17 +5784,6 @@
             "image",
             "audio",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.3,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
-          "modalities": [
-            "text"
           ]
         },
         {
@@ -7014,17 +5972,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 76.6,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 76.0,
           "input_cost": 0.14,
@@ -7099,60 +6046,12 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 69.7,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/glm-5.1",
-          "score": 69.5,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 68.2,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 67.7,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 67.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -7204,17 +6103,6 @@
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.2,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -7380,17 +6268,6 @@
           ]
         },
         {
-          "model": "opencode-go/qwen3.7-max",
-          "score": 76.6,
-          "input_cost": null,
-          "output_cost": null,
-          "blended_cost": null,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 76.0,
           "input_cost": 0.14,
@@ -7465,60 +6342,12 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.6",
-          "score": 69.7,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/glm-5.1",
-          "score": 69.5,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 200000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 68.2,
           "input_cost": 1.4,
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/qwen3.6-plus",
-          "score": 67.7,
-          "input_cost": 0.5,
-          "output_cost": 3.0,
-          "blended_cost": 1.125,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.7",
-          "score": 67.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -7570,17 +6399,6 @@
           "output_cost": 4.4,
           "blended_cost": 2.15,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m2.5",
-          "score": 62.2,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
-          "context": 204800,
           "modalities": [
             "text"
           ]
@@ -7695,10 +6513,8 @@
     "jev-1.13": "systemone",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
-    "glm-5.1": "chat",
     "glm-5.2": "chat",
     "glm-5.3": "chat",
-    "grok-4.6": "responses",
     "grok-4.7": "responses",
     "muse-spark-1.2-contributor": "responses",
     "muse-spark-1.3-contributor": "responses",
@@ -7708,20 +6524,16 @@
     "claude-haiku-5-5": "messages",
     "hy3": "chat",
     "hy4-preview": "chat",
-    "kimi-k2.6": "chat",
     "kimi-k2.7-code": "chat",
     "kimi-k3": "chat",
     "mimo-v2.5": "chat",
     "mimo-v2.6-flash": "chat",
     "mimo-v2.5-pro": "chat",
     "mimo-v2.6-pro": "chat",
-    "minimax-m2.5": "chat",
-    "minimax-m2.7": "chat",
     "minimax-m3": "chat",
     "minimax-m3.1-flash": "chat",
     "longcat-2.0": "chat",
     "step-5-preview": "chat",
-    "qwen3.6-plus": "messages",
     "qwen3.8-max": "chat",
     "qwen3.8-flash": "messages",
     "qwen3.7-plus": "messages",
@@ -7730,49 +6542,43 @@
     "gemini-4-argon": "google"
   },
   "endpoint_paths": {
-    "opencode-go/beam-free": "/inference/openai/v1",
-    "opencode-go/claude-haiku-5-5": "/inference/anthropic/v1",
-    "opencode-go/deepseek-v4-pro": "/inference/openai/v1",
+    "opencode/big-pickle": "/inference/openai/v1",
+    "opencode/beam-free": "/inference/openai/v1",
+    "opencode/flint-40b-free": "/inference/openai/v1",
+    "opencode/mimo-v2.6-flash-free": "/inference/openai/v1",
+    "opencode/nemotron-3.5-super-vl-free": "/inference/openai/v1",
+    "opencode/nemotron-3.5-lightning-free": "/inference/openai/v1",
+    "opencode/deepseek-v4.1-flash-free": "/inference/openai/v1",
+    "opencode/glm-5.3-flash-free": "/inference/openai/v1",
     "opencode-go/deepseek-v4.1-flash": "/inference/openai/v1",
-    "opencode-go/gemini-4-argon": "/inference/google",
-    "opencode-go/glm-5.1": "/inference/openai/v1",
+    "opencode-go/deepseek-v4-pro": "/inference/openai/v1",
     "opencode-go/glm-5.2": "/inference/openai/v1",
     "opencode-go/glm-5.3": "/inference/openai/v1",
+    "opencode-go/grok-4.7": "/inference/openai/v1",
+    "opencode-go/muse-spark-1.2-contributor": "/inference/go/openai/v1",
+    "opencode-go/muse-spark-1.3-contributor": "/inference/go/openai/v1",
     "opencode-go/glm-5.3-flash": "/inference/openai/v1",
     "opencode-go/gpt-5.6-luna": "/inference/openai/v1",
     "opencode-go/gpt-6-luna": "/inference/openai/v1",
-    "opencode-go/grok-4.6": "/inference/openai/v1",
-    "opencode-go/grok-4.7": "/inference/openai/v1",
+    "opencode-go/claude-haiku-5-5": "/inference/anthropic/v1",
     "opencode-go/hy3": "/inference/go/openai/v1",
     "opencode-go/hy4-preview": "/inference/go/openai/v1",
-    "opencode-go/iceman-contributor-free": "/inference/go/openai/v1",
-    "opencode-go/kimi-k2.6": "/inference/openai/v1",
     "opencode-go/kimi-k2.7-code": "/inference/openai/v1",
     "opencode-go/kimi-k3": "/inference/openai/v1",
-    "opencode-go/kimi-k3.1-pro": "/inference/go/openai/v1",
-    "opencode-go/longcat-2.0": "/inference/go/openai/v1",
     "opencode-go/mimo-v2.5": "/inference/go/openai/v1",
-    "opencode-go/mimo-v2.5-pro": "/inference/go/openai/v1",
     "opencode-go/mimo-v2.6-flash": "/inference/go/openai/v1",
+    "opencode-go/mimo-v2.5-pro": "/inference/go/openai/v1",
     "opencode-go/mimo-v2.6-pro": "/inference/go/openai/v1",
-    "opencode-go/minimax-m2.5": "/inference/openai/v1",
-    "opencode-go/minimax-m2.7": "/inference/openai/v1",
     "opencode-go/minimax-m3": "/inference/openai/v1",
     "opencode-go/minimax-m3.1-flash": "/inference/go/openai/v1",
-    "opencode-go/muse-spark-1.2-contributor": "/inference/go/openai/v1",
-    "opencode-go/muse-spark-1.3-contributor": "/inference/go/openai/v1",
-    "opencode-go/qwen3.6-plus": "/inference/anthropic/v1",
-    "opencode-go/qwen3.7-plus": "/inference/go/anthropic/v1",
-    "opencode-go/qwen3.8-flash": "/inference/anthropic/v1",
-    "opencode-go/qwen3.8-max": "/inference/openai/v1",
+    "opencode-go/longcat-2.0": "/inference/go/openai/v1",
     "opencode-go/step-5-preview": "/inference/go/openai/v1",
-    "opencode/beam-free": "/inference/openai/v1",
-    "opencode/big-pickle": "/inference/openai/v1",
-    "opencode/deepseek-v4.1-flash-free": "/inference/openai/v1",
-    "opencode/flint-40b-free": "/inference/openai/v1",
-    "opencode/glm-5.3-flash-free": "/inference/openai/v1",
-    "opencode/mimo-v2.6-flash-free": "/inference/openai/v1",
-    "opencode/nemotron-3.5-lightning-free": "/inference/openai/v1",
-    "opencode/nemotron-3.5-super-vl-free": "/inference/openai/v1"
+    "opencode-go/beam-free": "/inference/openai/v1",
+    "opencode-go/qwen3.8-max": "/inference/openai/v1",
+    "opencode-go/qwen3.8-flash": "/inference/anthropic/v1",
+    "opencode-go/qwen3.7-plus": "/inference/go/anthropic/v1",
+    "opencode-go/kimi-k3.1-pro": "/inference/go/openai/v1",
+    "opencode-go/iceman-contributor-free": "/inference/go/openai/v1",
+    "opencode-go/gemini-4-argon": "/inference/google"
   }
 }
