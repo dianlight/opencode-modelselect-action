@@ -2,15 +2,6 @@
   "stale_fallback": [],
   "missing_scores": [],
   "missing_prices": [],
-  "missing_capabilities": [
-    {
-      "model": "jev-1.13",
-      "tier": "Free"
-    },
-    {
-      "model": "jev-1.13-free",
-      "tier": "Free"
-    }
-  ],
+  "missing_capabilities": [],
   "fallback_mismatch": []
 }

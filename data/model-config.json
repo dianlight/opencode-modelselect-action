@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-29T03:11:40.633060+00:00",
+  "timestamp": "2026-10-30T03:14:29.968659+00:00",
   "livebench_snapshot": "2026-10-25",
   "task-types": {
     "plan": {
@@ -340,31 +340,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 70.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 64.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 60.0,
           "input_cost": 0.14,
@@ -589,17 +564,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 74.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/qwen3.7-plus",
           "score": 72.0,
           "input_cost": 0.4,
@@ -657,20 +621,6 @@
           "modalities": [
             "text",
             "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 65.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
             "video"
           ]
         },
@@ -1119,31 +1069,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 70.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 64.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 60.0,
           "input_cost": 0.14,
@@ -1504,20 +1429,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 58.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 57.0,
           "input_cost": 0.2,
@@ -1633,17 +1544,6 @@
           "output_cost": 1.2,
           "blended_cost": 0.525,
           "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 5.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
           "modalities": [
             "text"
           ]
@@ -1937,17 +1837,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 66.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -1994,20 +1883,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 60.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
           ]
         },
         {
@@ -2420,17 +2295,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 66.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -2477,20 +2341,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 60.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
           ]
         },
         {
@@ -2817,17 +2667,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 74.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/qwen3.7-plus",
           "score": 72.0,
           "input_cost": 0.4,
@@ -2885,20 +2724,6 @@
           "modalities": [
             "text",
             "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 65.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
             "video"
           ]
         },
@@ -3347,31 +3172,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 70.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 64.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 60.0,
           "input_cost": 0.14,
@@ -3682,17 +3482,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 66.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -3739,20 +3528,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 60.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
           ]
         },
         {
@@ -4313,31 +4088,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 70.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 64.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 60.0,
           "input_cost": 0.14,
@@ -4648,17 +4398,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 66.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.2",
           "score": 63.0,
           "input_cost": 1.4,
@@ -4705,20 +4444,6 @@
             "image",
             "video",
             "pdf"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 60.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
           ]
         },
         {
@@ -5279,31 +5004,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 70.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 64.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 60.0,
           "input_cost": 0.14,
@@ -5762,31 +5462,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 70.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 64.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 60.0,
           "input_cost": 0.14,
@@ -6011,17 +5686,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 74.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/qwen3.7-plus",
           "score": 72.0,
           "input_cost": 0.4,
@@ -6079,20 +5743,6 @@
           "modalities": [
             "text",
             "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 65.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
             "video"
           ]
         },
@@ -6307,17 +5957,6 @@
           ]
         },
         {
-          "model": "opencode-go/mimo-v2.5-pro",
-          "score": 74.0,
-          "input_cost": 0.435,
-          "output_cost": 0.87,
-          "blended_cost": 0.5437,
-          "context": 1048576,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/qwen3.7-plus",
           "score": 72.0,
           "input_cost": 0.4,
@@ -6375,20 +6014,6 @@
           "modalities": [
             "text",
             "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/mimo-v2.5",
-          "score": 65.0,
-          "input_cost": 0.14,
-          "output_cost": 0.28,
-          "blended_cost": 0.175,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "audio",
             "video"
           ]
         },
@@ -6507,10 +6132,8 @@
     "mimo-v2.6-flash-free": "chat",
     "nemotron-3.5-super-vl-free": "chat",
     "nemotron-3.5-lightning-free": "chat",
-    "jev-1.13-free": "systemone",
     "deepseek-v4.1-flash-free": "chat",
     "glm-5.3-flash-free": "chat",
-    "jev-1.13": "systemone",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.2": "chat",
@@ -6526,9 +6149,7 @@
     "hy4-preview": "chat",
     "kimi-k2.7-code": "chat",
     "kimi-k3": "chat",
-    "mimo-v2.5": "chat",
     "mimo-v2.6-flash": "chat",
-    "mimo-v2.5-pro": "chat",
     "mimo-v2.6-pro": "chat",
     "minimax-m3": "chat",
     "minimax-m3.1-flash": "chat",
@@ -6565,9 +6186,7 @@
     "opencode-go/hy4-preview": "/inference/go/openai/v1",
     "opencode-go/kimi-k2.7-code": "/inference/openai/v1",
     "opencode-go/kimi-k3": "/inference/openai/v1",
-    "opencode-go/mimo-v2.5": "/inference/go/openai/v1",
     "opencode-go/mimo-v2.6-flash": "/inference/go/openai/v1",
-    "opencode-go/mimo-v2.5-pro": "/inference/go/openai/v1",
     "opencode-go/mimo-v2.6-pro": "/inference/go/openai/v1",
     "opencode-go/minimax-m3": "/inference/openai/v1",
     "opencode-go/minimax-m3.1-flash": "/inference/go/openai/v1",
