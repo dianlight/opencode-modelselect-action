@@ -68,7 +68,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-10-30 03:14 UTC**.
+> Last updated: **2026-10-31 02:58 UTC**.
 > LiveBench data: **347 models scored** (32 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-10-25**.
 > v2 Source: https://livebench.ai/data/20261025/table.csv
@@ -109,8 +109,8 @@ automatically at their next run.
 | `big-pickle` | Free | 📋 Fallback | UITest, APITest | 61.5 | 67.0 | 61.5 | 8.0 | 60.0 | Free | Free | Free | — |
 | `claude-haiku-5-5` | Go (Paid) | 📋 Fallback | UITest, APITest | 75.6 | 91.4 | 82.4 | 60.0 | 75.0 | $0.1 | $0.5 | $0.2 | 378.0 |
 | `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.6 | 53.6 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 33.4 |
-| `deepseek-v4.1-flash` | Go (Paid) | ✅ LiveBench v2 | UITest, APITest | 76.5 | 96.0 | 89.1 | 83.4 | — | $0.3 | $1.2 | $0.525 | 145.7 |
-| `deepseek-v4.1-flash-free` | Free | ✅ LiveBench v2 | UITest, APITest | 76.5 | 96.0 | 89.1 | 83.4 | — | Free | Free | Free | — |
+| `deepseek-v4.1-flash` | Go (Paid) | ✅ LiveBench v2 | UITest, APITest | 75.8 | 96.0 | 89.1 | 83.4 | — | $0.3 | $1.2 | $0.525 | 144.4 |
+| `deepseek-v4.1-flash-free` | Free | ✅ LiveBench v2 | UITest, APITest | 75.8 | 96.0 | 89.1 | 83.4 | — | Free | Free | Free | — |
 | `flint-40b-free` | Free | 📋 Fallback | UITest, APITest | 63.0 | 72.0 | 70.0 | 5.0 | 65.0 | Free | Free | Free | — |
 | `gemini-4-argon` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 81.5 | 89.7 | 95.1 | 73.7 | — | $4 | $20 | $8 | 10.2 |
 | `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 73.4 | 63.0 | 82.1 | 60.7 | 68.2 | $1.4 | $4.4 | $2.15 | 34.1 |
