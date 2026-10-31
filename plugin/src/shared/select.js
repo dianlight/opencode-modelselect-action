@@ -359,15 +359,18 @@ const FALLBACK_ENDPOINTS = {
   'qwen3.7-max': 'messages',
   'qwen3.8-flash': 'messages',
   'jev-1.13-free': 'systemone',
-  'gemini-4-argon-contributor': 'google',
-  'gemini-4-argon': 'google',
-  'gemini-3-flash': 'google',
-  'gemini-3.1-pro': 'google',
-  'gemini-3.5-flash': 'google',
-  'gemini-3.5-flash-lite': 'google',
-  'gemini-3.6-flash': 'google',
-  'gemini-3.7-flash': 'google',
-  'gemini-3.8-flash': 'google',
+  // Google-native models dispatch as chat through the proxy (the Console
+  // translates); the native Google route 404s from OpenCode. Mirrors the
+  // maintenance GOOGLE_CHAT_BASE_PATH remap — keep in sync.
+  'gemini-4-argon-contributor': 'chat',
+  'gemini-4-argon': 'chat',
+  'gemini-3-flash': 'chat',
+  'gemini-3.1-pro': 'chat',
+  'gemini-3.5-flash': 'chat',
+  'gemini-3.5-flash-lite': 'chat',
+  'gemini-3.6-flash': 'chat',
+  'gemini-3.7-flash': 'chat',
+  'gemini-3.8-flash': 'chat',
 };
 function endpointFor(config, model) {
   if (!model) return null;

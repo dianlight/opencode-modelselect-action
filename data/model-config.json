@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-31T13:34:36.193287+00:00",
+  "timestamp": "2026-10-31T18:17:58.287119+00:00",
   "livebench_snapshot": "2026-10-25",
   "task-types": {
     "plan": {
@@ -6160,7 +6160,7 @@
     "qwen3.7-plus": "messages",
     "kimi-k3.1-pro": "chat",
     "iceman-contributor-free": "chat",
-    "gemini-4-argon": "google"
+    "gemini-4-argon": "chat"
   },
   "endpoint_paths": {
     "opencode/big-pickle": "/inference/openai/v1",
@@ -6198,6 +6198,6 @@
     "opencode-go/qwen3.7-plus": "/inference/go/anthropic/v1",
     "opencode-go/kimi-k3.1-pro": "/inference/go/openai/v1",
     "opencode-go/iceman-contributor-free": "/inference/go/openai/v1",
-    "opencode-go/gemini-4-argon": "/inference/go/google"
+    "opencode-go/gemini-4-argon": "/inference/go/openai/v1"
   }
 }

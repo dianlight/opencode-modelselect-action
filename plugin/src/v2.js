@@ -616,11 +616,18 @@ async function setup(ctx) {
         const wanted = virtualApiWanted.get(m.id) || null;
         const pick0 = wanted || null;
         const real0 = pick0 ? catalogModel(editor, pick0.providerID, pick0.id) : null;
-        // Live catalog first: a Zen-served model on a non-default endpoint
-        // carries its own package. Map fallback covers picks the live
-        // catalog does not describe.
+        // Live catalog first: a model on a non-default endpoint may
+        // carry its own AI SDK package — but only when it is one: some
+        // catalog entries carry the host provider id instead
+        // (`@opencode/ai/providers/<name>`, e.g. Gemini), which the
+        // `api.package` lookup does not resolve, silently dropping the
+        // pick back on the default route (HTTP 404 live-verified).
+        // Anything but an `@ai-sdk/` package falls back to the map.
         const livePkg = real0 && typeof real0.package === 'string' && real0.package ? real0.package : null;
-        const pkg = livePkg || (wanted && wanted.endpoint ? ENDPOINT_PACKAGES[wanted.endpoint] : undefined);
+        const pkg =
+          (livePkg && livePkg.startsWith('@ai-sdk/'))
+            ? livePkg
+            : (wanted && wanted.endpoint ? ENDPOINT_PACKAGES[wanted.endpoint] : undefined);
         const patched = { ...m };
         if (pkg) {
           // No url: inherits the provider base — the proxy. All

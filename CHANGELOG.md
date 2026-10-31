@@ -1,16 +1,24 @@
 ## [Unreleased]
 ### Fixed
 - Go endpoint paths: Go models sharing a bare id with Zen (notably
-  `gemini-4-argon`) resolved to the Zen path (`/inference/google`,
-  HTTP 404 on Go dispatch) because the docs merge let Zen win and the
-  `model-config.json` freshness check ignored `endpoint_paths`. Go
-  models now prefer the Go docs endpoint (`/inference/go/google`),
-  and path changes trigger a config rewrite. All `opencode-go/*`
-  native paths now carry the `/go` prefix per the Go endpoints table.
-- Google dispatch root keeps the `/v1beta` suffix: `@ai-sdk/google`
-  appends only `/models/<id>:generateContent`, so the previous root
-  (`.../go/google`) dispatched to a path that 404s (live-verified).
-  The virtual entry now points at `.../go/google/v1beta`.
+  `gemini-4-argon`) resolved to the Zen path because the docs merge let
+  Zen win and the `model-config.json` freshness check ignored
+  `endpoint_paths`. Go models now prefer the Go docs endpoint, path
+  changes trigger a config rewrite, and all `opencode-go/*` native
+  paths carry the `/go` prefix per the Go endpoints table. Also fixed
+  `minimax-m3`/`qwen3.8-max` tokens (`messages`) and paths per the table.
+- Gemini dispatches through the proxy as chat (Console translates):
+  the native Google route 404s from OpenCode (the catalog
+  `generate-content` api key is unknown to the host, and virtual entry
+  api/base overrides do not take effect on dispatch — verified live).
+  The config maps `gemini-4-argon` to token `chat` on the engine OpenAI
+  base instead of the native `/google` path; fallbacks updated to match.
+- Google dispatch root keeps the `/v1beta` suffix and a live-catalog
+  `package` that is a host provider id (`@opencode/ai/providers/...`)
+  no longer wins over the AI SDK map (`api.package` must be
+  `@ai-sdk/...` or the pick silently falls back to the default route) —
+  defense in depth for native Google routing if the host gains
+  `generate-content` support.
 
 ## [0.6.0] - 2026-10-28
 ### Added

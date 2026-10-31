@@ -1135,15 +1135,18 @@ FALLBACK_ENDPOINTS = {
     "qwen3.7-max": "messages",
     "qwen3.8-flash": "messages",
     "jev-1.13-free": "systemone",
-    "gemini-4-argon-contributor": "google",
-    "gemini-4-argon": "google",
-    "gemini-3-flash": "google",
-    "gemini-3.1-pro": "google",
-    "gemini-3.5-flash": "google",
-    "gemini-3.5-flash-lite": "google",
-    "gemini-3.6-flash": "google",
-    "gemini-3.7-flash": "google",
-    "gemini-3.8-flash": "google",
+    # Google-native models dispatch as chat through the proxy (Console
+    # translates); the native route 404s from OpenCode (see the
+    # GOOGLE_CHAT_BASE_PATH remap above).
+    "gemini-4-argon-contributor": "chat",
+    "gemini-4-argon": "chat",
+    "gemini-3-flash": "chat",
+    "gemini-3.1-pro": "chat",
+    "gemini-3.5-flash": "chat",
+    "gemini-3.5-flash-lite": "chat",
+    "gemini-3.6-flash": "chat",
+    "gemini-3.7-flash": "chat",
+    "gemini-3.8-flash": "chat",
 }
 
 
@@ -1326,6 +1329,18 @@ def generate_model_config(
             ),
         }
 
+    # Google-native models (Gemini) dispatch through the proxy as chat,
+    # translated by the Console: the native Google route 404s from
+    # OpenCode (the catalog `generate-content` api key is unknown to the
+    # host, and virtual entry api/base overrides do not take effect on
+    # dispatch — verified live Oct 2026). The base below must therefore
+    # be the engine's OpenAI base, never the native `/google` path.
+    # Revisit if the host gains generate-content support.
+    GOOGLE_CHAT_BASE_PATH = {
+        "opencode": "/inference/openai/v1",
+        "opencode-go": "/inference/go/openai/v1",
+    }
+
     proposed = {
         "timestamp": datetime.now(UTC).isoformat(),
         "livebench_snapshot": livebench.get("_snapshot_date")
@@ -1352,6 +1367,16 @@ def generate_model_config(
             and (base_path := _endpoint_base_path(model.get("endpoint")))
         },
     }
+    # Remap google-native rows to the translating chat route (see above).
+    for ref in list(proposed["endpoint_paths"]):
+        bare = ref.split("/")[-1]
+        if proposed["endpoints"].get(bare) == "google":
+            engine = ref.split("/")[0]
+            chat_base = GOOGLE_CHAT_BASE_PATH.get(engine)
+            if chat_base:
+                proposed["endpoints"][bare] = "chat"
+                proposed["endpoint_paths"][ref] = chat_base
+                print(f"  i {ref}: google-native route remapped to proxy chat ({chat_base})")
 
     if not MODEL_CONFIG_PATH.exists():
         # No committed config yet: write the computed one so the action has

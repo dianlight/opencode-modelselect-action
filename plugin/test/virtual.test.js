@@ -90,6 +90,14 @@ async function setupV2(dir, options = {}, features = {}) {
       models: new Map([['x', { id: 'x', modelID: 'x', providerID: id, name: 'X' }]]),
     });
   }
+  // Extra live-catalog models (e.g. a pick carrying a host provider-id
+  // package instead of an AI SDK package).
+  if (features.catalogModels) {
+    for (const [pid, models] of Object.entries(features.catalogModels)) {
+      const rec = providers.get(pid);
+      if (rec) for (const m of models) rec.models.set(m.id, m);
+    }
+  }
   const fakeCtx = {
     options: { tier: 'free', taskType: 'review', ...options },
     location: { directory: dir },
@@ -1329,6 +1337,47 @@ describe('route refinement (unroutable endpoints + media)', () => {
         free.api,
         { id: 'longcat-free', type: 'aisdk', package: '@ai-sdk/openai-compatible' },
         'chat pick back on the proxy route',
+      );
+    } finally {
+      iso.restore();
+    }
+  });
+
+  it('ignores a host provider-id package on the live pick (uses the AI SDK map)', async () => {
+    const iso = withIsolation(undefined);
+    try {
+      seedCache(iso.dir, RANKED);
+      // Production shape: the live catalog carries the host provider id,
+      // not an AI SDK package, on the Gemini entry.
+      const seen = await setupV2(
+        iso.dir,
+        { tier: 'auto', token: 'probe-google-3', usageUrl: 'http://127.0.0.1:1/' },
+        {
+          catalogModels: {
+            'opencode-go': [
+              { id: 'gemini-4-argon-contributor', providerID: 'opencode-go', package: '@opencode/ai/providers/google' },
+            ],
+          },
+        },
+      );
+      seen.catalog.get('opencode-go').provider.settings.baseURL = 'https://opencode.ai/inference/go/openai/v1';
+      const e1 = {
+        sessionID: 's1',
+        model: { providerID: 'modelselect', id: 'auto-go-first' },
+        messages: [],
+        agent: 'review',
+      };
+      await seen.context(e1);
+      const entry = seen.catalog.get('modelselect').models.get('auto-go-first');
+      assert.deepEqual(
+        entry.api,
+        { id: 'gemini-4-argon-contributor', type: 'aisdk', package: '@ai-sdk/google' },
+        'provider-id package falls back to the AI SDK map',
+      );
+      assert.equal(
+        entry.settings.baseURL,
+        'https://opencode.ai/inference/google/v1beta',
+        'provider path plus the v1beta the driver does not append',
       );
     } finally {
       iso.restore();
