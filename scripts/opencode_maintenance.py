@@ -754,6 +754,7 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
     pricing: dict[str, dict[str, Any]] = {}
     go_pricing: dict[str, dict[str, Any]] = {}
     endpoints: dict[str, str] = {}
+    go_endpoints: dict[str, str] = {}
     if zen_fetched is None:
         # Reuse prices/endpoints from the last successful run so
         # zen_models.json stays populated even while the docs page is
@@ -789,7 +790,11 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
                 print("  w Go pricing: reusing previously fetched prices")
         else:
             go_pricing, go_endpoints = fetched_go
-        # Zen wins on conflicts; Go fills Go-only ids.
+        # Zen wins on conflicts; Go fills Go-only ids. The shared dict
+        # stays Zen-first for the Zen loop below; the Go loop prefers
+        # go_endpoints explicitly (same bare id may be published on a
+        # different path per provider, e.g. Gemini is `/inference/google`
+        # on Zen but `/inference/go/google` on Go).
         for gid, ginfo in go_pricing.items():
             pricing.setdefault(gid, ginfo)
         for gid, gurl in go_endpoints.items():
@@ -829,7 +834,7 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
             info = pricing.get(m["id"]) or go_pricing.get(m["id"])
             if info:
                 m["pricing"] = info
-            endpoint = _endpoint_url_for(endpoints, m["id"])
+            endpoint = _endpoint_url_for(go_endpoints, m["id"]) or _endpoint_url_for(endpoints, m["id"])
             if endpoint:
                 m["endpoint"] = endpoint
         save_json(
@@ -1360,6 +1365,7 @@ def generate_model_config(
     if (
         current_task_types == proposed["task-types"]
         and (current.get("endpoints") or {}) == proposed["endpoints"]
+        and (current.get("endpoint_paths") or {}) == proposed["endpoint_paths"]
     ):
         print("  v Central model config unchanged")
         return False

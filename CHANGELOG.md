@@ -1,3 +1,13 @@
+## [Unreleased]
+### Fixed
+- Go endpoint paths: Go models sharing a bare id with Zen (notably
+  `gemini-4-argon`) resolved to the Zen path (`/inference/google`,
+  HTTP 404 on Go dispatch) because the docs merge let Zen win and the
+  `model-config.json` freshness check ignored `endpoint_paths`. Go
+  models now prefer the Go docs endpoint (`/inference/go/google`),
+  and path changes trigger a config rewrite. All `opencode-go/*`
+  native paths now carry the `/go` prefix per the Go endpoints table.
+
 ## [0.6.0] - 2026-10-28
 ### Added
 - Model select engine reads the usage snapshot (`usage-limits.json`,
