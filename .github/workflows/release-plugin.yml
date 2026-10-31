@@ -38,12 +38,7 @@ jobs:
       - name: Check syntax
         run: |
           set -euo pipefail
-          node --check plugin/index.js
-          node --check plugin/src/v1.js
-          node --check plugin/src/v2.js
-          node --check plugin/src/shared/detect.js
-          node --check plugin/src/shared/select.js
-          node --check plugin/test/plugin.test.js
+          find plugin -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Run plugin tests
         run: |
           set -euo pipefail
