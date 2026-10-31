@@ -1279,8 +1279,8 @@ describe('route refinement (unroutable endpoints + media)', () => {
       );
       assert.equal(
         entry.settings.baseURL,
-        'https://opencode.ai/inference/google',
-        'native Google root (driver appends v1beta/models/<id>)',
+        'https://opencode.ai/inference/google/v1beta',
+        'native Google root incl. v1beta (driver appends only models/<id>)',
       );
       // Unknown live capabilities keep the broad static default (fail-open).
       assert.deepEqual(entry.capabilities, { tools: true, input: ['text', 'image', 'pdf'], output: ['text'] });
@@ -1303,7 +1303,7 @@ describe('route refinement (unroutable endpoints + media)', () => {
       };
       await seen.context(e1);
       const entry = () => seen.catalog.get('modelselect').models.get('auto-go-first');
-      assert.equal(entry().settings.baseURL, 'https://opencode.ai/inference/google', 'Google uses its catalog endpoint root');
+      assert.equal(entry().settings.baseURL, 'https://opencode.ai/inference/google/v1beta', 'Google uses its catalog endpoint root');
       // Same session, free-side pick next: the stale root must go.
       seedCache(iso.dir, {
         'task-types': {

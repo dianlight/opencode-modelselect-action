@@ -7,6 +7,10 @@
   models now prefer the Go docs endpoint (`/inference/go/google`),
   and path changes trigger a config rewrite. All `opencode-go/*`
   native paths now carry the `/go` prefix per the Go endpoints table.
+- Google dispatch root keeps the `/v1beta` suffix: `@ai-sdk/google`
+  appends only `/models/<id>:generateContent`, so the previous root
+  (`.../go/google`) dispatched to a path that 404s (live-verified).
+  The virtual entry now points at `.../go/google/v1beta`.
 
 ## [0.6.0] - 2026-10-28
 ### Added

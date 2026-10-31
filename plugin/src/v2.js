@@ -159,7 +159,8 @@ const FALLBACK_UPSTREAM = {
 // inheriting the provider default chat/completions, which those models
 // reject with ModelProtocolUnsupported. `google` additionally overrides
 // the entry's `settings.baseURL` to the catalog-published Google root
-// (`:generateContent` dispatches natively outside the proxy). Unknown/absent tokens
+// plus `/v1beta` (`:generateContent` dispatches natively outside the
+// proxy; the driver appends only `/models/<id>:...`). Unknown/absent tokens
 // (`systemone`, unmapped) keep the provider default — and the resolver
 // filters them out beforehand (see select.js `endpointRoutable`).
 const ENDPOINT_PACKAGES = {
@@ -172,12 +173,27 @@ const ENDPOINT_PACKAGES = {
 /**
  * Legacy Google-root derivation for cached configs without endpoint_paths.
  * Current catalogs may publish a different route (for example, Go Gemini
- * uses `/inference/google`), so endpointBaseURLFor is preferred.
+ * uses `/inference/go/google`), so endpointBaseURLFor is preferred.
+ * Both return the root WITHOUT the `/v1beta` suffix; the caller appends
+ * it (the `@ai-sdk/google` driver appends only `/models/<id>:...`, so a
+ * root without `/v1beta` dispatches to a path that 404s — live-verified).
  */
 function googleBaseFor(upstreamBaseURL) {
   const b = String(upstreamBaseURL ?? '').replace(/\/+$/, '');
   if (b.endsWith('/openai/v1')) return b.slice(0, -'/openai/v1'.length) + '/google';
   return null;
+}
+
+/**
+ * Google dispatch root: origin + provider-relative endpoint path + the
+ * `/v1beta` the `@ai-sdk/google` driver does NOT append itself (it adds
+ * only `/models/<id>:generateContent`). Returns null when no root is
+ * derivable. Idempotent when the path already ends in `/v1beta`.
+ */
+function googleRootFor(upstreamBaseURL, endpointPath) {
+  const root = endpointBaseURLFor(upstreamBaseURL, endpointPath) || googleBaseFor(upstreamBaseURL);
+  if (!root) return null;
+  return /\/v1beta$/.test(root) ? root : `${root}/v1beta`;
 }
 
 function endpointBaseURLFor(upstreamBaseURL, endpointPath) {
@@ -628,12 +644,13 @@ async function setup(ctx) {
         }
         // Google picks dispatch natively: point the entry at the
         // provider's Google root (derived, never the full per-model URL —
-        // the driver appends its own `v1beta/models/<api.id>:...` path).
+        // the driver appends only `/models/<api.id>:generateContent`, so
+        // the root keeps the `/v1beta` suffix; without it dispatch 404s).
         // Leaving a google pick drops a stale Google root so the next
         // dispatch returns to the proxy base.
         const providerBase = pick0 ? (upstream.get(pick0.providerID) || {}).baseURL : null;
         const wantBase = wanted && wanted.endpoint === 'google' && pick0
-          ? endpointBaseURLFor(providerBase, wanted.endpointPath) || googleBaseFor(providerBase)
+          ? googleRootFor(providerBase, wanted.endpointPath)
           : null;
         const curBase =
           patched.settings && typeof patched.settings.baseURL === 'string'
@@ -644,7 +661,7 @@ async function setup(ctx) {
             patched.settings = { ...(patched.settings || {}), baseURL: wantBase };
             changed = true;
           }
-        } else if (curBase && /\/google$/.test(curBase)) {
+        } else if (curBase && /\/google(\/v1beta)?$/.test(curBase)) {
           const s = { ...patched.settings };
           delete s.baseURL;
           if (Object.keys(s).length > 0) patched.settings = s;
