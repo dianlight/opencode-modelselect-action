@@ -814,7 +814,10 @@ class ModelConfigThinkTest(unittest.TestCase):
         self.assertEqual(types["small-x"]["think"], "minimal")
         self.assertEqual(types["generic-x"]["think"], "default")
         self.assertEqual(data["endpoint_paths"]["opencode/claude-haiku-5-5"], "/inference/anthropic/v1")
-        self.assertEqual(data["endpoint_paths"]["opencode-go/gemini-4-argon"], "/inference/google")
+        # Google-native rows dispatch as chat through the proxy (native
+        # `/inference/google` 404s from OpenCode, see GOOGLE_CHAT_BASE_PATH).
+        self.assertEqual(data["endpoints"]["gemini-4-argon"], "chat")
+        self.assertEqual(data["endpoint_paths"]["opencode-go/gemini-4-argon"], "/inference/go/openai/v1")
 
     def test_yaml_think_values_are_valid(self):
         cfg = m.load_yaml(ROOT / "config" / "task-types.yaml")
