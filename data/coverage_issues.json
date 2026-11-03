@@ -1,6 +1,11 @@
 {
   "stale_fallback": [],
-  "missing_scores": [],
+  "missing_scores": [
+    {
+      "model": "pulse-alpha-free",
+      "tier": "Free"
+    }
+  ],
   "missing_prices": [],
   "missing_capabilities": [],
   "fallback_mismatch": []

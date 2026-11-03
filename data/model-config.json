@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-31T18:17:58.287119+00:00",
+  "timestamp": "2026-11-03T04:19:53.104762+00:00",
   "livebench_snapshot": "2026-10-25",
   "task-types": {
     "plan": {
@@ -6134,6 +6134,7 @@
     "nemotron-3.5-lightning-free": "chat",
     "deepseek-v4.1-flash-free": "chat",
     "glm-5.3-flash-free": "chat",
+    "pulse-alpha-free": "chat",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.2": "chat",
@@ -6171,6 +6172,7 @@
     "opencode/nemotron-3.5-lightning-free": "/inference/openai/v1",
     "opencode/deepseek-v4.1-flash-free": "/inference/openai/v1",
     "opencode/glm-5.3-flash-free": "/inference/openai/v1",
+    "opencode/pulse-alpha-free": "/inference/openai/v1",
     "opencode-go/deepseek-v4.1-flash": "/inference/go/openai/v1",
     "opencode-go/deepseek-v4-pro": "/inference/go/openai/v1",
     "opencode-go/glm-5.2": "/inference/go/openai/v1",
