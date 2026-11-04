@@ -2,6 +2,10 @@
   "stale_fallback": [],
   "missing_scores": [
     {
+      "model": "crouton-alpha-free",
+      "tier": "Free"
+    },
+    {
       "model": "pulse-alpha-free",
       "tier": "Free"
     }
