@@ -5,12 +5,12 @@
     "": {
       "name": "openchamber-modelselect",
       "dependencies": {
-        "@openchamber/sdk": "2.6.0",
+        "@openchamber/sdk": "2.6.1",
       },
     },
   },
   "packages": {
-    "@openchamber/sdk": ["@openchamber/sdk@2.6.0", "", { "dependencies": { "zod": "^4.3.6" }, "bin": { "openchamber-guest-bundle": "scripts/bundle-guest.ts" } }, "sha512-G0VoX0b1dPlxtQlagqxsscSS6Ze/F3MLPw8ud4sauDebiFA+45bsoFbgkMvhgcfuZrlzTrESZAQxwYOb26fbMw=="],
+    "@openchamber/sdk": ["@openchamber/sdk@2.6.1", "", { "dependencies": { "zod": "^4.3.6" }, "bin": { "openchamber-guest-bundle": "scripts/bundle-guest.ts" } }, "sha512-Z/TgwxbyXOHzYrWD0rMQ+/kPDZb5wacrXWdkHXmdQP+PsTDpCKP//955QkfmSJW6lVowBOlnVw7l5RA22Dg1pA=="],
 
     "zod": ["zod@4.6.5", "", {}, "sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q=="],
   }
