@@ -313,7 +313,7 @@ jobs:
           # Escape hatch: when both tiers are unavailable (e.g. the token has no
           # active Go subscription and the free probe 403s) the step would
           # otherwise hard-stop the run before the fix PR can be opened.
-          fallback-model: opencode/longcat-2.5-preview-free
+          fallback-model: opencode/beam-free
       - name: Run OpenCode to fix coverage issues
         if: steps.coverage.outputs.tasks != ''
         id: opencode

@@ -105,15 +105,39 @@ describe('select-model action', () => {
   });
 
   it('uses fallback-model with a warning when the entry is missing', () => {
-    const { exit, outputs } = run({
+    const { exit, outputs, stderr } = run({
       'TASK-TYPE': 'nope',
       'CONFIG-PATH': 'data/model-config.json',
       'CONFIG-URL': '',
-      'FALLBACK-MODEL': 'opencode/fallback',
+      'FALLBACK-MODEL': 'opencode/beam-free',
     });
     assert.equal(exit, 0);
-    assert.equal(outputs.model, 'opencode/fallback');
+    assert.equal(outputs.model, 'opencode/beam-free');
     assert.equal(outputs['config-source'], 'local+fallback');
+  });
+
+  it('rejects a fallback-model that is not in the config', () => {
+    const { exit, stderr } = run({
+      'TASK-TYPE': 'nope',
+      'CONFIG-PATH': 'data/model-config.json',
+      'CONFIG-URL': '',
+      'FALLBACK-MODEL': 'opencode/ghost',
+    });
+    assert.equal(exit, 1);
+    assert.match(stderr, /fallback-model/);
+    assert.match(stderr, /not in the model config/);
+  });
+
+  it('rejects a fallback-model that is not in the config', () => {
+    const { exit, stderr } = run({
+      'TASK-TYPE': 'nope',
+      'CONFIG-PATH': 'data/model-config.json',
+      'CONFIG-URL': '',
+      'FALLBACK-MODEL': 'opencode/ghost',
+    });
+    assert.equal(exit, 1);
+    assert.match(stderr, /fallback-model/);
+    assert.match(stderr, /not in the model config/);
   });
 
   it('rejects an invalid tier', () => {
@@ -179,10 +203,10 @@ describe('select-model max-cost', () => {
     const { exit, outputs } = runRanked({
       TIER: 'go',
       'MAX-COST': '0.5',
-      'FALLBACK-MODEL': 'opencode/fallback',
+      'FALLBACK-MODEL': 'opencode/cheap-free',
     });
     assert.equal(exit, 0);
-    assert.equal(outputs.model, 'opencode/fallback');
+    assert.equal(outputs.model, 'opencode/cheap-free');
     assert.equal(outputs['model-cost'], '');
   });
 

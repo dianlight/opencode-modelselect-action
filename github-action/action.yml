@@ -73,7 +73,10 @@ inputs:
   fallback-model:
     description: >-
       Optional escape hatch used only when the task-type has no entry in the
-      config. Prefer adding the entry to data/model-config.json instead.
+      config. The value must exist in data/model-config.json (as a go/free or
+      ranked model id) or the step fails; retired model ids are rejected here
+      instead of being passed to opencode. Prefer adding the entry to
+      data/model-config.json instead.
     required: false
     default: ""
   max-cost:

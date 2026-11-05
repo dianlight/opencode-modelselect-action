@@ -408,6 +408,37 @@ async function main() {
     );
   }
 
+  // The escape-hatch fallback must resolve to a model the config actually
+  // serves — a retired model id (dropped from Zen and from the config) must
+  // fail here, loudly, instead of being handed to opencode where it dies
+  // late with an opaque "Model not found".
+  const configuredModels = new Set();
+  for (const tv of Object.values(table)) {
+    if (!tv || typeof tv !== 'object' || Array.isArray(tv)) continue;
+    for (const t of ['go', 'free']) {
+      const v = tv[t];
+      if (typeof v === 'string' && v) configuredModels.add(v);
+    }
+    for (const rk of ['go_ranked', 'free_ranked']) {
+      const list = tv[rk];
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          if (item && typeof item.model === 'string' && item.model) {
+            configuredModels.add(item.model);
+          }
+        }
+      }
+    }
+  }
+  if (fallbackModel && !configuredModels.has(fallbackModel)) {
+    fail(
+      `Input 'fallback-model' '${fallbackModel}' is not in the model config ` +
+        `(${configPath}): it is not a configured go/free or ranked model. ` +
+        'Regenerate data/model-config.json via the maintenance run or pass ' +
+        'a configured model id.',
+    );
+  }
+
   const key = Object.keys(table).find(
     (k) => k.toLowerCase() === taskTypeInput.toLowerCase(),
   );

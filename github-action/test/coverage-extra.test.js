@@ -484,10 +484,10 @@ describe('select-model auto missing config', () => {
   it('uses fallback for unknown task-type with tier auto', () => {
     const { exit, outputs } = runSync({
       'TASK-TYPE': 'nope', TIER: 'auto', 'OPENCODE-TOKEN': 't',
-      'FALLBACK-MODEL': 'opencode/fb', 'CONFIG-URL': '',
+      'FALLBACK-MODEL': 'opencode/model-b-free', 'CONFIG-URL': '',
     });
     assert.equal(exit, 0);
-    assert.equal(outputs.model, 'opencode/fb');
+    assert.equal(outputs.model, 'opencode/model-b-free');
     assert.match(outputs['config-source'], /fallback/);
   });
 
@@ -504,12 +504,12 @@ describe('select-model auto missing config', () => {
     const { exit, outputs } = runSync(
       {
         'TASK-TYPE': 'empty', TIER: 'auto', 'OPENCODE-TOKEN': 't',
-        'FALLBACK-MODEL': 'opencode/fb', 'CONFIG-URL': '',
+        'FALLBACK-MODEL': 'opencode/model-y', 'CONFIG-URL': '',
       },
-      { config: { 'task-types': { empty: {} } } },
+      { config: { 'task-types': { empty: {}, other: { go: 'opencode-go/model-x', free: 'opencode/model-y' } } } },
     );
     assert.equal(exit, 0);
-    assert.equal(outputs.model, 'opencode/fb');
+    assert.equal(outputs.model, 'opencode/model-y');
   });
 
   it('uses fallback when auto finds nothing available', async () => {
@@ -530,7 +530,7 @@ describe('select-model auto missing config', () => {
         'INPUT_PROBE-URL': urls.probeUrl,
         'INPUT_CONFIG-PATH': cfg,
         'INPUT_CONFIG-URL': '',
-        'INPUT_FALLBACK-MODEL': 'opencode/fb',
+        'INPUT_FALLBACK-MODEL': 'opencode/model-b-free',
       };
       delete env.GITHUB_WORKSPACE;
       const r = await new Promise((resolve) => {
@@ -549,7 +549,7 @@ describe('select-model auto missing config', () => {
       return r;
     });
     assert.equal(result.exit, 0);
-    assert.equal(result.outputs.model, 'opencode/fb');
+    assert.equal(result.outputs.model, 'opencode/model-b-free');
   });
 
   it('prefers the only configured side when the other is missing', async () => {
