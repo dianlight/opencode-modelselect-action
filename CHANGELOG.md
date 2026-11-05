@@ -35,6 +35,23 @@
   defense in depth for native Google routing if the host gains
   `generate-content` support.
 
+### Added
+- Per-model usage and limit in the Work Status section: each Console
+  budget's models get a `$spent / $limit` row with a progress bar (tone by
+  consumed percent, reset in the tooltip), drawn from the plugin's
+  `usage-limits.json` (`budgets[].models[]` from
+  `GET /api/experimental/usage/limits`).
+- Config changes apply without restart: saving plugin options in the
+  settings panel asks the local service to `POST /api/location/reload` on
+  the bundled OpenCode server (OpenCode >= 2.2.1); if the endpoint is
+  unavailable the familiar "restart required" notice is shown instead.
+- Canary usage provider: `provides: ["quota"]` + `contributes.quota` on
+  the service, answering `usage.read` from the cached usage snapshot
+  (OpenChamber >= 2.6.2 canary; `engines.openchamber: ">=2.6.2"`).
+- `scripts/release-watch.js`: daily check of opencode, openchamber and
+  `@openchamber/sdk` releases, reporting SDK/API/App addenda and storing
+  last-seen versions in `.opencode/.modelselect-cache/release-watch.json`.
+
 ## [0.6.0] - 2026-10-28
 ### Added
 - Model select engine reads the usage snapshot (`usage-limits.json`,
