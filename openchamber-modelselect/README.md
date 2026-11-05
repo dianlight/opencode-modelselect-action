@@ -1,18 +1,25 @@
 # openchamber-modelselect
 
-Work Status section for the modelselect plugin: shows the plugin's
-per-session pick (task, tier, model, Jev reason, Go quota, config source)
-plus the auto-update-router on/off switch, and records session activity
-into the host-detection session map the plugin reads.
+Work Status section for the modelselect plugin: the host draws the plugin's
+newest pick in the project (task, tier, model, Think effort, Jev reason, Go
+quota, config source) plus the auto-update-router switch, and a settings
+panel edits the plugin + extension config.
 
-Status section plus a settings panel; no background service, no commands.
-Sources are `status/src/main.js` and `panel/src/main.js` (ESM, import
-`connectHost` from `@openchamber/sdk`); the runnable `status/main.js` and
-`panel/main.js` are committed IIFE bundles built with `bun run build` —
-never edit them by hand.
+The status section is **host-rendered** (`contributes.statusSection.source`,
+OpenChamber >= 2.6.1) — no iframe. A local service (`service/src/main.js`,
+bundled to `service/main.js`) is spawned by the host, answers `GET /status`
+on the loopback port while the section is shown, and takes the controls'
+`POST`s on the same path. The settings panel is still a guest page
+(`panel/src/main.js` → `panel/main.js`, committed IIFE); never edit the
+bundles by hand.
 
-Requires OpenChamber >= 2.0 (web/desktop only; the status iframe needs
-a web view). The session map it writes is what lets the plugin detect
+Requires OpenChamber >= 2.6.1 (web/desktop). The source contract sends only
+`?directory=` and `?locale=` — no session id — so the section is
+project-scoped: it shows the newest `status-*.json` in the open project,
+not the session the user is looking at. The live session model/agent rows
+of the old iframe are gone with it.
+
+The session map the service writes is what lets the plugin detect
 OpenChamber hosting even for sessions driven from the mobile app (which
 loads no extensions — same server, same project).
 
@@ -21,79 +28,72 @@ loads no extensions — same server, same project).
 Settings → Extensions → install from Folder / ZIP / URL pointing at
 `openchamber-modelselect/`.
 
-Grant the `files` and `sessions` capabilities when prompted (status,
-router-sync and session-map files live under the project; the `sessions`
-capability feeds the map's deleted/archived pruning; the
-installed-check reads the three global config paths declared in
-`package.json`, including the OpenChamber managed config; the routing
-sync additionally reads `~/.config/openchamber/modelselect.json` and —
-only when autoset is enabled there — reads/writes `settings.json` +
-`preferences.json`).
+Approve the request list once. It holds:
+
+- the **local service** — the status section's reader and router switch.
+  It runs with your own user access (no OS sandbox) and needs no `exec` or
+  `socket` permission. Until it is approved the host answers `NO_SERVICE`
+  and the section body stays empty.
+- the `files` capability — the settings panel's read/write of the managed
+  OpenCode config and `~/.config/openchamber/modelselect.json` (paths
+  declared in `package.json`; re-approve after adding a path).
 
 ## Build and test
 
 ```sh
 cd openchamber-modelselect
 bun install
-bun run build   # openchamber-guest-bundle for status/ and panel/
+bun run build   # service/ as a Node (--node) bundle, panel/ as an IIFE
 bun run check   # node --check on both bundles
-bun run test    # node --test test/ — frame smoke tests (fake guest frames
-                # speaking the SDK wire protocol)
+bun run test    # node --test test/ — view schema, live service, manifest,
+                # panel frame
 ```
 
-Always rebuild + commit both bundles after editing a source file
-(`status/index.html` and `panel/index.html` load the bundles, not the
-sources).
+Always rebuild + commit both bundles after editing a source file. The
+extension never compiles TypeScript on the host, so a stale bundle ships
+stale code.
 
 ## Update
 
 Bump `version` in `package.json`, then reinstall / update from the same
 Folder/ZIP/URL source.
 
-## Layout
+## Status section (host-rendered)
 
-- Header (`ms-head`): `Auto-update router` label + SDK `mountTabs`
-  On / Off control (writes `.opencode/.modelselect-cache/routing-sync.json`
-  `{"sync": true|false}` via `writeFile` and mirrors the value to
-  `host.storage` `modelselect:sync`), with the hint below
-  (`routing.json refreshes every turn` / `router update paused`).
-- Status icons: themed SVG icons (Remixicon-outline shapes, `currentColor`,
-  host theme tokens) trailing the Tier value (Go auth: check ok / close
-  out / question unknown) and the Model value (alert while the plugin runs
-  in suggest-only trial mode). Native tooltips don't surface
-  in the sandboxed frame, so clicking an icon shows the explanation in a
-  host toast instead.
-- Key list (`ms-grid`): one row per field in Turn-stats style (muted
-  label left, right-aligned value) — Task, Agent (live session
-  snapshot), Tier, Model (`provider/id`, mono, truncated with `title`
-  tooltip), Think (task-type reasoning effort:
-  `default`/`minimal`/`low`/`medium`/`high`/`xhigh` from the status file,
-  shown capitalized), Jev, Source. Badges (`mountBadge`) carry `last known` +
-  dimming when the pick is older than ~10 min (non-auto sessions never
-  rewrite the status file, so stale = last applied pick), `unlisted task`
-  when the task is absent from the config cache, `free exhausted` while
-  the plugin's free-tier soft-error latch is fresh for the pick's model
-  (12h for spent quota, 1h for transient rate limiting), and `Auto` while
-  the session model is unset.
-- Usage bar (`ms-usage`): the Go monthly quota window from the plugin's
-  `usage-limits.json` snapshot (written Node-side from
-  `GET /api/experimental/usage/limits` with a Zen fallback) — width =
-  consumed percent, tone by limited/thresholds, click toasts the detail.
-  Global, hidden without usable data, sits above the free-tier rows.
-- Session-dependent fields: the pick grid + badges are shown only for
-  auto-ish sessions (empty/unset model = OpenChamber auto, or the virtual
-  `modelselect/auto-*` pick — the plugin routes only those). Any other model
-  is the user's hands-off choice, so its row shows only the live session
-  Model + Agent. The router-sync toggle gates only the `routing.json`
-  refresh, not the grid visibility.
-- Theme comes from the host (`applyHostReady`); layout CSS uses host
-  tokens with system fallbacks, matching other panels.
+The host asks the service for an answer and draws it itself; colours are
+theme tones, never CSS, and the answer must match
+`guestStatusViewSchema` or the whole section is refused. Rows, in order:
 
-States: `no-session` (nothing open), `plugin-missing` (no status file
-and no `modelselect` entry in the readable global configs — shows the
-managed-config fix hint), plus graceful `NOT_GRANTED` / `BAD_PATH`
-notes. All state rebuilds on mount: the frame only runs while Work
-Status is visible.
+- `Task` — status-file task type, `unlisted task` warning badge when it is
+  absent from `model-config-cache.json`;
+- `Tier` — the picked tier, with a status dot from the last Go probe
+  (success = OK, error = exhausted, muted = unknown) and the explanation in
+  its tooltip;
+- `Model` — `provider/id`; `suggest only` info badge (and tooltip) while
+  the plugin runs in trial mode;
+- `Think` — effective effort (`High`, `Low (manual, task High)`);
+- `Jev`, `Source`;
+- `Updated` — the pick's age (`just now`, `4m ago`), `last known` warning
+  badge past ~10 min, session id + timestamp in the tooltip;
+- `Go monthly` — a bar from the plugin's `usage-limits.json` snapshot
+  (width = consumed percent, tone by limited/thresholds, resets in the
+  tooltip); hidden without usable data;
+- one `note` per fresh free-tier latch (`Free tier exhausted — <model> —
+  retry in 2h 15m · <detail>`, `Rate limited` for the 1h window), the
+  countdown recomputed on every poll;
+- `Auto-update router` — a segmented On / Off control (see below), always
+  the last row so it survives the 16-row cap.
+
+Polling is the manifest's `source.interval` (2 s) and runs only while the
+section is shown and expanded; the host sizes the section to its rows, so
+there is no `setHeight`. The old per-session split (full pick grid only for
+auto/virtual sessions) is gone: with no session in the contract, whichever
+pick is newest is shown, and the router switch gates only the `routing.json`
+refresh.
+
+States: `no-project` (nothing open), `plugin-missing` (no status file and
+no `modelselect` entry in the readable global configs — shows the
+managed-config fix hint), `no-pick` (plugin installed, no routed turn yet).
 
 ## Routing sync
 
@@ -105,34 +105,18 @@ stored-deviations shape) are kept fresh from two places, both best-effort:
   follows the plugin's caches; the plugin routes the pick itself (only
   virtual `modelselect/auto-*` sessions) and never hands off to OpenChamber's
   routing.
-- This view, on every Work Status refresh (fallback while the panel is
-  open) — grant the `files` capability (the `routing.json` path is
-  declared in `package.json`, re-approve on update).
+- This service, while the Work Status section is visible — at most once
+  every 30 s, and immediately when the switch is turned back on. Without
+  the section being opened the plugin's per-turn sync is the only writer.
 
-## Session map (host detection)
+The switch row (`Auto-update router`, On / Off) writes
+`.opencode/.modelselect-cache/routing-sync.json`
+`{"sync": true|false}`; a missing/unreadable/non-boolean file means ON.
+The settings panel's Extension tab toggles the same file.
 
-This view is the **sole writer** of
-`.opencode/.modelselect-cache/openchamber-sessions.json`
-(`{version:1, sessions:{<sessionID>: lastSeenEpochMs}}`), the evidence
-file the plugin reads to detect OpenChamber hosting (see
-`plugin/README.md`, Host detection). Behavior:
-
-- the active session is touched on ready and on session updates,
-  throttled to at most one write per 60s per entry;
-- every write age-prunes entries older than 30 days (same window as the
-  plugin read — keep `SESSION_MAP_TTL_MS` in sync with
-  `plugin/src/shared/host.js`);
-- ready `onSessions` workspace snapshots (needs the `sessions`
-  capability) prune archived (`archivedAt` set) and deleted (absent)
-  sessions; when no subscription can be established, the age prune on
-  every write is the backstop;
-- all writes are serialized, fire-and-forget and never throw.
-
-The plugin only ever reads this file.
-
-The sync logic is one shared module (`plugin/src/shared/routing.js`);
-this bundle wraps it in a host-file adapter
-(`status/src/routing-sync.js`).
+The sync logic is the shared, dependency-free core (`core/routing.js` at
+the repo root); the service wraps it in a plain-fs adapter
+(`service/src/main.js`).
 
 - Source: plugin `task-types-cache.json` (`jev_criteria` + `agent`) plus
   `model-config-cache.json` (`go`/`free` per task type).
@@ -146,7 +130,7 @@ this bundle wraps it in a host-file adapter
   user's value is left alone. `variant` is never touched.
 - Stale entries (stored ids that are no task type) are disabled
   (`disabled: true`), never deleted. Writes happen only on diff; all
-  failures are silent so the view never breaks.
+  failures are silent so the section never breaks.
 - Free-tier latch (per model): while `.opencode/.modelselect-cache/free-quota.json`
   carries a fresh entry for a model (12h for spent quota or 1h for
   transient rate limiting, written by the plugin on a real free-side
@@ -154,7 +138,34 @@ this bundle wraps it in a host-file adapter
   side for that model's categories and `fallback`, whatever
   `autoPreference` says; every other category keeps its preference, and
   expiry hands the choice back. A legacy model-less entry still forces
-  every category. The view renders one countdown row per fresh entry.
+  every category. The section renders one countdown note per fresh entry.
+
+## Session map (host detection)
+
+The service is the **sole writer** of
+`.opencode/.modelselect-cache/openchamber-sessions.json`
+(`{version:1, sessions:{<sessionID>: lastSeenEpochMs}}`), the evidence
+file the plugin reads to detect OpenChamber hosting (see
+`plugin/README.md`, Host detection). Behavior:
+
+- every poll (throttled to one write per 60 s) stamps each session id it
+  finds in the project's `status-*.json` files, so a previously routed
+  session counts as evidence;
+- before the first routed turn there is no session id to stamp, so it uses
+  the synthetic key `openchamber` — the plugin's setup probe reads any
+  fresh entry, so a fresh project is still detected;
+- every write age-prunes entries older than 30 days (same window as the
+  plugin read — keep `SESSION_MAP_TTL_MS` in sync with
+  `plugin/src/shared/host.js`);
+- with no workspace subscription, archived/deleted sessions are cleaned up
+  by that 30-day prune instead of immediately (the `sessions` capability
+  is gone);
+- writes go through a temp file + rename and never throw.
+
+The plugin only ever reads this file. A session that has never routed has
+no entry, so the plugin's per-session `/modelselect` line can report
+`standalone` until its first turn even while project-level detection is
+already on.
 
 ## External config (`modelselect.json`) + model autoset
 
@@ -265,15 +276,18 @@ not load in the OpenChamber panel.
 
 ## Notes
 
-- This view never reads a token itself. `Go ok` / `Go out` / `unknown` and
-  the `jev=` reason come from the plugin's own resolution, which reads
+- The section never reads a token itself. `Go ok` / `Go out` / `unknown`
+  and the `jev=` reason come from the plugin's own resolution, which reads
   OpenCode's `auth.json` when the server has no `OPENCODE_API_KEY` in its
   environment (always the case here, since OpenChamber spawns its own
   server) — so `unknown` here usually means the plugin found no key at all.
   See `plugin/README.md` (Token resolution).
 - Task-type names come only from the plugin's
-  `model-config-cache.json` (relative read); no model lists are
-  hardcoded. Remote fallback for reference:
+  `model-config-cache.json` (no model lists are hardcoded). Remote
+  fallback for reference:
   `https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json`
-- Height: initial 120px, adjusted via `host.setHeight(px)` after every
-  render (clamped 24–320).
+- The service is loopback-only and every request must carry the host's
+  `Authorization: Bearer $OPENCHAMBER_SERVICE_TOKEN`; it binds
+  `127.0.0.1:$OPENCHAMBER_SERVICE_PORT` and copies no host secrets from
+  its environment.
+- No height management: the host sizes the section to its rows (16 max).

@@ -14,8 +14,9 @@
  * Consumers (both inject an IO adapter, no built-ins required here):
  * - plugin (src/v2.js): `shared/routing-io.js` — plain fs, `~` resolved
  *   against the user home; sync runs per turn before the routing gate.
- * - Work Status bundle (openchamber-modelselect/status/src/routing-sync.js)
- *   — host `readFile`/`writeFile` adapter, sync runs on every refresh.
+ * - Work Status service (openchamber-modelselect/service/src/main.js)
+ *   — plain-fs adapter, sync runs at most every 30 s while the section is
+ *   visible (and immediately when the router switch turns back on).
  *
  * Global modelselect config (solution 3: external file, user-editable):
  * - `~/.config/openchamber/modelselect.json` =

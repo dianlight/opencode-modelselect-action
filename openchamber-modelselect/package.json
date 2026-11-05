@@ -1,21 +1,21 @@
 {
   "name": "openchamber-modelselect",
-  "version": "0.6.0",
-  "description": "Work Status section surfacing the modelselect plugin's per-session pick (shown for auto/virtual sessions) plus the auto-update-router on/off switch, and a settings panel for the plugin options and the extension config.",
+  "version": "0.7.0",
+  "description": "Host-rendered Work Status section (contributes.statusSection.source) surfacing the modelselect plugin's project pick plus the auto-update-router switch, and a settings panel for the plugin options and the extension config.",
   "license": "MIT",
   "type": "module",
   "dependencies": {
     "@openchamber/sdk": "2.6.1"
   },
   "scripts": {
-    "build": "openchamber-guest-bundle status/src/main.js status/main.js && openchamber-guest-bundle panel/src/main.js panel/main.js",
-    "check": "node --check status/main.js && node --check panel/main.js",
+    "build": "openchamber-guest-bundle --node service/src/main.js service/main.js && openchamber-guest-bundle panel/src/main.js panel/main.js",
+    "check": "node --check service/main.js && node --check panel/main.js",
     "test": "node --test test/"
   },
   "openchamber": {
     "apiVersion": 1,
     "engines": {
-      "openchamber": ">=2.0.0"
+      "openchamber": ">=2.6.1"
     },
     "contributes": {
       "panel": {
@@ -25,13 +25,18 @@
         "entry": "panel/index.html"
       },
       "statusSection": {
-        "entry": "status/index.html",
-        "title": "Model select",
-        "height": 120
+        "source": {
+          "path": "/status",
+          "interval": 2000
+        },
+        "title": "Model select"
+      },
+      "service": {
+        "entry": "service/main.js",
+        "runtime": "host"
       },
       "capabilities": [
-        "files",
-        "sessions"
+        "files"
       ],
       "filesystem": [
         "~/.config/opencode/opencode.json",

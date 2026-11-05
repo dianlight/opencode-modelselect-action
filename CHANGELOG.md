@@ -1,4 +1,19 @@
 ## [Unreleased]
+### Changed
+- OpenChamber Work Status section is host-rendered: the extension now
+  declares `contributes.statusSection.source` (`/status`, 2 s poll) plus a
+  local service (`contributes.service`), so OpenChamber draws the rows,
+  bars and the router-sync control itself instead of mounting the status
+  iframe (OpenChamber >= 2.6.1; `status/`, its bundle and the frame test
+  are gone, extension 0.7.0). The source contract carries only
+  `directory`/`locale`, so the section is project-scoped: it shows the
+  newest pick in the project, not the live session's model/agent. The
+  service keeps the routing sync (throttled to 30 s while visible), the Go
+  usage bar and free-tier countdowns, and writes the host-detection session
+  map (one entry per routed session, a synthetic `openchamber` key before
+  the first turn); the `sessions` capability is dropped and the panel
+  bundle is rebuilt against SDK 2.6.1.
+
 ### Fixed
 - Go endpoint paths: Go models sharing a bare id with Zen (notably
   `gemini-4-argon`) resolved to the Zen path because the docs merge let

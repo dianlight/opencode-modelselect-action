@@ -92,10 +92,15 @@ When updating `CHANGELOG.md`:
 - **Always run `mise run lint-python` after editing any Python file** — the CI checks Python with ruff
 - After changing anything under `core/`, run `mise run build-core` and commit the regenerated `github-action/src/shared/core/` and `plugin/src/shared/core/` copies — CI and `plugin/test/core-vendor.test.js` fail on drift (`mise run build-core-check`)
 - Verify with `node --check github-action/src/index.js` after changing the action (run from `github-action/` as `node --check src/index.js`); `npm test` at the root delegates to `github-action/test/`
-- After changing `openchamber-modelselect/status/src/main.js`, rebuild the
-  bundle (`bun run build` in `openchamber-modelselect/`), verify with
-  `bun run check`, run the frame tests (`bun run test`), and commit the
-  rebuilt `status/main.js` alongside the source
+- After changing `openchamber-modelselect/service/src/*.js` or
+  `openchamber-modelselect/panel/src/*.js`, rebuild the bundles
+  (`bun install && bun run build` in `openchamber-modelselect/`), verify with
+  `bun run check`, run `bun run test` (view schema, live service, manifest,
+  panel frame), and commit the rebuilt `service/main.js` / `panel/main.js`
+  alongside the source. The status section is host-rendered
+  (`contributes.statusSection.source`, OpenChamber >= 2.6.1): there is no
+  status iframe/bundle anymore, and every view row must pass
+  `guestStatusViewSchema` or the host blanks the whole section.
 
 ## Renovate
 

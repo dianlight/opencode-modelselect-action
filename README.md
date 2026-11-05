@@ -31,10 +31,13 @@ propagate with no sync and no edits.
   OpenCode v2 only. See the component README for install (v2/OpenChamber),
   options, host detection, the `modelselect/auto-*` virtual models, the
   `/modelselect` command, token resolution and trial runs.
-- **OpenChamber Status View** shows the plugin's per-session pick plus the
-  global on/off/auto mode switch in the Work Status panel, and records
-  session activity into the host-detection session map the plugin reads.
-  See the component README for install, build and test.
+- **OpenChamber Status View** is a host-rendered Work Status section
+  (`contributes.statusSection.source`, OpenChamber >= 2.6.1): the host draws
+  the plugin's newest project pick plus the auto-update-router switch, fed by
+  a small local service, and records session activity into the
+  host-detection session map the plugin reads. A settings panel covers the
+  plugin and extension options. See the component README for install, build
+  and test.
 
 ## Quick start
 
