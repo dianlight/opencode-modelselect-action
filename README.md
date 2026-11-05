@@ -71,7 +71,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-11-05 03:57 UTC**.
+> Last updated: **2026-11-05 14:46 UTC**.
 > LiveBench data: **347 models scored** (32 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-10-25**.
 > v2 Source: https://livebench.ai/data/20261025/table.csv
