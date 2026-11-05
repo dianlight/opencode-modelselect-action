@@ -893,6 +893,54 @@ function formatCountdown(ms) {
     return m + "m " + sec + "s";
   return sec + "s";
 }
+function budgetValue(m) {
+  const spent = typeof m.spent === "number" && Number.isFinite(m.spent) ? "$" + (Math.round(m.spent * 100) / 100).toFixed(2) : "—";
+  const limit = typeof m.limit === "number" && Number.isFinite(m.limit) && m.limit > 0 ? "$" + (Math.round(m.limit * 100) / 100).toFixed(2) : "no cap";
+  return spent + " / " + limit;
+}
+function budgetTone(pct) {
+  if (pct === null)
+    return "muted";
+  if (pct >= 100)
+    return "error";
+  if (pct >= 70)
+    return "warning";
+  return "success";
+}
+function budgetRow(b, m, now) {
+  const name = m.name || m.modelID || m.providerID || "model";
+  const rowLabel = (b.id ? b.id + " — " : "") + name;
+  const pct = m.percent !== null ? Math.max(0, Math.min(100, Math.round(m.percent))) : null;
+  const resets = typeof m.resetsAt === "number" && m.resetsAt > 0 ? " — resets in " + formatCountdown(m.resetsAt - now) : "";
+  const tooltip = cut(rowLabel + ": " + budgetValue(m) + resets, TEXT_MAX);
+  const row = {
+    id: "budget-" + idOf(b.id || "budget") + "-" + idOf(name),
+    label: label(rowLabel),
+    value: value(budgetValue(m)),
+    valueTone: budgetTone(pct),
+    tooltip
+  };
+  if (pct !== null) {
+    row.content = { kind: "bar", value: pct, tone: budgetTone(pct) };
+  }
+  return row;
+}
+function budgetRows(usage, rows, now) {
+  try {
+    const budgets = usage && usage.budgets;
+    if (!Array.isArray(budgets))
+      return;
+    for (const b of budgets) {
+      if (!b || typeof b !== "object" || !Array.isArray(b.models))
+        continue;
+      for (const m of b.models) {
+        if (rows.length >= ROWS_MAX - 1)
+          return;
+        rows.push(line(budgetRow(b, m, now)));
+      }
+    }
+  } catch (e) {}
+}
 function goHint(goOk) {
   if (goOk === true)
     return "Go auth OK — quota available";
@@ -1020,6 +1068,7 @@ function buildView(snap) {
       tooltip: usageDetail(u, now)
     }));
   }
+  budgetRows(snap.usage, rows, now);
   const fresh = latchEntries(snap.freeQuota).filter((entry) => freeQuotaFresh(entry, now));
   fresh.forEach((entry, index) => {
     if (rows.length >= ROWS_MAX - 1)
@@ -1056,6 +1105,40 @@ var HOST_EVIDENCE_KEY = "openchamber";
 var ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
 var GLOBAL_PROBE_MS = 30 * 1000;
 var BODY_MAX = 16 * 1024;
+var RELOAD_PATH = "/api/location/reload";
+var DEFAULT_PORT = 4096;
+function reloadPorts(env = process.env) {
+  const out = [];
+  const push = (v) => {
+    const n = Number(String(v ?? "").trim());
+    if (Number.isInteger(n) && n > 0 && n <= 65535 && !out.includes(n))
+      out.push(n);
+  };
+  try {
+    push(env.OPENCODE_PORT);
+    push(env.OPENCODE_SERVER_PORT);
+    push(env.PORT);
+  } catch {}
+  push(DEFAULT_PORT);
+  return out;
+}
+async function postJson(url, body, { timeoutMs = 5000 } = {}) {
+  const ctrl = new AbortController;
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      signal: ctrl.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    });
+    return { ok: res.ok, status: res.status };
+  } catch (e) {
+    return { ok: false, status: 0, error: String(e && e.message || e) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
 var GLOBAL_CONFIG_PATHS = [
   "~/.config/openchamber/opencode.managed.json",
   "~/.config/opencode/opencode.json",
@@ -1296,10 +1379,116 @@ async function handleAction(directory, body) {
     }
     return { status: 200, body: { ok: true } };
   }
+  if (event.id === "config-reload") {
+    if (!directory) {
+      return { status: 400, body: { message: "No project is open." } };
+    }
+    let tried = [];
+    let last = null;
+    for (const port of reloadPorts()) {
+      tried.push(port);
+      const result = await postJson("http://127.0.0.1:" + port + RELOAD_PATH, null);
+      last = result;
+      if (result.ok) {
+        return { status: 200, body: { ok: true, port, tried } };
+      }
+    }
+    return {
+      status: 502,
+      body: { message: "OpenCode config reload failed on " + tried.join(", ") + ": " + String(last && last.error || last.status) }
+    };
+  }
   return {
     status: 400,
     body: { message: "Unknown control '" + event.id.slice(0, 40) + "'." }
   };
+}
+async function handleQuota(bodyText) {
+  let request;
+  try {
+    request = JSON.parse(bodyText || "{}");
+  } catch (e) {
+    return { ok: false, error: { message: "The quota request is not JSON." } };
+  }
+  if (!request || typeof request !== "object" || request.method !== "usage.read") {
+    return { ok: false, error: { message: "Unexpected quota request." } };
+  }
+  const usage = await readUsageLimitsFile();
+  if (!usage || typeof usage !== "object") {
+    return {
+      ok: true,
+      data: {
+        ok: true,
+        configured: false,
+        error: "No usage snapshot yet — open a project and let the plugin write one.",
+        usage: null
+      }
+    };
+  }
+  const windows = {};
+  const go = usage.go && typeof usage.go === "object" ? usage.go : null;
+  if (go) {
+    ["rolling", "weekly", "monthly"].forEach(function(k) {
+      const w = go[k];
+      if (w && typeof w.percent === "number" && Number.isFinite(w.percent)) {
+        windows[k] = {
+          usedPercent: Math.max(0, Math.min(100, w.percent)),
+          resetAt: typeof w.resetsAt === "number" && w.resetsAt > 0 ? w.resetsAt : null
+        };
+      }
+    });
+  }
+  const models = {};
+  const budgets = Array.isArray(usage.budgets) ? usage.budgets : [];
+  budgets.forEach(function(b) {
+    if (!b || typeof b !== "object" || !Array.isArray(b.models))
+      return;
+    b.models.forEach(function(m) {
+      if (!m || typeof m !== "object")
+        return;
+      const key = (m.providerID ? m.providerID + "/" : "") + (m.modelID || m.name || "");
+      if (!key)
+        return;
+      const mw = {};
+      if (typeof m.percent === "number" && Number.isFinite(m.percent)) {
+        mw.monthly = {
+          usedPercent: Math.max(0, Math.min(100, m.percent)),
+          resetAt: typeof m.resetsAt === "number" && m.resetsAt > 0 ? m.resetsAt : null
+        };
+      }
+      models[key] = { windows: mw };
+    });
+  });
+  let anyWindow = false;
+  Object.values(windows).forEach(function(w) {
+    if (w)
+      anyWindow = true;
+  });
+  Object.values(models).forEach(function(mw) {
+    Object.values(mw.windows || {}).forEach(function() {
+      anyWindow = true;
+    });
+  });
+  return {
+    ok: true,
+    data: {
+      ok: true,
+      configured: anyWindow,
+      error: anyWindow ? null : "Usage snapshot has no readable windows yet.",
+      planLabel: "OpenCode Go / Console",
+      usage: {
+        windows: Object.keys(windows).length ? windows : null,
+        models: Object.keys(models).length ? models : null
+      }
+    }
+  };
+}
+async function readUsageLimitsFile() {
+  try {
+    return parseJsonLenient(await fsp.readFile(path.join(process.cwd(), CACHE_REL, USAGE_LIMITS_FILE), "utf8"));
+  } catch {
+    return null;
+  }
 }
 async function handle(req, res) {
   if (!authorized(req)) {
@@ -1318,6 +1507,10 @@ async function handle(req, res) {
   if (url.pathname === "/status" && req.method === "POST") {
     const answer = await handleAction(projectDirectory(url), await readBody(req));
     send(res, answer.status, answer.body);
+    return;
+  }
+  if (url.pathname === "/quota" && req.method === "POST") {
+    send(res, 200, await handleQuota(await readBody(req)));
     return;
   }
   send(res, 404, { message: "Not found." });

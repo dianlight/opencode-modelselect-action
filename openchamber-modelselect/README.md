@@ -78,6 +78,9 @@ theme tones, never CSS, and the answer must match
 - `Go monthly` — a bar from the plugin's `usage-limits.json` snapshot
   (width = consumed percent, tone by limited/thresholds, resets in the
   tooltip); hidden without usable data;
+- one line per model under each Console budget (`<budget> — <model>`:
+  `$spent / $limit`, progress bar tone by consumed percent, reset in the
+  tooltip); hidden when the snapshot has no budget model data;
 - one `note` per fresh free-tier latch (`Free tier exhausted — <model> —
   retry in 2h 15m · <detail>`, `Rate limited` for the 1h window), the
   countdown recomputed on every poll;
@@ -191,6 +194,24 @@ virtual `modelselect/auto-*` models are the routing switch now):
   preference and active free-tier latch window as the categories, write
   only on diff, and never touch `variant`.
 
+## Usage provider (quota) — OpenChamber >= 2.6.2 canary
+
+The service declares `provides: ["quota"]` with an empty `providers` list
+(the extension's own key lives in its settings, none needed). OpenChamber
+names it `ext-model-select` and lists it on the Usage page alongside the
+built-in providers. The service answers `POST /quota` (`usage.read`) by
+reading the plugin's `usage-limits.json` snapshot and translating it into
+`QuotaProviderUsageData`:
+
+- `windows` — Go rolling / weekly / monthly meters (`usedPercent`, `resetAt`)
+- `models` — per-model Console budget windows (`providerID/modelID` →
+  `usedPercent`, `resetAt` from `budgets[].models[]`)
+
+Returns `configured: false` when no usage snapshot exists yet (open a
+project and let the plugin write one). This requires OpenChamber >= 2.6.2
+(canary), hence `engines.openchamber: ">=2.6.2"`; on 2.6.1 stable the
+extension cannot install with the quota role.
+
 ## Settings panel
 
 The `Model select` rail icon (`panel/index.html` → `panel/main.js`) opens
@@ -216,12 +237,10 @@ what is already declared in `package.json`):
   "Add to managed config" button that disappears once the entry exists
   (re-clicking cannot duplicate it). An unparseable config shows an error
   banner and no form — nothing is ever written over it. After a
-  successful save, a "restart required" warning banner asks to quit and
-  reopen OpenChamber so its server reloads the plugin options (no
-  programmatic reload exists: the SDK exposes no server/config reload
-  call, and a raw file write bypasses the Settings-save path that
-  restarts the managed server — so this is a manual-reopen notice, not
-  a confirm-then-reload flow).
+  successful save the panel asks the local service to reload OpenCode's
+  configuration (`POST /api/location/reload`, OpenCode >= 2.2.1) so the
+  new options apply without restarting OpenChamber; if the reload endpoint
+  is unavailable the familiar "restart required" notice is shown instead.
 - **Extension tab** — the router-sync switch (project
   `.opencode/.modelselect-cache/routing-sync.json`, same file the status
   section toggles) plus `~/.config/openchamber/modelselect.json`

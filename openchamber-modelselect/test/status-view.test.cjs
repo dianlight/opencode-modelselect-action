@@ -162,6 +162,65 @@ describe('status view', () => {
     assert.equal(rowsById(view).usage, undefined);
   });
 
+  it('draws one row per model under each Console budget with spent/limit bar', () => {
+    const view = validate(buildView(snapshot({
+      usage: {
+        go: { monthly: { percent: 42, limited: false, resetsAt: NOW + 3600 * 1000 } },
+        budgets: [
+          {
+            id: 'prod-monthly',
+            percent: 55,
+            limited: false,
+            resetsAt: NOW + 7200 * 1000,
+            models: [
+              { name: 'gpt-5', providerID: 'openai', modelID: 'gpt-5', spent: 12.34, limit: 50, percent: 24.68, resetsAt: NOW + 7200 * 1000 },
+              { name: 'claude-4-opus', providerID: 'anthropic', modelID: 'claude-4-opus', spent: 8.90, limit: 100, percent: 8.9, resetsAt: NOW + 7200 * 1000 }
+            ]
+          },
+          {
+            id: 'research',
+            percent: null,
+            limited: false,
+            resetsAt: null,
+            models: [
+              { name: 'deep-research', providerID: 'openai', modelID: 'deep-research', spent: null, limit: null, percent: null, resetsAt: null }
+            ]
+          }
+        ]
+      }
+    })));
+    const rows = rowsById(view);
+    const gpt = rows['budget-r-prod-monthly-r-gpt-5'];
+    assert.ok(gpt, 'gpt-5 budget row present');
+    assert.equal(gpt.label, 'prod-monthly — gpt-5');
+    assert.equal(gpt.value, '$12.34 / $50.00');
+    assert.equal(gpt.content.kind, 'bar');
+    assert.equal(gpt.content.value, 25);
+    assert.equal(gpt.content.tone, 'success');
+    const deep = rows['budget-r-research-r-deep-research'];
+    assert.ok(deep, 'no-cap budget row present');
+    assert.equal(deep.value, '— / no cap');
+    assert.equal(deep.content, undefined, 'no percent -> no bar');
+    assert.equal(deep.valueTone, 'muted');
+    assert.match(gpt.tooltip, /resets in 2h 0m/);
+  });
+
+  it('budget rows never push out the router switch or exceed 16 rows', () => {
+    const models = {};
+    for (let i = 0; i < 30; i++) {
+      models['model-' + i] = { name: 'model-' + i, spent: i, limit: 100, percent: i * 3, resetsAt: NOW + 3600 * 1000 };
+    }
+    const view = validate(buildView(snapshot({
+      usage: { go: { monthly: { percent: 10, limited: false } }, budgets: [{ id: 'b', models }] },
+      freeQuota: null
+    })));
+    const rows = view.rows;
+    assert.ok(rows.length <= 16);
+    assert.ok(rows.some((r) => r.id === 'router'), 'router always last');
+    const router = rows[rows.length - 1];
+    assert.equal(router.id, 'router');
+  });
+
   it('lists fresh free-tier latches with a live countdown and drops expired ones', () => {
     const view = validate(buildView(snapshot({
       freeQuota: {

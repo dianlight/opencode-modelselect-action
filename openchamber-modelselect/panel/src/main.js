@@ -183,6 +183,33 @@ function writeJson(path, value) {
   });
 }
 
+// Ask the extension's local service to reload OpenCode's configuration
+// (POST /api/location/reload on the bundled OpenCode server) so plugin
+// options applied to the managed config take effect without restart.
+// Returns { ok, port?, tried? } on success, or rejects with a message.
+function postConfigReload() {
+  if (!panelDirectory) {
+    return Promise.reject(new Error('No project directory known to the panel.'));
+  }
+  return toPromise(function () {
+    return host.serviceRequest({
+      method: 'POST',
+      path: '/status?directory=' + encodeURIComponent(panelDirectory),
+      body: JSON.stringify({ id: 'config-reload' })
+    });
+  }).then(function (result) {
+    if (!result || result.status !== 200) {
+      throw new Error('Reload returned status ' + String((result && result.status) || 'unknown') +
+        ': ' + String((result && result.body && result.body.message) || ''));
+    }
+    var parsed;
+    try { parsed = JSON.parse(result.body || '{}'); } catch { parsed = {}; }
+    return { ok: true, port: parsed.port, tried: parsed.tried };
+  }, function (err) {
+    throw new Error(capErrorNote(err) || String((err && err.message) || err));
+  });
+}
+
 function shallowCopy(obj) {
   var out = {};
   if (obj && typeof obj === 'object') {
@@ -501,6 +528,7 @@ function loadGlobalNote() {
 
 var pluginState = null;
 var extState = null;
+var panelDirectory = null; // Work Status project dir, from host ready ctx
 
 function typeOptions(types, withAuto) {
   var opts = [];
@@ -689,16 +717,20 @@ function savePlugin() {
       st.snap = snapshotPluginFields(st.fields);
       refreshPluginSave();
     }
-    // No programmatic reload exists: the SDK exposes no server/config
-    // reload call, and a raw file write bypasses the Settings-save path
-    // that restarts OpenChamber's managed server — so this stays a
-    // manual-reopen notice, not a confirm-then-reload flow.
-    setBanner(st.banner, 'warning', 'Plugin options saved — restart required',
-      'Quit and reopen OpenChamber so its server reloads the plugin options. ' +
-      'Extensions cannot trigger the reload themselves.');
+    // Ask the local service to reload OpenCode's configuration so the
+    // plugin options apply without restarting OpenChamber. Falls back to
+    // the restart notice when the service is unavailable or OpenCode is
+    // older than 2.2.1 (no /api/location/reload).
+    return postConfigReload();
+  }).then(function (result) {
+    setBanner(st.banner, 'success', 'Plugin options saved — applied',
+      'The OpenCode configuration was reloaded; the new options are live.' +
+      (result && result.port ? ' Reloaded via OpenCode on port ' + result.port + '.' : ''));
     fitHeight();
   }, function (err) {
-    setBanner(st.banner, 'error', 'Save failed', capErrorNote(err));
+    setBanner(st.banner, 'warning', 'Plugin options saved — restart required',
+      'Quit and reopen OpenChamber so its server reloads the plugin options. ' +
+      'Reload via the local service was not available: ' + capErrorNote(err) + '.');
     fitHeight();
   });
 }
@@ -1575,6 +1607,7 @@ function mount() {
         if (ctx && ctx.theme && ctx.theme.tokens) {
           applyHostReady(ctx, document.documentElement);
         }
+        if (ctx && typeof ctx.directory === 'string') panelDirectory = ctx.directory;
       } catch (e) { /* theme is best-effort */ }
       if (!shellReady) run(sessionIDOf(ctx && ctx.session));
       else fitHeight();

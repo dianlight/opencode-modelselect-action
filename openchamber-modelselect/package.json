@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "dependencies": {
-    "@openchamber/sdk": "2.6.1"
+    "@openchamber/sdk": "2.6.2-canary.20261105.7"
   },
   "scripts": {
     "build": "openchamber-guest-bundle --node service/src/main.js service/main.js && openchamber-guest-bundle panel/src/main.js panel/main.js",
@@ -15,7 +15,7 @@
   "openchamber": {
     "apiVersion": 1,
     "engines": {
-      "openchamber": ">=2.6.1"
+      "openchamber": ">=2.6.2"
     },
     "contributes": {
       "panel": {
@@ -33,7 +33,11 @@
       },
       "service": {
         "entry": "service/main.js",
-        "runtime": "host"
+        "runtime": "host",
+        "provides": ["quota"]
+      },
+      "quota": {
+        "providers": []
       },
       "capabilities": [
         "files"

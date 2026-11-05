@@ -115,6 +115,61 @@ export function formatCountdown(ms) {
   return sec + 's';
 }
 
+/** "$12.34 / $50.00" or "$12.34 / no cap" for a model's budget window. */
+function budgetValue(m) {
+  const spent = typeof m.spent === 'number' && Number.isFinite(m.spent)
+    ? '$' + (Math.round(m.spent * 100) / 100).toFixed(2)
+    : '—';
+  const limit = typeof m.limit === 'number' && Number.isFinite(m.limit) && m.limit > 0
+    ? '$' + (Math.round(m.limit * 100) / 100).toFixed(2)
+    : 'no cap';
+  return spent + ' / ' + limit;
+}
+
+/** Budget-row tone: error at/over limit, warning at/above 70%, else success. */
+function budgetTone(pct) {
+  if (pct === null) return 'muted';
+  if (pct >= 100) return 'error';
+  if (pct >= 70) return 'warning';
+  return 'success';
+}
+
+/** One per-model budget row: label, value, bar, tooltip. */
+function budgetRow(b, m, now) {
+  const name = m.name || m.modelID || m.providerID || 'model';
+  const rowLabel = (b.id ? b.id + ' — ' : '') + name;
+  const pct = m.percent !== null ? Math.max(0, Math.min(100, Math.round(m.percent))) : null;
+  const resets = typeof m.resetsAt === 'number' && m.resetsAt > 0
+    ? ' — resets in ' + formatCountdown(m.resetsAt - now) : '';
+  const tooltip = cut(rowLabel + ': ' + budgetValue(m) + resets, TEXT_MAX);
+  const row = {
+    id: 'budget-' + idOf(b.id || 'budget') + '-' + idOf(name),
+    label: label(rowLabel),
+    value: value(budgetValue(m)),
+    valueTone: budgetTone(pct),
+    tooltip: tooltip
+  };
+  if (pct !== null) {
+    row.content = { kind: 'bar', value: pct, tone: budgetTone(pct) };
+  }
+  return row;
+}
+
+/** One line per model under each Console budget: spent/limit + progress bar. */
+function budgetRows(usage, rows, now) {
+  try {
+    const budgets = usage && usage.budgets;
+    if (!Array.isArray(budgets)) return;
+    for (const b of budgets) {
+      if (!b || typeof b !== 'object' || !Array.isArray(b.models)) continue;
+      for (const m of b.models) {
+        if (rows.length >= ROWS_MAX - 1) return;
+        rows.push(line(budgetRow(b, m, now)));
+      }
+    }
+  } catch (e) { /* never break the view */ }
+}
+
 /** Go tier explanation for the dot's tooltip (the iframe's icon toasts). */
 function goHint(goOk) {
   if (goOk === true) return 'Go auth OK — quota available';
@@ -253,6 +308,9 @@ export function buildView(snap) {
     }));
   }
 
+  // Per-model Console budget windows: spent / limit + progress bar.
+  budgetRows(snap.usage, rows, now);
+
   // One note per fresh latch: quota spent or rate limited, with the live
   // countdown recomputed on every poll (the service is the clock now).
   const fresh = latchEntries(snap.freeQuota).filter((entry) => freeQuotaFresh(entry, now));
@@ -284,4 +342,4 @@ export function buildView(snap) {
   return { rows: rows.slice(0, ROWS_MAX) };
 }
 
-export { FIX_TEXT, STALE_MS, ROWS_MAX };
+export { FIX_TEXT, STALE_MS, ROWS_MAX, budgetRows };

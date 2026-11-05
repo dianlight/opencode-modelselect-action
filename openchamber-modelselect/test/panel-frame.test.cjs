@@ -234,6 +234,8 @@ function loadFrame({ files }) {
       } else if (m.type === 'resize' || m.type === 'storage' || m.type === 'toast' ||
                  m.type === 'workspace-subscribe' || m.type === 'workspace-unsubscribe') {
         ok(m.id, {});
+      } else if (m.type === 'service-request') {
+        err(m.id, 'NO_SERVICE'); // no local service in the fake frame -> reload fallback
       }
     }
   };

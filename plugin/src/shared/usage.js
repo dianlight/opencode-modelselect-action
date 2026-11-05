@@ -137,11 +137,33 @@ function normalizeLimitsPayload(data, now = Date.now()) {
         Number.isFinite(limit) && limit > 0 && Number.isFinite(spent)
           ? Math.max(0, Math.min(100, (spent / limit) * 100))
           : numPct(b.percent);
+      const models = Array.isArray(b.models) ? b.models : [];
+      const modelRows = [];
+      for (const m of models) {
+        if (!m || typeof m !== 'object') continue;
+        const mLimit = Number(m.limit);
+        const mSpent = Number(m.spent);
+        const mpct =
+          Number.isFinite(mLimit) && mLimit > 0 && Number.isFinite(mSpent)
+            ? Math.max(0, Math.min(100, (mSpent / mLimit) * 100))
+            : null;
+        modelRows.push({
+          name: typeof m.name === 'string' ? m.name : '',
+          providerID: typeof m.providerID === 'string' ? m.providerID : '',
+          modelID: typeof m.modelID === 'string' ? m.modelID : '',
+          spent: Number.isFinite(mSpent) ? mSpent : null,
+          limit: Number.isFinite(mLimit) && mLimit > 0 ? mLimit : null,
+          percent: mpct,
+          resetsAt: numTime(m.resetsAt ?? m.resetAt),
+        });
+        if (mpct !== null) any = true;
+      }
       out.budgets.push({
         id: typeof b.id === 'string' ? b.id : '',
         percent: pct,
         limited: pct !== null && pct >= 100,
         resetsAt: numTime(b.resetsAt ?? b.resetAt),
+        models: modelRows.length ? modelRows : null,
       });
       if (pct !== null) any = true;
     }

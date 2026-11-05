@@ -31,7 +31,9 @@ describe('extension manifest', () => {
     assert.equal(contributes.statusSection.title, 'Model select');
     assert.equal(contributes.service.entry, 'service/main.js');
     assert.equal(contributes.service.runtime, 'host');
-    assert.equal(pkg.openchamber.engines.openchamber, '>=2.6.1');
+    assert.deepEqual(contributes.service.provides, ['quota'], 'quota provider role');
+    assert.deepEqual(contributes.quota, { providers: [] });
+    assert.equal(pkg.openchamber.engines.openchamber, '>=2.6.2', 'quota needs OpenChamber 2.6.2+ (canary)');
   });
 
   it('ships both entries it names', () => {
