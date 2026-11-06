@@ -5,12 +5,12 @@
     "": {
       "name": "openchamber-modelselect",
       "dependencies": {
-        "@openchamber/sdk": "2.6.2-canary.20261105.7",
+        "@openchamber/sdk": "2.6.2-canary.20261106.9",
       },
     },
   },
   "packages": {
-    "@openchamber/sdk": ["@openchamber/sdk@2.6.2-canary.20261105.7", "", { "dependencies": { "zod": "^4.3.6" }, "bin": { "openchamber-guest-bundle": "scripts/bundle-guest.ts" } }, "sha512-PDAP+rQC8xZLwgn052MpdtsR4Tigy/zoBlKtZsMnxxgzSnwejp7HeV8UZxagF+emi989dpGJE5UUpVe+fIMghQ=="],
+    "@openchamber/sdk": ["@openchamber/sdk@2.6.2-canary.20261106.9", "", { "dependencies": { "zod": "^4.3.6" }, "bin": { "openchamber-guest-check": "scripts/check-guest.ts", "openchamber-guest-bundle": "scripts/bundle-guest.ts" } }, "sha512-yEl60Olm7gJs+rsOxWKri3/FjxB3j0bNqQfF2aMdwD4xuGCk1iq07JWsuui7t8PjUjk+bfeFICX6GaA9jPoUbA=="],
 
     "zod": ["zod@4.6.5", "", {}, "sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q=="],
   }
