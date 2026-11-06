@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-11-05T15:08:34.101191+00:00",
+  "timestamp": "2026-11-06T03:55:50.893739+00:00",
   "livebench_snapshot": "2026-10-25",
   "livebench_source": "https://livebench.ai/data/20261025/table.csv",
   "livebench_v1_snapshot": "2026_06_25",
   "zen_models_count": 80,
-  "go_models_count": 29,
+  "go_models_count": 30,
   "cost_blend": {
     "input_weight": 0.75,
     "output_weight": 0.25

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-05T03:57:41.300395+00:00",
+  "timestamp": "2026-11-06T03:55:52.614224+00:00",
   "livebench_snapshot": "2026-10-25",
   "task-types": {
     "plan": {
@@ -6315,7 +6315,7 @@
     "deepseek-v4.1-flash-free": "chat",
     "glm-5.3-flash-free": "chat",
     "pulse-alpha-free": "chat",
-    "crouton-alpha-free": "chat",
+    "crouton-alpha-free": "responses",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.2": "chat",
@@ -6384,6 +6384,7 @@
     "opencode-go/kimi-k3.1-pro": "/inference/go/openai/v1",
     "opencode-go/iceman-contributor-free": "/inference/go/openai/v1",
     "opencode-go/gemini-4-argon": "/inference/go/openai/v1",
-    "opencode-go/hy4": "/inference/go/openai/v1"
+    "opencode-go/hy4": "/inference/go/openai/v1",
+    "opencode-go/crouton-alpha-free": "/inference/openai/v1"
   }
 }
