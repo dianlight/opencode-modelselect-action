@@ -191,3 +191,15 @@ model_scores:
     overall: 62.9             # BenchLM overall 62.88 (#47/993)
     reasoning: 86.0           # GPQA-D 91.7, AA-LCR 79.7, HLE 35.9 (HF card + AA, dual-corroborated)
     vision: 60.0              # multimodal text+image (Qwen); MMMU-Pro 79.8, MathVision 90.6, CharXiv 90.6, AA-MMMU-Pro 79.8 (dual-corroborated)
+  crouton-alpha-free:
+    coding: 70.0             # unverified single source: SMF Cold Iron coding 30/30 + DeepSeek-V4.1-Flash lineage estimate; no LiveBench/AA/BenchLM row
+    instruction_following: 78.0  # unverified single source: SMF Cold Iron instruction 29/30; community reports mid-response stops
+    overall: 60.0             # unverified single source: StealthMark overall 48.0 + Cold Iron strict_v01 140/157; estimate
+    reasoning: 76.0           # unverified single source: SMF Cold Iron reasoning 29/30 + GPQA 6/6 sample; estimate
+    vision: 50.0              # multimodal text+image+audio+video+pdf (OpenCode Zen); StealthMark visual 56.0; multimodal baseline, not copied from v2 design
+  pulse-alpha-free:
+    coding: 45.0             # unverified single source: adam.holter community tests mixed (some SVG pass, some fail); estimate
+    instruction_following: 45.0  # unverified single source: community reports weaker strict IF; estimate
+    overall: 42.0             # unverified single source: community reports slower/weaker than crouton; estimate
+    reasoning: 55.0           # unverified single source: community reports deeper reasoning; estimate
+    vision: 42.0              # multimodal text+image (OpenCode Zen); multimodal baseline, not copied from v2 design
