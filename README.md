@@ -71,7 +71,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-11-06 03:55 UTC**.
+> Last updated: **2026-11-07 03:29 UTC**.
 > LiveBench data: **347 models scored** (32 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-10-25**.
 > v2 Source: https://livebench.ai/data/20261025/table.csv
@@ -128,6 +128,8 @@ automatically at their next run.
 | `hy4` | Go (Paid) | 📋 Fallback | Plan, Review | 79.2 | 68.9 | 85.0 | 84.0 | 78.0 | $0.834 | $2.501 | $1.2508 | 63.3 |
 | `hy4-preview` | Go (Paid) | 📋 Fallback | Plan, Review | 79.2 | 68.9 | 85.0 | 84.0 | 78.0 | $0.834 | $2.501 | $1.2508 | 63.3 |
 | `iceman-contributor-free` | Go (Paid) | 📋 Fallback | Triage, Docs | 19.0 | 30.0 | 25.0 | 5.0 | 35.0 | Free | Free | Free | — |
+| `iceman-free` | Free | 📋 Fallback | Triage, Docs | 19.0 | 30.0 | 25.0 | 5.0 | 35.0 | Free | Free | Free | — |
+| `inkling-2-small-free` | Free | ✅ LiveBench v2 | Plan, Review | 50.5 | 64.0 | 78.3 | 58.3 | — | Free | Free | Free | — |
 | `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |
 | `kimi-k3` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 69.5 | 59.3 | 90.7 | 77.2 | — | $3 | $15 | $6 | 11.6 |
 | `kimi-k3.1-pro` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 74.7 | 81.8 | 91.1 | 77.8 | — | $2 | $10 | $4 | 18.7 |
@@ -141,7 +143,6 @@ automatically at their next run.
 | `muse-spark-1.3-contributor` | Go (Paid) | ✅ LiveBench v2 | UITest, APITest | 65.6 | 90.2 | 89.7 | 74.8 | — | $0.1 | $0.2 | $0.125 | 524.8 |
 | `nemotron-3.5-lightning-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 36.2 | 58.0 | 5.0 | 72.0 | Free | Free | Free | — |
 | `nemotron-3.5-super-vl-free` | Free | 📋 Fallback | Plan, Review | 51.5 | 65.5 | 78.8 | 55.0 | 71.0 | Free | Free | Free | — |
-| `pulse-alpha-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
 | `qwen3.8-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 62.9 | 59.0 | 86.0 | 60.0 | 81.3 | $0.15 | $0.47 | $0.23 | 273.5 |
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 65.0 | 60.3 | 88.2 | 78.6 | — | $2 | $6 | $3 | 21.7 |

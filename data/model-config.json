@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-06T03:55:52.614224+00:00",
+  "timestamp": "2026-11-07T03:29:59.890959+00:00",
   "livebench_snapshot": "2026-10-25",
   "task-types": {
     "plan": {
@@ -414,6 +414,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 78.3,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/glm-5.3-flash-free",
           "score": 77.6,
           "input_cost": 0.0,
@@ -462,6 +474,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 58.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 25.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -749,6 +772,17 @@
           "output_cost": 0.0,
           "blended_cost": 0.0,
           "context": 200000,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 35.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
           "modalities": [
             "text"
           ]
@@ -1167,6 +1201,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 78.3,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/glm-5.3-flash-free",
           "score": 77.6,
           "input_cost": 0.0,
@@ -1215,6 +1261,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 58.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 25.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -1624,6 +1681,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 58.3,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/nemotron-3.5-super-vl-free",
           "score": 55.0,
           "input_cost": 0.0,
@@ -1673,6 +1742,17 @@
         },
         {
           "model": "opencode/flint-40b-free",
+          "score": 5.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
           "score": 5.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
@@ -2142,6 +2222,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 64.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/beam-free",
           "score": 58.0,
           "input_cost": 0.0,
@@ -2155,6 +2247,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 36.2,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 30.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -2612,6 +2715,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 64.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/beam-free",
           "score": 58.0,
           "input_cost": 0.0,
@@ -2625,6 +2740,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 36.2,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 30.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -2912,6 +3038,17 @@
           "output_cost": 0.0,
           "blended_cost": 0.0,
           "context": 200000,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 35.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
           "modalities": [
             "text"
           ]
@@ -3330,6 +3467,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 78.3,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/glm-5.3-flash-free",
           "score": 77.6,
           "input_cost": 0.0,
@@ -3378,6 +3527,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 58.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 25.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -3835,6 +3995,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 64.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/beam-free",
           "score": 58.0,
           "input_cost": 0.0,
@@ -3848,6 +4020,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 36.2,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 30.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -4270,6 +4453,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 78.3,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/glm-5.3-flash-free",
           "score": 77.6,
           "input_cost": 0.0,
@@ -4318,6 +4513,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 58.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 25.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -4775,6 +4981,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 64.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/beam-free",
           "score": 58.0,
           "input_cost": 0.0,
@@ -4788,6 +5006,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 36.2,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 30.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -5210,6 +5439,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 78.3,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/glm-5.3-flash-free",
           "score": 77.6,
           "input_cost": 0.0,
@@ -5258,6 +5499,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 58.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 25.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -5680,6 +5932,18 @@
           ]
         },
         {
+          "model": "opencode/inkling-2-small-free",
+          "score": 78.3,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image"
+          ]
+        },
+        {
           "model": "opencode/glm-5.3-flash-free",
           "score": 77.6,
           "input_cost": 0.0,
@@ -5728,6 +5992,17 @@
         {
           "model": "opencode/nemotron-3.5-lightning-free",
           "score": 58.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 25.0,
           "input_cost": 0.0,
           "output_cost": 0.0,
           "blended_cost": 0.0,
@@ -6018,6 +6293,17 @@
           "modalities": [
             "text"
           ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 35.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
         }
       ]
     },
@@ -6301,6 +6587,17 @@
           "modalities": [
             "text"
           ]
+        },
+        {
+          "model": "opencode/iceman-free",
+          "score": 35.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "blended_cost": 0.0,
+          "context": 262144,
+          "modalities": [
+            "text"
+          ]
         }
       ]
     }
@@ -6314,8 +6611,9 @@
     "nemotron-3.5-lightning-free": "chat",
     "deepseek-v4.1-flash-free": "chat",
     "glm-5.3-flash-free": "chat",
-    "pulse-alpha-free": "chat",
     "crouton-alpha-free": "responses",
+    "iceman-free": "chat",
+    "inkling-2-small-free": "chat",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.2": "chat",
@@ -6354,8 +6652,9 @@
     "opencode/nemotron-3.5-lightning-free": "/inference/openai/v1",
     "opencode/deepseek-v4.1-flash-free": "/inference/openai/v1",
     "opencode/glm-5.3-flash-free": "/inference/openai/v1",
-    "opencode/pulse-alpha-free": "/inference/openai/v1",
     "opencode/crouton-alpha-free": "/inference/openai/v1",
+    "opencode/iceman-free": "/inference/openai/v1",
+    "opencode/inkling-2-small-free": "/inference/openai/v1",
     "opencode-go/deepseek-v4.1-flash": "/inference/go/openai/v1",
     "opencode-go/deepseek-v4-pro": "/inference/go/openai/v1",
     "opencode-go/glm-5.2": "/inference/go/openai/v1",
@@ -6385,6 +6684,6 @@
     "opencode-go/iceman-contributor-free": "/inference/go/openai/v1",
     "opencode-go/gemini-4-argon": "/inference/go/openai/v1",
     "opencode-go/hy4": "/inference/go/openai/v1",
-    "opencode-go/crouton-alpha-free": "/inference/openai/v1"
+    "opencode-go/crouton-alpha-free": "/inference/go/openai/v1"
   }
 }

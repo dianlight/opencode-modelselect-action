@@ -4,10 +4,6 @@
     {
       "model": "crouton-alpha-free",
       "tier": "Free"
-    },
-    {
-      "model": "pulse-alpha-free",
-      "tier": "Free"
     }
   ],
   "missing_prices": [],
