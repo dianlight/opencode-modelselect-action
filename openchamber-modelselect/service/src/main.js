@@ -1,20 +1,27 @@
 /* openchamber-modelselect — local service for the host-rendered Work Status
- * section (`contributes.statusSection.source`, OpenChamber >= 2.6.1).
+ * section (`contributes.statusSection.source`, OpenChamber >= 2.6.1) and for
+ * the settings panel.
  *
  * SOURCE FILE — do not edit service/main.js by hand. Rebuild with:
  *   bun install && bunx openchamber-guest-bundle --node service/src/main.js service/main.js
  * and commit the bundle.
  *
- * The host spawns this process (the `contributes.service` grant), binds a
- * loopback port, and polls `GET /status` while the section is shown and
- * expanded. Row controls POST `{ id, value? }` to the same path. Every
- * request carries `Authorization: Bearer $OPENCHAMBER_SERVICE_TOKEN`.
+ * The host spawns this process (the `contributes.service` grant, `keepRunning`)
+ * and binds a loopback port. Roles:
+ * - `GET /status?directory=` — the section's answer (`view.js`); POST is a
+ *   control event (`routing-sync`, `tier`, `config-reload`).
+ * - `GET/POST /config` — the settings panel's whole read/write surface, so the
+ *   package needs no `files` capability and no `filesystem` paths.
+ * - `GET /chain?task=` — the models preview, computed here (`chain.js`).
+ * - `GET /pick?session=` — the one-line pick behind the session action.
+ * - `POST /quota` — the usage provider (`provides: ["quota"]`).
+ * - `GET /health` — the host's ready probe.
+ * Every request carries `Authorization: Bearer $OPENCHAMBER_SERVICE_TOKEN`.
  *
- * The service replaces the old status iframe: it reads and writes the
- * project cache directly (no host file API), runs the shared routing sync
- * (`core/routing.js`) through a plain-fs adapter, and keeps the plugin's
- * host-detection session map fresh. It runs with the user's own access and
- * needs no `capabilities`/`filesystem` declarations of its own.
+ * The process keeps the plugin's caches fresh on a timer (routing sync + the
+ * host-detection session map) instead of writing them from a GET, and reports
+ * a missing plugin on the extension's card through `needsConfiguration`
+ * (`createServiceHost`).
  *
  * Project cache (written by the plugin, see plugin/src/shared/):
  * - `status-<sessionID>.json`   newest pick per session
@@ -26,17 +33,21 @@
  */
 import http from 'node:http';
 import fsp from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import routingShared from '../../../core/routing.js';
-import { buildView } from './view.js';
+import { createServiceHost } from '@openchamber/sdk';
+import { buildView, pickSummary, TIER_OPTIONS } from './view.js';
+import { computeModelsView } from './chain.js';
+import * as store from './store.js';
 
-const { syncRouting, parseJsonLenient } = routingShared;
+const { syncRouting } = routingShared;
+const {
+  CACHE_REL,
+  SESSION_MAP_FILE,
+  GLOBAL_NOTE_PATHS
+} = store;
 
-const CACHE_REL = '.opencode/.modelselect-cache';
-const SESSION_MAP_FILE = 'openchamber-sessions.json';
-const ROUTING_SYNC_FILE = 'routing-sync.json';
 // Keep in sync with the plugin read window (plugin/src/shared/host.js).
 const SESSION_MAP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const SESSION_MAP_TOUCH_MS = 60 * 1000;
@@ -47,7 +58,10 @@ const HOST_EVIDENCE_KEY = 'openchamber';
 
 const ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
 const GLOBAL_PROBE_MS = 30 * 1000;
+const MAINTAIN_EVERY_MS = 60 * 1000;
 const BODY_MAX = 16 * 1024;
+const TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
+
 // OpenCode local port candidates, same as plugin/src/shared/usage.js.
 // The config reload endpoint lives on the bundled OpenCode server inside
 // OpenChamber; the service calls POST /api/location/reload after the
@@ -88,12 +102,6 @@ async function postJson(url, body, { timeoutMs = 5000 } = {}) {
   }
 }
 
-const GLOBAL_CONFIG_PATHS = [
-  '~/.config/openchamber/opencode.managed.json',
-  '~/.config/opencode/opencode.json',
-  '~/.config/opencode/opencode.jsonc'
-];
-
 const TOKEN = String(process.env.OPENCHAMBER_SERVICE_TOKEN || '');
 const rawPort = process.env.OPENCHAMBER_SERVICE_PORT;
 const PORT = Number(rawPort);
@@ -108,35 +116,32 @@ if (!Number.isInteger(PORT) || PORT < 0 || PORT > 65535) {
   fail('OPENCHAMBER_SERVICE_PORT is missing or invalid: ' + String(rawPort));
 }
 
-// --- paths + JSON ---------------------------------------------------------
+// --- extension card ---------------------------------------------------------
 
-/** `~/...` resolves against the user home; anything else against the project. */
-function resolveLogicalPath(directory, logical) {
-  const p = String(logical == null ? '' : logical);
-  if (p === '~') return os.homedir();
-  if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2));
-  if (path.isAbsolute(p)) return p;
-  return path.join(String(directory || process.cwd()), p);
-}
-
-async function readJsonFile(file) {
-  try {
-    return parseJsonLenient(await fsp.readFile(file, 'utf8'));
-  } catch (e) {
-    return null;
+/** Service calls need the host's callback listener; tests run without it. */
+let serviceHost = null;
+try {
+  if (process.env.OPENCHAMBER_HOST_CALLBACK_URL) {
+    serviceHost = createServiceHost({ env: process.env });
   }
+} catch (e) {
+  serviceHost = null;
 }
 
-/** Write through a sibling temp file so a reader never sees half a document. */
-async function writeJsonAtomic(file, value) {
-  await fsp.mkdir(path.dirname(file), { recursive: true });
-  const tmp = file + '.' + process.pid + '.tmp';
-  await fsp.writeFile(tmp, JSON.stringify(value));
-  await fsp.rename(tmp, file);
-}
+let lastCardState = null;
 
-function cacheDirOf(directory) {
-  return path.join(directory, CACHE_REL);
+/**
+ * Tell the extension's card why the section is empty, once per state change
+ * (the host rate-limits these, and the card keeps the message until cleared).
+ */
+function reportCardState(state, message) {
+  if (state === lastCardState) return;
+  lastCardState = state;
+  if (!serviceHost) return;
+  void serviceHost.needsConfiguration(message || null).catch(() => {
+    // Older hosts/tests: the card is a nicety, never a read dependency
+    lastCardState = null;
+  });
 }
 
 // --- plugin presence ------------------------------------------------------
@@ -146,9 +151,9 @@ let probeCache = { at: 0, value: { checked: false, entry: false } };
 /** Does any readable global config mention the plugin? Cached 30 s. */
 async function pluginEntry() {
   if (Date.now() - probeCache.at < GLOBAL_PROBE_MS) return probeCache.value;
-  const results = await Promise.all(GLOBAL_CONFIG_PATHS.map(async (logical) => {
+  const results = await Promise.all(GLOBAL_NOTE_PATHS.map(async (logical) => {
     try {
-      const text = await fsp.readFile(resolveLogicalPath(null, logical), 'utf8');
+      const text = await fsp.readFile(store.resolveLogicalPath(null, logical), 'utf8');
       return /modelselect/i.test(text);
     } catch (e) {
       return null; // unreadable (missing/denied) — not evidence
@@ -162,70 +167,24 @@ async function pluginEntry() {
   return value;
 }
 
-// --- project snapshot -----------------------------------------------------
-
-/** Every readable status file, with its age source (`updatedAt`, else mtime). */
-async function listStatuses(cacheDir) {
-  let names;
-  try {
-    names = await fsp.readdir(cacheDir);
-  } catch (e) {
-    return [];
-  }
-  const out = [];
-  for (const name of names) {
-    if (!/^status-.+\.json$/.test(name)) continue;
-    const file = path.join(cacheDir, name);
-    try {
-      const data = parseJsonLenient(await fsp.readFile(file, 'utf8'));
-      if (!data || typeof data !== 'object' || Array.isArray(data)) continue;
-      const stat = await fsp.stat(file);
-      out.push({
-        sessionID: String(data.sessionID || name.slice('status-'.length, -'.json'.length)),
-        data: data,
-        at: typeof data.updatedAt === 'number' && Number.isFinite(data.updatedAt)
-          ? data.updatedAt
-          : stat.mtimeMs
-      });
-    } catch (e) {
-      // unreadable/racing file: not evidence
-    }
-  }
-  return out;
-}
-
-function knownTaskTypes(cfg) {
-  const table = (cfg && (cfg.config || cfg)) || {};
-  const bucket = table['task-types'] || table.taskTypes || {};
-  return Object.keys(bucket);
-}
-
-function newestStatus(statuses) {
-  let newest = null;
-  for (const entry of statuses) {
-    if (!newest || entry.at > newest.at) newest = entry;
-  }
-  return newest;
-}
-
 // --- side effects (best effort, never block the answer) -------------------
 
 const syncAt = new Map();
+const seenDirectories = new Set();
 
-/** Per-turn routing refresh while the section is visible; throttled. */
+/** Per-turn routing refresh; throttled per project. */
 async function maybeSyncRouting(directory, syncEnabled) {
   if (!syncEnabled) return;
   const last = syncAt.get(directory) || 0;
   if (Date.now() - last < ROUTING_SYNC_THROTTLE_MS) return;
   syncAt.set(directory, Date.now());
   await syncRouting({
-    readJson: (logical) => readJsonFile(resolveLogicalPath(directory, logical)),
-    writeJson: (logical, value) => writeJsonAtomic(resolveLogicalPath(directory, logical), value)
+    readJson: (logical) => store.readJsonAt(directory, logical),
+    writeJson: (logical, value) => store.writeJsonAt(directory, logical, value)
   });
 }
 
 const mapAt = new Map();
-const mapChain = new Map();
 
 /**
  * Keep `<cacheDir>/openchamber-sessions.json` fresh — the plugin reads it as
@@ -233,70 +192,165 @@ const mapChain = new Map();
  * no session has routed yet, the synthetic host key stands in so a fresh
  * project is detected before its first turn. Single writer, 30 d TTL.
  */
-function touchSessionMap(cacheDir, sessionIDs) {
+async function touchSessionMap(cacheDir, sessionIDs) {
   const last = mapAt.get(cacheDir) || 0;
-  if (Date.now() - last < SESSION_MAP_TOUCH_MS) return mapChain.get(cacheDir) || Promise.resolve();
+  if (Date.now() - last < SESSION_MAP_TOUCH_MS) return;
   mapAt.set(cacheDir, Date.now());
-  const run = (mapChain.get(cacheDir) || Promise.resolve()).then(async () => {
-    const file = path.join(cacheDir, SESSION_MAP_FILE);
-    const stored = await readJsonFile(file);
-    const sessions = stored && typeof stored.sessions === 'object' && stored.sessions ? stored.sessions : {};
-    const now = Date.now();
-    let changed = false;
-    Object.keys(sessions).forEach((id) => {
-      const seen = sessions[id];
-      if (typeof seen !== 'number' || !Number.isFinite(seen) || now - seen > SESSION_MAP_TTL_MS) {
-        delete sessions[id];
-        changed = true;
-      }
-    });
-    const keys = sessionIDs.length ? sessionIDs : [HOST_EVIDENCE_KEY];
-    keys.forEach((id) => {
-      if (sessions[id] === now) return;
-      sessions[id] = now;
+  const file = path.join(cacheDir, SESSION_MAP_FILE);
+  const stored = await store.readJsonFile(file);
+  const sessions = stored && typeof stored.sessions === 'object' && stored.sessions ? stored.sessions : {};
+  const now = Date.now();
+  let changed = false;
+  Object.keys(sessions).forEach((id) => {
+    const seen = sessions[id];
+    if (typeof seen !== 'number' || !Number.isFinite(seen) || now - seen > SESSION_MAP_TTL_MS) {
+      delete sessions[id];
       changed = true;
-    });
-    if (!changed) return;
-    await writeJsonAtomic(file, { version: 1, sessions: sessions });
-  }).catch(() => {});
-  mapChain.set(cacheDir, run);
-  return run;
+    }
+  });
+  const keys = sessionIDs.length ? sessionIDs : [HOST_EVIDENCE_KEY];
+  keys.forEach((id) => {
+    if (sessions[id] === now) return;
+    sessions[id] = now;
+    changed = true;
+  });
+  if (!changed) return;
+  await store.writeJsonAtomic(file, { version: 1, sessions: sessions });
+}
+
+/** One maintenance pass over every project this process has been asked about. */
+async function maintain() {
+  for (const directory of Array.from(seenDirectories)) {
+    try {
+      const syncOn = await store.readRoutingSync(directory);
+      await maybeSyncRouting(directory, syncOn);
+      const statuses = await store.listStatuses(store.cacheDirOf(directory));
+      await touchSessionMap(store.cacheDirOf(directory), statuses.map((s) => s.sessionID));
+    } catch (e) {
+      // silent: maintenance must never break a read
+    }
+  }
 }
 
 // --- views ----------------------------------------------------------------
 
+/** The stored plugin `tier` option, from an already-read managed config. */
+function tierOf(managed) {
+  if (!managed || !managed.parseOk || managed.entry.form === 'missing') return null;
+  const tier = typeof managed.entry.options.tier === 'string' ? managed.entry.options.tier : 'auto';
+  return TIER_VALUES.includes(tier) ? tier : 'auto';
+}
+
 async function readView(directory) {
   const now = Date.now();
-  if (!directory) return buildView({ now: now, directory: null });
+  if (!directory) {
+    reportCardState('no-project', null);
+    return buildView({ now: now, directory: null });
+  }
+  seenDirectories.add(directory);
 
-  const cacheDir = cacheDirOf(directory);
-  const statuses = await listStatuses(cacheDir);
-  const newest = newestStatus(statuses);
-  const [syncFile, freeQuota, usage, config, entry] = await Promise.all([
-    readJsonFile(path.join(cacheDir, ROUTING_SYNC_FILE)),
-    readJsonFile(path.join(cacheDir, 'free-quota.json')),
-    readJsonFile(path.join(cacheDir, 'usage-limits.json')),
-    readJsonFile(path.join(cacheDir, 'model-config-cache.json')),
-    pluginEntry()
+  const cacheDir = store.cacheDirOf(directory);
+  const statuses = await store.listStatuses(cacheDir);
+  const newest = store.newestStatus(statuses);
+  const [syncOn, freeQuota, usage, config, entry, managed] = await Promise.all([
+    store.readRoutingSync(directory),
+    store.readLatch(directory),
+    store.readUsage(directory),
+    store.readJsonAt(directory, path.join(CACHE_REL, 'model-config-cache.json')),
+    pluginEntry(),
+    store.readManagedConfig()
   ]);
-  const syncEnabled = !(syncFile && syncFile.sync === false);
 
-  const view = buildView({
+  // The card carries the fix; the section only says it is empty.
+  if (!managed.parseOk) {
+    reportCardState('managed-broken',
+      'The OpenChamber managed OpenCode config is not valid JSON, so the settings panel cannot save. Fix ' +
+      store.MANAGED_CONFIG_PATH + ' and reopen OpenChamber.');
+  } else if (managed.entry.form === 'missing') {
+    reportCardState('plugin-missing',
+      'Add the modelselect plugin to ' + store.MANAGED_CONFIG_PATH +
+      ' and reopen OpenChamber — it is the only config OpenChamber\'s server loads.');
+  } else {
+    reportCardState('ok', null);
+  }
+
+  return buildView({
     now: now,
     directory: directory,
     found: Boolean(newest),
     status: newest ? newest.data : null,
     sessionID: newest ? newest.sessionID : '',
-    knownTypes: knownTaskTypes(config),
-    sync: syncEnabled,
+    knownTypes: store.knownTaskTypes(config),
+    sync: syncOn,
     freeQuota: freeQuota,
     usage: usage,
-    globalEntry: entry
+    globalEntry: entry,
+    tierOption: tierOf(managed)
   });
+}
 
-  void maybeSyncRouting(directory, syncEnabled).catch(() => {});
-  void touchSessionMap(cacheDir, statuses.map((s) => s.sessionID)).catch(() => {});
-  return view;
+/** The plugin options a frame may see: the write-only secrets never go out. */
+function publicOptions(options) {
+  const out = Object.assign({}, options || {});
+  delete out.token;
+  delete out.jevToken;
+  return out;
+}
+
+/** Everything the settings panel needs for its three tabs, in one read. */
+async function readConfig(directory, sessionID) {
+  const [managed, globalPresent, catalog, extConfig, syncOn, sessionStatus] = await Promise.all([
+    store.readManagedConfig(),
+    Promise.all(GLOBAL_NOTE_PATHS.map(async (logical) => {
+      try {
+        await fsp.stat(store.resolveLogicalPath(null, logical));
+        return logical;
+      } catch (e) {
+        return null;
+      }
+    })),
+    store.readCatalog(directory),
+    store.readExtensionConfig(),
+    store.readRoutingSync(directory),
+    store.readSessionStatus(directory, sessionID)
+  ]);
+  return {
+    managed: {
+      parseOk: managed.parseOk,
+      exists: managed.exists,
+      parseError: managed.parseError || '',
+      entry: {
+        form: managed.entry.form,
+        package: managed.entry.package,
+        options: publicOptions(managed.entry.options)
+      }
+    },
+    managedPath: store.MANAGED_CONFIG_PATH,
+    extensionPath: store.MODELSELECT_CONFIG_PATH,
+    globalPaths: globalPresent.filter(Boolean),
+    catalog: { types: catalog.types, bounds: catalog.bounds },
+    extConfig: extConfig,
+    syncOn: syncOn,
+    sessionTask: sessionStatus && typeof sessionStatus.taskType === 'string'
+      ? sessionStatus.taskType : ''
+  };
+}
+
+async function readChain(directory, taskType) {
+  const [catalog, options, latch, usage] = await Promise.all([
+    store.readCatalog(directory),
+    store.storedPluginOptions(),
+    store.readLatch(directory),
+    store.readUsage(directory)
+  ]);
+  return computeModelsView({
+    taskType: taskType,
+    catalogConfig: catalog.config,
+    options: options,
+    latchData: latch,
+    usage: usage,
+    now: Date.now()
+  });
 }
 
 // --- HTTP -----------------------------------------------------------------
@@ -340,7 +394,28 @@ function projectDirectory(url) {
   return raw && path.isAbsolute(raw) ? raw : null;
 }
 
-async function handleAction(directory, body) {
+function messageOf(err, fallback) {
+  return String((err && err.message) || fallback || err).slice(0, 300);
+}
+
+async function reloadOpenCode() {
+  const tried = [];
+  let last = null;
+  for (const port of reloadPorts()) {
+    tried.push(port);
+    const result = await postJson('http://127.0.0.1:' + port + RELOAD_PATH, null);
+    last = result;
+    if (result.ok) return { ok: true, port: port, tried: tried };
+  }
+  return {
+    ok: false,
+    tried: tried,
+    error: 'OpenCode config reload failed on ' + tried.join(', ') + ': ' +
+      String((last && last.error) || (last && last.status))
+  };
+}
+
+async function handleControl(directory, body) {
   if (!directory) return { status: 400, body: { message: 'No project is open.' } };
   let event;
   try {
@@ -356,7 +431,7 @@ async function handleAction(directory, body) {
       return { status: 400, body: { message: "Router sync wants 'on' or 'off'." } };
     }
     try {
-      await writeJsonAtomic(path.join(cacheDirOf(directory), ROUTING_SYNC_FILE), { sync: event.value === 'on' });
+      await store.writeRoutingSync(directory, event.value === 'on');
     } catch (e) {
       return { status: 500, body: { message: 'Could not write the router-sync file.' } };
     }
@@ -366,24 +441,28 @@ async function handleAction(directory, body) {
     }
     return { status: 200, body: { ok: true } };
   }
-  if (event.id === 'config-reload') {
-    if (!directory) {
-      return { status: 400, body: { message: 'No project is open.' } };
+  if (event.id === 'tier') {
+    if (!TIER_VALUES.includes(event.value)) {
+      return { status: 400, body: { message: "Tier wants 'auto', 'go' or 'free'." } };
     }
-    let tried = [];
-    let last = null;
-    for (const port of reloadPorts()) {
-      tried.push(port);
-      const result = await postJson('http://127.0.0.1:' + port + RELOAD_PATH, null);
-      last = result;
-      if (result.ok) {
-        return { status: 200, body: { ok: true, port, tried } };
-      }
+    try {
+      await store.setPluginOption('tier', event.value);
+    } catch (e) {
+      return { status: 409, body: { message: messageOf(e, 'Could not write the plugin options.') } };
     }
+    const reload = await reloadOpenCode();
     return {
-      status: 502,
-      body: { message: 'OpenCode config reload failed on ' + tried.join(', ') + ': ' + String((last && last.error) || last.status) }
+      status: 200,
+      body: {
+        ok: true,
+        reload: reload.ok ? { ok: true, port: reload.port } : { ok: false, error: reload.error }
+      }
     };
+  }
+  if (event.id === 'config-reload') {
+    const reload = await reloadOpenCode();
+    if (reload.ok) return { status: 200, body: { ok: true, port: reload.port, tried: reload.tried } };
+    return { status: 502, body: { message: reload.error } };
   }
   return {
     status: 400,
@@ -391,10 +470,80 @@ async function handleAction(directory, body) {
   };
 }
 
+/** The settings panel's save: read-modify-write, then reload OpenCode once. */
+async function handleConfigSave(directory, body) {
+  let request;
+  try {
+    request = JSON.parse(body || '{}');
+  } catch (e) {
+    return { status: 400, body: { message: 'The save request is not JSON.' } };
+  }
+  if (!request || typeof request !== 'object') {
+    return { status: 400, body: { message: 'The save request has no body.' } };
+  }
+  if (request.kind === 'plugin') {
+    let saved;
+    try {
+      saved = await store.savePluginOptions(directory, request.values || {});
+    } catch (e) {
+      const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
+      return { status: status, body: { message: messageOf(e, 'Could not write the managed config.') } };
+    }
+    const reload = await reloadOpenCode();
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        entry: {
+          form: saved.entry.form,
+          package: saved.entry.package,
+          options: saved.entry.options
+        },
+        reload: reload.ok ? { ok: true, port: reload.port } : { ok: false, error: reload.error }
+      }
+    };
+  }
+  if (request.kind === 'plugin-add') {
+    try {
+      const added = await store.addPluginEntry();
+      // A new entry only takes effect when OpenCode reloads its config.
+      const reload = added.added ? await reloadOpenCode() : { ok: true };
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          added: added.added,
+          entry: {
+            form: added.entry.form,
+            package: added.entry.package,
+            options: publicOptions(added.entry.options)
+          },
+          reload: reload.ok ? { ok: true, port: reload.port } : { ok: false, error: reload.error }
+        }
+      };
+    } catch (e) {
+      const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
+      return { status: status, body: { message: messageOf(e, 'Could not write the managed config.') } };
+    }
+  }
+  if (request.kind === 'extension') {
+    try {
+      const next = await store.saveExtensionConfig(directory, request.values || {});
+      return { status: 200, body: { ok: true, config: next } };
+    } catch (e) {
+      return { status: 500, body: { message: messageOf(e, 'Could not write the extension config.') } };
+    }
+  }
+  return { status: 400, body: { message: "Save wants kind 'plugin' or 'extension'." } };
+}
+
 // Quota provider (contributes.quota, OpenChamber >= 2.6.2 canary).
 // Reports the OpenCode Go / Console budget data already cached in
 // usage-limits.json so OpenChamber's Usage page can surface it alongside
 // built-in providers. No credentials are consumed (providers: []).
+// The quota call carries no directory, so the project is the last one this
+// extension was asked about (the section or the panel). The host spawns a
+// service with its package folder as cwd, so cwd is never the project.
 async function handleQuota(bodyText) {
   let request;
   try {
@@ -405,14 +554,15 @@ async function handleQuota(bodyText) {
   if (!request || typeof request !== 'object' || request.method !== 'usage.read') {
     return { ok: false, error: { message: 'Unexpected quota request.' } };
   }
-  const usage = await readUsageLimitsFile();
+  const directory = await store.lastProject();
+  const usage = directory ? await store.readUsage(directory) : null;
   if (!usage || typeof usage !== 'object') {
     return {
       ok: true,
       data: {
         ok: true,
         configured: false,
-        error: 'No usage snapshot yet — open a project and let the plugin write one.',
+        error: 'No usage snapshot yet — open a project so the plugin writes one.',
         usage: null
       }
     };
@@ -466,32 +616,84 @@ async function handleQuota(bodyText) {
   };
 }
 
-/** Read the plugin's usage snapshot from the project cache (cwd-based fallback). Never throws. */
-async function readUsageLimitsFile() {
-  try {
-    return parseJsonLenient(await fsp.readFile(path.join(process.cwd(), CACHE_REL, USAGE_LIMITS_FILE), 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
 async function handle(req, res) {
   if (!authorized(req)) {
     send(res, 401, { message: 'Unauthorized.' });
     return;
   }
   const url = new URL(req.url || '/', 'http://127.0.0.1');
+  const directory = projectDirectory(url);
+
   if (req.method === 'GET' && url.pathname === '/health') {
     send(res, 200, { ok: true });
     return;
   }
   if (url.pathname === '/status' && req.method === 'GET') {
-    send(res, 200, await readView(projectDirectory(url)));
+    if (directory) {
+      seenDirectories.add(directory);
+      void store.rememberProject(directory);
+      // The map is this service's own evidence file (not the project's
+      // config): stamping it here is what lets the plugin detect OpenChamber
+      // on the first turn. Routing.json is only touched by the timer and the
+      // switch, never by a read.
+      void store.listStatuses(store.cacheDirOf(directory))
+        .then((statuses) => touchSessionMap(
+          store.cacheDirOf(directory),
+          statuses.map((s) => s.sessionID)
+        ))
+        .catch(() => {});
+    }
+    send(res, 200, await readView(directory));
     return;
   }
   if (url.pathname === '/status' && req.method === 'POST') {
-    const answer = await handleAction(projectDirectory(url), await readBody(req));
+    const answer = await handleControl(directory, await readBody(req));
     send(res, answer.status, answer.body);
+    return;
+  }
+  if (url.pathname === '/config' && req.method === 'GET') {
+    if (!directory) {
+      send(res, 400, { message: 'No project is open.' });
+      return;
+    }
+    seenDirectories.add(directory);
+    void store.rememberProject(directory);
+    send(res, 200, await readConfig(directory, url.searchParams.get('session')));
+    return;
+  }
+  if (url.pathname === '/config' && req.method === 'POST') {
+    const answer = await handleConfigSave(directory, await readBody(req));
+    send(res, answer.status, answer.body);
+    return;
+  }
+  if (url.pathname === '/chain' && req.method === 'GET') {
+    if (!directory) {
+      send(res, 400, { message: 'No project is open.' });
+      return;
+    }
+    const task = String(url.searchParams.get('task') || '').slice(0, 120);
+    send(res, 200, await readChain(directory, task));
+    return;
+  }
+  if (url.pathname === '/pick' && req.method === 'GET') {
+    if (!directory) {
+      send(res, 400, { message: 'No project is open.' });
+      return;
+    }
+    const sessionID = String(url.searchParams.get('session') || '');
+    let picked = null;
+    if (sessionID) {
+      picked = await store.readSessionStatus(directory, sessionID);
+    } else {
+      const newest = store.newestStatus(await store.listStatuses(store.cacheDirOf(directory)));
+      picked = newest ? newest.data : null;
+    }
+    const summary = pickSummary(picked, Date.now());
+    if (!summary) {
+      send(res, 404, { message: 'No pick for this session yet — it routes on the first turn.' });
+      return;
+    }
+    send(res, 200, summary);
     return;
   }
   if (url.pathname === '/quota' && req.method === 'POST') {
@@ -514,6 +716,11 @@ const server = http.createServer((req, res) => {
 server.on('error', (err) => fail('cannot start: ' + String((err && err.message) || err)));
 
 server.listen(PORT, '127.0.0.1', () => {
+  // keepRunning: the host starts this process with OpenChamber. The project
+  // list is empty until something asks about one, so a cold start costs
+  // nothing until the first read.
+  const timer = setInterval(() => { void maintain(); }, MAINTAIN_EVERY_MS);
+  if (typeof timer.unref === 'function') timer.unref();
   process.stdout.write('[modelselect] listening on 127.0.0.1:' + server.address().port + '\n');
 });
 

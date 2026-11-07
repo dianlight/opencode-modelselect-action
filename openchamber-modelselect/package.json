@@ -1,15 +1,15 @@
 {
   "name": "openchamber-modelselect",
-  "version": "0.7.0",
-  "description": "Host-rendered Work Status section (contributes.statusSection.source) surfacing the modelselect plugin's project pick plus the auto-update-router switch, and a settings panel for the plugin options and the extension config.",
+  "version": "0.8.0",
+  "description": "Host-rendered Work Status section (contributes.statusSection.source) surfacing the modelselect plugin's project pick plus the auto-update-router switch, a settings panel for the plugin options and the extension config, and a session action that shows the pick.",
   "license": "MIT",
   "type": "module",
   "dependencies": {
     "@openchamber/sdk": "2.6.2-canary.20261107.11"
   },
   "scripts": {
-    "build": "openchamber-guest-bundle --node service/src/main.js service/main.js && openchamber-guest-bundle panel/src/main.js panel/main.js",
-    "check": "node --check service/main.js && node --check panel/main.js",
+    "build": "openchamber-guest-bundle --node service/src/main.js service/main.js && openchamber-guest-bundle panel/src/main.js panel/main.js && openchamber-guest-bundle background/src/main.js background/main.js",
+    "check": "node --check service/main.js && node --check panel/main.js && node --check background/main.js && openchamber-guest-check .",
     "test": "node --test test/"
   },
   "openchamber": {
@@ -17,39 +17,39 @@
     "engines": {
       "openchamber": ">=2.6.2"
     },
+    "id": "model-select",
+    "name": "Model select",
+    "icon": "window",
     "contributes": {
       "panel": {
-        "id": "model-select",
-        "name": "Model select",
-        "icon": "window",
         "entry": "panel/index.html"
+      },
+      "background": {
+        "entry": "background/index.html"
       },
       "statusSection": {
         "source": {
           "path": "/status",
           "interval": 2000
         },
-        "title": "Model select"
+        "requiresProject": true
       },
       "service": {
         "entry": "service/main.js",
         "runtime": "host",
+        "keepRunning": true,
         "provides": ["quota"]
       },
       "quota": {
         "providers": []
       },
-      "capabilities": [
-        "files"
-      ],
-      "filesystem": [
-        "~/.config/opencode/opencode.json",
-        "~/.config/opencode/opencode.jsonc",
-        "~/.config/openchamber/opencode.managed.json",
-        "~/.config/openchamber/routing.json",
-        "~/.config/openchamber/modelselect.json",
-        "~/.config/openchamber/settings.json",
-        "~/.config/openchamber/preferences.json"
+      "actions": [
+        {
+          "id": "model-pick",
+          "label": "Model select pick",
+          "where": "session",
+          "mode": "background"
+        }
       ]
     }
   }

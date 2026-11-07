@@ -1,4 +1,4 @@
-name: Lint YAML
+name: CI
 
 on:
   push:
@@ -8,11 +8,13 @@ on:
       - ".github/workflows/**"
       - ".yamllint"
       - "config/**/*.yaml"
+      - "openchamber-modelselect/**"
   pull_request:
     paths:
       - ".github/workflows/**"
       - ".yamllint"
       - "config/**/*.yaml"
+      - "openchamber-modelselect/**"
   workflow_dispatch:
 
 jobs:
@@ -27,3 +29,44 @@ jobs:
 
       - name: Run yamllint
         run: mise run lint-yaml
+
+  extension:
+    name: Build and test the OpenChamber extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: openchamber-modelselect
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build bundles
+        run: bun run build
+
+      - name: Check bundles and package
+        run: bun run check
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Fail on a stale committed bundle
+        working-directory: .
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- openchamber-modelselect/panel/main.js openchamber-modelselect/service/main.js; then
+            echo "::error::Committed bundles are stale. Run 'bun run build' in openchamber-modelselect/ and commit the result."
+            git --no-pager diff --stat -- openchamber-modelselect/panel/main.js openchamber-modelselect/service/main.js
+            exit 1
+          fi

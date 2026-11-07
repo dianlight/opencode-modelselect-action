@@ -1,5 +1,35 @@
 ## [Unreleased]
 ### Changed
+- OpenChamber extension 0.8.0, rebuilt against SDK `2.6.2-canary.20261106.9`
+  (OpenChamber PR 6379). The local service is now the extension's only owner
+  of file I/O: the settings panel reads and writes through `GET/POST /config`
+  and shows the models chain from `GET /chain`, so the package asks for **no
+  `files` capability and no `filesystem` paths** — the approval dialog lists
+  the local service alone. The panel lost its file plumbing, its own chain
+  resolution and the duplicated usage-formatting code; `panel/src/` is split
+  into shell, tabs and field cells.
+- The service declares `keepRunning` and maintains the caches on a 60 s timer
+  instead of writing them from a read: `routing.json` is only written by the
+  timer, by the router switch and right after a save. `GET /status` still
+  stamps the plugin's host-detection map (the service's own evidence file).
+- The Work Status section uses `requiresProject`, so it disappears instead of
+  showing an empty "open a project" row; the Tier row is now a `select`
+  control that writes the plugin option and reloads OpenCode, and the missing
+  plugin is reported on the extension card through
+  `createServiceHost().needsConfiguration` instead of a 300-character note row.
+- New background entry and session action ("Model select pick"): the pick of
+  the session it was run on, in a toast with Copy. Extension identity now sits
+  beside `contributes` (`id`/`name`/`icon`); the duplicate
+  `statusSection.title` is gone.
+- `bun run check` runs `openchamber-guest-check`, and CI (`.github/workflows/lint-yaml.yml`)
+  builds the extension, checks it, runs its tests and fails on a stale
+  committed bundle.
+
+### Fixed
+- The usage provider always answered "no snapshot yet": it read
+  `usage-limits.json` from `process.cwd()`, but the host spawns a service with
+  the extension folder as its working directory. The service now remembers the
+  project it was last asked about and reads that project's snapshot.
 - OpenChamber Work Status section is host-rendered: the extension now
   declares `contributes.statusSection.source` (`/status`, 2 s poll) plus a
   local service (`contributes.service`), so OpenChamber draws the rows,

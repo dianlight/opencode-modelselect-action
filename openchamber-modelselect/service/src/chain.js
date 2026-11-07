@@ -1,13 +1,12 @@
-/* openchamber-modelselect — models-chain adapter (ESM, bundled with the
- * panel).
+/* openchamber-modelselect — models-chain adapter (ESM, runs in the service).
  *
  * Pure preview of the plugin's per-task resolution: which models form the
  * chain for a task-type, in the order the plugin would use them, and why
  * each row is usable or excluded. Mirrors
  * `plugin/src/shared/select.js` resolveModel minus the live network probe
- * (Go quota check) — the panel has no token (write-only) and makes no
- * network calls, so `auto` follows the configured preference with the
- * latch failover applied. Labelled as a preview in the UI.
+ * (Go quota check) — the service holds no token and makes no network calls,
+ * so `auto` follows the configured preference with the latch failover
+ * applied. Served to the panel as `GET /chain` and labelled as a preview.
  *
  * Inputs:
  * - catalogConfig: the parsed `model-config-cache.json` `config` object
@@ -22,6 +21,7 @@ import lookupShared from '../../../core/lookup.js';
 import modelRefShared from '../../../core/model-ref.js';
 import budgetShared from '../../../core/budget.js';
 import freeQuotaShared from '../../../core/free-quota.js';
+import { usageMonthly } from './view.js';
 
 const { entryFor } = lookupShared;
 const { firstPaidModel } = modelRefShared;
@@ -84,9 +84,45 @@ function formatCountdown(ms) {
   return s + 's';
 }
 
+// Usage-status bar for one chain row: Go rows show the consumed quota
+// window (width = percent, tone by limited/thresholds); free rows have no
+// quota endpoint, so the bar shows their availability instead (fully
+// available unless latched). Cost stays as text in the meta line — the
+// bar is about current usage status, not cost. Returns
+// `{ pct, tone, label }` where tone is ok|warn|err|muted.
+function usageBar(row, usage, at) {
+  if (row.status === 'excluded') {
+    const reason = row.reason || 'excluded';
+    let tone = 'muted';
+    if (/quota latched/.test(reason)) tone = 'err';
+    else if (/rate-limited/.test(reason)) tone = 'warn';
+    else if (/over maxCost|no cost data/.test(reason)) tone = 'err';
+    return { pct: 100, tone: tone, label: reason };
+  }
+  const u = usageMonthly(usage);
+  if (row.side === 'go' && u && u.percent !== null) {
+    const pct = Math.max(3, Math.min(100, Math.round(u.percent)));
+    const tone = (u.limited || u.percent >= 100) ? 'err' : (u.percent >= 70 ? 'warn' : 'ok');
+    let label = 'Go monthly ' + Math.round(u.percent) + '%';
+    if (u.limited) {
+      label += ' · limited';
+      const left = typeof u.resetsAt === 'number' && u.resetsAt > 0
+        ? formatCountdown(u.resetsAt - (typeof at === 'number' ? at : Date.now())) : '';
+      if (left) label += ' · resets ' + left;
+    } else if (row.status === 'pick') {
+      label = 'PICK · ' + label;
+    }
+    return { pct: pct, tone: tone, label: label };
+  }
+  if (row.status === 'pick') {
+    return { pct: 100, tone: 'ok', label: row.side === 'free' ? 'PICK · free' : 'PICK' };
+  }
+  return { pct: 45, tone: 'muted', label: row.side === 'free' ? 'free · no quota cap' : 'standby' };
+}
+
 // Preview the chain for one task-type. Never throws: bad shapes yield
 // `{ found: false }` and the UI shows the fallback line.
-function computeModelsView({ taskType, catalogConfig, options, latchData, now }) {
+function computeModelsView({ taskType, catalogConfig, options, latchData, usage, now }) {
   const at = typeof now === 'number' ? now : Date.now();
   const table = (catalogConfig && (catalogConfig['task-types'] || catalogConfig.task_types)) || {};
   let key = null;
@@ -192,6 +228,9 @@ function computeModelsView({ taskType, catalogConfig, options, latchData, now })
         rows.push(describeRow(row, s));
       });
     });
+    // The bar is computed here, not in the panel: usage is a service
+    // concern (the panel has no snapshot of its own any more).
+    rows.forEach((r) => { r.bar = usageBar(r, usage, at); });
     return rows;
   }
 

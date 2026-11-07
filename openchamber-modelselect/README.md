@@ -2,56 +2,75 @@
 
 Work Status section for the modelselect plugin: the host draws the plugin's
 newest pick in the project (task, tier, model, Think effort, Jev reason, Go
-quota, config source) plus the auto-update-router switch, and a settings
-panel edits the plugin + extension config.
+quota) plus the auto-update-router switch. A settings panel edits the plugin
+and extension config, and a session action shows the pick of the session it was
+run on.
 
-The status section is **host-rendered** (`contributes.statusSection.source`,
-OpenChamber >= 2.6.1) — no iframe. A local service (`service/src/main.js`,
-bundled to `service/main.js`) is spawned by the host, answers `GET /status`
-on the loopback port while the section is shown, and takes the controls'
-`POST`s on the same path. The settings panel is still a guest page
-(`panel/src/main.js` → `panel/main.js`, committed IIFE); never edit the
+The status section is **host-rendered** (`contributes.statusSection.source`) —
+no iframe. One local service (`service/src/main.js`, bundled to
+`service/main.js`) is spawned by the host and is the extension's **only owner
+of file I/O**:
+
+| Path | Who calls it |
+|---|---|
+| `GET /status` | the host, while the section is shown (2 s) |
+| `POST /status` | the section's controls: `routing-sync`, `tier`, `config-reload` |
+| `GET/POST /config` | the settings panel: one snapshot, then saves |
+| `GET /chain` | the settings panel's Models tab |
+| `GET /pick` | the background session action |
+| `POST /quota` | OpenChamber's Usage page |
+
+The panel therefore declares no `files` capability and no filesystem paths; it
+is presentation only (`panel/src/main.js` shell, `plugin-tab.js`,
+`ext-tab.js`, `models-tab.js`, `fields.js`, `api.js`, `dom.js`). Never edit the
 bundles by hand.
 
-Requires OpenChamber >= 2.6.1 (web/desktop). The source contract sends only
-`?directory=` and `?locale=` — no session id — so the section is
-project-scoped: it shows the newest `status-*.json` in the open project,
-not the session the user is looking at. The live session model/agent rows
-of the old iframe are gone with it.
+Requires OpenChamber >= 2.6.2 (web/desktop; the canary line until 2.6.2 ships).
+The source contract sends only `?directory=` and `?locale=` — no session id — so
+the section is project-scoped: it shows the newest `status-*.json` in the open
+project. The session action is the session-scoped view.
 
-The session map the service writes is what lets the plugin detect
-OpenChamber hosting even for sessions driven from the mobile app (which
-loads no extensions — same server, same project).
+The session map the service writes is what lets the plugin detect OpenChamber
+hosting even for sessions driven from the mobile app (which loads no
+extensions — same server, same project).
 
 ## Install
 
 Settings → Extensions → install from Folder / ZIP / URL pointing at
-`openchamber-modelselect/`.
+`openchamber-modelselect/`, then approve the request list once. It holds:
 
-Approve the request list once. It holds:
+- the **local service** — the status section's reader, the panel's config
+  store and the router switch. It runs with your own user access (no OS
+  sandbox) and needs no `exec` or `socket` permission. Until it is approved the
+  host answers `NO_SERVICE`, the section body stays empty and the panel shows
+  how to allow it. `keepRunning` means OpenChamber starts it with the app and
+  brings it back if it stops: the routing sync and the host-detection map then
+  stay fresh without a panel being open, which is what the approval line says.
+- the **usage provider** role (`quota`) — the card on Settings → Usage.
 
-- the **local service** — the status section's reader and router switch.
-  It runs with your own user access (no OS sandbox) and needs no `exec` or
-  `socket` permission. Until it is approved the host answers `NO_SERVICE`
-  and the section body stays empty.
-- the `files` capability — the settings panel's read/write of the managed
-  OpenCode config and `~/.config/openchamber/modelselect.json` (paths
-  declared in `package.json`; re-approve after adding a path).
+Folder installs do not update themselves; a git-installable distribution (with
+OpenChamber's Update button) is specified in
+`openspec/changes/git-installable-extension/`.
 
 ## Build and test
 
 ```sh
 cd openchamber-modelselect
 bun install
-bun run build   # service/ as a Node (--node) bundle, panel/ as an IIFE
-bun run check   # node --check on both bundles
-bun run test    # node --test test/ — view schema, live service, manifest,
-                # panel frame
+bun run build   # service/ (Node bundle), panel/ and background/ (IIFE)
+bun run check   # node --check on all three + openchamber-guest-check
+bun run test    # node --test test/
 ```
 
-Always rebuild + commit both bundles after editing a source file. The
-extension never compiles TypeScript on the host, so a stale bundle ships
-stale code.
+Always rebuild + commit all three bundles after editing a source file. The
+extension never compiles TypeScript on the host, so a stale bundle ships stale
+code; CI fails on a bundle that does not match its source.
+
+Tests: `status-view` (the host schema, every row state), `chain` (the models
+preview), `status-service` (the real bundle over HTTP: status, controls,
+config read/write, chain, pick, quota), `panel-frame` (the panel bundle in a
+fake guest frame, with every `serviceRequest` forwarded to the real service),
+`manifest`.
 
 ## Update
 
@@ -60,17 +79,20 @@ Folder/ZIP/URL source.
 
 ## Status section (host-rendered)
 
-The host asks the service for an answer and draws it itself; colours are
-theme tones, never CSS, and the answer must match
-`guestStatusViewSchema` or the whole section is refused. Rows, in order:
+The host asks the service for an answer and draws it itself; colours are theme
+tones, never CSS, and the answer must match `guestStatusViewSchema` or the
+whole section is refused. `requiresProject` hides the section when nothing is
+open. Rows, in order:
 
 - `Task` — status-file task type, `unlisted task` warning badge when it is
   absent from `model-config-cache.json`;
 - `Tier` — the picked tier, with a status dot from the last Go probe
-  (success = OK, error = exhausted, muted = unknown) and the explanation in
-  its tooltip;
-- `Model` — `provider/id`; `suggest only` info badge (and tooltip) while
-  the plugin runs in trial mode;
+  (success = OK, error = exhausted, muted = unknown) and the explanation in its
+  tooltip. When the managed config has a modelselect entry the row carries a
+  `select` (auto / go / free) that writes the plugin option and reloads
+  OpenCode, so the tier changes without opening the panel;
+- `Model` — `provider/id`; `suggest only` info badge (and tooltip) while the
+  plugin runs in trial mode;
 - `Think` — effective effort (`High`, `Low (manual, task High)`);
 - `Jev`, `Source`;
 - `Updated` — the pick's age (`just now`, `4m ago`), `last known` warning
@@ -84,19 +106,21 @@ theme tones, never CSS, and the answer must match
 - one `note` per fresh free-tier latch (`Free tier exhausted — <model> —
   retry in 2h 15m · <detail>`, `Rate limited` for the 1h window), the
   countdown recomputed on every poll;
-- `Auto-update router` — a segmented On / Off control (see below), always
-  the last row so it survives the 16-row cap.
+- `Auto-update router` — a segmented On / Off control, always the last row so
+  it survives the 16-row cap.
 
-Polling is the manifest's `source.interval` (2 s) and runs only while the
-section is shown and expanded; the host sizes the section to its rows, so
-there is no `setHeight`. The old per-session split (full pick grid only for
-auto/virtual sessions) is gone: with no session in the contract, whichever
-pick is newest is shown, and the router switch gates only the `routing.json`
-refresh.
+States: `plugin-missing` (no readable modelselect entry in the managed config
+— one short row; the full fix is on the extension card, see below),
+`no-pick` (plugin installed, no routed turn yet).
 
-States: `no-project` (nothing open), `plugin-missing` (no status file and
-no `modelselect` entry in the readable global configs — shows the
-managed-config fix hint), `no-pick` (plugin installed, no routed turn yet).
+## Where the fix text lives
+
+The service calls `createServiceHost().needsConfiguration(message)` once per
+state change, so OpenChamber shows "Add the modelselect plugin to
+`<dataDir>/opencode.managed.json` and reopen OpenChamber" on the extension's
+card instead of inside a row of the section. Global
+`~/.config/opencode/opencode.json(c)` entries do not load in OpenChamber's
+panel; the managed config is the only one its server reads.
 
 ## Routing sync
 
@@ -104,22 +128,19 @@ The Jev routing categories (`~/.config/openchamber/routing.json`,
 stored-deviations shape) are kept fresh from two places, both best-effort:
 
 - The plugin, before every turn (the `prompt` + `context` hooks) while
-  the router sync is ON — a courtesy sync so an installed OpenChamber
-  follows the plugin's caches; the plugin routes the pick itself (only
-  virtual `modelselect/auto-*` sessions) and never hands off to OpenChamber's
-  routing.
-- This service, while the Work Status section is visible — at most once
-  every 30 s, and immediately when the switch is turned back on. Without
-  the section being opened the plugin's per-turn sync is the only writer.
+  the router sync is ON — the plugin routes the pick itself (only virtual
+  `modelselect/auto-*` sessions) and never hands off to OpenChamber's routing.
+- This service, on its own clock (`keepRunning`): at most once every 30 s per
+  project, immediately when the switch is turned back on, and right after the
+  panel saves plugin options. A read of `/status` never writes it.
 
 The switch row (`Auto-update router`, On / Off) writes
 `.opencode/.modelselect-cache/routing-sync.json`
 `{"sync": true|false}`; a missing/unreadable/non-boolean file means ON.
-The settings panel's Extension tab toggles the same file.
+The settings panel's Extension tab toggles the same file through the service.
 
 The sync logic is the shared, dependency-free core (`core/routing.js` at
-the repo root); the service wraps it in a plain-fs adapter
-(`service/src/main.js`).
+the repo root); the service wraps it in a plain-fs adapter (`store.js`).
 
 - Source: plugin `task-types-cache.json` (`jev_criteria` + `agent`) plus
   `model-config-cache.json` (`go`/`free` per task type).
@@ -151,9 +172,10 @@ The service is the **sole writer** of
 file the plugin reads to detect OpenChamber hosting (see
 `plugin/README.md`, Host detection). Behavior:
 
-- every poll (throttled to one write per 60 s) stamps each session id it
-  finds in the project's `status-*.json` files, so a previously routed
-  session counts as evidence;
+- every status read stamps each session id it finds in the project's
+  `status-*.json` files (throttled to one write per 60 s), so a previously
+  routed session counts as evidence — this is the only write a read performs,
+  and it is the service's own file, never the project's routing config;
 - before the first routed turn there is no session id to stamp, so it uses
   the synthetic key `openchamber` — the plugin's setup probe reads any
   fresh entry, so a fresh project is still detected;
@@ -161,14 +183,22 @@ file the plugin reads to detect OpenChamber hosting (see
   plugin read — keep `SESSION_MAP_TTL_MS` in sync with
   `plugin/src/shared/host.js`);
 - with no workspace subscription, archived/deleted sessions are cleaned up
-  by that 30-day prune instead of immediately (the `sessions` capability
-  is gone);
+  by that 30-day prune instead of immediately;
 - writes go through a temp file + rename and never throw.
 
 The plugin only ever reads this file. A session that has never routed has
 no entry, so the plugin's per-session `/modelselect` line can report
 `standalone` until its first turn even while project-level detection is
 already on.
+
+## Session action
+
+`contributes.actions` adds **Model select pick** to a session's menu. It runs
+in the background entry (`background/main.js`, no UI): `GET /pick?session=…`
+returns the one-line summary (`bugfix · free · opencode/zen-free · High ·
+5m ago`, with `last known` past ~10 min) and the frame shows it as a toast with
+Copy. Without a routed turn the toast says the session routes on its first
+turn.
 
 ## External config (`modelselect.json`) + model autoset
 
@@ -194,29 +224,28 @@ virtual `modelselect/auto-*` models are the routing switch now):
   preference and active free-tier latch window as the categories, write
   only on diff, and never touch `variant`.
 
-## Usage provider (quota) — OpenChamber >= 2.6.2 canary
+## Usage provider (quota)
 
 The service declares `provides: ["quota"]` with an empty `providers` list
-(the extension's own key lives in its settings, none needed). OpenChamber
-names it `ext-model-select` and lists it on the Usage page alongside the
-built-in providers. The service answers `POST /quota` (`usage.read`) by
-reading the plugin's `usage-limits.json` snapshot and translating it into
-`QuotaProviderUsageData`:
+(no credentials are consumed). OpenChamber names it `ext-model-select` and
+lists it on the Usage page. The service answers `POST /quota`
+(`usage.read`) from the plugin's `usage-limits.json` snapshot:
 
 - `windows` — Go rolling / weekly / monthly meters (`usedPercent`, `resetAt`)
 - `models` — per-model Console budget windows (`providerID/modelID` →
   `usedPercent`, `resetAt` from `budgets[].models[]`)
 
-Returns `configured: false` when no usage snapshot exists yet (open a
-project and let the plugin write one). This requires OpenChamber >= 2.6.2
-(canary), hence `engines.openchamber: ">=2.6.2"`; on 2.6.1 stable the
-extension cannot install with the quota role.
+The quota call carries no project, so the service answers with the project it
+was last asked about (the section or the panel) and says "open a project so the
+plugin writes one" when it has none. (The host spawns a service with the
+extension folder as its working directory, so reading `process.cwd()` — what
+0.7.0 did — can never find a project cache.)
 
 ## Settings panel
 
-The `Model select` rail icon (`panel/index.html` → `panel/main.js`) opens
-a two-tab settings panel (same `files` capability, no new paths beyond
-what is already declared in `package.json`):
+The `Model select` rail icon (`panel/index.html` → `panel/main.js`) opens a
+three-tab settings panel. It reads one `GET /config` snapshot on open and
+writes through the service, so it needs no file grants of its own:
 
 - **Plugin tab** — the modelselect entry's `options` inside the OpenChamber
   managed OpenCode config (`~/.config/openchamber/opencode.managed.json`,
@@ -228,19 +257,19 @@ what is already declared in `package.json`):
   historyChars, configRefreshMinutes, the Jev fields, configUrl,
   taskTypesUrl, fallbackModel, agentTaskMap (JSON), and the write-only
   `token` / `jevToken` password fields (blank = keep the stored value,
-  never rendered). Save is read-modify-write: unknown option keys and
-  unknown top-level config keys are preserved, and the Save button stays
-  disabled until something actually changed (secret drafts count as a
-  change; after a successful save the drafts clear and the button gates
-  again). String / tuple entries are
+  never rendered and never returned by `/config`). Save is read-modify-write
+  inside the service: unknown option keys and unknown top-level config keys
+  are preserved, and the Save button stays disabled until something actually
+  changed (secret drafts count as a change; after a successful save the
+  drafts clear and the button gates again). String / tuple entries are
   converted to `{ package, options }` in place. A missing entry shows an
-  "Add to managed config" button that disappears once the entry exists
-  (re-clicking cannot duplicate it). An unparseable config shows an error
-  banner and no form — nothing is ever written over it. After a
-  successful save the panel asks the local service to reload OpenCode's
-  configuration (`POST /api/location/reload`, OpenCode >= 2.2.1) so the
-  new options apply without restarting OpenChamber; if the reload endpoint
-  is unavailable the familiar "restart required" notice is shown instead.
+  "Add to managed config" button that writes a bare entry and reloads the
+  panel. An unparseable config shows an error banner and no form — nothing
+  is ever written over it. After a successful save the service reloads
+  OpenCode's configuration (`POST /api/location/reload`, OpenCode >= 2.2.1)
+  so the new options apply without restarting OpenChamber; if the reload
+  endpoint is unavailable the familiar "restart required" notice is shown
+  instead.
 - **Extension tab** — the router-sync switch (project
   `.opencode/.modelselect-cache/routing-sync.json`, same file the status
   section toggles) plus `~/.config/openchamber/modelselect.json`
@@ -248,28 +277,25 @@ what is already declared in `package.json`):
   `walkthroughModelTask`; created on first save, unknown keys preserved).
   Applies on the next turn — no restart.
 - **Models tab** (read-only preview) — a task combo plus the model chain
-  for that task in the order the saved configuration would use it:
-  effective side first (pinned tier, else the auto preference with
-  free-quota failover), each side score-best-first. Rows show the model
+  `GET /chain` returns for that task, in the order the saved configuration
+  would use it: effective side first (pinned tier, else the auto preference
+  with free-quota failover), each side score-best-first. Rows show the model
   name, provider, context window (`200k ctx`, before the score), score,
   blended + in/out costs, themed media icons top-right (file-text, image,
   file-pdf, audio, video, attachment; unknown modalities render as their
   name), each with a tooltip + click-to-toast description, and a
-  usage-status bar (Go rows: the consumed monthly quota window from the
-  plugin's `usage-limits.json` snapshot — width = percent, tone by
-  limited/thresholds; free rows: availability — full unless latched;
-  excluded rows: the blocking reason at full width); cost stays as text
-  in the meta line, never in the bar. Excluded rows
+  usage-status bar computed by the service (Go rows: the consumed monthly
+  quota window from the plugin's `usage-limits.json` snapshot — width =
+  percent, tone by limited/thresholds; free rows: availability — full unless
+  latched; excluded rows: the blocking reason at full width); cost stays as
+  text in the meta line, never in the bar. Excluded rows
   are grayed with the reason (`quota latched · retry in …`,
   `over maxCost $…`, `off-side · …`, `no cost data`). The pick gets a
   PICK badge. The task combo sits inline with a themed eye / eye-off button
-  that hides/shows the excluded rows. Live Go monthly usage comes from the
-  plugin's `usage-limits.json` snapshot (written Node-side from
-  `GET /api/experimental/usage/limits` with a Zen fallback, never holding
-  a token in the panel). The chain mirrors
-  `plugin/src/shared/select.js` without the live network probe, reusing
-  the shared core (`lookup`, `model-ref`, `budget`, `free-quota`) via
-  `panel/src/models.js`. Capability data comes from the catalog rows
+  that hides/shows the excluded rows. The chain mirrors
+  `plugin/src/shared/select.js` without the live network probe, reusing the
+  shared core (`lookup`, `model-ref`, `budget`, `free-quota`) via
+  `service/src/chain.js`. Capability data comes from the catalog rows
   (`context` + `modalities`, enriched by maintenance from the curated
   `config/model-capabilities.yaml` table + the models.dev registry;
   rows without data omit the ctx segment and icons, and the pane says
@@ -280,18 +306,6 @@ what is already declared in `package.json`):
   session runs) only refresh the theme, so the active tab and unsaved
   edits survive. Reopen the panel to reload from disk after switching
   projects.
-
-`test/panel-frame.test.cjs` asserts hello, the seeded form values, the
-merge-preserving save, the blank-secret behavior, the missing-entry and
-unparseable-config states, and the extension-tab writes.
-
-## Fix hint (plugin-missing)
-
-Add the plugin to the OpenChamber managed config
-`<dataDir>/opencode.managed.json`
-(default `~/.config/openchamber/opencode.managed.json`) and reopen
-OpenChamber. Global `~/.config/opencode/opencode.json(c)` entries do
-not load in the OpenChamber panel.
 
 ## Notes
 

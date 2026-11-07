@@ -43,9 +43,15 @@ const VALUE_MAX = 80;
 const TEXT_MAX = 200;
 const NOTE_MAX = 300;
 
-const FIX_TEXT = 'ModelSelect plugin not detected. Fix: add the modelselect ' +
-  'plugin to the OpenChamber managed config <dataDir>/opencode.managed.json ' +
-  '(default ~/.config/openchamber/opencode.managed.json) and reopen OpenChamber.';
+/** The plugin's tier option: `auto` follows autoPreference. */
+export const TIER_OPTIONS = [
+  { value: 'auto', label: 'auto' },
+  { value: 'go', label: 'go' },
+  { value: 'free', label: 'free' }
+];
+
+const MISSING_NOTE = 'ModelSelect plugin not in opencode.managed.json — ' +
+  'the extension card shows the fix; only this section stays empty.';
 
 function str(v) {
   return v == null ? '' : String(v);
@@ -244,9 +250,25 @@ function statusRows(snap, rows) {
   rows.push(line({ id: 'task', label: 'Task', value: status.taskType || '—',
     ...(unlisted ? { badge: { label: 'unlisted task', tone: 'warning' } } : {}),
     ...(unlisted ? { tooltip: 'This task type is not in the plugin model config.' } : {}) }));
+  // The tier is the one option worth changing without the panel: the
+  // service writes it to the managed config and reloads OpenCode. The row's
+  // value is the tier the last turn used; the control shows the stored
+  // option, so the tooltip names both.
   rows.push(line({ id: 'tier', label: 'Tier', value: status.tier || '—',
     dot: status.goOk === true ? 'success' : status.goOk === false ? 'error' : 'muted',
-    tooltip: goHint(status.goOk) }));
+    ...(snap.tierOption ? {
+      actions: [{
+        kind: 'select',
+        id: 'tier',
+        label: 'Tier',
+        value: snap.tierOption,
+        options: TIER_OPTIONS
+      }]
+    } : {}),
+    tooltip: cut(goHint(status.goOk) + ' · last pick used ' + (status.tier || 'unknown') +
+      (snap.tierOption
+        ? ' · the control sets the plugin tier option (' + snap.tierOption + '; auto = autoPreference)'
+        : ''), TEXT_MAX) }));
   rows.push(line({ id: 'model', label: 'Model', value: status.model || '—',
     ...(status.suggestOnly ? { badge: { label: 'suggest only', tone: 'info' } } : {}),
     tooltip: (status.suggestOnly ? 'Suggest-only trial mode — the pick is logged but never applied. ' : '') + str(status.model) }));
@@ -266,6 +288,36 @@ function statusRows(snap, rows) {
 }
 
 /**
+ * One pick, as the background action's toast shows it: the fields plus a
+ * single line to copy. `null` without a status file.
+ */
+export function pickSummary(status, now) {
+  if (!status) return null;
+  const at = typeof now === 'number' ? now : Date.now();
+  const parts = [
+    status.taskType || 'task?',
+    status.tier || 'tier?',
+    status.model || 'no model',
+    thinkLabel(status)
+  ];
+  if (status.suggestOnly) parts.push('suggest only');
+  parts.push(formatAge(at, status.updatedAt));
+  if (isStale(status, at)) parts.push('last known');
+  return {
+    text: parts.join(' · '),
+    taskType: str(status.taskType),
+    tier: str(status.tier),
+    model: str(status.model),
+    think: thinkLabel(status),
+    jev: str(status.jev),
+    source: str(status.source),
+    suggestOnly: Boolean(status.suggestOnly),
+    updatedAt: typeof status.updatedAt === 'number' ? status.updatedAt : null,
+    stale: isStale(status, at)
+  };
+}
+
+/**
  * Build the `GuestStatusView` for one read.
  *
  * `snap`:
@@ -276,6 +328,8 @@ function statusRows(snap, rows) {
  * - `sync` router-sync switch (default true)
  * - `freeQuota`, `usage` parsed files (or null)
  * - `globalEntry` `{ checked, entry }` plugin-presence probe
+ * - `tierOption` the plugin's stored `tier` option (or null when there is no
+ *   entry) — present turns the Tier row into a select control
  */
 export function buildView(snap) {
   const now = typeof snap.now === 'number' ? snap.now : Date.now();
@@ -290,7 +344,7 @@ export function buildView(snap) {
     if (snap.globalEntry && snap.globalEntry.entry) {
       rows.push(note('no-pick', 'No pick yet — the plugin routes on the first turn of a session.', 'muted'));
     } else {
-      rows.push(note('plugin-missing', FIX_TEXT, 'error'));
+      rows.push(note('plugin-missing', MISSING_NOTE, 'error'));
     }
   } else if (snap.status) {
     statusRows(snap, rows);
@@ -342,4 +396,4 @@ export function buildView(snap) {
   return { rows: rows.slice(0, ROWS_MAX) };
 }
 
-export { FIX_TEXT, STALE_MS, ROWS_MAX, budgetRows };
+export { MISSING_NOTE, STALE_MS, ROWS_MAX, budgetRows };

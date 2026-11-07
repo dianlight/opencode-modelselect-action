@@ -17,7 +17,7 @@ propagate with no sync and no edits.
 |-----------|------|-----------|
 | Select Model Action | `github-action/` | [github-action/README.md](./github-action/README.md) |
 | Modelselect Plugin | `plugin/` | [plugin/README.md](./plugin/README.md) |
-| OpenChamber Status View | `openchamber-modelselect/` | [openchamber-modelselect/README.md](./openchamber-modelselect/README.md) |
+| OpenChamber Extension | `openchamber-modelselect/` | [openchamber-modelselect/README.md](./openchamber-modelselect/README.md) |
 
 - **Select Model Action** preselects the model in CI before running the
   OpenCode step (`task-type` + `tier` → `model` output). The root
@@ -33,11 +33,14 @@ propagate with no sync and no edits.
   `/modelselect` command, token resolution and trial runs.
 - **OpenChamber Status View** is a host-rendered Work Status section
   (`contributes.statusSection.source`, OpenChamber >= 2.6.1): the host draws
-  the plugin's newest project pick plus the auto-update-router switch, fed by
-  a small local service, and records session activity into the
-  host-detection session map the plugin reads. A settings panel covers the
-  plugin and extension options. See the component README for install, build
-  and test.
+  the plugin's newest project pick plus the auto-update-router switch and a
+  tier select, fed by a local service. That service is the extension's only
+  owner of file I/O: the settings panel (plugin options, extension config,
+  models chain) and a "Model select pick" session action both go through it,
+  so the package asks for no file permissions. It also records session
+  activity into the host-detection session map the plugin reads, and answers
+  OpenChamber's Usage page as a quota provider. See the component README for
+  install, build and test.
 
 ## Quick start
 

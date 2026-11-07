@@ -92,15 +92,20 @@ When updating `CHANGELOG.md`:
 - **Always run `mise run lint-python` after editing any Python file** — the CI checks Python with ruff
 - After changing anything under `core/`, run `mise run build-core` and commit the regenerated `github-action/src/shared/core/` and `plugin/src/shared/core/` copies — CI and `plugin/test/core-vendor.test.js` fail on drift (`mise run build-core-check`)
 - Verify with `node --check github-action/src/index.js` after changing the action (run from `github-action/` as `node --check src/index.js`); `npm test` at the root delegates to `github-action/test/`
-- After changing `openchamber-modelselect/service/src/*.js` or
-  `openchamber-modelselect/panel/src/*.js`, rebuild the bundles
+- After changing `openchamber-modelselect/service/src/*.js`,
+  `openchamber-modelselect/panel/src/*.js` or
+  `openchamber-modelselect/background/src/*.js`, rebuild the bundles
   (`bun install && bun run build` in `openchamber-modelselect/`), verify with
-  `bun run check`, run `bun run test` (view schema, live service, manifest,
-  panel frame), and commit the rebuilt `service/main.js` / `panel/main.js`
-  alongside the source. The status section is host-rendered
-  (`contributes.statusSection.source`, OpenChamber >= 2.6.1): there is no
-  status iframe/bundle anymore, and every view row must pass
-  `guestStatusViewSchema` or the host blanks the whole section.
+  `bun run check` (also runs `openchamber-guest-check`), run `bun run test`
+  (view schema, chain, live service, manifest, panel frame), and commit the
+  rebuilt `service/main.js` / `panel/main.js` / `background/main.js` alongside
+  the source. CI fails on a stale committed bundle. The status section is
+  host-rendered (`contributes.statusSection.source`, OpenChamber >= 2.6.1):
+  there is no status iframe/bundle, and every view row must pass
+  `guestStatusViewSchema` or the host blanks the whole section. The local
+  service is the extension's only owner of file I/O — the package must keep
+  `contributes.capabilities` and `contributes.filesystem` absent; the panel
+  talks to the service through `panel/src/api.js` only.
 
 ## Renovate
 

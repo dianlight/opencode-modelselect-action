@@ -31,6 +31,19 @@ var __toESM = (mod, isNodeMode, target) => {
   return to;
 };
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var __returnValue = (v) => v;
+function __exportSetter(name, newValue) {
+  this[name] = __returnValue.bind(null, newValue);
+}
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, {
+      get: all[name],
+      enumerable: true,
+      configurable: true,
+      set: __exportSetter.bind(all, name)
+    });
+};
 
 // ../core/model-ref.js
 var require_model_ref = __commonJS(function(exports, module) {
@@ -814,14 +827,345 @@ var require_routing = __commonJS(function(exports, module) {
   };
 });
 
-// service/src/main.js
-var import_routing2 = __toESM(require_routing(), 1);
-import http from "node:http";
-import fsp from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import crypto from "node:crypto";
+// ../core/lookup.js
+var require_lookup = __commonJS(function(exports, module) {
+  function entryFor(config, taskType) {
+    const table = config?.["task-types"] ?? config?.task_types;
+    if (!table || typeof table !== "object")
+      throw new Error("Invalid model config: missing 'task-types'.");
+    const key = Object.keys(table).find((k) => k.toLowerCase() === String(taskType).toLowerCase());
+    if (!key)
+      return { key: null, entry: null };
+    return { key, entry: table[key] };
+  }
+  function normalizeThink(v) {
+    const s = String(v ?? "").toLowerCase();
+    return ["default", "minimal", "low", "medium", "high", "xhigh"].includes(s) ? s : null;
+  }
+  function toWireEffort(think) {
+    const t = String(think ?? "").toLowerCase();
+    if (t === "xhigh")
+      return "high";
+    if (t === "minimal")
+      return "low";
+    if (t === "low" || t === "medium" || t === "high")
+      return t;
+    return null;
+  }
+  module.exports = {
+    entryFor,
+    normalizeThink,
+    toWireEffort
+  };
+});
 
+// ../core/budget.js
+var require_budget = __commonJS(function(exports, module) {
+  var { normModelName } = require_model_ref();
+  function rankedCost(row) {
+    if (!row || typeof row !== "object")
+      return null;
+    const c = row.blended_cost;
+    return typeof c === "number" && Number.isFinite(c) && c >= 0 ? c : null;
+  }
+  function selectWithinBudget(entry, taskKey, tier, recommended, maxCost) {
+    const ranked = entry ? entry[`${tier}_ranked`] : null;
+    if (!Array.isArray(ranked)) {
+      throw new Error(`Input 'max-cost' needs a '${tier}_ranked' best-to-worst ranking for ` + `task-type='${taskKey}' in the model config; regenerate ` + "data/model-config.json via maintenance.");
+    }
+    const ordered = ranked.filter((r) => r && typeof r.model === "string" && r.model).slice().sort((a, b) => {
+      const sa = typeof a.score === "number" ? a.score : -Infinity;
+      const sb = typeof b.score === "number" ? b.score : -Infinity;
+      if (sb !== sa)
+        return sb - sa;
+      const ca = rankedCost(a);
+      const cb = rankedCost(b);
+      if (ca === null && cb === null)
+        return 0;
+      if (ca === null)
+        return 1;
+      if (cb === null)
+        return -1;
+      return ca - cb;
+    });
+    const wanted = normModelName(recommended);
+    const rec = ordered.find((r) => normModelName(r.model) === wanted);
+    const recCost = rec ? rankedCost(rec) : null;
+    if (recCost !== null && recCost <= maxCost) {
+      return { model: recommended, cost: String(recCost) };
+    }
+    for (const row of ordered) {
+      const c = rankedCost(row);
+      if (c !== null && c <= maxCost)
+        return { model: row.model, cost: String(c) };
+    }
+    const known = ordered.map(rankedCost).filter((c) => c !== null);
+    const cheapest = known.length ? Math.min(...known) : null;
+    return {
+      model: null,
+      hint: cheapest === null ? "no ranked model has a known cost" : `cheapest ranked model costs $${cheapest}/1M`
+    };
+  }
+  module.exports = {
+    rankedCost,
+    selectWithinBudget
+  };
+});
+
+// service/src/store.js
+var exports_store = {};
+__export(exports_store, {
+  CACHE_REL: () => CACHE_REL,
+  DEFAULT_CONFIG_URL: () => DEFAULT_CONFIG_URL,
+  DEFAULT_JEV_ENDPOINT: () => DEFAULT_JEV_ENDPOINT,
+  DEFAULT_TASK_TYPES_URL: () => DEFAULT_TASK_TYPES_URL,
+  FALLBACK_COST_MAX: () => FALLBACK_COST_MAX,
+  FALLBACK_COST_MIN: () => FALLBACK_COST_MIN,
+  GLOBAL_CONFIG_PATHS: () => GLOBAL_CONFIG_PATHS,
+  GLOBAL_NOTE_PATHS: () => GLOBAL_NOTE_PATHS,
+  MANAGED_CONFIG_PATH: () => MANAGED_CONFIG_PATH,
+  MODELSELECT_CONFIG_PATH: () => MODELSELECT_CONFIG_PATH,
+  PLUGIN_PACKAGE: () => PLUGIN_PACKAGE,
+  ROUTING_SYNC_FILE: () => ROUTING_SYNC_FILE,
+  SESSION_MAP_FILE: () => SESSION_MAP_FILE,
+  addPluginEntry: () => addPluginEntry,
+  buildPluginOptions: () => buildPluginOptions,
+  cacheDirOf: () => cacheDirOf,
+  findPluginEntry: () => findPluginEntry,
+  knownTaskTypes: () => knownTaskTypes,
+  lastProject: () => lastProject,
+  listStatuses: () => listStatuses,
+  newestStatus: () => newestStatus,
+  readCatalog: () => readCatalog,
+  readExtensionConfig: () => readExtensionConfig,
+  readJsonAt: () => readJsonAt,
+  readJsonFile: () => readJsonFile,
+  readLatch: () => readLatch,
+  readManagedConfig: () => readManagedConfig,
+  readRoutingSync: () => readRoutingSync,
+  readSessionStatus: () => readSessionStatus,
+  readUsage: () => readUsage,
+  rememberProject: () => rememberProject,
+  resolveLogicalPath: () => resolveLogicalPath,
+  sanitizeSessionID: () => sanitizeSessionID,
+  saveExtensionConfig: () => saveExtensionConfig,
+  savePluginOptions: () => savePluginOptions,
+  setPluginOption: () => setPluginOption,
+  storedPluginOptions: () => storedPluginOptions,
+  writeJsonAt: () => writeJsonAt,
+  writeJsonAtomic: () => writeJsonAtomic,
+  writeRoutingSync: () => writeRoutingSync
+});
+
+// service/src/main.js
+var import_routing3 = __toESM(require_routing(), 1);
+import http from "node:http";
+import fsp2 from "node:fs/promises";
+import path2 from "node:path";
+import crypto from "node:crypto";
+// node_modules/@openchamber/sdk/dist/scrollbar-style.js
+var GUEST_SCROLLING_ATTRIBUTE = "data-oc-scrolling";
+var GUEST_SCROLLBAR_CSS = `
+:root {
+  /* Quiet at rest like the app's own thumbs; hover gives a clear grab target. */
+  --oc-scrollbar-thumb: color-mix(in srgb, var(--oc-muted, currentColor) 18%, transparent);
+  --oc-scrollbar-thumb-hover: color-mix(in srgb, var(--oc-muted, currentColor) 36%, transparent);
+  scrollbar-gutter: stable;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+:hover, [${GUEST_SCROLLING_ATTRIBUTE}] {
+  scrollbar-color: var(--oc-scrollbar-thumb) transparent;
+}
+/* Chromium's standard scrollbar properties otherwise override its pseudo-elements. */
+@supports selector(::-webkit-scrollbar) {
+  *, :hover, [${GUEST_SCROLLING_ATTRIBUTE}] { scrollbar-width: auto; scrollbar-color: auto; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+  :hover::-webkit-scrollbar-thumb, [${GUEST_SCROLLING_ATTRIBUTE}]::-webkit-scrollbar-thumb { background: var(--oc-scrollbar-thumb); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--oc-scrollbar-thumb-hover); }
+  ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+}
+@media (forced-colors: active) {
+  *, :hover, [${GUEST_SCROLLING_ATTRIBUTE}] { scrollbar-color: auto; }
+  ::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover { background: CanvasText; }
+}
+`;
+function installGuestScrollbarActivity(doc) {
+  const root = doc.documentElement;
+  if (root.hasAttribute("data-oc-scrollbar-activity"))
+    return;
+  root.setAttribute("data-oc-scrollbar-activity", "");
+  const timers = new WeakMap;
+  doc.addEventListener("scroll", (event) => {
+    const target = event.target === doc ? root : event.target;
+    if (!(target instanceof Element))
+      return;
+    if (!target.hasAttribute("data-oc-scrolling"))
+      target.setAttribute("data-oc-scrolling", "");
+    const pending = timers.get(target);
+    if (pending !== undefined)
+      clearTimeout(pending);
+    timers.set(target, setTimeout(() => {
+      timers.delete(target);
+      target.removeAttribute("data-oc-scrolling");
+    }, 1000));
+  }, { capture: true, passive: true });
+}
+var GUEST_SCROLLBAR_SCRIPT = `(${installGuestScrollbarActivity.toString()})(document);`;
+// node_modules/@openchamber/sdk/dist/manifest.js
+var TRACKER_URL_TOKENS = ["{id}", "{segment}", "{segments+}"];
+var TRACKER_URL_TOKEN_SET = new Set(TRACKER_URL_TOKENS);
+// node_modules/@openchamber/sdk/dist/session-events.js
+var GUEST_SESSION_EVENT_TYPES = [
+  "turn-finished",
+  "turn-failed",
+  "permission-asked",
+  "question-asked",
+  "turn-started",
+  "session-created",
+  "session-archived",
+  "session-deleted"
+];
+var SESSION_EVENTS_IDLE_MS = 10 * 60000;
+var EVENT_TYPES = new Set(GUEST_SESSION_EVENT_TYPES);
+// node_modules/@openchamber/sdk/dist/service-host.js
+var SERVICE_HOST_PATH = "/service/call";
+var OPENCHAMBER_HOST_CALLBACK_URL_ENV = "OPENCHAMBER_HOST_CALLBACK_URL";
+var SERVICE_HOST_TIMEOUT_MS = 30000;
+var SERVICE_SCHEDULE_IDLE_MS = 10 * 60000;
+var MENTIONS_IDLE_MS = 10 * 60000;
+class ServiceHostError extends Error {
+  code;
+  status;
+  constructor(message, code, status) {
+    super(message);
+    this.name = "ServiceHostError";
+    this.code = code;
+    this.status = status;
+  }
+}
+var createServiceHost = ({ env }) => {
+  const call = async (method, input) => {
+    const base = env[OPENCHAMBER_HOST_CALLBACK_URL_ENV];
+    const token = env.OPENCHAMBER_SERVICE_TOKEN;
+    if (!base || !token)
+      throw new ServiceHostError("This service was not started by OpenChamber.", "HOST_UNAVAILABLE", 0);
+    let response;
+    try {
+      response = await fetch(`${base.replace(/\/+$/, "")}${SERVICE_HOST_PATH}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ method, input }),
+        signal: AbortSignal.timeout(SERVICE_HOST_TIMEOUT_MS)
+      });
+    } catch {
+      throw new ServiceHostError("OpenChamber did not answer.", "HOST_UNAVAILABLE", 0);
+    }
+    const body = await response.json().catch(() => null);
+    if (response.ok && body?.result !== undefined)
+      return body.result;
+    throw new ServiceHostError(body?.error?.message ?? `OpenChamber answered HTTP ${response.status}.`, body?.error?.code ?? "HOST_UNAVAILABLE", response.status);
+  };
+  return {
+    sessions: {
+      start: (input) => call("sessions.start", input),
+      send: (sessionId, prompt) => call("sessions.send", { sessionId, prompt }),
+      retry: (sessionId) => call("sessions.retry", { sessionId }),
+      status: (sessionId) => call("sessions.status", { sessionId }),
+      lastReply: (sessionId) => call("sessions.lastReply", { sessionId })
+    },
+    setInstructions: (directory, text) => call("instructions.set", { directory, text }),
+    emit: (topic, data) => call("panels.emit", { topic, data }),
+    readSettings: () => call("settings.read", {}).then(({ settings }) => settings),
+    needsConfiguration: (message) => call("status.set", { needsConfiguration: message })
+  };
+};
+// node_modules/@openchamber/sdk/dist/file-editor.js
+var patternExpressions = new Map;
+// node_modules/@openchamber/sdk/dist/contract.js
+var GUEST_FILE_STAT_KINDS = ["file", "directory", "other", "missing"];
+var GUEST_GENERATE_LATE_KEEP_MS = 60 * 60000;
+var HOST_REQUEST_ERROR_CODES = [
+  "HOST_UNAVAILABLE",
+  "HOST_TIMEOUT",
+  "HOST_REJECTED",
+  "DISCONNECTED",
+  "DISABLED",
+  "BAD_PATH",
+  "NO_INTEGRATION",
+  "NO_SERVICE",
+  "SERVICE_FAILED",
+  "REQUEST_FAILED",
+  "RESPONSE_TOO_LARGE",
+  "NO_SESSION",
+  "SESSION_BUSY",
+  "NOT_GRANTED",
+  "NO_DIRECTORY",
+  "NOT_FOUND",
+  "FILE_TOO_LARGE",
+  "DENIED",
+  "NO_MODEL",
+  "MODEL_FAILED",
+  "UNSUPPORTED"
+];
+var SERVICE_STATUS_VALUES = ["stopped", "starting", "ready", "failed"];
+var hostRequestErrorCodeSet = new Set(HOST_REQUEST_ERROR_CODES);
+var serviceStatusSet = new Set(SERVICE_STATUS_VALUES);
+var fileStatKindSet = new Set(GUEST_FILE_STAT_KINDS);
+var HOST_PUSH_TYPES = new Set([
+  "workspace",
+  "shells",
+  "ready",
+  "directory",
+  "session",
+  "connection",
+  "settings",
+  "session-lifecycle",
+  "item",
+  "resolve",
+  "action",
+  "service-event",
+  "status-control-event",
+  "popover-closed",
+  "file-open",
+  "file-snapshot",
+  "file-saved",
+  "generate-late"
+]);
+// node_modules/@openchamber/sdk/dist/service-providers.js
+var BROWSER_CONTROL_ACTIONS = [
+  "browser.open",
+  "browser.snapshot",
+  "browser.click",
+  "browser.type",
+  "browser.select",
+  "browser.scroll",
+  "browser.back",
+  "browser.forward",
+  "browser.inspect",
+  "browser.capture",
+  "browser.resize",
+  "browser.close"
+];
+var BROWSER_PROVIDER_IDLE_MS = 10 * 60000;
+var CONTROL_ACTIONS = new Set(BROWSER_CONTROL_ACTIONS);
+var SOURCE_CONTROL_PROVIDER_IDLE_MS = 10 * 60000;
+var NOTIFICATIONS_PROVIDER_IDLE_MS = 10 * 60000;
+var TRACKER_PROVIDER_IDLE_MS = 10 * 60000;
+var QUOTA_PROVIDER_IDLE_MS = 10 * 60000;
+// node_modules/@openchamber/sdk/dist/service-surface.js
+var SURFACE_CONTROLLERS = ["none", "agent", "user"];
+var CONTROLLERS = new Set(SURFACE_CONTROLLERS);
 // service/src/view.js
 var import_routing = __toESM(require_routing(), 1);
 var { freeQuotaFresh, latchEntries } = import_routing.default;
@@ -831,7 +1175,12 @@ var LABEL_MAX = 60;
 var VALUE_MAX = 80;
 var TEXT_MAX = 200;
 var NOTE_MAX = 300;
-var FIX_TEXT = "ModelSelect plugin not detected. Fix: add the modelselect " + "plugin to the OpenChamber managed config <dataDir>/opencode.managed.json " + "(default ~/.config/openchamber/opencode.managed.json) and reopen OpenChamber.";
+var TIER_OPTIONS = [
+  { value: "auto", label: "auto" },
+  { value: "go", label: "go" },
+  { value: "free", label: "free" }
+];
+var MISSING_NOTE = "ModelSelect plugin not in opencode.managed.json — " + "the extension card shows the fix; only this section stays empty.";
 function str(v) {
   return v == null ? "" : String(v);
 }
@@ -1016,7 +1365,16 @@ function statusRows(snap, rows) {
     label: "Tier",
     value: status.tier || "—",
     dot: status.goOk === true ? "success" : status.goOk === false ? "error" : "muted",
-    tooltip: goHint(status.goOk)
+    ...snap.tierOption ? {
+      actions: [{
+        kind: "select",
+        id: "tier",
+        label: "Tier",
+        value: snap.tierOption,
+        options: TIER_OPTIONS
+      }]
+    } : {},
+    tooltip: cut(goHint(status.goOk) + " · last pick used " + (status.tier || "unknown") + (snap.tierOption ? " · the control sets the plugin tier option (" + snap.tierOption + "; auto = autoPreference)" : ""), TEXT_MAX)
   }));
   rows.push(line({
     id: "model",
@@ -1041,6 +1399,34 @@ function statusRows(snap, rows) {
     tooltip: "Session " + (snap.sessionID || "unknown") + " · " + (typeof status.updatedAt === "number" ? new Date(status.updatedAt).toISOString() : "no timestamp") + (stale ? " — the pick has not been rewritten for a while (stale by design outside routed turns)." : "")
   }));
 }
+function pickSummary(status, now) {
+  if (!status)
+    return null;
+  const at = typeof now === "number" ? now : Date.now();
+  const parts = [
+    status.taskType || "task?",
+    status.tier || "tier?",
+    status.model || "no model",
+    thinkLabel(status)
+  ];
+  if (status.suggestOnly)
+    parts.push("suggest only");
+  parts.push(formatAge(at, status.updatedAt));
+  if (isStale(status, at))
+    parts.push("last known");
+  return {
+    text: parts.join(" · "),
+    taskType: str(status.taskType),
+    tier: str(status.tier),
+    model: str(status.model),
+    think: thinkLabel(status),
+    jev: str(status.jev),
+    source: str(status.source),
+    suggestOnly: Boolean(status.suggestOnly),
+    updatedAt: typeof status.updatedAt === "number" ? status.updatedAt : null,
+    stale: isStale(status, at)
+  };
+}
 function buildView(snap) {
   const now = typeof snap.now === "number" ? snap.now : Date.now();
   const rows = [];
@@ -1052,7 +1438,7 @@ function buildView(snap) {
     if (snap.globalEntry && snap.globalEntry.entry) {
       rows.push(note("no-pick", "No pick yet — the plugin routes on the first turn of a session.", "muted"));
     } else {
-      rows.push(note("plugin-missing", FIX_TEXT, "error"));
+      rows.push(note("plugin-missing", MISSING_NOTE, "error"));
     }
   } else if (snap.status) {
     statusRows(snap, rows);
@@ -1094,17 +1480,655 @@ function buildView(snap) {
   return { rows: rows.slice(0, ROWS_MAX) };
 }
 
-// service/src/main.js
-var { syncRouting, parseJsonLenient } = import_routing2.default;
+// service/src/chain.js
+var import_lookup = __toESM(require_lookup(), 1);
+var import_model_ref = __toESM(require_model_ref(), 1);
+var import_budget = __toESM(require_budget(), 1);
+var import_free_quota = __toESM(require_free_quota(), 1);
+var { entryFor } = import_lookup.default;
+var { firstPaidModel } = import_model_ref.default;
+var { selectWithinBudget } = import_budget.default;
+var { latchEntries: latchEntries2, freeQuotaFresh: freeQuotaFresh2, latchKeyApplies } = import_free_quota.default;
+function str2(v) {
+  return v == null ? "" : String(v);
+}
+function optOf(raw, camel, kebab, dflt) {
+  if (!raw || typeof raw !== "object")
+    return dflt;
+  if (raw[camel] !== undefined && raw[camel] !== null)
+    return raw[camel];
+  if (kebab && raw[kebab] !== undefined && raw[kebab] !== null)
+    return raw[kebab];
+  return dflt;
+}
+function numOrNull(v) {
+  if (v === null || v === undefined || v === "")
+    return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+function rowCost(row) {
+  if (!row || typeof row !== "object")
+    return null;
+  const c = row.blended_cost;
+  return typeof c === "number" && Number.isFinite(c) && c >= 0 ? c : null;
+}
+function sortRanked(rows) {
+  return (Array.isArray(rows) ? rows : []).filter((r) => r && typeof r.model === "string" && r.model).slice().sort((a, b) => {
+    const sa = typeof a.score === "number" ? a.score : -Infinity;
+    const sb = typeof b.score === "number" ? b.score : -Infinity;
+    if (sb !== sa)
+      return sb - sa;
+    const ca = rowCost(a);
+    const cb = rowCost(b);
+    if (ca === null && cb === null)
+      return 0;
+    if (ca === null)
+      return 1;
+    if (cb === null)
+      return -1;
+    return ca - cb;
+  });
+}
+function splitName(model) {
+  const s = str2(model);
+  const i = s.indexOf("/");
+  if (i < 0)
+    return { provider: "—", id: s };
+  return { provider: s.slice(0, i) || "—", id: s.slice(i + 1) };
+}
+function formatCountdown2(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor(s % 3600 / 60);
+  if (h > 0)
+    return h + "h " + m + "m";
+  if (m > 0)
+    return m + "m " + s % 60 + "s";
+  return s + "s";
+}
+function usageBar(row, usage, at) {
+  if (row.status === "excluded") {
+    const reason = row.reason || "excluded";
+    let tone = "muted";
+    if (/quota latched/.test(reason))
+      tone = "err";
+    else if (/rate-limited/.test(reason))
+      tone = "warn";
+    else if (/over maxCost|no cost data/.test(reason))
+      tone = "err";
+    return { pct: 100, tone, label: reason };
+  }
+  const u = usageMonthly(usage);
+  if (row.side === "go" && u && u.percent !== null) {
+    const pct = Math.max(3, Math.min(100, Math.round(u.percent)));
+    const tone = u.limited || u.percent >= 100 ? "err" : u.percent >= 70 ? "warn" : "ok";
+    let label = "Go monthly " + Math.round(u.percent) + "%";
+    if (u.limited) {
+      label += " · limited";
+      const left = typeof u.resetsAt === "number" && u.resetsAt > 0 ? formatCountdown2(u.resetsAt - (typeof at === "number" ? at : Date.now())) : "";
+      if (left)
+        label += " · resets " + left;
+    } else if (row.status === "pick") {
+      label = "PICK · " + label;
+    }
+    return { pct, tone, label };
+  }
+  if (row.status === "pick") {
+    return { pct: 100, tone: "ok", label: row.side === "free" ? "PICK · free" : "PICK" };
+  }
+  return { pct: 45, tone: "muted", label: row.side === "free" ? "free · no quota cap" : "standby" };
+}
+function computeModelsView({ taskType, catalogConfig, options, latchData, usage, now }) {
+  const at = typeof now === "number" ? now : Date.now();
+  const table = catalogConfig && (catalogConfig["task-types"] || catalogConfig.task_types) || {};
+  let key = null;
+  let entry = null;
+  try {
+    const found = entryFor({ "task-types": table }, taskType);
+    key = found.key;
+    entry = found.entry;
+  } catch (e) {
+    return { found: false, taskType: str2(taskType) };
+  }
+  if (!key || !entry)
+    return { found: false, taskType: str2(taskType) };
+  const tier = str2(optOf(options, "tier", null, "auto")).toLowerCase();
+  const preference = str2(optOf(options, "autoPreference", "auto-preference", "free-first")).toLowerCase();
+  const order = preference === "go-first" ? ["go", "free"] : ["free", "go"];
+  const maxCost = numOrNull(optOf(options, "maxCost", null, null));
+  const fallback = str2(optOf(options, "fallbackModel", "fallback-model", "")).trim();
+  const refOf = (side) => str2(side === "go" ? entry.go : entry.free).trim();
+  let fresh = [];
+  try {
+    fresh = latchEntries2(latchData || {}).filter((e) => freeQuotaFresh2(e, at));
+  } catch (e) {
+    fresh = [];
+  }
+  const latchHitFor = (model) => {
+    for (let i = 0;i < fresh.length; i += 1) {
+      const e = fresh[i];
+      if (!e.model || latchKeyApplies(e.key, model))
+        return e;
+    }
+    return null;
+  };
+  const latched = (model) => Boolean(model && latchHitFor(model));
+  let side;
+  let sideNote;
+  const pinned = tier === "go" || tier === "free";
+  if (pinned) {
+    side = tier;
+    sideNote = "tier=" + tier;
+    if (!refOf(side) && refOf(side === "go" ? "free" : "go")) {
+      side = side === "go" ? "free" : "go";
+      sideNote += " empty → " + side;
+    }
+  } else {
+    side = refOf(order[0]) ? order[0] : order[1];
+    sideNote = "auto → " + preference;
+    const other = side === "go" ? "free" : "go";
+    if (refOf(side) && latched(refOf(side)) && refOf(other)) {
+      side = other;
+      sideNote += " · latched → failover";
+    }
+  }
+  const otherSide = side === "go" ? "free" : "go";
+  let model = refOf(side);
+  let pickNote = "";
+  if (model && latched(model)) {
+    const paid = firstPaidModel(entry);
+    if (paid) {
+      model = paid;
+      side = "go";
+      pickNote = "latched → paid failover";
+    }
+  }
+  let pickName = model;
+  let pickSource = model ? "chain" : null;
+  if (!model && fallback) {
+    return {
+      found: true,
+      key,
+      side,
+      sideNote,
+      maxCost,
+      fallback,
+      pick: fallback,
+      pickSource: "fallback",
+      pickNote: "No chain model configured — fallback",
+      chain: []
+    };
+  }
+  if (maxCost !== null && model) {
+    let budgeted = null;
+    try {
+      budgeted = selectWithinBudget(entry, key, side, model, maxCost);
+    } catch (e) {
+      budgeted = null;
+    }
+    if (budgeted && budgeted.model) {
+      if (budgeted.model !== model)
+        pickNote = "over budget → $" + budgeted.cost + "/1M pick";
+      model = budgeted.model;
+      pickName = model;
+    } else {
+      pickName = "";
+      pickSource = fallback ? "fallback" : null;
+      return {
+        found: true,
+        key,
+        side,
+        sideNote,
+        maxCost,
+        fallback,
+        pick: fallback || null,
+        pickSource,
+        pickNote: fallback ? "Nothing fits maxCost — fallback" : "Nothing fits maxCost",
+        chain: buildChain()
+      };
+    }
+  }
+  function buildChain() {
+    const rows = [];
+    [side, otherSide].forEach((s) => {
+      sortRanked(entry[s + "_ranked"]).forEach((row) => {
+        rows.push(describeRow(row, s));
+      });
+    });
+    rows.forEach((r) => {
+      r.bar = usageBar(r, usage, at);
+    });
+    return rows;
+  }
+  function describeRow(row, s) {
+    const name = str2(row.model);
+    const parts = splitName(name);
+    const cost = rowCost(row);
+    const score = typeof row.score === "number" ? row.score : null;
+    const view = {
+      model: name,
+      provider: parts.provider,
+      id: parts.id,
+      score,
+      cost,
+      context: typeof row.context === "number" && row.context > 0 ? row.context : null,
+      modalities: Array.isArray(row.modalities) ? row.modalities.filter(function(m) {
+        return typeof m === "string" && m;
+      }) : null,
+      inputCost: typeof row.input_cost === "number" ? row.input_cost : null,
+      outputCost: typeof row.output_cost === "number" ? row.output_cost : null,
+      side: s,
+      status: "ok",
+      reason: "",
+      latchText: ""
+    };
+    if (name === pickName && pickSource === "chain") {
+      const hit = latchHitFor(name);
+      if (hit) {
+        view.status = "excluded";
+        view.reason = "quota latched · retry in " + formatCountdown2(hit.until - at);
+        view.latchText = view.reason;
+        return view;
+      }
+      view.status = "pick";
+      return view;
+    }
+    const hit = latchHitFor(name);
+    if (hit) {
+      view.status = "excluded";
+      view.reason = (hit.kind === "rate-limit" ? "rate-limited" : "quota latched") + " · retry in " + formatCountdown2(hit.until - at);
+      view.latchText = view.reason;
+      return view;
+    }
+    if (maxCost !== null && (cost === null || cost > maxCost)) {
+      view.status = "excluded";
+      view.reason = cost === null ? "no cost data (cap set)" : "over maxCost $" + maxCost;
+      return view;
+    }
+    if (s !== side) {
+      view.status = "excluded";
+      view.reason = "off-side · " + sideNote;
+      return view;
+    }
+    return view;
+  }
+  return {
+    found: true,
+    key,
+    side,
+    sideNote,
+    maxCost,
+    fallback,
+    pick: pickName || fallback || null,
+    pickSource,
+    pickNote: pickNote || (pickName ? "" : "No model configured"),
+    chain: buildChain()
+  };
+}
+
+// service/src/store.js
+var import_routing2 = __toESM(require_routing(), 1);
+import fsp from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+var { parseJsonLenient } = import_routing2.default;
 var CACHE_REL = ".opencode/.modelselect-cache";
 var SESSION_MAP_FILE = "openchamber-sessions.json";
+var MANAGED_CONFIG_PATH = "~/.config/openchamber/opencode.managed.json";
+var MODELSELECT_CONFIG_PATH = "~/.config/openchamber/modelselect.json";
+var GLOBAL_CONFIG_PATHS = [
+  "~/.config/opencode/opencode.json",
+  "~/.config/opencode/opencode.jsonc"
+];
+var GLOBAL_NOTE_PATHS = GLOBAL_CONFIG_PATHS;
 var ROUTING_SYNC_FILE = "routing-sync.json";
+var PLUGIN_PACKAGE = "opencode-modelselect-plugin";
+var DEFAULT_CONFIG_URL = "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json";
+var DEFAULT_TASK_TYPES_URL = "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/task-types.json";
+var DEFAULT_JEV_ENDPOINT = "https://opencode.ai/zen/v1/systemone";
+var FALLBACK_COST_MIN = 0;
+var FALLBACK_COST_MAX = 8;
+function resolveLogicalPath(directory, logical) {
+  const p = String(logical == null ? "" : logical);
+  if (p === "~")
+    return os.homedir();
+  if (p.startsWith("~/"))
+    return path.join(os.homedir(), p.slice(2));
+  if (path.isAbsolute(p))
+    return p;
+  return path.join(String(directory || process.cwd()), p);
+}
+async function readJsonFile(file) {
+  try {
+    return parseJsonLenient(await fsp.readFile(file, "utf8"));
+  } catch (e) {
+    return null;
+  }
+}
+function readJsonAt(directory, logical) {
+  return readJsonFile(resolveLogicalPath(directory, logical));
+}
+async function writeJsonAtomic(file, value) {
+  await fsp.mkdir(path.dirname(file), { recursive: true });
+  const tmp = file + "." + process.pid + ".tmp";
+  await fsp.writeFile(tmp, JSON.stringify(value, null, 2) + `
+`);
+  await fsp.rename(tmp, file);
+}
+function writeJsonAt(directory, logical, value) {
+  return writeJsonAtomic(resolveLogicalPath(directory, logical), value);
+}
+function cacheDirOf(directory) {
+  return path.join(String(directory), CACHE_REL);
+}
+function sanitizeSessionID(id) {
+  const clean = String(id == null ? "default" : id).replace(/[^A-Za-z0-9-_]/g, "_").slice(0, 128);
+  return clean || "default";
+}
+function str3(v) {
+  return v == null ? "" : String(v);
+}
+function shallowCopy(obj) {
+  const out = {};
+  if (obj && typeof obj === "object")
+    Object.keys(obj).forEach((k) => {
+      out[k] = obj[k];
+    });
+  return out;
+}
+function findPluginEntry(config) {
+  const plugins = config && Array.isArray(config.plugins) ? config.plugins : [];
+  for (let i = 0;i < plugins.length; i += 1) {
+    const entry = plugins[i];
+    if (typeof entry === "string" && /modelselect/i.test(entry)) {
+      return { form: "string", index: i, package: entry, options: {} };
+    }
+    if (Array.isArray(entry) && typeof entry[0] === "string" && /modelselect/i.test(entry[0])) {
+      return {
+        form: "tuple",
+        index: i,
+        package: entry[0],
+        options: entry[1] && typeof entry[1] === "object" ? entry[1] : {}
+      };
+    }
+    if (entry && typeof entry === "object" && typeof entry.package === "string" && /modelselect/i.test(entry.package)) {
+      return {
+        form: "object",
+        index: i,
+        package: entry.package,
+        options: entry.options && typeof entry.options === "object" ? entry.options : {}
+      };
+    }
+  }
+  return { form: "missing", index: -1, package: PLUGIN_PACKAGE, options: {} };
+}
+async function readManagedConfig() {
+  const file = resolveLogicalPath(null, MANAGED_CONFIG_PATH);
+  let raw;
+  try {
+    raw = await fsp.readFile(file, "utf8");
+  } catch (e) {
+    if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) {
+      return { parseOk: true, exists: false, config: { plugins: [] }, entry: findPluginEntry({}) };
+    }
+    return {
+      parseOk: false,
+      exists: true,
+      config: null,
+      entry: findPluginEntry({}),
+      parseError: String(e && e.message || e)
+    };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    return {
+      parseOk: false,
+      exists: true,
+      config: null,
+      entry: findPluginEntry({}),
+      parseError: "not valid JSON: " + String(e && e.message || e)
+    };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {
+      parseOk: false,
+      exists: true,
+      config: null,
+      entry: findPluginEntry({}),
+      parseError: "the managed config is not a JSON object"
+    };
+  }
+  return { parseOk: true, exists: true, config: parsed, entry: findPluginEntry(parsed) };
+}
+async function storedPluginOptions() {
+  const managed = await readManagedConfig();
+  return managed.entry.options || {};
+}
+function buildPluginOptions(base, v) {
+  const next = shallowCopy(base);
+  next.tier = v.tier;
+  next.autoPreference = v.autoPreference;
+  next.taskType = v.taskType;
+  next.defaultTaskType = v.defaultTaskType;
+  next.announce = v.announce;
+  next.openchamber = v.openchamber;
+  next.verbose = Boolean(v.verbose);
+  next.suggestOnly = Boolean(v.suggestOnly);
+  next.continuation = Boolean(v.continuation);
+  next.historyChars = v.historyChars;
+  next.configRefreshMinutes = v.configRefreshMinutes;
+  next.configUrl = v.configUrl || DEFAULT_CONFIG_URL;
+  next.taskTypesUrl = v.taskTypesUrl || DEFAULT_TASK_TYPES_URL;
+  next.jevEndpoint = v.jevEndpoint || DEFAULT_JEV_ENDPOINT;
+  next.jevThreshold = v.jevThreshold;
+  next.jevTimeoutMs = v.jevTimeoutMs;
+  next.agentTaskMap = v.agentTaskMap;
+  if (v.maxCost == null)
+    delete next.maxCost;
+  else
+    next.maxCost = v.maxCost;
+  if (v.jevModel)
+    next.jevModel = v.jevModel;
+  else
+    delete next.jevModel;
+  if (v.fallbackModel)
+    next.fallbackModel = v.fallbackModel;
+  else
+    delete next.fallbackModel;
+  if (v.tokenDraft)
+    next.token = v.tokenDraft;
+  if (v.jevTokenDraft)
+    next.jevToken = v.jevTokenDraft;
+  return next;
+}
+async function savePluginOptions(directory, values) {
+  const managed = await readManagedConfig();
+  if (!managed.parseOk) {
+    throw new Error("The managed config is not valid JSON — nothing was written. Fix the file first.");
+  }
+  const config = managed.config;
+  if (!Array.isArray(config.plugins))
+    config.plugins = [];
+  const entry = managed.entry;
+  if (entry.form === "missing") {
+    throw new Error("No modelselect entry in the managed config.");
+  }
+  const nextOptions = buildPluginOptions(entry.options, values);
+  if (entry.form === "object") {
+    config.plugins[entry.index].options = nextOptions;
+  } else {
+    config.plugins[entry.index] = { package: entry.package, options: nextOptions };
+  }
+  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
+  return { entry: findPluginEntry(config), options: nextOptions };
+}
+async function addPluginEntry() {
+  const managed = await readManagedConfig();
+  if (!managed.parseOk) {
+    throw new Error("The managed config is not valid JSON — nothing was written. Fix the file first.");
+  }
+  if (managed.entry.form !== "missing")
+    return { entry: managed.entry, added: false };
+  const config = managed.config;
+  if (!Array.isArray(config.plugins))
+    config.plugins = [];
+  config.plugins.push({ package: PLUGIN_PACKAGE, options: {} });
+  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
+  return { entry: findPluginEntry(config), added: true };
+}
+async function setPluginOption(name, value) {
+  const managed = await readManagedConfig();
+  if (!managed.parseOk)
+    throw new Error("The managed config is not valid JSON.");
+  const entry = managed.entry;
+  if (entry.form === "missing")
+    throw new Error("No modelselect entry in the managed config.");
+  const config = managed.config;
+  const next = shallowCopy(entry.options);
+  next[name] = value;
+  if (entry.form === "object")
+    config.plugins[entry.index].options = next;
+  else
+    config.plugins[entry.index] = { package: entry.package, options: next };
+  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
+  return next;
+}
+async function readExtensionConfig() {
+  const data = await readJsonAt(null, MODELSELECT_CONFIG_PATH);
+  return data && typeof data === "object" && !Array.isArray(data) ? data : {};
+}
+async function saveExtensionConfig(directory, values) {
+  const current = await readJsonAt(null, MODELSELECT_CONFIG_PATH);
+  const next = current && typeof current === "object" && !Array.isArray(current) ? shallowCopy(current) : {};
+  next.autoSmallModel = Boolean(values.autoSmallModel);
+  next.autoWalkthroughModel = Boolean(values.autoWalkthroughModel);
+  next.smallModelTask = str3(values.smallModelTask) || "generic";
+  next.walkthroughModelTask = str3(values.walkthroughModelTask) || "generic";
+  await writeJsonAt(null, MODELSELECT_CONFIG_PATH, next);
+  return next;
+}
+async function listStatuses(cacheDir) {
+  let names;
+  try {
+    names = await fsp.readdir(cacheDir);
+  } catch (e) {
+    return [];
+  }
+  const out = [];
+  for (const name of names) {
+    if (!/^status-.+\.json$/.test(name))
+      continue;
+    const file = path.join(cacheDir, name);
+    try {
+      const data = parseJsonLenient(await fsp.readFile(file, "utf8"));
+      if (!data || typeof data !== "object" || Array.isArray(data))
+        continue;
+      const stat = await fsp.stat(file);
+      out.push({
+        sessionID: String(data.sessionID || name.slice("status-".length, -".json".length)),
+        data,
+        at: typeof data.updatedAt === "number" && Number.isFinite(data.updatedAt) ? data.updatedAt : stat.mtimeMs
+      });
+    } catch (e) {}
+  }
+  return out;
+}
+function newestStatus(statuses) {
+  let newest = null;
+  for (const entry of statuses) {
+    if (!newest || entry.at > newest.at)
+      newest = entry;
+  }
+  return newest;
+}
+async function readSessionStatus(directory, sessionID) {
+  if (!directory || !sessionID)
+    return null;
+  const file = path.join(cacheDirOf(directory), "status-" + sanitizeSessionID(sessionID) + ".json");
+  const data = await readJsonFile(file);
+  return data && typeof data === "object" && !Array.isArray(data) ? data : null;
+}
+function knownTaskTypes(cfg) {
+  const table = cfg && (cfg.config || cfg) || {};
+  const bucket = table["task-types"] || table.taskTypes || {};
+  return Object.keys(bucket);
+}
+async function readRoutingSync(directory) {
+  const data = await readJsonAt(directory, path.join(CACHE_REL, ROUTING_SYNC_FILE));
+  return !(data && data.sync === false);
+}
+async function writeRoutingSync(directory, on) {
+  const file = path.join(cacheDirOf(directory), ROUTING_SYNC_FILE);
+  const current = await readJsonFile(file);
+  const next = current && typeof current === "object" && !Array.isArray(current) ? shallowCopy(current) : {};
+  next.sync = Boolean(on);
+  await writeJsonAtomic(file, next);
+  return next;
+}
+async function readCatalog(directory) {
+  const data = await readJsonAt(directory, path.join(CACHE_REL, "model-config-cache.json"));
+  const cfg = data && data.config || data || {};
+  const bucket = cfg["task-types"] || cfg.taskTypes || {};
+  const types = Object.keys(bucket);
+  const costs = [];
+  types.forEach((t) => {
+    const entry = bucket[t] || {};
+    ["go_ranked", "free_ranked"].forEach((side) => {
+      const rows = Array.isArray(entry[side]) ? entry[side] : [];
+      rows.forEach((row) => {
+        const c = row && typeof row.blended_cost === "number" ? row.blended_cost : null;
+        if (c != null && Number.isFinite(c))
+          costs.push(c);
+      });
+    });
+  });
+  const bounds = { min: FALLBACK_COST_MIN, max: FALLBACK_COST_MAX };
+  if (costs.length) {
+    bounds.min = Math.min.apply(null, costs);
+    bounds.max = Math.max.apply(null, costs);
+    if (bounds.max <= bounds.min)
+      bounds.max = bounds.min + 1;
+  }
+  return { types, bounds, config: data && data.config || null };
+}
+function readLatch(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, "free-quota.json"));
+}
+function readUsage(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, "usage-limits.json"));
+}
+var LAST_PROJECT_FILE = process.env.MODELSELECT_STATE_FILE || path.join(os.tmpdir(), "openchamber-modelselect", "last-project.json");
+async function rememberProject(directory) {
+  if (!directory)
+    return;
+  try {
+    await writeJsonAtomic(LAST_PROJECT_FILE, { directory: String(directory), at: Date.now() });
+  } catch (e) {}
+}
+async function lastProject() {
+  const data = await readJsonFile(LAST_PROJECT_FILE);
+  const dir = data && typeof data.directory === "string" ? data.directory : null;
+  return dir && path.isAbsolute(dir) ? dir : null;
+}
+
+// service/src/main.js
+var { syncRouting } = import_routing3.default;
+var {
+  CACHE_REL: CACHE_REL2,
+  SESSION_MAP_FILE: SESSION_MAP_FILE2,
+  GLOBAL_NOTE_PATHS: GLOBAL_NOTE_PATHS2
+} = exports_store;
 var SESSION_MAP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 var SESSION_MAP_TOUCH_MS = 60 * 1000;
 var HOST_EVIDENCE_KEY = "openchamber";
 var ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
 var GLOBAL_PROBE_MS = 30 * 1000;
+var MAINTAIN_EVERY_MS = 60 * 1000;
 var BODY_MAX = 16 * 1024;
+var TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
 var RELOAD_PATH = "/api/location/reload";
 var DEFAULT_PORT = 4096;
 function reloadPorts(env = process.env) {
@@ -1139,11 +2163,6 @@ async function postJson(url, body, { timeoutMs = 5000 } = {}) {
     clearTimeout(timer);
   }
 }
-var GLOBAL_CONFIG_PATHS = [
-  "~/.config/openchamber/opencode.managed.json",
-  "~/.config/opencode/opencode.json",
-  "~/.config/opencode/opencode.jsonc"
-];
 var TOKEN = String(process.env.OPENCHAMBER_SERVICE_TOKEN || "");
 var rawPort = process.env.OPENCHAMBER_SERVICE_PORT;
 var PORT = Number(rawPort);
@@ -1157,39 +2176,32 @@ if (!TOKEN)
 if (!Number.isInteger(PORT) || PORT < 0 || PORT > 65535) {
   fail("OPENCHAMBER_SERVICE_PORT is missing or invalid: " + String(rawPort));
 }
-function resolveLogicalPath(directory, logical) {
-  const p = String(logical == null ? "" : logical);
-  if (p === "~")
-    return os.homedir();
-  if (p.startsWith("~/"))
-    return path.join(os.homedir(), p.slice(2));
-  if (path.isAbsolute(p))
-    return p;
-  return path.join(String(directory || process.cwd()), p);
-}
-async function readJsonFile(file) {
-  try {
-    return parseJsonLenient(await fsp.readFile(file, "utf8"));
-  } catch (e) {
-    return null;
+var serviceHost = null;
+try {
+  if (process.env.OPENCHAMBER_HOST_CALLBACK_URL) {
+    serviceHost = createServiceHost({ env: process.env });
   }
+} catch (e) {
+  serviceHost = null;
 }
-async function writeJsonAtomic(file, value) {
-  await fsp.mkdir(path.dirname(file), { recursive: true });
-  const tmp = file + "." + process.pid + ".tmp";
-  await fsp.writeFile(tmp, JSON.stringify(value));
-  await fsp.rename(tmp, file);
-}
-function cacheDirOf(directory) {
-  return path.join(directory, CACHE_REL);
+var lastCardState = null;
+function reportCardState(state, message) {
+  if (state === lastCardState)
+    return;
+  lastCardState = state;
+  if (!serviceHost)
+    return;
+  serviceHost.needsConfiguration(message || null).catch(() => {
+    lastCardState = null;
+  });
 }
 var probeCache = { at: 0, value: { checked: false, entry: false } };
 async function pluginEntry() {
   if (Date.now() - probeCache.at < GLOBAL_PROBE_MS)
     return probeCache.value;
-  const results = await Promise.all(GLOBAL_CONFIG_PATHS.map(async (logical) => {
+  const results = await Promise.all(GLOBAL_NOTE_PATHS2.map(async (logical) => {
     try {
-      const text = await fsp.readFile(resolveLogicalPath(null, logical), "utf8");
+      const text = await fsp2.readFile(resolveLogicalPath(null, logical), "utf8");
       return /modelselect/i.test(text);
     } catch (e) {
       return null;
@@ -1200,46 +2212,8 @@ async function pluginEntry() {
   probeCache = { at: Date.now(), value };
   return value;
 }
-async function listStatuses(cacheDir) {
-  let names;
-  try {
-    names = await fsp.readdir(cacheDir);
-  } catch (e) {
-    return [];
-  }
-  const out = [];
-  for (const name of names) {
-    if (!/^status-.+\.json$/.test(name))
-      continue;
-    const file = path.join(cacheDir, name);
-    try {
-      const data = parseJsonLenient(await fsp.readFile(file, "utf8"));
-      if (!data || typeof data !== "object" || Array.isArray(data))
-        continue;
-      const stat = await fsp.stat(file);
-      out.push({
-        sessionID: String(data.sessionID || name.slice("status-".length, -".json".length)),
-        data,
-        at: typeof data.updatedAt === "number" && Number.isFinite(data.updatedAt) ? data.updatedAt : stat.mtimeMs
-      });
-    } catch (e) {}
-  }
-  return out;
-}
-function knownTaskTypes(cfg) {
-  const table = cfg && (cfg.config || cfg) || {};
-  const bucket = table["task-types"] || table.taskTypes || {};
-  return Object.keys(bucket);
-}
-function newestStatus(statuses) {
-  let newest = null;
-  for (const entry of statuses) {
-    if (!newest || entry.at > newest.at)
-      newest = entry;
-  }
-  return newest;
-}
 var syncAt = new Map;
+var seenDirectories = new Set;
 async function maybeSyncRouting(directory, syncEnabled) {
   if (!syncEnabled)
     return;
@@ -1248,74 +2222,151 @@ async function maybeSyncRouting(directory, syncEnabled) {
     return;
   syncAt.set(directory, Date.now());
   await syncRouting({
-    readJson: (logical) => readJsonFile(resolveLogicalPath(directory, logical)),
-    writeJson: (logical, value) => writeJsonAtomic(resolveLogicalPath(directory, logical), value)
+    readJson: (logical) => readJsonAt(directory, logical),
+    writeJson: (logical, value) => writeJsonAt(directory, logical, value)
   });
 }
 var mapAt = new Map;
-var mapChain = new Map;
-function touchSessionMap(cacheDir, sessionIDs) {
+async function touchSessionMap(cacheDir, sessionIDs) {
   const last = mapAt.get(cacheDir) || 0;
   if (Date.now() - last < SESSION_MAP_TOUCH_MS)
-    return mapChain.get(cacheDir) || Promise.resolve();
+    return;
   mapAt.set(cacheDir, Date.now());
-  const run = (mapChain.get(cacheDir) || Promise.resolve()).then(async () => {
-    const file = path.join(cacheDir, SESSION_MAP_FILE);
-    const stored = await readJsonFile(file);
-    const sessions = stored && typeof stored.sessions === "object" && stored.sessions ? stored.sessions : {};
-    const now = Date.now();
-    let changed = false;
-    Object.keys(sessions).forEach((id) => {
-      const seen = sessions[id];
-      if (typeof seen !== "number" || !Number.isFinite(seen) || now - seen > SESSION_MAP_TTL_MS) {
-        delete sessions[id];
-        changed = true;
-      }
-    });
-    const keys = sessionIDs.length ? sessionIDs : [HOST_EVIDENCE_KEY];
-    keys.forEach((id) => {
-      if (sessions[id] === now)
-        return;
-      sessions[id] = now;
+  const file = path2.join(cacheDir, SESSION_MAP_FILE2);
+  const stored = await readJsonFile(file);
+  const sessions = stored && typeof stored.sessions === "object" && stored.sessions ? stored.sessions : {};
+  const now = Date.now();
+  let changed = false;
+  Object.keys(sessions).forEach((id) => {
+    const seen = sessions[id];
+    if (typeof seen !== "number" || !Number.isFinite(seen) || now - seen > SESSION_MAP_TTL_MS) {
+      delete sessions[id];
       changed = true;
-    });
-    if (!changed)
+    }
+  });
+  const keys = sessionIDs.length ? sessionIDs : [HOST_EVIDENCE_KEY];
+  keys.forEach((id) => {
+    if (sessions[id] === now)
       return;
-    await writeJsonAtomic(file, { version: 1, sessions });
-  }).catch(() => {});
-  mapChain.set(cacheDir, run);
-  return run;
+    sessions[id] = now;
+    changed = true;
+  });
+  if (!changed)
+    return;
+  await writeJsonAtomic(file, { version: 1, sessions });
+}
+async function maintain() {
+  for (const directory of Array.from(seenDirectories)) {
+    try {
+      const syncOn = await readRoutingSync(directory);
+      await maybeSyncRouting(directory, syncOn);
+      const statuses = await listStatuses(cacheDirOf(directory));
+      await touchSessionMap(cacheDirOf(directory), statuses.map((s) => s.sessionID));
+    } catch (e) {}
+  }
+}
+function tierOf(managed) {
+  if (!managed || !managed.parseOk || managed.entry.form === "missing")
+    return null;
+  const tier = typeof managed.entry.options.tier === "string" ? managed.entry.options.tier : "auto";
+  return TIER_VALUES.includes(tier) ? tier : "auto";
 }
 async function readView(directory) {
   const now = Date.now();
-  if (!directory)
+  if (!directory) {
+    reportCardState("no-project", null);
     return buildView({ now, directory: null });
+  }
+  seenDirectories.add(directory);
   const cacheDir = cacheDirOf(directory);
   const statuses = await listStatuses(cacheDir);
   const newest = newestStatus(statuses);
-  const [syncFile, freeQuota, usage, config, entry] = await Promise.all([
-    readJsonFile(path.join(cacheDir, ROUTING_SYNC_FILE)),
-    readJsonFile(path.join(cacheDir, "free-quota.json")),
-    readJsonFile(path.join(cacheDir, "usage-limits.json")),
-    readJsonFile(path.join(cacheDir, "model-config-cache.json")),
-    pluginEntry()
+  const [syncOn, freeQuota, usage, config, entry, managed] = await Promise.all([
+    readRoutingSync(directory),
+    readLatch(directory),
+    readUsage(directory),
+    readJsonAt(directory, path2.join(CACHE_REL2, "model-config-cache.json")),
+    pluginEntry(),
+    readManagedConfig()
   ]);
-  const syncEnabled = !(syncFile && syncFile.sync === false);
-  const view = buildView({
+  if (!managed.parseOk) {
+    reportCardState("managed-broken", "The OpenChamber managed OpenCode config is not valid JSON, so the settings panel cannot save. Fix " + MANAGED_CONFIG_PATH + " and reopen OpenChamber.");
+  } else if (managed.entry.form === "missing") {
+    reportCardState("plugin-missing", "Add the modelselect plugin to " + MANAGED_CONFIG_PATH + " and reopen OpenChamber — it is the only config OpenChamber's server loads.");
+  } else {
+    reportCardState("ok", null);
+  }
+  return buildView({
     now,
     directory,
     found: Boolean(newest),
     status: newest ? newest.data : null,
     sessionID: newest ? newest.sessionID : "",
     knownTypes: knownTaskTypes(config),
-    sync: syncEnabled,
+    sync: syncOn,
     freeQuota,
     usage,
-    globalEntry: entry
+    globalEntry: entry,
+    tierOption: tierOf(managed)
   });
-  maybeSyncRouting(directory, syncEnabled).catch(() => {});
-  touchSessionMap(cacheDir, statuses.map((s) => s.sessionID)).catch(() => {});
-  return view;
+}
+function publicOptions(options) {
+  const out = Object.assign({}, options || {});
+  delete out.token;
+  delete out.jevToken;
+  return out;
+}
+async function readConfig(directory, sessionID) {
+  const [managed, globalPresent, catalog, extConfig, syncOn, sessionStatus] = await Promise.all([
+    readManagedConfig(),
+    Promise.all(GLOBAL_NOTE_PATHS2.map(async (logical) => {
+      try {
+        await fsp2.stat(resolveLogicalPath(null, logical));
+        return logical;
+      } catch (e) {
+        return null;
+      }
+    })),
+    readCatalog(directory),
+    readExtensionConfig(),
+    readRoutingSync(directory),
+    readSessionStatus(directory, sessionID)
+  ]);
+  return {
+    managed: {
+      parseOk: managed.parseOk,
+      exists: managed.exists,
+      parseError: managed.parseError || "",
+      entry: {
+        form: managed.entry.form,
+        package: managed.entry.package,
+        options: publicOptions(managed.entry.options)
+      }
+    },
+    managedPath: MANAGED_CONFIG_PATH,
+    extensionPath: MODELSELECT_CONFIG_PATH,
+    globalPaths: globalPresent.filter(Boolean),
+    catalog: { types: catalog.types, bounds: catalog.bounds },
+    extConfig,
+    syncOn,
+    sessionTask: sessionStatus && typeof sessionStatus.taskType === "string" ? sessionStatus.taskType : ""
+  };
+}
+async function readChain(directory, taskType) {
+  const [catalog, options, latch, usage] = await Promise.all([
+    readCatalog(directory),
+    storedPluginOptions(),
+    readLatch(directory),
+    readUsage(directory)
+  ]);
+  return computeModelsView({
+    taskType,
+    catalogConfig: catalog.config,
+    options,
+    latchData: latch,
+    usage,
+    now: Date.now()
+  });
 }
 function send(res, status, body) {
   const text = JSON.stringify(body);
@@ -1350,9 +2401,28 @@ function readBody(req) {
 }
 function projectDirectory(url) {
   const raw = url.searchParams.get("directory");
-  return raw && path.isAbsolute(raw) ? raw : null;
+  return raw && path2.isAbsolute(raw) ? raw : null;
 }
-async function handleAction(directory, body) {
+function messageOf(err, fallback) {
+  return String(err && err.message || fallback || err).slice(0, 300);
+}
+async function reloadOpenCode() {
+  const tried = [];
+  let last = null;
+  for (const port of reloadPorts()) {
+    tried.push(port);
+    const result = await postJson("http://127.0.0.1:" + port + RELOAD_PATH, null);
+    last = result;
+    if (result.ok)
+      return { ok: true, port, tried };
+  }
+  return {
+    ok: false,
+    tried,
+    error: "OpenCode config reload failed on " + tried.join(", ") + ": " + String(last && last.error || last && last.status)
+  };
+}
+async function handleControl(directory, body) {
   if (!directory)
     return { status: 400, body: { message: "No project is open." } };
   let event;
@@ -1369,7 +2439,7 @@ async function handleAction(directory, body) {
       return { status: 400, body: { message: "Router sync wants 'on' or 'off'." } };
     }
     try {
-      await writeJsonAtomic(path.join(cacheDirOf(directory), ROUTING_SYNC_FILE), { sync: event.value === "on" });
+      await writeRoutingSync(directory, event.value === "on");
     } catch (e) {
       return { status: 500, body: { message: "Could not write the router-sync file." } };
     }
@@ -1379,29 +2449,98 @@ async function handleAction(directory, body) {
     }
     return { status: 200, body: { ok: true } };
   }
-  if (event.id === "config-reload") {
-    if (!directory) {
-      return { status: 400, body: { message: "No project is open." } };
+  if (event.id === "tier") {
+    if (!TIER_VALUES.includes(event.value)) {
+      return { status: 400, body: { message: "Tier wants 'auto', 'go' or 'free'." } };
     }
-    let tried = [];
-    let last = null;
-    for (const port of reloadPorts()) {
-      tried.push(port);
-      const result = await postJson("http://127.0.0.1:" + port + RELOAD_PATH, null);
-      last = result;
-      if (result.ok) {
-        return { status: 200, body: { ok: true, port, tried } };
-      }
+    try {
+      await setPluginOption("tier", event.value);
+    } catch (e) {
+      return { status: 409, body: { message: messageOf(e, "Could not write the plugin options.") } };
     }
+    const reload = await reloadOpenCode();
     return {
-      status: 502,
-      body: { message: "OpenCode config reload failed on " + tried.join(", ") + ": " + String(last && last.error || last.status) }
+      status: 200,
+      body: {
+        ok: true,
+        reload: reload.ok ? { ok: true, port: reload.port } : { ok: false, error: reload.error }
+      }
     };
+  }
+  if (event.id === "config-reload") {
+    const reload = await reloadOpenCode();
+    if (reload.ok)
+      return { status: 200, body: { ok: true, port: reload.port, tried: reload.tried } };
+    return { status: 502, body: { message: reload.error } };
   }
   return {
     status: 400,
     body: { message: "Unknown control '" + event.id.slice(0, 40) + "'." }
   };
+}
+async function handleConfigSave(directory, body) {
+  let request;
+  try {
+    request = JSON.parse(body || "{}");
+  } catch (e) {
+    return { status: 400, body: { message: "The save request is not JSON." } };
+  }
+  if (!request || typeof request !== "object") {
+    return { status: 400, body: { message: "The save request has no body." } };
+  }
+  if (request.kind === "plugin") {
+    let saved;
+    try {
+      saved = await savePluginOptions(directory, request.values || {});
+    } catch (e) {
+      const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
+      return { status, body: { message: messageOf(e, "Could not write the managed config.") } };
+    }
+    const reload = await reloadOpenCode();
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        entry: {
+          form: saved.entry.form,
+          package: saved.entry.package,
+          options: saved.entry.options
+        },
+        reload: reload.ok ? { ok: true, port: reload.port } : { ok: false, error: reload.error }
+      }
+    };
+  }
+  if (request.kind === "plugin-add") {
+    try {
+      const added = await addPluginEntry();
+      const reload = added.added ? await reloadOpenCode() : { ok: true };
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          added: added.added,
+          entry: {
+            form: added.entry.form,
+            package: added.entry.package,
+            options: publicOptions(added.entry.options)
+          },
+          reload: reload.ok ? { ok: true, port: reload.port } : { ok: false, error: reload.error }
+        }
+      };
+    } catch (e) {
+      const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
+      return { status, body: { message: messageOf(e, "Could not write the managed config.") } };
+    }
+  }
+  if (request.kind === "extension") {
+    try {
+      const next = await saveExtensionConfig(directory, request.values || {});
+      return { status: 200, body: { ok: true, config: next } };
+    } catch (e) {
+      return { status: 500, body: { message: messageOf(e, "Could not write the extension config.") } };
+    }
+  }
+  return { status: 400, body: { message: "Save wants kind 'plugin' or 'extension'." } };
 }
 async function handleQuota(bodyText) {
   let request;
@@ -1413,14 +2552,15 @@ async function handleQuota(bodyText) {
   if (!request || typeof request !== "object" || request.method !== "usage.read") {
     return { ok: false, error: { message: "Unexpected quota request." } };
   }
-  const usage = await readUsageLimitsFile();
+  const directory = await lastProject();
+  const usage = directory ? await readUsage(directory) : null;
   if (!usage || typeof usage !== "object") {
     return {
       ok: true,
       data: {
         ok: true,
         configured: false,
-        error: "No usage snapshot yet — open a project and let the plugin write one.",
+        error: "No usage snapshot yet — open a project so the plugin writes one.",
         usage: null
       }
     };
@@ -1483,30 +2623,74 @@ async function handleQuota(bodyText) {
     }
   };
 }
-async function readUsageLimitsFile() {
-  try {
-    return parseJsonLenient(await fsp.readFile(path.join(process.cwd(), CACHE_REL, USAGE_LIMITS_FILE), "utf8"));
-  } catch {
-    return null;
-  }
-}
 async function handle(req, res) {
   if (!authorized(req)) {
     send(res, 401, { message: "Unauthorized." });
     return;
   }
   const url = new URL(req.url || "/", "http://127.0.0.1");
+  const directory = projectDirectory(url);
   if (req.method === "GET" && url.pathname === "/health") {
     send(res, 200, { ok: true });
     return;
   }
   if (url.pathname === "/status" && req.method === "GET") {
-    send(res, 200, await readView(projectDirectory(url)));
+    if (directory) {
+      seenDirectories.add(directory);
+      rememberProject(directory);
+      listStatuses(cacheDirOf(directory)).then((statuses) => touchSessionMap(cacheDirOf(directory), statuses.map((s) => s.sessionID))).catch(() => {});
+    }
+    send(res, 200, await readView(directory));
     return;
   }
   if (url.pathname === "/status" && req.method === "POST") {
-    const answer = await handleAction(projectDirectory(url), await readBody(req));
+    const answer = await handleControl(directory, await readBody(req));
     send(res, answer.status, answer.body);
+    return;
+  }
+  if (url.pathname === "/config" && req.method === "GET") {
+    if (!directory) {
+      send(res, 400, { message: "No project is open." });
+      return;
+    }
+    seenDirectories.add(directory);
+    rememberProject(directory);
+    send(res, 200, await readConfig(directory, url.searchParams.get("session")));
+    return;
+  }
+  if (url.pathname === "/config" && req.method === "POST") {
+    const answer = await handleConfigSave(directory, await readBody(req));
+    send(res, answer.status, answer.body);
+    return;
+  }
+  if (url.pathname === "/chain" && req.method === "GET") {
+    if (!directory) {
+      send(res, 400, { message: "No project is open." });
+      return;
+    }
+    const task = String(url.searchParams.get("task") || "").slice(0, 120);
+    send(res, 200, await readChain(directory, task));
+    return;
+  }
+  if (url.pathname === "/pick" && req.method === "GET") {
+    if (!directory) {
+      send(res, 400, { message: "No project is open." });
+      return;
+    }
+    const sessionID = String(url.searchParams.get("session") || "");
+    let picked = null;
+    if (sessionID) {
+      picked = await readSessionStatus(directory, sessionID);
+    } else {
+      const newest = newestStatus(await listStatuses(cacheDirOf(directory)));
+      picked = newest ? newest.data : null;
+    }
+    const summary = pickSummary(picked, Date.now());
+    if (!summary) {
+      send(res, 404, { message: "No pick for this session yet — it routes on the first turn." });
+      return;
+    }
+    send(res, 200, summary);
     return;
   }
   if (url.pathname === "/quota" && req.method === "POST") {
@@ -1526,6 +2710,11 @@ var server = http.createServer((req, res) => {
 });
 server.on("error", (err) => fail("cannot start: " + String(err && err.message || err)));
 server.listen(PORT, "127.0.0.1", () => {
+  const timer = setInterval(() => {
+    maintain();
+  }, MAINTAIN_EVERY_MS);
+  if (typeof timer.unref === "function")
+    timer.unref();
   process.stdout.write("[modelselect] listening on 127.0.0.1:" + server.address().port + `
 `);
 });

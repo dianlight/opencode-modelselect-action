@@ -19,6 +19,7 @@ const { pathToFileURL } = require('node:url');
 let buildView;
 let formatAge;
 let formatCountdown;
+let pickSummary;
 let guestStatusViewSchema;
 
 const NOW = Date.UTC(2026, 10, 5, 12, 0, 0);
@@ -28,6 +29,7 @@ before(async () => {
   buildView = view.buildView;
   formatAge = view.formatAge;
   formatCountdown = view.formatCountdown;
+  pickSummary = view.pickSummary;
   ({ guestStatusViewSchema } = await import('@openchamber/sdk/schemas'));
 });
 
@@ -237,6 +239,31 @@ describe('status view', () => {
     assert.match(notes[0].text, /Free tier exhausted — opencode\/zen-free — retry in 2h 15m · quota spent/);
     assert.match(notes[1].text, /Rate limited — opencode\/rate-limited — retry in 5m 30s/);
     assert.equal(notes[0].tone, 'warning');
+  });
+
+  it('turns the Tier row into a select only when the entry exists', () => {
+    const withEntry = rowsById(validate(buildView(snapshot({ tierOption: 'go' })))).tier;
+    assert.equal(withEntry.actions.length, 1);
+    assert.equal(withEntry.actions[0].kind, 'select');
+    assert.equal(withEntry.actions[0].id, 'tier');
+    assert.equal(withEntry.actions[0].value, 'go');
+    assert.deepEqual(withEntry.actions[0].options.map((o) => o.value), ['auto', 'go', 'free']);
+
+    const without = rowsById(validate(buildView(snapshot()))).tier;
+    assert.equal(without.actions, undefined, 'no entry -> nothing to write');
+  });
+
+  it('summarises a pick for the session action toast', () => {
+    const summary = pickSummary(status({ suggestOnly: true }), NOW);
+    assert.equal(summary.text, 'bugfix · free · opencode/zen-free · High · suggest only · 5m ago');
+    assert.equal(summary.taskType, 'bugfix');
+    assert.equal(summary.model, 'opencode/zen-free');
+    assert.equal(summary.stale, false);
+    assert.equal(pickSummary(null, NOW), null);
+
+    const stale = pickSummary(status({ updatedAt: NOW - 30 * 60000 }), NOW);
+    assert.equal(stale.stale, true);
+    assert.match(stale.text, /last known$/);
   });
 
   it('keeps the router switch even with many latches, and never exceeds 16 rows', () => {
