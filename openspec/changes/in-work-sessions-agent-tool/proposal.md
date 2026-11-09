@@ -29,4 +29,4 @@ clean up or inspect In work sessions has to ask the user.
 
 - `openchamber-modelselect/service/src/main.js`, manifest, tests.
 - Rebuilt `service/main.js`.
-- Depends on `adopt-opencode-role` and `sdk-bump-to-2.7.1`.
+- Depends on `adopt-opencode-role` and `sdk-bump-to-2-7-1`.

@@ -28,4 +28,4 @@ the chat unless the user opens the section.
 
 - `openchamber-modelselect/service/src/main.js`, `panel/src/ext-tab.js`, tests.
 - Rebuilt `service/main.js` and `panel/main.js`.
-- Depends on `adopt-session-control-answers` and `sdk-bump-to-2.7.1`.
+- Depends on `adopt-session-control-answers` and `sdk-bump-to-2-7-1`.

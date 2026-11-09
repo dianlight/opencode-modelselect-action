@@ -29,4 +29,4 @@ not refresh it until the next poll.
 
 - `openchamber-modelselect/service/src/main.js` (quota provider), tests.
 - Rebuilt `service/main.js`.
-- Could fold into `adopt-service-data-dir`; depends on `sdk-bump-to-2.7.1`.
+- Could fold into `adopt-service-data-dir`; depends on `sdk-bump-to-2-7-1`.

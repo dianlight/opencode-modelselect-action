@@ -31,4 +31,4 @@ moving away from.
 - `openchamber-modelselect/service/src/main.js` (`reportCardState`), tests.
 - Rebuilt `service/main.js`.
 - Could fold into `plugin-switched-off-state`.
-- Depends on `sdk-bump-to-2.7.1`.
+- Depends on `sdk-bump-to-2-7-1`.

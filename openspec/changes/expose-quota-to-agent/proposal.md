@@ -30,4 +30,4 @@ blended view.
 - `openchamber-modelselect/service/src/main.js` (new route or agent-tool handler),
   manifest, tests.
 - Rebuilt `service/main.js`; no new permission.
-- Depends on `adopt-opencode-role` and `sdk-bump-to-2.7.1`.
+- Depends on `adopt-opencode-role` and `sdk-bump-to-2-7-1`.

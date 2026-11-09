@@ -44,4 +44,4 @@ turn hanging, which matters for unattended routing work and scheduled tasks.
 - `openchamber-modelselect/service/src/main.js`, tests.
 - Requires an extension update that asks the user to approve the new
   capability; existing approvals do not carry over.
-- Depends on `sdk-bump-to-2.7.1`.
+- Depends on `sdk-bump-to-2-7-1`.

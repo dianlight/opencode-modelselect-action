@@ -29,4 +29,4 @@ own token totals, so the two surfaces disagree about what a turn cost.
 
 - `openchamber-modelselect/service/src/view.js`, `main.js`, tests.
 - Rebuilt `service/main.js`; no new permission beyond `opencode`.
-- Depends on `adopt-opencode-role` and `sdk-bump-to-2.7.1`.
+- Depends on `adopt-opencode-role` and `sdk-bump-to-2-7-1`.

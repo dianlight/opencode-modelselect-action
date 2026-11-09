@@ -27,4 +27,4 @@ cannot see what changed without leaving the app.
 
 - `openchamber-modelselect/panel/src/*`, `README.md`, release automation.
 - Could fold into `git-installable-extension`.
-- Depends on `sdk-bump-to-2.7.1`.
+- Depends on `sdk-bump-to-2-7-1`.

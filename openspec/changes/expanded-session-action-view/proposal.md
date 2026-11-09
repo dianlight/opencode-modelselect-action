@@ -29,4 +29,4 @@ task, tier, model, Think, Jev reason and age without leaving the chat.
 - `openchamber-modelselect/background/src/main.js`, `service/src/main.js` (`/pick`),
   manifest, tests.
 - Rebuilt `background/main.js` and `service/main.js`.
-- Depends on `sdk-bump-to-2.7.1`.
+- Depends on `sdk-bump-to-2-7-1`.

@@ -34,4 +34,4 @@ Work Status section or the Models tab.
 
 - `openchamber-modelselect/service/src/main.js`, `chain.js`, tests.
 - Rebuilt `service/main.js`; no new permission (service loopback routes).
-- Depends on `sdk-bump-to-2.7.1`.
+- Depends on `sdk-bump-to-2-7-1`.

@@ -31,4 +31,4 @@ code path and its size limits.
 
 - `openchamber-modelselect/service/src/main.js`, tests.
 - Rebuilt `service/main.js`; needs `engines.openchamber >= 2.7.0`.
-- Depends on `adopt-opencode-role` (directory scoping) and `sdk-bump-to-2.7.1`.
+- Depends on `adopt-opencode-role` (directory scoping) and `sdk-bump-to-2-7-1`.

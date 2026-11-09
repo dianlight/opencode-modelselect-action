@@ -29,4 +29,4 @@ all, and the reload workaround exists partly to apply secret changes.
 ## Impact
 
 - `plugin/src/shared/jev.js`, `openchamber-modelselect/service/src/*`, tests.
-- Depends on `options-out-of-opencode-config` and `sdk-bump-to-2.7.1`.
+- Depends on `options-out-of-opencode-config` and `sdk-bump-to-2-7-1`.

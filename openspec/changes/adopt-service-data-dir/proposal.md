@@ -43,4 +43,4 @@ and keeps service-owned data out of the project tree.
 - `openchamber-modelselect/service/src/main.js`, `service/src/store.js`, tests.
 - Rebuilt `service/main.js`; no manifest change (the variable is provided by
   the host).
-- Depends on `sdk-bump-to-2.7.1` for the documented constant.
+- Depends on `sdk-bump-to-2-7-1` for the documented constant.

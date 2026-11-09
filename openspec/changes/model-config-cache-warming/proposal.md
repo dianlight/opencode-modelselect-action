@@ -29,4 +29,4 @@ until the next sync.
 
 - `openchamber-modelselect/service/src/main.js` (`maintain`, `readCatalog`), tests.
 - Rebuilt `service/main.js`.
-- Depends on `sdk-bump-to-2.7.1`.
+- Depends on `sdk-bump-to-2-7-1`.
