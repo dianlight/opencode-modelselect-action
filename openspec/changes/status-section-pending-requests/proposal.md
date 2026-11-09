@@ -22,6 +22,11 @@ round trip and makes a stalled agent visible where the user already looks.
   another device, or by the service) and on `turn-finished`/`turn-failed`.
 - Validate the new row against `guestStatusViewSchema` in the service tests.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

@@ -15,6 +15,11 @@ until the next sync.
 - Keep the on-demand read as the fallback.
 - Document the refresh cadence in the README.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

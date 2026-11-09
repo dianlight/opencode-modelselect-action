@@ -15,6 +15,11 @@ clean up or inspect In work sessions has to ask the user.
   `opencode`.
 - Keep the tool read-only by default; closing requires an explicit argument.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

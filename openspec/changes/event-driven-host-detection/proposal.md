@@ -34,6 +34,11 @@ a month-long guess.
 - The plugin reads v1 and v2 (v1 entries keep working during the transition and
   stop counting once the extension writes v2).
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

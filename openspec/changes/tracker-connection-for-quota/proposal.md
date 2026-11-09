@@ -15,6 +15,11 @@ not refresh it until the next poll.
 - Fall back to the current file-based read on hosts without the messages.
 - Document the behavior in the README.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

@@ -32,6 +32,11 @@ guesses at and reading it from the process that owns it.
 - Update the README (approval text, what is read, what is never read) and the
   extension's `filesystem`/capability documentation.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

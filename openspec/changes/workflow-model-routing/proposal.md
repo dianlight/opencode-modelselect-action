@@ -23,6 +23,11 @@ reaches the workflow.
 - Add a maintenance check that fails when a task type referenced by the template
   is missing from `data/model-config.json`.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

@@ -14,6 +14,11 @@ for work status.
 - Hide the row when no plan is attached; keep it above the pick under the row cap.
 - Validate the new row against `guestStatusViewSchema`.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

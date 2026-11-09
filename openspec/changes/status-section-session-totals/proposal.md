@@ -15,6 +15,11 @@ own token totals, so the two surfaces disagree about what a turn cost.
 - Drop it under the 16-row cap after notes and budget models, before the pick.
 - Validate the new row against `guestStatusViewSchema` in the service tests.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

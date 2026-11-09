@@ -14,6 +14,11 @@ task, tier, model, Think, Jev reason and age without leaving the chat.
 - Keep the toast as the fallback for hosts without block surfaces.
 - Validate the block against the host schema in tests.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

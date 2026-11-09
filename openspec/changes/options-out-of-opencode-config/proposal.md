@@ -34,6 +34,11 @@ user-editable shape; it can carry the option set too.
 - Keep the service as the only writer: the panel's Plugin tab form does not
   change, only the endpoint behind it.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

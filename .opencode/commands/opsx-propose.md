@@ -7,7 +7,7 @@ Propose a new change - create the change and generate all artifacts in one step.
 **Planning boundary**: This workflow creates planning artifacts only. The user request that selected or triggered this workflow authorizes planning only, even if it asks to build or fix something. Do not edit project code. After the planning artifacts are complete, stop. Do not start implementation in the same response, even if the initial request asks for it. Wait for a new user request after the artifacts are presented; then start the apply workflow.
 
 I'll create a change with the artifacts your schema defines. With the default spec-driven schema that is:
-- proposal.md (what & why)
+- proposal.md (what & why, plus the required minimum OpenChamber SDK version)
 - `specs/<capability-path>/spec.md` (what the system must do - a delta, not the main spec)
 - design.md (how)
 - tasks.md (implementation steps)
@@ -155,6 +155,11 @@ After completing all artifacts, summarize:
 - The schema defines what each artifact should contain - follow it
 - Read dependency artifacts for context before creating new ones
 - Use `template` as the structure for your output file - fill in its sections
+- **Minimum OpenChamber SDK version**: every proposal must include a
+  `## Minimum OpenChamber SDK version` section stating the minimum
+  `@openchamber/sdk` canary and stable versions the change needs, and the
+  change's `.openspec.yaml` must declare the same under `x-minOpenchamberSdk`
+  (`canary` + `stable`). Required by the project rule in `openspec/config.yaml`.
 - **IMPORTANT**: `context` and `rules` are constraints for YOU, not content for the file
   - Do NOT copy `<context>`, `<rules>`, `<project_context>` blocks into the artifact
   - These guide what you write, but should never appear in the output

@@ -13,6 +13,11 @@ cannot see what changed without leaving the app.
 - Consume the R2 mirror for update checks where the host supports it.
 - Document the path in the README.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

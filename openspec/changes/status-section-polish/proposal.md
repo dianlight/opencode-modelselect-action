@@ -33,6 +33,11 @@ land.
   the two-second interval costs no disk work; keep the current file read as the
   fallback.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

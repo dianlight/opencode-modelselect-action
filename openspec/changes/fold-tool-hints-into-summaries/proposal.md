@@ -16,6 +16,11 @@ moving away from.
 - Update the card states (`plugin-missing`, `managed-broken`, `no-project`) to
   the new shape.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

@@ -35,6 +35,11 @@ remove.
   managed config for the legacy entry, so the panel and the approval list do not
   change shape.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

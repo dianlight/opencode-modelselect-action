@@ -30,6 +30,11 @@ its release notes.
   produced in `openchamber-modelselect/README.md` and `scripts/README.md` (or
   the script header).
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

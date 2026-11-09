@@ -17,6 +17,11 @@ code path and its size limits.
 - Keep the plugin's own injection as the fallback on hosts older than 2.7.0.
 - Document the precedence (host instructions vs plugin context) in the README.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

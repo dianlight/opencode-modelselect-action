@@ -15,6 +15,11 @@ blended view.
 - Gate it behind the existing `quota` role; no new approval.
 - Document the tool in the README and the extension card.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

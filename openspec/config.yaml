@@ -15,6 +15,13 @@ context: |
 #     tasks:
 #       - Break tasks into chunks of max 2 hours
 
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always state what is out of scope
+    - Must include a '## Minimum OpenChamber SDK version' section stating the minimum `@openchamber/sdk` canary and stable versions this change needs
+    - Must declare the same minimum under `x-minOpenchamberSdk` (canary and stable) in the change's `.openspec.yaml`
+
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
 # This is separate from artifact rules above.

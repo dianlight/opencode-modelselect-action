@@ -19,6 +19,11 @@ Work Status section or the Models tab.
   `MENTION_TEXT_MAX`) and the 2 s search timeout.
 - Document the new surface in `openchamber-modelselect/README.md`.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

@@ -26,6 +26,11 @@ nothing consumes it.
   `adopt-service-data-dir`, `adopt-session-control-answers` and
   `status-section-pending-requests`.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

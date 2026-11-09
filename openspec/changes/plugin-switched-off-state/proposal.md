@@ -34,6 +34,11 @@ a silent dead plugin means every turn runs on the wrong model.
 - Keep the presence probe free of new permissions: no reading of OpenChamber's
   own data folder, no plugin list endpoint.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

@@ -14,6 +14,11 @@ the chat unless the user opens the section.
 - Keep it off by default to avoid noise; expose the toggle in the Extension tab.
 - Handle `stopped`/busy sessions gracefully (log and skip).
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities

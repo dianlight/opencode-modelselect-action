@@ -1,3 +1,7 @@
 schema: spec-driven
 created: 2026-11-08
 skip_specs: true
+
+x-minOpenchamberSdk:
+  canary: "2.7.1-canary.20261109.13"
+  stable: ">=2.7.0"

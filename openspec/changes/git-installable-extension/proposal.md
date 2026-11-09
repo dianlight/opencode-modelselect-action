@@ -22,6 +22,11 @@ extension by hand, and a stale folder install can sit for months with a
 - Keep the folder install as the development path: it runs from the working
   tree, the git install is generated.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.6.2-canary.20261107.11`.
+- Stable: OpenChamber `>=2.6.2`.
+
 ## Capabilities
 
 ### New Capabilities

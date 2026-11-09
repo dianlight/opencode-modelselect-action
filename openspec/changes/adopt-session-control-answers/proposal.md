@@ -25,6 +25,11 @@ turn hanging, which matters for unattended routing work and scheduled tasks.
   and `sessions.stop` remains under the plain `sessionControl` grant.
 - Update the approval text in `openchamber-modelselect/README.md`.
 
+## Minimum OpenChamber SDK version
+
+- Canary: `@openchamber/sdk` `2.7.1-canary.20261109.13`.
+- Stable: OpenChamber `>=2.7.0`.
+
 ## Capabilities
 
 ### New Capabilities
