@@ -3,7 +3,7 @@
 ## Why
 
 The extension is pinned to `@openchamber/sdk` `2.6.2-canary.20261107.11`, while
-the host canary now publishes `2.7.1-canary.20261108.12` and stable `2.7.0`.
+the host canary now publishes `2.7.1-canary.20261109.13` and stable `2.7.0`.
 The newer SDK carries the surface the proposals below depend on:
 `OPENCHAMBER_SERVICE_DATA_DIR`, `sessionControl.answers` with
 `sessions.answerPermission`/`sessions.answerForm`, richer `question-asked`
@@ -15,7 +15,7 @@ nothing consumes it.
 ## What Changes
 
 - Bump `openchamber-modelselect` to `@openchamber/sdk`
-  `2.7.1-canary.20261108.12` (or stable `2.7.0` once the canary graduates),
+  `2.7.1-canary.20261109.13` (or stable `2.7.0` once the canary graduates),
   reinstall, rebuild `service/main.js`, `panel/main.js` and
   `background/main.js`, and run the four test files.
 - Update `engines.openchamber` to `>=2.7.0` so the new capability keys are
