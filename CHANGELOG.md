@@ -26,6 +26,11 @@
   committed bundle.
 
 ### Fixed
+- Release Watch stopped failing on `could not add label: 'release-watch' not
+  found`: the job now creates the label itself before opening the issue. Its
+  last-seen state is kept in the Actions cache instead of a commit — the cache
+  path is gitignored, so the old `git add` never staged anything and every run
+  re-detected the same releases.
 - The usage provider always answered "no snapshot yet": it read
   `usage-limits.json` from `process.cwd()`, but the host spawns a service with
   the extension folder as its working directory. The service now remembers the
