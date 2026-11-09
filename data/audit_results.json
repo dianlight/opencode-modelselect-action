@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-09T03:21:13.251995+00:00",
+  "timestamp": "2026-11-09T10:32:59.655081+00:00",
   "livebench_snapshot": "2026-10-25",
   "livebench_source": "https://livebench.ai/data/20261025/table.csv",
   "livebench_v1_snapshot": "2026_06_25",
@@ -14,7 +14,7 @@
   "pricing_source": "https://opencode.ai/docs/it/zen#pricing",
   "model_config": {
     "updated": false,
-    "timestamp": "2026-11-09T03:21:13.252000+00:00",
+    "timestamp": "2026-11-09T10:32:59.655086+00:00",
     "livebench_snapshot": "2026-10-25"
   }
 }

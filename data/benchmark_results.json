@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-09T03:21:11.967878+00:00",
+  "timestamp": "2026-11-09T10:32:58.350054+00:00",
   "livebench_snapshot": "2026-10-25",
   "livebench_source": "https://livebench.ai/data/20261025/table.csv",
   "livebench_v1_snapshot": "2026_06_25",
@@ -787,16 +787,6 @@
         "rank": 53
       },
       {
-        "model": "beam-free",
-        "score": 76.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 54
-      },
-      {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
@@ -804,6 +794,16 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 60.8,
+        "rank": 54
+      },
+      {
+        "model": "beam-free",
+        "score": 76.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 55
       },
       {
@@ -1359,16 +1359,6 @@
         "rank": 38
       },
       {
-        "model": "flint-40b-free",
-        "score": 65.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 39
-      },
-      {
         "model": "glm-5",
         "score": 65.0,
         "source": "livebench",
@@ -1376,7 +1366,7 @@
         "output_cost": 3.2,
         "blended_cost": 1.55,
         "value": 41.94,
-        "rank": 40
+        "rank": 39
       },
       {
         "model": "glm-5.3",
@@ -1386,6 +1376,16 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 30.23,
+        "rank": 40
+      },
+      {
+        "model": "flint-40b-free",
+        "score": 65.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 41
       },
       {
@@ -2041,16 +2041,6 @@
         "rank": 53
       },
       {
-        "model": "beam-free",
-        "score": 76.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 54
-      },
-      {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
@@ -2058,6 +2048,16 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 60.8,
+        "rank": 54
+      },
+      {
+        "model": "beam-free",
+        "score": 76.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 55
       },
       {
@@ -2723,16 +2723,6 @@
         "rank": 49
       },
       {
-        "model": "nemotron-3.5-super-vl-free",
-        "score": 55.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 50
-      },
-      {
         "model": "kimi-k2.5",
         "score": 55.0,
         "source": "livebench",
@@ -2740,7 +2730,7 @@
         "output_cost": 3.0,
         "blended_cost": 1.2,
         "value": 45.83,
-        "rank": 51
+        "rank": 50
       },
       {
         "model": "muse-spark-1.2",
@@ -2750,6 +2740,16 @@
         "output_cost": 4.25,
         "blended_cost": 2.0,
         "value": 27.5,
+        "rank": 51
+      },
+      {
+        "model": "nemotron-3.5-super-vl-free",
+        "score": 55.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 52
       },
       {
@@ -2913,7 +2913,7 @@
         "rank": 68
       },
       {
-        "model": "beam-free",
+        "model": "iceman-free",
         "score": 5.0,
         "source": "fallback",
         "input_cost": 0.0,
@@ -2923,7 +2923,7 @@
         "rank": 69
       },
       {
-        "model": "flint-40b-free",
+        "model": "beam-free",
         "score": 5.0,
         "source": "fallback",
         "input_cost": 0.0,
@@ -2933,7 +2933,7 @@
         "rank": 70
       },
       {
-        "model": "nemotron-3.5-lightning-free",
+        "model": "flint-40b-free",
         "score": 5.0,
         "source": "fallback",
         "input_cost": 0.0,
@@ -2943,7 +2943,7 @@
         "rank": 71
       },
       {
-        "model": "iceman-free",
+        "model": "nemotron-3.5-lightning-free",
         "score": 5.0,
         "source": "fallback",
         "input_cost": 0.0,
@@ -4779,16 +4779,6 @@
         "rank": 38
       },
       {
-        "model": "flint-40b-free",
-        "score": 65.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 39
-      },
-      {
         "model": "glm-5",
         "score": 65.0,
         "source": "livebench",
@@ -4796,7 +4786,7 @@
         "output_cost": 3.2,
         "blended_cost": 1.55,
         "value": 41.94,
-        "rank": 40
+        "rank": 39
       },
       {
         "model": "glm-5.3",
@@ -4806,6 +4796,16 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 30.23,
+        "rank": 40
+      },
+      {
+        "model": "flint-40b-free",
+        "score": 65.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 41
       },
       {
@@ -5461,16 +5461,6 @@
         "rank": 53
       },
       {
-        "model": "beam-free",
-        "score": 76.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 54
-      },
-      {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
@@ -5478,6 +5468,16 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 60.8,
+        "rank": 54
+      },
+      {
+        "model": "beam-free",
+        "score": 76.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 55
       },
       {
@@ -6905,16 +6905,6 @@
         "rank": 53
       },
       {
-        "model": "beam-free",
-        "score": 76.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 54
-      },
-      {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
@@ -6922,6 +6912,16 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 60.8,
+        "rank": 54
+      },
+      {
+        "model": "beam-free",
+        "score": 76.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 55
       },
       {
@@ -8349,16 +8349,6 @@
         "rank": 53
       },
       {
-        "model": "beam-free",
-        "score": 76.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 54
-      },
-      {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
@@ -8366,6 +8356,16 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 60.8,
+        "rank": 54
+      },
+      {
+        "model": "beam-free",
+        "score": 76.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 55
       },
       {
@@ -9071,16 +9071,6 @@
         "rank": 53
       },
       {
-        "model": "beam-free",
-        "score": 76.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 54
-      },
-      {
         "model": "grok-build-0.1",
         "score": 76.0,
         "source": "livebench",
@@ -9088,6 +9078,16 @@
         "output_cost": 2.0,
         "blended_cost": 1.25,
         "value": 60.8,
+        "rank": 54
+      },
+      {
+        "model": "beam-free",
+        "score": 76.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 55
       },
       {
@@ -9643,16 +9643,6 @@
         "rank": 38
       },
       {
-        "model": "flint-40b-free",
-        "score": 65.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 39
-      },
-      {
         "model": "glm-5",
         "score": 65.0,
         "source": "livebench",
@@ -9660,7 +9650,7 @@
         "output_cost": 3.2,
         "blended_cost": 1.55,
         "value": 41.94,
-        "rank": 40
+        "rank": 39
       },
       {
         "model": "glm-5.3",
@@ -9670,6 +9660,16 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 30.23,
+        "rank": 40
+      },
+      {
+        "model": "flint-40b-free",
+        "score": 65.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 41
       },
       {
@@ -10175,16 +10175,6 @@
         "rank": 38
       },
       {
-        "model": "flint-40b-free",
-        "score": 65.0,
-        "source": "fallback",
-        "input_cost": 0.0,
-        "output_cost": 0.0,
-        "blended_cost": 0.0,
-        "value": null,
-        "rank": 39
-      },
-      {
         "model": "glm-5",
         "score": 65.0,
         "source": "livebench",
@@ -10192,7 +10182,7 @@
         "output_cost": 3.2,
         "blended_cost": 1.55,
         "value": 41.94,
-        "rank": 40
+        "rank": 39
       },
       {
         "model": "glm-5.3",
@@ -10202,6 +10192,16 @@
         "output_cost": 4.4,
         "blended_cost": 2.15,
         "value": 30.23,
+        "rank": 40
+      },
+      {
+        "model": "flint-40b-free",
+        "score": 65.0,
+        "source": "fallback",
+        "input_cost": 0.0,
+        "output_cost": 0.0,
+        "blended_cost": 0.0,
+        "value": null,
         "rank": 41
       },
       {
