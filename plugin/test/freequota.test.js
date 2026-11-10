@@ -20,6 +20,8 @@ const {
   FREE_RATE_LIMIT_TTL_MS,
   RATE_LIMIT_MESSAGE_RE,
   UNAVAILABLE_MODEL_RE,
+  ACCESS_DISABLED_RE,
+  MODEL_UNAVAILABLE_RE,
   DEPRECATED_MODEL_RE,
   PROTOCOL_MISMATCH_RE,
   mismatchHaystack,
@@ -95,6 +97,23 @@ describe('classifyFreeExhaustion', () => {
     assert.equal(classifyFreeExhaustion(400, msg), true);
     assert.equal(classifyFreeExhaustion(null, msg), true);
     assert.deepEqual(classifyFreeFailure(null, msg), { exhausted: true, rateLimited: false });
+  });
+
+  it('treats "Model access is disabled" as exhaustion on any failure status (incl. 401)', () => {
+    const msg = 'AI.Error.Authentication: Model access is disabled';
+    assert.match(msg, ACCESS_DISABLED_RE);
+    assert.equal(classifyFreeExhaustion(401, msg), true);
+    assert.equal(classifyFreeExhaustion(403, msg), true);
+    assert.equal(classifyFreeExhaustion(null, msg), true);
+    assert.deepEqual(classifyFreeFailure(401, msg), { exhausted: true, rateLimited: false });
+  });
+
+  it('treats "Model unavailable: <id>" as exhaustion on any failure status', () => {
+    const msg = 'Model unavailable: opencode/longcat-2.5-free';
+    assert.match(msg, MODEL_UNAVAILABLE_RE);
+    assert.equal(classifyFreeExhaustion(404, msg), true);
+    assert.equal(classifyFreeExhaustion(null, msg), true);
+    assert.deepEqual(classifyFreeFailure(404, msg), { exhausted: true, rateLimited: false });
   });
 
   it('classifies nested retry-hook errors via the flattened haystack', () => {

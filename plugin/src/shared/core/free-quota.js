@@ -48,6 +48,8 @@ const RATE_LIMIT_BODY_RE = /rate\s*limit|too many requests/i;
 // Treat it as exhaustion on any failure status — the per-model latch then
 // prefers `go` for that task and the session retries once.
 const UNAVAILABLE_MODEL_RE = /model\s+is\s+unavailable/i;
+const ACCESS_DISABLED_RE = /model\s+access\s+is\s+disabled|access\s+is\s+disabled/i;
+const MODEL_UNAVAILABLE_RE = /model\s+unavailable/i;
 
 // Removed/deprecated models (e.g. `Model exo-free has been deprecated.`):
 // Zen answers a rotated-out model as a status-less InvalidRequest with
@@ -166,6 +168,8 @@ function classifyFreeExhaustion(status, bodyText) {
   if (!failure) return false;
   if (RATE_LIMIT_MESSAGE_RE.test(text)) return true;
   if (UNAVAILABLE_MODEL_RE.test(text)) return true;
+  if (ACCESS_DISABLED_RE.test(text)) return true;
+  if (MODEL_UNAVAILABLE_RE.test(text)) return true;
   if (DEPRECATED_MODEL_RE.test(text)) return true;
   if (!Number.isFinite(s) || s <= 0) return EXHAUST_BODY_RE.test(text);
   if (s === 401) return false; // key rejected, not quota
@@ -321,6 +325,8 @@ module.exports = {
   RATE_LIMIT_BODY_RE,
   RATE_LIMIT_MESSAGE_RE,
   UNAVAILABLE_MODEL_RE,
+  ACCESS_DISABLED_RE,
+  MODEL_UNAVAILABLE_RE,
   DEPRECATED_MODEL_RE,
   PROTOCOL_MISMATCH_RE,
   mismatchHaystack,
