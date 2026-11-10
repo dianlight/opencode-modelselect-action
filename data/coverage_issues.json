@@ -1,11 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "crouton-alpha-free",
-      "tier": "Free"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [],
   "missing_capabilities": [],
   "fallback_mismatch": []
