@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-10T04:58:23.154759+00:00",
+  "timestamp": "2026-11-11T03:29:19.818500+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -1971,6 +1971,17 @@
           ]
         },
         {
+          "model": "opencode-go/glm-5.2",
+          "score": 75.9,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "blended_cost": 2.15,
+          "context": 1000000,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 75.0,
           "input_cost": 0.14,
@@ -1995,6 +2006,19 @@
             "text",
             "image",
             "pdf"
+          ]
+        },
+        {
+          "model": "opencode-go/kimi-k2.7-code",
+          "score": 71.6,
+          "input_cost": 0.95,
+          "output_cost": 4.0,
+          "blended_cost": 1.7125,
+          "context": 262144,
+          "modalities": [
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -2124,14 +2148,16 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.2",
-          "score": 63.0,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 1000000,
+          "model": "opencode-go/minimax-m3",
+          "score": 63.3,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "blended_cost": 0.525,
+          "context": 1048576,
           "modalities": [
-            "text"
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -2156,6 +2182,17 @@
             "text",
             "image",
             "video"
+          ]
+        },
+        {
+          "model": "opencode-go/deepseek-v4-pro",
+          "score": 62.0,
+          "input_cost": 1.74,
+          "output_cost": 3.48,
+          "blended_cost": 2.175,
+          "context": 1000000,
+          "modalities": [
+            "text"
           ]
         },
         {
@@ -2222,19 +2259,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.7-code",
-          "score": 57.0,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -2246,35 +2270,11 @@
           ]
         },
         {
-          "model": "opencode-go/deepseek-v4-pro",
-          "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/kimi-k3",
           "score": 53.1,
           "input_cost": 3.0,
           "output_cost": 15.0,
           "blended_cost": 6.0,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m3",
-          "score": 51.7,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
           "context": 1048576,
           "modalities": [
             "text",
@@ -2501,6 +2501,17 @@
           ]
         },
         {
+          "model": "opencode-go/glm-5.2",
+          "score": 75.9,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "blended_cost": 2.15,
+          "context": 1000000,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 75.0,
           "input_cost": 0.14,
@@ -2525,6 +2536,19 @@
             "text",
             "image",
             "pdf"
+          ]
+        },
+        {
+          "model": "opencode-go/kimi-k2.7-code",
+          "score": 71.6,
+          "input_cost": 0.95,
+          "output_cost": 4.0,
+          "blended_cost": 1.7125,
+          "context": 262144,
+          "modalities": [
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -2654,14 +2678,16 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.2",
-          "score": 63.0,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 1000000,
+          "model": "opencode-go/minimax-m3",
+          "score": 63.3,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "blended_cost": 0.525,
+          "context": 1048576,
           "modalities": [
-            "text"
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -2686,6 +2712,17 @@
             "text",
             "image",
             "video"
+          ]
+        },
+        {
+          "model": "opencode-go/deepseek-v4-pro",
+          "score": 62.0,
+          "input_cost": 1.74,
+          "output_cost": 3.48,
+          "blended_cost": 2.175,
+          "context": 1000000,
+          "modalities": [
+            "text"
           ]
         },
         {
@@ -2752,19 +2789,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.7-code",
-          "score": 57.0,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -2776,35 +2800,11 @@
           ]
         },
         {
-          "model": "opencode-go/deepseek-v4-pro",
-          "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/kimi-k3",
           "score": 53.1,
           "input_cost": 3.0,
           "output_cost": 15.0,
           "blended_cost": 6.0,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m3",
-          "score": 51.7,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
           "context": 1048576,
           "modalities": [
             "text",
@@ -3879,6 +3879,17 @@
           ]
         },
         {
+          "model": "opencode-go/glm-5.2",
+          "score": 75.9,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "blended_cost": 2.15,
+          "context": 1000000,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 75.0,
           "input_cost": 0.14,
@@ -3903,6 +3914,19 @@
             "text",
             "image",
             "pdf"
+          ]
+        },
+        {
+          "model": "opencode-go/kimi-k2.7-code",
+          "score": 71.6,
+          "input_cost": 0.95,
+          "output_cost": 4.0,
+          "blended_cost": 1.7125,
+          "context": 262144,
+          "modalities": [
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -4032,14 +4056,16 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.2",
-          "score": 63.0,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 1000000,
+          "model": "opencode-go/minimax-m3",
+          "score": 63.3,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "blended_cost": 0.525,
+          "context": 1048576,
           "modalities": [
-            "text"
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -4064,6 +4090,17 @@
             "text",
             "image",
             "video"
+          ]
+        },
+        {
+          "model": "opencode-go/deepseek-v4-pro",
+          "score": 62.0,
+          "input_cost": 1.74,
+          "output_cost": 3.48,
+          "blended_cost": 2.175,
+          "context": 1000000,
+          "modalities": [
+            "text"
           ]
         },
         {
@@ -4130,19 +4167,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.7-code",
-          "score": 57.0,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -4154,35 +4178,11 @@
           ]
         },
         {
-          "model": "opencode-go/deepseek-v4-pro",
-          "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/kimi-k3",
           "score": 53.1,
           "input_cost": 3.0,
           "output_cost": 15.0,
           "blended_cost": 6.0,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m3",
-          "score": 51.7,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
           "context": 1048576,
           "modalities": [
             "text",
@@ -4939,6 +4939,17 @@
           ]
         },
         {
+          "model": "opencode-go/glm-5.2",
+          "score": 75.9,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "blended_cost": 2.15,
+          "context": 1000000,
+          "modalities": [
+            "text"
+          ]
+        },
+        {
           "model": "opencode-go/mimo-v2.6-flash",
           "score": 75.0,
           "input_cost": 0.14,
@@ -4963,6 +4974,19 @@
             "text",
             "image",
             "pdf"
+          ]
+        },
+        {
+          "model": "opencode-go/kimi-k2.7-code",
+          "score": 71.6,
+          "input_cost": 0.95,
+          "output_cost": 4.0,
+          "blended_cost": 1.7125,
+          "context": 262144,
+          "modalities": [
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -5092,14 +5116,16 @@
           ]
         },
         {
-          "model": "opencode-go/glm-5.2",
-          "score": 63.0,
-          "input_cost": 1.4,
-          "output_cost": 4.4,
-          "blended_cost": 2.15,
-          "context": 1000000,
+          "model": "opencode-go/minimax-m3",
+          "score": 63.3,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "blended_cost": 0.525,
+          "context": 1048576,
           "modalities": [
-            "text"
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -5124,6 +5150,17 @@
             "text",
             "image",
             "video"
+          ]
+        },
+        {
+          "model": "opencode-go/deepseek-v4-pro",
+          "score": 62.0,
+          "input_cost": 1.74,
+          "output_cost": 3.48,
+          "blended_cost": 2.175,
+          "context": 1000000,
+          "modalities": [
+            "text"
           ]
         },
         {
@@ -5190,19 +5227,6 @@
           ]
         },
         {
-          "model": "opencode-go/kimi-k2.7-code",
-          "score": 57.0,
-          "input_cost": 0.95,
-          "output_cost": 4.0,
-          "blended_cost": 1.7125,
-          "context": 262144,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode-go/hy3",
           "score": 55.0,
           "input_cost": 0.14,
@@ -5214,35 +5238,11 @@
           ]
         },
         {
-          "model": "opencode-go/deepseek-v4-pro",
-          "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
-          "context": 1000000,
-          "modalities": [
-            "text"
-          ]
-        },
-        {
           "model": "opencode-go/kimi-k3",
           "score": 53.1,
           "input_cost": 3.0,
           "output_cost": 15.0,
           "blended_cost": 6.0,
-          "context": 1048576,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
-          "model": "opencode-go/minimax-m3",
-          "score": 51.7,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
           "context": 1048576,
           "modalities": [
             "text",
