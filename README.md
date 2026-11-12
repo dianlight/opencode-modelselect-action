@@ -74,12 +74,12 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-11-11 03:29 UTC**.
-> LiveBench data: **348 models scored** (34 v2, 314 v1-only).
+> Last updated: **2026-11-12 04:38 UTC**.
+> LiveBench data: **349 models scored** (34 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-11-06**.
 > v2 Source: https://livebench.ai/data/20261106/table.csv
-> LiveBench v1 fallback snapshot: **2026_01_08**.
-> v1 Source: https://livebench.ai/table_2026_01_08.csv
+> LiveBench v1 fallback snapshot: **2026_06_25**.
+> v1 Source: https://livebench.ai/table_2026_06_25.csv
 > Free-first threshold: **5%**.
 > Blended cost weights: **75% in / 25% out** ($/1M).
 > Costs shown as in/out $/1M (Free = $0).
@@ -114,12 +114,12 @@ automatically at their next run.
 | `beam-free` | Free | 📋 Fallback | Triage, Docs | 56.5 | 58.0 | 76.0 | 5.0 | 79.6 | Free | Free | Free | — |
 | `big-pickle` | Free | 📋 Fallback | UITest, APITest | 61.5 | 67.0 | 61.5 | 8.0 | 60.0 | Free | Free | Free | — |
 | `claude-haiku-5-5` | Go (Paid) | 📋 Fallback | UITest, APITest | 75.6 | 91.4 | 82.4 | 60.0 | 75.0 | $0.1 | $0.5 | $0.2 | 378.0 |
-| `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 74.4 | 62.0 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 34.2 |
+| `deepseek-v4-pro` | Go (Paid) | ✅ LiveBench | Plan, Review | 72.6 | 53.6 | 83.9 | 56.4 | 70.3 | $1.74 | $3.48 | $2.175 | 33.4 |
 | `deepseek-v4.1-flash` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 73.3 | 80.4 | 89.1 | 79.8 | — | $0.3 | $1.2 | $0.525 | 139.6 |
 | `deepseek-v4.1-flash-free` | Free | ✅ LiveBench v2 | Plan, Review | 73.3 | 80.4 | 89.1 | 79.8 | — | Free | Free | Free | — |
 | `flint-40b-free` | Free | 📋 Fallback | UITest, APITest | 63.0 | 72.0 | 70.0 | 5.0 | 65.0 | Free | Free | Free | — |
 | `gemini-4-argon` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 80.5 | 85.7 | 95.1 | 69.2 | — | $4 | $20 | $8 | 10.1 |
-| `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 76.2 | 75.9 | 82.1 | 60.7 | 68.2 | $1.4 | $4.4 | $2.15 | 35.4 |
+| `glm-5.2` | Go (Paid) | ✅ LiveBench | Plan, Review | 73.4 | 63.0 | 82.1 | 60.7 | 68.2 | $1.4 | $4.4 | $2.15 | 34.1 |
 | `glm-5.3` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $1.4 | $4.4 | $2.15 | 32.0 |
 | `glm-5.3-flash` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 64.7 | 70.9 | 77.6 | 73.7 | — | $0.15 | $0.5 | $0.2375 | 272.4 |
 | `glm-5.3-flash-free` | Free | ✅ LiveBench v2 | Plan, Review | 64.7 | 70.9 | 77.6 | 73.7 | — | Free | Free | Free | — |
@@ -132,7 +132,7 @@ automatically at their next run.
 | `iceman-contributor-free` | Go (Paid) | 📋 Fallback | Triage, Docs | 19.0 | 30.0 | 25.0 | 5.0 | 35.0 | Free | Free | Free | — |
 | `iceman-free` | Free | 📋 Fallback | Triage, Docs | 19.0 | 30.0 | 25.0 | 5.0 | 35.0 | Free | Free | Free | — |
 | `inkling-2-small-free` | Free | ✅ LiveBench v2 | Plan, Review | 48.2 | 48.7 | 78.3 | 55.2 | — | Free | Free | Free | — |
-| `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 71.9 | 71.6 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 42.0 |
+| `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |
 | `kimi-k3` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 69.4 | 53.1 | 90.7 | 72.5 | — | $3 | $15 | $6 | 11.6 |
 | `kimi-k3.1-pro` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 72.6 | 67.8 | 91.1 | 73.7 | — | $2 | $10 | $4 | 18.1 |
 | `longcat-2.0` | Go (Paid) | 📋 Fallback | Triage, Docs | 60.0 | 70.0 | 89.0 | 5.0 | 90.0 | $0.3 | $1.2 | $0.525 | 114.3 |
@@ -140,17 +140,17 @@ automatically at their next run.
 | `mimo-v2.6-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 64.0 | 75.0 | 84.0 | 40.0 | 76.0 | $0.14 | $0.28 | $0.175 | 365.7 |
 | `mimo-v2.6-flash-free` | Free | 📋 Fallback | Plan, Review | 60.0 | 71.0 | 80.0 | 38.0 | 72.0 | Free | Free | Free | — |
 | `mimo-v2.6-pro` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 69.9 | 64.5 | 79.6 | 74.3 | — | $0.435 | $0.87 | $0.5437 | 128.6 |
-| `minimax-m3` | Go (Paid) | ✅ LiveBench | Plan, Review | 70.1 | 63.3 | 76.7 | 50.2 | 66.9 | $0.3 | $1.2 | $0.525 | 133.5 |
+| `minimax-m3` | Go (Paid) | ✅ LiveBench | Plan, Review | 67.5 | 51.7 | 76.7 | 50.2 | 66.9 | $0.3 | $1.2 | $0.525 | 128.6 |
 | `minimax-m3.1-flash` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 68.2 | 68.8 | 82.9 | 71.2 | — | $0.15 | $0.6 | $0.2625 | 259.8 |
 | `minimax-m3.1-flash-free` | Free | ✅ LiveBench v2 | Plan, Review | 68.2 | 68.8 | 82.9 | 71.2 | — | Free | Free | Free | — |
 | `muse-spark-1.2-contributor` | Go (Paid) | 📋 Fallback | Plan, Review | 66.0 | 59.3 | 83.0 | 55.0 | 74.0 | $0.1 | $0.2 | $0.125 | 528.0 |
-| `muse-spark-1.3-contributor` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 69.8 | 83.1 | 89.7 | 74.8 | — | $0.1 | $0.2 | $0.125 | 558.4 |
+| `muse-spark-1.3-contributor` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 70.0 | 84.4 | 89.7 | 74.8 | — | $0.1 | $0.2 | $0.125 | 560.0 |
 | `nemotron-3.5-lightning-free` | Free | 📋 Fallback | Triage, Docs | 45.0 | 36.2 | 58.0 | 5.0 | 72.0 | Free | Free | Free | — |
 | `nemotron-3.5-super-vl-free` | Free | 📋 Fallback | Plan, Review | 51.5 | 65.5 | 78.8 | 55.0 | 71.0 | Free | Free | Free | — |
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
 | `qwen3.8-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 62.9 | 59.0 | 86.0 | 60.0 | 81.3 | $0.15 | $0.47 | $0.23 | 273.5 |
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 64.7 | 60.9 | 88.2 | 76.6 | — | $2 | $6 | $3 | 21.6 |
-| `step-5-preview` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 58.2 | 69.4 | 83.8 | 70.8 | — | $1 | $2.7 | $1.425 | 40.8 |
+| `step-5-preview` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 57.9 | 67.6 | 83.8 | 70.8 | — | $1 | $2.7 | $1.425 | 40.6 |
 ## Sponsor
 
 <a href="https://github.com/sponsors/dianlight"><img src="https://img.shields.io/github/sponsors/dianlight?style=flat-square&logo=githubsponsors&logoColor=%23EA4AAA" alt="Github Sponsor"></a>
