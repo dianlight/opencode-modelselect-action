@@ -15,6 +15,8 @@
  * - `GET /chain?task=` — the models preview, computed here (`chain.js`).
  * - `GET /pick?session=` — the one-line pick behind the session action.
  * - `POST /quota` — the usage provider (`provides: ["quota"]`).
+ * - `POST /session-events` — the agent's permission requests and forms, which
+ *   the service answers on the user's behalf (`sessionControl.answers`).
  * - `GET /health` — the host's ready probe.
  * Every request carries `Authorization: Bearer $OPENCHAMBER_SERVICE_TOKEN`.
  *
@@ -36,9 +38,10 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import routingShared from '../../../core/routing.js';
-import { createServiceHost } from '@openchamber/sdk';
+import { createServiceHost, readSessionEventRequest, SESSION_EVENTS_PATH } from '@openchamber/sdk';
 import { buildView, pickSummary, TIER_OPTIONS } from './view.js';
 import { computeModelsView } from './chain.js';
+import { computeFormValues, formMessage, knownValues, PAGE_MESSAGE, PERMISSION_MESSAGE } from './answers.js';
 import * as store from './store.js';
 
 const { syncRouting } = routingShared;
@@ -60,6 +63,9 @@ const ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
 const GLOBAL_PROBE_MS = 30 * 1000;
 const MAINTAIN_EVERY_MS = 60 * 1000;
 const BODY_MAX = 16 * 1024;
+// A session event carries the form the agent shows, so it needs more room
+// than a control event.
+const EVENT_BODY_MAX = 256 * 1024;
 const TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
 
 // OpenCode local port candidates, same as plugin/src/shared/usage.js.
@@ -353,6 +359,93 @@ async function readChain(directory, taskType) {
   });
 }
 
+// --- answers (session control) ---------------------------------------------
+
+/**
+ * The projects this service serves: the section polled them or the panel named
+ * them. A request in any other project is not ours to answer — the extension
+ * only speaks for the project the user is working in.
+ */
+function servesDirectory(directory) {
+  return typeof directory === 'string' && directory !== '' && seenDirectories.has(directory);
+}
+
+/**
+ * One answer, never retried. A 404 means the request settled meanwhile, in
+ * the app or on another device: log it and move on, because answering it
+ * again would answer a request that no longer exists.
+ */
+async function answer(what, call) {
+  if (!serviceHost) return;
+  try {
+    await call();
+  } catch (e) {
+    const status = e && typeof e.status === 'number' ? e.status : 0;
+    if (status === 404) {
+      process.stderr.write('[modelselect] the ' + what + ' settled already (404); not retrying\n');
+    } else {
+      process.stderr.write('[modelselect] the ' + what + ' could not be answered: ' +
+        messageOf(e, 'unknown error') + '\n');
+    }
+  }
+}
+
+/** Allow the request once, with a message that says who allowed it. */
+async function answerPermission(event) {
+  const requestId = event.permission && event.permission.requestId;
+  if (!requestId) return;
+  await answer('permission request', () => serviceHost.sessions.answerPermission(
+    event.session.id,
+    requestId,
+    { decision: 'allow', message: PERMISSION_MESSAGE }
+  ));
+}
+
+/**
+ * Answer a form with the values the service holds; send a page to the session
+ * instead, because a page cannot be answered from a service.
+ */
+async function answerQuestion(event, content, directory) {
+  const kind = event.question && event.question.kind;
+  const sessionId = event.session.id;
+  if (kind === 'page') {
+    await answer('page', () => serviceHost.sessions.send(sessionId, PAGE_MESSAGE));
+    return;
+  }
+  if (kind !== 'form') return;
+  const ask = content && content.ask;
+  const formId = (event.question && event.question.id) || (ask && ask.id);
+  if (!formId) return;
+  const fields = ask && Array.isArray(ask.fields) ? ask.fields : [];
+  const pick = await store.readSessionStatus(directory, sessionId);
+  const values = computeFormValues(fields, knownValues(directory, pick));
+  await answer('form', () => serviceHost.sessions.answerForm(
+    sessionId,
+    formId,
+    values,
+    formMessage(values)
+  ));
+}
+
+/** One session event: a request to answer, or nothing to do. */
+async function handleSessionEvent(bodyText) {
+  const request = readSessionEventRequest(bodyText);
+  if (!request) {
+    return { status: 400, body: { ok: false, error: 'Not a session event of this version.' } };
+  }
+  const event = request.event;
+  const directory = event.project ? event.project.directory : null;
+  if (!servesDirectory(directory)) {
+    return { status: 200, body: { ok: true } };
+  }
+  if (event.type === 'permission-asked') {
+    await answerPermission(event);
+  } else if (event.type === 'question-asked') {
+    await answerQuestion(event, request.content, directory);
+  }
+  return { status: 200, body: { ok: true } };
+}
+
 // --- HTTP -----------------------------------------------------------------
 
 function send(res, status, body) {
@@ -371,13 +464,13 @@ function authorized(req) {
   return given.length === want.length && crypto.timingSafeEqual(given, want);
 }
 
-function readBody(req) {
+function readBody(req, max = BODY_MAX) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
     req.on('data', (chunk) => {
       size += chunk.length;
-      if (size > BODY_MAX) {
+      if (size > max) {
         reject(new Error('body too large'));
         req.destroy();
         return;
@@ -698,6 +791,11 @@ async function handle(req, res) {
   }
   if (url.pathname === '/quota' && req.method === 'POST') {
     send(res, 200, await handleQuota(await readBody(req)));
+    return;
+  }
+  if (url.pathname === SESSION_EVENTS_PATH && req.method === 'POST') {
+    const result = await handleSessionEvent(await readBody(req, EVENT_BODY_MAX));
+    send(res, result.status, result.body);
     return;
   }
   send(res, 404, { message: 'Not found.' });

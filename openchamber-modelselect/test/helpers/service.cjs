@@ -169,7 +169,8 @@ function waitForPort(child) {
 }
 
 /** Spawn the bundle on an ephemeral port; resolves a tiny client. */
-async function startService(fixture) {
+async function startService(fixture, options) {
+  options = options || {};
   if (!fs.existsSync(BUNDLE)) {
     throw new Error('service/main.js is missing — run `bun run build` first');
   }
@@ -177,7 +178,8 @@ async function startService(fixture) {
     env: Object.assign({}, process.env, {
       OPENCHAMBER_SERVICE_PORT: '0',
       OPENCHAMBER_SERVICE_TOKEN: TOKEN,
-      OPENCHAMBER_HOST_CALLBACK_URL: '',
+      // The host's callback listener: the service's way back into OpenChamber.
+      OPENCHAMBER_HOST_CALLBACK_URL: options.hostCallbackUrl || '',
       HOME: fixture.home,
       USERPROFILE: fixture.home,
       MODELSELECT_STATE_FILE: path.join(fixture.root, 'last-project.json'),

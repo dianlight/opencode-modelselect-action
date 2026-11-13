@@ -1,5 +1,7 @@
 schema: spec-driven
 created: 2026-11-10
+x-status: outdated
+x-supersededBy: status-push-via-service-host
 skip_specs: true
 
 x-minOpenchamberSdk:

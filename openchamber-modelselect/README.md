@@ -19,14 +19,16 @@ of file I/O**:
 | `GET /chain` | the settings panel's Models tab |
 | `GET /pick` | the background session action |
 | `POST /quota` | OpenChamber's Usage page |
+| `POST /session-events` | OpenChamber: the agent's permission requests and forms |
 
 The panel therefore declares no `files` capability and no filesystem paths; it
 is presentation only (`panel/src/main.js` shell, `plugin-tab.js`,
 `ext-tab.js`, `models-tab.js`, `fields.js`, `api.js`, `dom.js`). Never edit the
 bundles by hand.
 
-Requires OpenChamber >= 2.6.2 (web/desktop; the canary line until 2.6.2 ships).
-The source contract sends only `?directory=` and `?locale=` — no session id — so
+Requires OpenChamber >= 2.7.1 (web/desktop; the `sessionControl.answers` grant
+and the session events the service subscribes to land in 2.7.1). The source
+contract sends only `?directory=` and `?locale=` — no session id — so
 the section is project-scoped: it shows the newest `status-*.json` in the open
 project. The session action is the session-scoped view.
 
@@ -47,6 +49,15 @@ Settings → Extensions → install from Folder / ZIP / URL pointing at
   brings it back if it stops: the routing sync and the host-detection map then
   stay fresh without a panel being open, which is what the approval line says.
 - the **usage provider** role (`quota`) — the card on Settings → Usage.
+- the **session control** grant (`sessionControl`) — the service acts on
+  sessions on its own; it uses it to send a message to a session.
+- the **session answers** grant (`sessionAnswers`) — the service answers the
+  agent's permission requests and forms for you, in the project you have open.
+  Every answer is for that one request: an "always allow" rule stays a click
+  in the app.
+- the **session events** the service subscribes to (`permission-asked` and
+  `question-asked`, with their content) — the permission's detail and the
+  form's fields. Nothing else of the conversation is read.
 
 Folder installs do not update themselves; a git-installable distribution (with
 OpenChamber's Update button) is specified in
@@ -66,11 +77,18 @@ Always rebuild + commit all three bundles after editing a source file. The
 extension never compiles TypeScript on the host, so a stale bundle ships stale
 code; CI fails on a bundle that does not match its source.
 
+The SDK is pinned to `@openchamber/sdk` `2.7.1` — the first stable release that
+carries the `sessionControl.answers` grant and the session events the service
+subscribes to, so the extension needs no canary host. A bump means: change the
+pin in `package.json`, run the four commands above, and commit the three
+rebuilt bundles with it.
+
 Tests: `status-view` (the host schema, every row state), `chain` (the models
 preview), `status-service` (the real bundle over HTTP: status, controls,
 config read/write, chain, pick, quota), `panel-frame` (the panel bundle in a
 fake guest frame, with every `serviceRequest` forwarded to the real service),
-`manifest`.
+`manifest`, `answers` (the values a form is answered with), `session-answers`
+(the real bundle answering the agent's requests against a fake host).
 
 ## Update
 
@@ -190,6 +208,31 @@ The plugin only ever reads this file. A session that has never routed has
 no entry, so the plugin's per-session `/modelselect` line can report
 `standalone` until its first turn even while project-level detection is
 already on.
+
+## Answers (session control)
+
+`contributes.sessionControl: { answers: true }` puts the `sessionAnswers` line
+in the approval dialog: the service may answer the agent's permission
+requests and forms for you. OpenChamber posts every `permission-asked` and
+`question-asked` event to `POST /session-events`, and the service answers:
+
+- a **permission** is allowed once, with a message that says the extension
+  allowed it. An answer is for that request only — nothing the service does
+  creates a standing rule, so "always allow" stays a click in the app;
+- a **form** is answered with the values the service already holds: the
+  session's project directory, and the plugin's pick for that session (model,
+  task type, tier). Every other field keeps its default, and a field whose
+  `when` conditions do not hold is not filled at all;
+- a **page** is never answered — a page cannot be answered from a service — so
+  it is sent to the session, which closes it as when you write in the chat.
+
+Only the project the extension was asked about is answered (the section
+polled it, or the panel named it). A request in any other project is left
+alone.
+
+A request that settled meanwhile — you answered it in the app, or on another
+device — comes back as a 404. The service logs that and moves on: it never
+repeats an answer for a request that no longer exists.
 
 ## Session action
 

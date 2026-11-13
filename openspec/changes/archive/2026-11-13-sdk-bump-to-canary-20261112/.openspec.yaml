@@ -1,5 +1,7 @@
 schema: spec-driven
 created: 2026-11-13
+x-status: outdated
+x-supersededBy: sdk-bump-to-canary-20261113
 skip_specs: true
 
 x-minOpenchamberSdk:

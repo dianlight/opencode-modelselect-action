@@ -31,4 +31,4 @@ users who only want the modelselect dashboard.
 ## Impact
 
 - `openchamber-modelselect/package.json`, new page bundle, build scripts.
-- Depends on `sdk-bump-to-canary-20261112`.
+- Depends on `sdk-bump-to-canary-20261113`.

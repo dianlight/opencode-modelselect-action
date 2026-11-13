@@ -5,7 +5,9 @@
  *
  * The manifest needs no `files` capability and no `filesystem` paths any more:
  * the local service owns every read and write, the Work Status section is
- * host-rendered, and the session action runs in the background entry. Parsing
+ * host-rendered, and the session action runs in the background entry. It asks
+ * for the session control grants instead (`sessionControl.answers`), which is
+ * what lets the service answer the agent's requests for the user. Parsing
  * with the SDK's own `parseManifestJson` keeps this honest across SDK bumps.
  */
 
@@ -18,7 +20,7 @@ const PACKAGE = path.join(__dirname, '..', 'package.json');
 const ROOT = path.join(__dirname, '..');
 
 describe('extension manifest', () => {
-  it('parses as an OpenChamber 2.6 guest', async () => {
+  it('parses as an OpenChamber guest', async () => {
     const { parseManifestJson } = await import('@openchamber/sdk/schemas');
     const pkg = JSON.parse(fs.readFileSync(PACKAGE, 'utf8'));
     const result = parseManifestJson(JSON.stringify(pkg.openchamber));
@@ -46,6 +48,11 @@ describe('extension manifest', () => {
     assert.deepEqual(contributes.quota, { providers: [] });
     assert.equal(contributes.capabilities, undefined, 'no file grants: the service owns I/O');
     assert.equal(contributes.filesystem, undefined, 'no filesystem paths any more');
+    assert.deepEqual(contributes.sessionControl, { answers: true }, 'the service answers requests for the user');
+    assert.deepEqual(contributes.sessionEvents, {
+      events: ['permission-asked', 'question-asked'],
+      content: true,
+    }, 'the service learns what the agent asks');
     assert.equal(contributes.actions.length, 1);
     assert.deepEqual(contributes.actions[0], {
       id: 'model-pick',
@@ -53,7 +60,17 @@ describe('extension manifest', () => {
       where: 'session',
       mode: 'background'
     });
-    assert.equal(pkg.openchamber.engines.openchamber, '>=2.6.2');
+    assert.equal(pkg.openchamber.engines.openchamber, '>=2.7.1');
+  });
+
+  it('asks for the session answers line in the approval dialog', async () => {
+    const { requestedGuestCapabilities } = await import('@openchamber/sdk');
+    const pkg = JSON.parse(fs.readFileSync(PACKAGE, 'utf8'));
+    const requested = requestedGuestCapabilities(pkg.openchamber.contributes);
+    assert.ok(requested.includes('sessionAnswers'), 'the approval lists the answers grant');
+    assert.ok(requested.includes('sessionControl'), 'the approval lists the session control grant');
+    assert.ok(requested.includes('transcript'), 'the form fields come with the transcript grant');
+    assert.ok(!requested.includes('files'), 'no file grant: the service owns I/O');
   });
 
   it('ships every entry it names', () => {

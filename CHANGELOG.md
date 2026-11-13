@@ -1,13 +1,26 @@
 ## [Unreleased]
 ### Changed
-- OpenChamber extension 0.8.0, rebuilt against SDK `2.6.2-canary.20261106.9`
+- OpenChamber extension 0.8.0, rebuilt against SDK `2.7.1`
   (OpenChamber PR 6379). The local service is now the extension's only owner
   of file I/O: the settings panel reads and writes through `GET/POST /config`
   and shows the models chain from `GET /chain`, so the package asks for **no
   `files` capability and no `filesystem` paths** — the approval dialog lists
-  the local service alone. The panel lost its file plumbing, its own chain
-  resolution and the duplicated usage-formatting code; `panel/src/` is split
-  into shell, tabs and field cells.
+  the local service and no file grant. The panel lost its file plumbing, its
+  own chain resolution and the duplicated usage-formatting code; `panel/src/`
+  is split into shell, tabs and field cells.
+- The extension answers the agent's permission requests and forms for you
+  (OpenChamber >= 2.7.1): `contributes.sessionControl.answers` puts the
+  `sessionAnswers` line in the approval dialog, and the service subscribes to
+  the `permission-asked` and `question-asked` session events with their
+  content, so it learns what the agent asks. A permission is allowed **once**,
+  with a message that says the extension allowed it — a standing "always
+  allow" rule stays a click in the app. A form is answered with the values the
+  service holds (the project directory and the plugin's pick for that session);
+  every other field keeps its default, and a `page` is never answered but goes
+  to the session instead. A request that settled meanwhile (answered in the
+  app or on another device) comes back as a 404: the service logs that and
+  moves on, it never retries. Only the project the extension was asked about is
+  answered.
 - The service declares `keepRunning` and maintains the caches on a 60 s timer
   instead of writing them from a read: `routing.json` is only written by the
   timer, by the router switch and right after a save. `GET /status` still

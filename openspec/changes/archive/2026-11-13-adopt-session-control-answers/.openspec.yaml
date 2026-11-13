@@ -1,0 +1,9 @@
+schema: spec-driven
+created: 2026-11-08
+goal: Let the OpenChamber service answer agent-initiated permission requests and computable forms on the user's behalf via OpenChamber 2.7 session control, so unattended turns no longer stall on permission prompts.
+
+skip_specs: true
+
+x-minOpenchamberSdk:
+  canary: "2.7.1-canary.20261109.13"
+  stable: ">=2.7.1"

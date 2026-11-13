@@ -70,7 +70,9 @@ describe('status service', () => {
     assert.equal(rows.usage.value, '42%');
     assert.equal(rows.router.content.value, 'on');
     const latch = res.body.rows.find((row) => row.kind === 'note');
-    assert.match(latch.text, /Free tier exhausted — opencode\/deepseek-v4\.1-flash-free — retry in 3h 5m/);
+    // The countdown truncates the seconds, so the window reads "3h 5m" in
+    // its first second and "3h 4m" for the minute after that.
+    assert.match(latch.text, /Free tier exhausted — opencode\/deepseek-v4\.1-flash-free — retry in 3h [45]m/);
   });
 
   it('turns the Tier row into a control that writes the plugin option', async () => {

@@ -32,4 +32,4 @@ ignores them.
 ## Impact
 
 - `openchamber-modelselect/service/src/main.js`, tests.
-- Depends on `sdk-bump-to-canary-20261112`.
+- Depends on `sdk-bump-to-canary-20261113`.

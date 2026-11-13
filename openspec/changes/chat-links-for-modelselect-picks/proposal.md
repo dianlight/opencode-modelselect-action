@@ -34,4 +34,4 @@ invisible in chat unless the user opens the section.
 
 - `openchamber-modelselect/package.json` (manifest, capabilities), panel,
   background, tests.
-- Depends on `sdk-bump-to-canary-20261112`.
+- Depends on `sdk-bump-to-canary-20261113`.

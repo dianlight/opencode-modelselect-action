@@ -118,6 +118,8 @@ var require_free_quota = __commonJS(function(exports, module) {
   var RATE_LIMIT_MESSAGE_RE = /rate\s*limit\s*exceeded\.?\s*please\s+try\s+again\s+later\.?/i;
   var RATE_LIMIT_BODY_RE = /rate\s*limit|too many requests/i;
   var UNAVAILABLE_MODEL_RE = /model\s+is\s+unavailable/i;
+  var ACCESS_DISABLED_RE = /model\s+access\s+is\s+disabled|access\s+is\s+disabled/i;
+  var MODEL_UNAVAILABLE_RE = /model\s+unavailable/i;
   var DEPRECATED_MODEL_RE = /has\s+been\s+deprecated|is\s+deprecated|model\s+has\s+been\s+(removed|retired|discontinued)|no\s+longer\s+(available|supported)/i;
   var PROTOCOL_MISMATCH_RE = /model\s+does\s+not\s+support\s+this\s+protocol|modelprotocolunsupported|provider request failed with http 404|no such model|model .* does not exist/i;
   var BARE_404_RE = /(^|\D)404(\D|$)/;
@@ -199,6 +201,10 @@ var require_free_quota = __commonJS(function(exports, module) {
     if (RATE_LIMIT_MESSAGE_RE.test(text))
       return true;
     if (UNAVAILABLE_MODEL_RE.test(text))
+      return true;
+    if (ACCESS_DISABLED_RE.test(text))
+      return true;
+    if (MODEL_UNAVAILABLE_RE.test(text))
       return true;
     if (DEPRECATED_MODEL_RE.test(text))
       return true;
@@ -323,6 +329,8 @@ var require_free_quota = __commonJS(function(exports, module) {
     RATE_LIMIT_BODY_RE,
     RATE_LIMIT_MESSAGE_RE,
     UNAVAILABLE_MODEL_RE,
+    ACCESS_DISABLED_RE,
+    MODEL_UNAVAILABLE_RE,
     DEPRECATED_MODEL_RE,
     PROTOCOL_MISMATCH_RE,
     mismatchHaystack,
@@ -1023,6 +1031,7 @@ function installGuestScrollbarActivity(doc) {
 }
 var GUEST_SCROLLBAR_SCRIPT = `(${installGuestScrollbarActivity.toString()})(document);`;
 // node_modules/@openchamber/sdk/dist/manifest.js
+var GUEST_PROVIDER_LOGO_BYTES_MAX = 1024 * 1024;
 var TRACKER_URL_TOKENS = ["{id}", "{segment}", "{segments+}"];
 var TRACKER_URL_TOKEN_SET = new Set(TRACKER_URL_TOKENS);
 // node_modules/@openchamber/sdk/dist/session-events.js
@@ -1036,8 +1045,80 @@ var GUEST_SESSION_EVENT_TYPES = [
   "session-archived",
   "session-deleted"
 ];
+var SESSION_EVENTS_PATH = "/session-events";
+var SESSION_EVENTS_WIRE_VERSION = 1;
 var SESSION_EVENTS_IDLE_MS = 10 * 60000;
 var EVENT_TYPES = new Set(GUEST_SESSION_EVENT_TYPES);
+var isGuestSessionEventType = (value) => EVENT_TYPES.has(value);
+var readSessionEventRequest = (body) => {
+  let wire;
+  try {
+    const parsed = JSON.parse(body);
+    if (Object(parsed) !== parsed || parsed === null)
+      return null;
+    wire = parsed;
+  } catch {
+    return null;
+  }
+  const { v, requestId, event, content } = wire;
+  if (v !== SESSION_EVENTS_WIRE_VERSION)
+    return null;
+  if (String(requestId) !== requestId || requestId.length === 0)
+    return null;
+  if (Object(event) !== event || event === undefined)
+    return null;
+  const { id, type, at, session, project, linked, permission, question } = event;
+  if (String(id) !== id || id.length === 0)
+    return null;
+  if (String(type) !== type || !isGuestSessionEventType(type))
+    return null;
+  if (!Number.isFinite(at))
+    return null;
+  if (Object(session) !== session || session === undefined)
+    return null;
+  const sessionId = session.id;
+  if (String(sessionId) !== sessionId || sessionId.length === 0)
+    return null;
+  const parentId = session.parentId;
+  if (parentId !== null && (String(parentId) !== parentId || parentId.length === 0))
+    return null;
+  if (Object(project) !== project || project === undefined)
+    return null;
+  const directory = project.directory;
+  if (directory !== null && (String(directory) !== directory || directory.length === 0))
+    return null;
+  if (!Array.isArray(linked))
+    return null;
+  const request = {
+    v: SESSION_EVENTS_WIRE_VERSION,
+    requestId,
+    event: { id, type, at: Number(at), session: { id: sessionId, parentId }, project: { directory }, linked }
+  };
+  if (permission !== undefined) {
+    if (Object(permission) !== permission)
+      return null;
+    const permissionRequestId = permission.requestId;
+    if (String(permissionRequestId) !== permissionRequestId || permissionRequestId.length === 0)
+      return null;
+    request.event.permission = { requestId: permissionRequestId };
+  }
+  if (question !== undefined) {
+    if (Object(question) !== question)
+      return null;
+    const { kind, id: questionId } = question;
+    if (kind !== "form" && kind !== "page")
+      return null;
+    if (String(questionId) !== questionId || questionId.length === 0)
+      return null;
+    request.event.question = { kind, id: questionId };
+  }
+  if (content !== undefined) {
+    if (Object(content) !== content || content.type !== type)
+      return null;
+    request.content = content;
+  }
+  return request;
+};
 // node_modules/@openchamber/sdk/dist/service-host.js
 var SERVICE_HOST_PATH = "/service/call";
 var OPENCHAMBER_HOST_CALLBACK_URL_ENV = "OPENCHAMBER_HOST_CALLBACK_URL";
@@ -1082,12 +1163,16 @@ var createServiceHost = ({ env }) => {
       send: (sessionId, prompt) => call("sessions.send", { sessionId, prompt }),
       retry: (sessionId) => call("sessions.retry", { sessionId }),
       status: (sessionId) => call("sessions.status", { sessionId }),
-      lastReply: (sessionId) => call("sessions.lastReply", { sessionId })
+      lastReply: (sessionId) => call("sessions.lastReply", { sessionId }),
+      stop: (sessionId) => call("sessions.stop", { sessionId }),
+      answerPermission: (sessionId, requestId, answer) => call("sessions.answerPermission", { sessionId, requestId, ...answer }),
+      answerForm: (sessionId, formId, values, message) => call("sessions.answerForm", { sessionId, formId, values, ...message === undefined ? {} : { message } })
     },
     setInstructions: (directory, text) => call("instructions.set", { directory, text }),
     emit: (topic, data) => call("panels.emit", { topic, data }),
     readSettings: () => call("settings.read", {}).then(({ settings }) => settings),
-    needsConfiguration: (message) => call("status.set", { needsConfiguration: message })
+    needsConfiguration: (message) => call("status.set", { needsConfiguration: message }),
+    setMark: (target, mark) => call("marks.set", { target, mark })
   };
 };
 // node_modules/@openchamber/sdk/dist/file-editor.js
@@ -1767,6 +1852,124 @@ function computeModelsView({ taskType, catalogConfig, options, latchData, usage,
   };
 }
 
+// service/src/answers.js
+var PERMISSION_MESSAGE = "Model select allowed this once. Ask the user to allow it always if it should repeat.";
+var PAGE_MESSAGE = "Model select cannot answer a page — answer it in the app to continue this turn.";
+function formMessage(values) {
+  const keys = Object.keys(values || {});
+  if (!keys.length) {
+    return "Model select answered this form with its defaults; no field was computable.";
+  }
+  return "Model select filled " + keys.join(", ") + "; every other field keeps its default.";
+}
+function knownValues(directory, pick) {
+  const known = {};
+  if (typeof directory === "string" && directory)
+    known.directory = directory;
+  if (pick && typeof pick.model === "string" && pick.model)
+    known.model = pick.model;
+  if (pick && typeof pick.taskType === "string" && pick.taskType)
+    known.task = pick.taskType;
+  if (pick && typeof pick.tier === "string" && pick.tier)
+    known.tier = pick.tier;
+  return known;
+}
+var FIELD_KEYS = {
+  directory: ["directory", "project", "projectdirectory", "path", "cwd", "workdir", "workspace"],
+  model: ["model", "modelid"],
+  task: ["task", "tasktype"],
+  tier: ["tier"]
+};
+function computeFormValues(fields, known) {
+  const values = {};
+  if (!Array.isArray(fields))
+    return values;
+  for (const field of fields) {
+    if (!field || typeof field.key !== "string" || !field.key)
+      continue;
+    if (!fieldIsAsked(field, values))
+      continue;
+    const value = fieldValue(field, known || {});
+    if (value !== undefined)
+      values[field.key] = value;
+  }
+  return values;
+}
+function fieldIsAsked(field, values) {
+  if (!Array.isArray(field.when) || !field.when.length)
+    return true;
+  for (const condition of field.when) {
+    if (!condition || typeof condition.key !== "string")
+      return false;
+    const current = values[condition.key];
+    if (current === undefined)
+      return false;
+    if (condition.op === "eq" && current !== condition.value)
+      return false;
+    if (condition.op === "neq" && current === condition.value)
+      return false;
+    if (condition.op !== "eq" && condition.op !== "neq")
+      return false;
+  }
+  return true;
+}
+function fieldValue(field, known) {
+  const type = typeof field.type === "string" ? field.type : "string";
+  if (type === "external")
+    return;
+  const kind = kindOfKey(field.key);
+  if (kind) {
+    const value = typedValue(type, known[kind]);
+    if (value === undefined)
+      return;
+    return optionsAllow(field, value) ? value : undefined;
+  }
+  if (Array.isArray(field.options) && field.options.length === 1) {
+    const only = field.options[0];
+    if (!only || typeof only.value !== "string")
+      return;
+    const value = typedValue(type, only.value);
+    if (value === undefined)
+      return;
+    return optionsAllow(field, value) ? value : undefined;
+  }
+  return;
+}
+function kindOfKey(key) {
+  const normalized = normalizeKey(key);
+  for (const kind of Object.keys(FIELD_KEYS)) {
+    if (FIELD_KEYS[kind].indexOf(normalized) !== -1)
+      return kind;
+  }
+  return null;
+}
+function normalizeKey(key) {
+  return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+function typedValue(type, raw) {
+  if (raw === undefined || raw === null || raw === "")
+    return;
+  if (type === "string")
+    return typeof raw === "string" ? raw : undefined;
+  if (type === "number" || type === "integer") {
+    return typeof raw === "number" && Number.isFinite(raw) ? raw : undefined;
+  }
+  if (type === "boolean")
+    return typeof raw === "boolean" ? raw : undefined;
+  if (type === "multiselect") {
+    const list = Array.isArray(raw) ? raw : [raw];
+    const values = list.filter((v) => typeof v === "string" && v !== "");
+    return values.length ? values : undefined;
+  }
+  return;
+}
+function optionsAllow(field, value) {
+  if (!Array.isArray(field.options) || !field.options.length)
+    return true;
+  const values = Array.isArray(value) ? value : [value];
+  return values.every((v) => field.options.some((o) => o && o.value === v));
+}
+
 // service/src/store.js
 var import_routing2 = __toESM(require_routing(), 1);
 import fsp from "node:fs/promises";
@@ -2128,6 +2331,7 @@ var ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
 var GLOBAL_PROBE_MS = 30 * 1000;
 var MAINTAIN_EVERY_MS = 60 * 1000;
 var BODY_MAX = 16 * 1024;
+var EVENT_BODY_MAX = 256 * 1024;
 var TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
 var RELOAD_PATH = "/api/location/reload";
 var DEFAULT_PORT = 4096;
@@ -2368,6 +2572,66 @@ async function readChain(directory, taskType) {
     now: Date.now()
   });
 }
+function servesDirectory(directory) {
+  return typeof directory === "string" && directory !== "" && seenDirectories.has(directory);
+}
+async function answer(what, call) {
+  if (!serviceHost)
+    return;
+  try {
+    await call();
+  } catch (e) {
+    const status = e && typeof e.status === "number" ? e.status : 0;
+    if (status === 404) {
+      process.stderr.write("[modelselect] the " + what + ` settled already (404); not retrying
+`);
+    } else {
+      process.stderr.write("[modelselect] the " + what + " could not be answered: " + messageOf(e, "unknown error") + `
+`);
+    }
+  }
+}
+async function answerPermission(event) {
+  const requestId = event.permission && event.permission.requestId;
+  if (!requestId)
+    return;
+  await answer("permission request", () => serviceHost.sessions.answerPermission(event.session.id, requestId, { decision: "allow", message: PERMISSION_MESSAGE }));
+}
+async function answerQuestion(event, content, directory) {
+  const kind = event.question && event.question.kind;
+  const sessionId = event.session.id;
+  if (kind === "page") {
+    await answer("page", () => serviceHost.sessions.send(sessionId, PAGE_MESSAGE));
+    return;
+  }
+  if (kind !== "form")
+    return;
+  const ask = content && content.ask;
+  const formId = event.question && event.question.id || ask && ask.id;
+  if (!formId)
+    return;
+  const fields = ask && Array.isArray(ask.fields) ? ask.fields : [];
+  const pick = await readSessionStatus(directory, sessionId);
+  const values = computeFormValues(fields, knownValues(directory, pick));
+  await answer("form", () => serviceHost.sessions.answerForm(sessionId, formId, values, formMessage(values)));
+}
+async function handleSessionEvent(bodyText) {
+  const request = readSessionEventRequest(bodyText);
+  if (!request) {
+    return { status: 400, body: { ok: false, error: "Not a session event of this version." } };
+  }
+  const event = request.event;
+  const directory = event.project ? event.project.directory : null;
+  if (!servesDirectory(directory)) {
+    return { status: 200, body: { ok: true } };
+  }
+  if (event.type === "permission-asked") {
+    await answerPermission(event);
+  } else if (event.type === "question-asked") {
+    await answerQuestion(event, request.content, directory);
+  }
+  return { status: 200, body: { ok: true } };
+}
 function send(res, status, body) {
   const text = JSON.stringify(body);
   res.writeHead(status, {
@@ -2382,13 +2646,13 @@ function authorized(req) {
   const want = Buffer.from("Bearer " + TOKEN);
   return given.length === want.length && crypto.timingSafeEqual(given, want);
 }
-function readBody(req) {
+function readBody(req, max = BODY_MAX) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
     req.on("data", (chunk) => {
       size += chunk.length;
-      if (size > BODY_MAX) {
+      if (size > max) {
         reject(new Error("body too large"));
         req.destroy();
         return;
@@ -2695,6 +2959,11 @@ async function handle(req, res) {
   }
   if (url.pathname === "/quota" && req.method === "POST") {
     send(res, 200, await handleQuota(await readBody(req)));
+    return;
+  }
+  if (url.pathname === SESSION_EVENTS_PATH && req.method === "POST") {
+    const result = await handleSessionEvent(await readBody(req, EVENT_BODY_MAX));
+    send(res, result.status, result.body);
     return;
   }
   send(res, 404, { message: "Not found." });

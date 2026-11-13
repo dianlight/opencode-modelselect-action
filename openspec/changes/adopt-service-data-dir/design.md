@@ -22,7 +22,7 @@ See `proposal.md` — Why. The current state that shapes the approach:
   the service starts; it survives restarts and updates and is deleted with the
   extension. `@openchamber/sdk` already exports the constant at the pinned
   version (`2.6.2-canary.20261107.11`), so this change does not wait on
-  `sdk-bump-to-canary-20261112` — but the variable is only *set* by hosts new
+  `sdk-bump-to-canary-20261113` — but the variable is only *set* by hosts new
   enough to implement the data folder, which is why the fallback below matters.
 - The service is the extension's only owner of file I/O and the package carries
   no `filesystem` capability: the data folder must be reached through the

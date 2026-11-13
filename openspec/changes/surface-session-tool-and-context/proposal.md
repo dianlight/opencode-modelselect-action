@@ -32,4 +32,4 @@ sessions shows nothing about what the agent is doing or how full its context is.
 ## Impact
 
 - `openchamber-modelselect/service/src/main.js`, tests, rebuilt bundle.
-- Depends on `sdk-bump-to-canary-20261112`.
+- Depends on `sdk-bump-to-canary-20261113`.
