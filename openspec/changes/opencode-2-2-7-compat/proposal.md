@@ -32,4 +32,4 @@ silently and break tier resolution or host detection without a test failure.
 
 - `plugin/test/*`, `openchamber-modelselect/test/*`, possibly `engines` floors.
 - No runtime behavior change unless a mismatch is found.
-- Depends on `sdk-bump-to-canary-20261110`.
+- Depends on `sdk-bump-to-canary-20261112`.

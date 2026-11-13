@@ -37,4 +37,4 @@ user's interface font size. This is the last hardcoded-size workaround in the pa
 
 - `openchamber-modelselect/panel/src/dom.js`, rebuilt `panel/main.js`.
 - No manifest or permission change.
-- Depends on `sdk-bump-to-canary-20261110`.
+- Depends on `sdk-bump-to-canary-20261112`.

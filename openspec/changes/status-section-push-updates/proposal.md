@@ -29,4 +29,4 @@ events allow push updates, removing the polling workaround and reducing load.
 ## Impact
 
 - `openchamber-modelselect/service/src/main.js`, manifest, tests.
-- Depends on `sdk-bump-to-canary-20261110`.
+- Depends on `sdk-bump-to-canary-20261112`.

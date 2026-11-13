@@ -36,4 +36,4 @@ be palette-friendly.
 
 - `openchamber-modelselect/package.json` (commands), panel, background, tests.
 - Rebuilt `panel/main.js` and `background/main.js`.
-- Depends on `sdk-bump-to-canary-20261110`.
+- Depends on `sdk-bump-to-canary-20261112`.

@@ -31,4 +31,4 @@ cadence.
 ## Impact
 
 - `openchamber-modelselect/package.json`, service main, tests.
-- Depends on `sdk-bump-to-canary-20261110`.
+- Depends on `sdk-bump-to-canary-20261112`.

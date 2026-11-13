@@ -5,7 +5,7 @@
 `sdk-bump-and-release-watch` proposed diffing the SDK's top-level docs
 (`GUEST_SERVICES.md`, `API.md`, `DOCUMENTATION.md`) on version moves so new
 contributions or service roles are reported by name instead of being discovered by
-hand. The SDK bump part of that proposal is superseded by `sdk-bump-to-canary-20261110`,
+hand. The SDK bump part of that proposal is superseded by `sdk-bump-to-canary-20261112`,
 but the doc-diff tooling is still valuable and not implemented. Extract it into its
 own change.
 

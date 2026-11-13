@@ -31,4 +31,4 @@ so provider identity is weak.
 ## Impact
 
 - `openchamber-modelselect/package.json`, bundled logo assets.
-- Depends on `sdk-bump-to-canary-20261110`.
+- Depends on `sdk-bump-to-canary-20261112`.
