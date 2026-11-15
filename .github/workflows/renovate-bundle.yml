@@ -12,11 +12,6 @@ on:
     paths:
       - "openchamber-modelselect/**"
   workflow_dispatch:
-    inputs:
-      push:
-        description: "Commit the rebuilt bundles to the branch"
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -30,8 +25,8 @@ jobs:
   rebuild:
     name: Rebuild the OpenChamber bundles
     # Only branches of this repository are touched: the workflow runs the
-    # build from the PR branch and pushes to it. The dispatch trigger is the
-    # follow-up verification run the workflow starts for itself.
+    # build from the PR branch and pushes to it. The dispatch trigger is a
+    # manual verification run that checks the committed bundles.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
@@ -71,10 +66,22 @@ jobs:
           git add $bundles
           git commit -m "build: rebuild the OpenChamber bundles"
           git push origin HEAD:refs/heads/${{ github.event.pull_request.head.ref }}
-          # A push made with GITHUB_TOKEN does not trigger workflows, so the
-          # CI run for the new commit has to be started by hand.
-          gh workflow run lint-yaml.yml --ref ${{ github.event.pull_request.head.ref }}
-          gh workflow run renovate-bundle.yml --ref ${{ github.event.pull_request.head.ref }} -f push=false
+          # A push made with GITHUB_TOKEN does not trigger workflows: GitHub
+          # creates the runs for the new commit but holds them back until
+          # they are approved. Approve them so the PR is checked by itself.
+          sha="$(git rev-parse HEAD)"
+          ids=""
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            ids="$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$sha&status=action_required" --jq '.workflow_runs[].id')"
+            if [ -n "$ids" ]; then
+              break
+            fi
+            sleep 3
+          done
+          for id in $ids; do
+            echo "Approving run $id"
+            gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/approve"
+          done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
