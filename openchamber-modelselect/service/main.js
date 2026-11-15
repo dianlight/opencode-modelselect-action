@@ -2624,7 +2624,7 @@ async function answerQuestion(event, content, directory) {
 async function handleSessionEvent(bodyText) {
   const request = readSessionEventRequest(bodyText);
   if (!request) {
-    return { status: 400, body: { ok: false, error: "Not a session event of this version." } };
+    return { status: 400, body: { ok: false, error: "Not a session event of this version (probe 3)." } };
   }
   const event = request.event;
   const directory = event.project ? event.project.directory : null;
