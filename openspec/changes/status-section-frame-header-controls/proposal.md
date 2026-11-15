@@ -12,6 +12,18 @@ and lets the row list be laid out by meaning instead of by survival. It is a
 deliberate reversal of the host-rendered choice in `AGENTS.md`, so it needs to be
 an explicit change rather than a silent migration.
 
+## Prior art
+
+`origin/verify/extension` (`738b9d2`, 2026-09-25) already shipped a frame section:
+`openchamber-modelselect/status/index.html` plus a 437-line vanilla
+`status/main.js` that reads `<cacheDir>/status-<sessionID>.json` and renders the
+pick rows, with a switch driven by `mode.json` (`on|off|auto`). Reuse its frame
+and row lifecycle and its theme-driven CSS. Do not carry over: the then
+project-local `.opencode/.modelselect-cache` path (the service owns state now),
+the `mode.json` switch (replaced by `routing-sync.json`),
+`contributes.filesystem` (forbidden by `AGENTS.md`), px sizing (must be rem), or
+the absence of `setStatusControls` — the header control is what this change adds.
+
 ## What Changes
 
 - Declare `contributes.statusSection.entry` (small `status/` frame, built and
