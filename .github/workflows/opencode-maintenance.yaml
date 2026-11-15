@@ -539,7 +539,7 @@ jobs:
       # immutable, so every run writes a new key and restore-keys picks the
       # newest previous one.
       - name: Restore release-watch state
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .opencode/.modelselect-cache/release-watch.json
           key: release-watch-state-${{ github.run_id }}-${{ github.run_attempt }}
@@ -581,7 +581,7 @@ jobs:
 
       - name: Save release-watch state
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .opencode/.modelselect-cache/release-watch.json
           key: release-watch-state-${{ github.run_id }}-${{ github.run_attempt }}
