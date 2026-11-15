@@ -118,3 +118,10 @@ Renovate app cannot run a rebuild (it blocks `postUpgradeTasks`), so
 `.github/workflows/renovate-bundle.yml` rebuilds the bundles on Renovate's pull
 requests and commits the result to the PR branch. Renovate stops updating a branch
 whose commits it did not create, so those PRs need a human merge.
+
+The rebuild workflow pushes with `GITHUB_TOKEN`, and GitHub does not trigger
+workflows for such a push: it creates the runs for the new commit but holds them
+back as `action_required`. The workflow therefore sweeps the run list for the new
+commit and approves those runs, which lets CI and the rebuild run on the new commit
+by themselves. The records appear a few seconds after the push, so the sweep waits
+instead of giving up at the first empty result.

@@ -6,6 +6,7 @@
   workflow rebuilds the bundles on Renovate's pull requests and commits the
   result to the PR branch; the CI staleness check now also covers
   `background/main.js`.
+- Extension bundles rebuilt against `@openchamber/sdk` 2.7.2.
 
 ## [1.0.1] - 2026-11-15
 ### Changed
