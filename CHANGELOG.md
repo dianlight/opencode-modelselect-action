@@ -1,5 +1,12 @@
 ## [Unreleased]
 ### Changed
+- CI now authenticates to OpenCode with GitHub OIDC service auth instead of the
+  long-lived `OPENCODE_API_KEY` secret: `opencode-maintenance.yaml` exchanges
+  the job's OIDC token (`id-token: write`, audience
+  `https://opencode.ai/console`) for a short-lived access token, exports it as
+  `OPENCODE_API_KEY` for the select-model action and the OpenCode step, and
+  refreshes it right before the long agent run. Requires an
+  `OPENCODE_CLIENT_ID` secret; the `OPENCODE_API_KEY` secret can be deleted.
 - The session-control answer is now **off by default**: the new
   `sessionAnswers` switch (Extension tab → Session control; persisted in
   `~/.config/openchamber/modelselect.json` as `"sessionAnswers": false`) gates

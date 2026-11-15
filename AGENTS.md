@@ -72,6 +72,7 @@ To change a model: never edit workflow files. Run `mise run maintenance`, review
 
 - All OpenCode steps pin the action: `anomalyco/opencode/github@<sha>`
 - All OpenCode steps preselect their model via the select-model action (`uses: dianlight/opencode-modelselect-action@v1`, same ref here and downstream since workflows sync verbatim) with `task-type` + `tier` inputs; the `with: model:` input is always `${{ steps.resolve.outputs.model }}`
+- OpenCode credentials come from GitHub OIDC service auth, not a stored key: the workflow's `id-token: write` token is exchanged at `https://opencode.ai/console/auth/oauth/token` (audience `https://opencode.ai/console`, `client_id` = the `OPENCODE_CLIENT_ID` secret) and exported as `OPENCODE_API_KEY` through `$GITHUB_ENV`. There is no `OPENCODE_API_KEY` secret; refresh the exchanged token right before any long-running OpenCode step, since its lifetime is undocumented.
 - Every OpenCode step uses `continue-on-error: true` followed by reaction-on-success/failure steps
 - Issue titles are passed via `env:` (not inline substitution) to prevent shell injection
 - Multi-line strings in `run: |` blocks must be consistently indented — all content lines must share the same indentation as the first content line; use temp-file patterns (`echo ... > /tmp/file`) instead of inline `--body "..."` for long comment bodies
