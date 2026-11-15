@@ -160,7 +160,7 @@ describe('v2 free-tier fail-soft', () => {
     }
   });
 
-  it('a paid go pick failing does not latch, flip or arm', async () => {
+  it('a paid go pick failing arms the chain failover retry (F4)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-go-'));
     const restore = isolateAuth(dir);
     try {
@@ -176,7 +176,7 @@ describe('v2 free-tier fail-soft', () => {
       assert.deepEqual(seen.switches, [], 'no flip');
       const r = retryEvent('s1', { providerID: 'g', id: 'a' });
       await seen.retry(r);
-      assert.deepEqual(r.decision, { retry: false });
+      assert.deepEqual(r.decision, { retry: true, delay: 0 }, 'paid failure arms the chain failover retry');
     } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });

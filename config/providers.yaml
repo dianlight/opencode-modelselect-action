@@ -1,0 +1,29 @@
+# Provider classes for the provider catalog (data/provider-catalog.json).
+#
+# The catalog is intentionally key-agnostic: it records what a model is and
+# what it costs, never whether the caller may use it. Enabled models, quota
+# meters, budgets and credits are resolved at runtime by the consumer (the
+# select-model action with its own token, the plugin against the live local
+# OpenCode API).
+#
+# `engine` providers are fetched from OpenCode's public catalog endpoints.
+# Console providers (anything connected in OpenCode Console) are discovered
+# at maintenance time through the console MCP (`/console/mcp`, token from
+# OPENCODE_CONSOLE_TOKEN or OPENCODE_API_KEY); only the providers the
+# console lists enter the catalog, and their prices come from models.dev.
+
+engine:
+  opencode:
+    class: zen
+    cost_source: zen-docs
+  opencode-go:
+    class: go
+    cost_source: go-docs
+
+console:
+  enabled: true
+  cost_source: models-dev
+  # Console provider name -> catalog slug, for names models.dev does not
+  # know. Unlisted names are slugified (lowercase, dashes).
+  slug_aliases:
+    opencode: opencode

@@ -28,9 +28,12 @@ const {
 const { isFreeModelString, firstPaidModel, splitModelRefStrict } = require('./core/model-ref');
 const { selectWithinBudget } = require('./core/budget');
 const { entryFor, normalizeThink } = require('./core/lookup');
+const { buildChain } = require('./core/chain');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
+const DEFAULT_CATALOG_URL = 'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/provider-catalog.json';
+const DEFAULT_CATALOG_REFRESH_MINUTES = 1440;
 const DEFAULT_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
 const FETCH_TIMEOUT_MS = 10000;
 
@@ -69,6 +72,17 @@ function normalizeOptions(raw = {}, env = process.env) {
   if (maxCost !== null && (!Number.isFinite(maxCost) || maxCost < 0)) {
     throw new Error(`maxCost must be a non-negative number (blended $/1M), got '${raw.maxCost ?? raw['max-cost']}'.`);
   }
+  // Provider allowlist (same semantics as the action's `available-providers`
+  // input): the slugs of providers the caller can actually reach. Empty →
+  // any provider the catalog knows about. Key-agnostic: slugs are the
+  // catalog provider ids (opencode / opencode-go / console vendor slugs).
+  const availableProvidersRaw = raw.availableProviders ?? raw['available-providers'];
+  const availableProviders = Array.isArray(availableProvidersRaw)
+    ? availableProvidersRaw.map((p) => String(p ?? '').trim().toLowerCase()).filter(Boolean)
+    : String(availableProvidersRaw ?? 'opencode,opencode-go')
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
   return {
     taskType: String(raw.taskType ?? raw['task-type'] ?? 'auto'),
     defaultTaskType,
@@ -85,6 +99,13 @@ function normalizeOptions(raw = {}, env = process.env) {
     fallbackModel: String(raw.fallbackModel ?? raw['fallback-model'] ?? '').trim(),
     maxCost,
     openchamber,
+    catalogUrl: String(raw.catalogUrl ?? raw['catalog-url'] ?? DEFAULT_CATALOG_URL),
+    catalogRefreshMinutes: (() => {
+      const r = raw.catalogRefreshMinutes ?? raw['catalog-refresh-minutes'] ?? DEFAULT_CATALOG_REFRESH_MINUTES;
+      const n = Number(r);
+      return Number.isFinite(n) && n >= 0 ? n : DEFAULT_CATALOG_REFRESH_MINUTES;
+    })(),
+    availableProviders,
     token,
     tokenSource,
     usageUrl: String(raw.usageUrl ?? raw['usage-url'] ?? DEFAULT_USAGE_URL),
@@ -144,13 +165,13 @@ function shouldAnnounce(mode, key, appliedKey, announcedKey) {
   return key !== appliedKey && key !== announcedKey;
 }
 
-function cacheFile(cacheDir) {
-  return path.join(cacheDir, 'model-config-cache.json');
+function cacheFile(cacheDir, basename = 'model-config-cache.json') {
+  return path.join(String(cacheDir), basename);
 }
 
-function readCache(cacheDir) {
+function readCache(cacheDir, basename = 'model-config-cache.json') {
   try {
-    const raw = JSON.parse(fs.readFileSync(cacheFile(cacheDir), 'utf8'));
+    const raw = JSON.parse(fs.readFileSync(cacheFile(cacheDir, basename), 'utf8'));
     if (raw && typeof raw === 'object' && raw.config && typeof raw.fetchedAt === 'number') return raw;
   } catch {
     // no usable cache
@@ -158,15 +179,57 @@ function readCache(cacheDir) {
   return null;
 }
 
-function writeCache(cacheDir, config) {
-  fs.mkdirSync(cacheDir, { recursive: true });
-  fs.writeFileSync(cacheFile(cacheDir), JSON.stringify({ fetchedAt: Date.now(), config }), 'utf8');
+function writeCache(cacheDir, config, basename = 'model-config-cache.json') {
+  fs.mkdirSync(String(cacheDir), { recursive: true });
+  fs.writeFileSync(cacheFile(cacheDir, basename), JSON.stringify({ fetchedAt: Date.now(), config }), 'utf8');
 }
 
 function isFresh(cached, refreshMinutes) {
   if (!cached) return false;
   if (refreshMinutes === 0) return false; // 0 = refetch every time
   return Date.now() - cached.fetchedAt < refreshMinutes * 60 * 1000;
+}
+
+const CATALOG_CACHE_BASENAME = 'provider-catalog-cache.json';
+
+function readCatalogCache(cacheDir) {
+  try {
+    const raw = JSON.parse(fs.readFileSync(cacheFile(cacheDir, CATALOG_CACHE_BASENAME), 'utf8'));
+    if (raw && typeof raw === 'object' && typeof raw.fetchedAt === 'number') return raw;
+  } catch {
+    // no usable catalog cache
+  }
+  return null;
+}
+
+function writeCatalogCache(cacheDir, catalog) {
+  fs.mkdirSync(String(cacheDir), { recursive: true });
+  fs.writeFileSync(cacheFile(cacheDir, CATALOG_CACHE_BASENAME), JSON.stringify({ fetchedAt: Date.now(), catalog }), 'utf8');
+}
+
+/** Key-agnostic provider catalog (`data/provider-catalog.json`), cached like the config. Never throws. */
+async function loadCatalogFor(opts, cacheDir) {
+  const url = String(opts?.catalogUrl ?? DEFAULT_CATALOG_URL);
+  const refresh = Number(opts?.catalogRefreshMinutes ?? DEFAULT_CATALOG_REFRESH_MINUTES);
+  const cached = readCatalogCache(cacheDir);
+  if (cached && (refresh <= 0 || Date.now() - cached.fetchedAt < refresh * 60 * 1000)) {
+    return cached.catalog ?? null;
+  }
+  let data = null;
+  try {
+    data = await fetchRemote(url);
+  } catch {
+    data = null;
+  }
+  if (data) {
+    try {
+      writeCatalogCache(cacheDir, data);
+    } catch {
+      // best-effort: next run refetches
+    }
+    return data;
+  }
+  return cached ? cached.catalog ?? null : null;
 }
 
 async function fetchRemote(url) {
@@ -579,7 +642,7 @@ function refinePickForRoute(entry, tier, model, { config, cacheDir, media, capab
 }
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
-async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }) {
+async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, catalog, availability, tried }) {
   const { config, source: source0, stale } = await loadConfig(opts, cacheDir);
   let source = source0;
   const { key, entry } = entryFor(config, taskType);
@@ -599,7 +662,8 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
   // vetoes `go`. Pinned tiers are never overridden — only recorded.
   let usage = null;
   try {
-    usage = goVetoFromSnapshot(readUsageLimits(cacheDir), { token: opts.token });
+    const raw = availability && availability.usage ? availability.usage : readUsageLimits(cacheDir);
+    usage = goVetoFromSnapshot(raw, { token: opts.token });
   } catch {
     usage = null;
   }
@@ -670,6 +734,54 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
     if (opts.fallbackModel) return { model: opts.fallbackModel, taskType: key, tier, source: `${source}+fallback`, goOk, think: normalizeThink(entry.think), freeExhausted, usage, endpoint: endpointFor(config, opts.fallbackModel), endpointPath: endpointPathFor(config, opts.fallbackModel) };
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
+
+  // Provider chain (F4): expand the task's ranked list into concrete
+  // provider/model candidates through the shared core (`core/chain.js` —
+  // the SAME algorithm the GitHub Action runs), applying the live
+  // availability (enabled flags, Go spend, free latches), the provider
+  // allowlist, media/context/budget filters. The pick becomes the first
+  // surviving chain row; `tried` refs (per-session failover history) are
+  // skipped. Without a catalog (or an empty chain) the legacy tier logic
+  // above stands untouched.
+  let chain = null;
+  const rankedLists = [entry.ranked, entry.go_ranked, entry.free_ranked];
+  const hasRanked = rankedLists.some((l) => Array.isArray(l) && l.length > 0);
+  if (catalog && entry && hasRanked) {
+    try {
+      chain = buildChain({
+        entry,
+        catalog,
+        availability: availability || null,
+        mode: tier === 'free' ? 'free' : tier === 'go' ? 'go' : 'abs',
+        preference: opts.autoPreference,
+        media,
+        contextNeed: 0,
+        maxCost: opts.maxCost,
+        providers: Array.isArray(opts.availableProviders) && opts.availableProviders.length > 0 ? opts.availableProviders : null,
+      });
+      if (Array.isArray(tried) && tried.length > 0) {
+        const done = new Set(
+          tried.map((t) => String(t ?? '').trim()).filter(Boolean),
+        );
+        chain = (Array.isArray(chain) ? chain : [])
+          .filter((c) => !done.has(String(c.ref ?? `${c.provider}/${c.model}`)));
+      }
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] chain build skipped: ${err?.message ?? err}`);
+      chain = null;
+    }
+  }
+  let chainRefs = [];
+  if (Array.isArray(chain) && chain.length > 0) {
+    const pick = chain[0];
+    chainRefs = [pick.ref];
+    const refStr = `${pick.provider}/${pick.model}`;
+    if (refStr !== model) {
+      if (opts.verbose) console.log(`[modelselect] chain pick ${model} → ${refStr}`);
+      model = refStr;
+      tier = pick.class === 'free' ? 'free' : 'go';
+    }
+  }
   // Budget cap (mirrors the action): an over-budget pick is replaced by the
   // best-scoring ranked model within budget; nothing fitting falls back to
   // `fallbackModel` or throws (the context hook keeps the current model).
@@ -718,7 +830,7 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor }
       source = `${source}+routed`;
     }
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia, chain: chainRefs };
 }
 
 module.exports = {
@@ -727,6 +839,7 @@ module.exports = {
   usageNote,
   shouldAnnounce,
   loadConfig,
+  loadCatalogFor,
   resolveModel,
   endpointPathFor,
   splitModelRef: splitModelRefStrict,

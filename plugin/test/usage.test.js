@@ -82,7 +82,7 @@ describe('normalizeLimitsPayload', () => {
     assert.equal(snap.fetchedAt, 1000);
     assert.equal(snap.go.monthly.percent, 42);
     assert.equal(snap.go.weekly.resetsAt, 888);
-    assert.deepEqual(snap.budgets, [{ id: 'b1', percent: 25, limited: false, resetsAt: 777 }]);
+    assert.deepEqual(snap.budgets, [{ id: 'b1', percent: 25, limited: false, resetsAt: 777, models: null }]);
   });
 
   it('returns null when nothing usable is carried', () => {

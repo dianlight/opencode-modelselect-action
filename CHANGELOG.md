@@ -98,6 +98,21 @@
   `generate-content` support.
 
 ### Added
+- Multi-provider model chain (F1–F4): a key-agnostic provider catalog
+  (`data/provider-catalog.json`, `core/catalog.js`, `core/chain.js`) plus a
+  shared selection chain used by both the GitHub Action and the plugin.
+  The chain expands each task's ranked list into concrete `provider/model`
+  candidates (free-then-paid or go-first per tier, by cost within a model,
+  filtered by allowed providers, live enabled flags, Go spend/budgets, free
+  latches, context window and requested media), with `nextCandidate` failover
+  per session. The action exposes a new `model-chain` output; the plugin
+  adds `live-catalog.js` (local `/api/model` inventory + usage snapshot +
+  free latches) and tracks per-session tried refs so a failed pick moves to
+  the next candidate on the armed retry. Maintenance now emits
+  `task-types.<name>.ranked` and classifies every model (free, zen-paid,
+  go-plan, external) without baking in any key-specific enabled/credit
+  state, so a different Zen/Go key (or console-connected providers) still
+  resolves correctly at runtime.
 - Per-model usage and limit in the Work Status section: each Console
   budget's models get a `$spent / $limit` row with a progress bar (tone by
   consumed percent, reset in the tooltip), drawn from the plugin's

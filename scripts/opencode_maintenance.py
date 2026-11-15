@@ -15,6 +15,7 @@ OpenCode Maintenance Script
 import csv
 import io
 import json
+import os
 import re
 from urllib.parse import urlsplit
 from html.parser import HTMLParser
@@ -35,6 +36,9 @@ README_PATH = ROOT / "README.md"
 
 TASK_TYPES_PATH = CONFIG_DIR / "task-types.yaml"
 MODEL_SCORES_PATH = CONFIG_DIR / "model-scores.yaml"
+# Provider classes + console inventory policy for the key-agnostic
+# provider catalog (data/provider-catalog.json).
+PROVIDERS_CONFIG_PATH = CONFIG_DIR / "providers.yaml"
 # Curated per-model capabilities (context window + input modalities):
 # wins over the models.dev lookup for the ids listed here.
 MODEL_CAPABILITIES_PATH = CONFIG_DIR / "model-capabilities.yaml"
@@ -51,6 +55,10 @@ COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # maintenance run recomputes it and the workflow commits it directly, so the
 # newly computed models immediately become the selection target.
 MODEL_CONFIG_PATH = DATA_DIR / "model-config.json"
+# Key-agnostic provider catalog: one row per (provider, model) with price,
+# context and media. Consumed by core/catalog.js + core/chain.js in the
+# action and the plugin; availability is resolved by each consumer.
+PROVIDER_CATALOG_PATH = DATA_DIR / "provider-catalog.json"
 # Remote task-type definitions consumed by the plugin's Jev refinement
 # (see plugin/src/shared/tasktypes.js, option B: standalone file with its
 # own parallel cache, generated from config/task-types.yaml).
@@ -75,6 +83,11 @@ GO_PRICING_URL = "https://opencode.ai/docs/go"
 # modalities (`modalities.input`). Fills capability gaps the curated table
 # does not cover; fail-soft (curated-only) when unreachable.
 MODELS_DEV_URL = "https://models.dev/api.json"
+# OpenCode Console MCP (JSON-RPC over streaming HTTP). Read-only use:
+# list_providers / list_models for the provider inventory. Authenticates
+# with the console token the workflow already exchanges from GitHub OIDC
+# (audience https://opencode.ai/console); an inference key is rejected.
+CONSOLE_MCP_URL = "https://opencode.ai/console/mcp"
 LIVEBENCH_BASE = "https://livebench.ai"
 # LiveBench/LiveBench changelog is a secondary date hint (lags the live site)
 LIVEBENCH_CHANGELOG_URL = (
@@ -726,6 +739,453 @@ def build_capability_map(
     return resolved
 
 
+# --- Provider catalog (key-agnostic model inventory) ---
+
+def _canonical_catalog_key(name: str) -> str:
+    """Canonical model identity shared across providers.
+
+    Mirrors `canonicalModel` in core/catalog.js: tier/effort/date suffixes
+    stripped, version dots folded to dashes. Keeping both implementations
+    identical is what lets a catalog row join ANY account's live inventory.
+    """
+    return _canonical_model_base(name).replace(".", "-")
+
+
+def _slugify(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", str(name or "").strip().lower()).strip("-")
+    return slug
+
+
+class ConsoleError(RuntimeError):
+    """The OpenCode Console MCP rejected a call or was unreachable."""
+
+
+class ConsoleClient:
+    """Minimal OpenCode Console MCP client (JSON-RPC over streaming HTTP).
+
+    The console MCP (`https://opencode.ai/console/mcp`) speaks the same
+    token class the maintenance workflow already obtains from GitHub OIDC
+    (`OPENCODE_CLIENT_ID` -> `https://opencode.ai/console/auth/oauth/token`),
+    so no extra long-lived secret is involved. Only read tools are used:
+    `list_providers`, `list_models`, `get_usage`.
+    """
+
+    def __init__(self, token: str, url: str = CONSOLE_MCP_URL, timeout: int = 25) -> None:
+        if not token:
+            raise ConsoleError("no console token (OPENCODE_CONSOLE_TOKEN / OPENCODE_API_KEY)")
+        self.token = token
+        self.url = url
+        self.timeout = timeout
+        self.session_id: str | None = None
+        self._next_id = 0
+
+    def _post(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        self._next_id += 1
+        payload = json.dumps(
+            {"jsonrpc": "2.0", "id": self._next_id, "method": method, "params": params or {}}
+        ).encode()
+        headers = {
+            "content-type": "application/json",
+            "accept": "application/json, text/event-stream",
+            "authorization": f"Bearer {self.token}",
+            "user-agent": "opencode-modelselect-maintenance/1.0",
+        }
+        if self.session_id:
+            headers["mcp-session-id"] = self.session_id
+        req = Request(self.url, data=payload, method="POST", headers=headers)
+        try:
+            with urlopen(req, timeout=self.timeout) as resp:
+                self.session_id = resp.headers.get("mcp-session-id") or self.session_id
+                body = resp.read().decode("utf-8", "replace")
+        except HTTPError as e:
+            detail = e.read(200).decode("utf-8", "replace")
+            raise ConsoleError(f"{method}: HTTP {e.code} {detail[:160]}") from e
+        except (URLError, TimeoutError, ValueError) as e:
+            raise ConsoleError(f"{method}: {e}") from e
+        return _parse_mcp_body(body)
+
+    def initialize(self) -> None:
+        self._post(
+            "initialize",
+            {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "opencode-modelselect-maintenance", "version": "1.0"},
+            },
+        )
+
+    def call(self, tool: str, arguments: dict[str, Any] | None = None) -> Any:
+        message = self._post("tools/call", {"name": tool, "arguments": arguments or {}})
+        if "error" in message:
+            raise ConsoleError(f"{tool}: {message['error']}")
+        result = message.get("result") or {}
+        content = result.get("content") or []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                try:
+                    return json.loads(item.get("text") or "null")
+                except json.JSONDecodeError as e:
+                    raise ConsoleError(f"{tool}: invalid JSON payload") from e
+        return result
+
+
+def _parse_mcp_body(body: str) -> dict[str, Any]:
+    """Parse a JSON-RPC response from an SSE (`data:` lines) or plain body."""
+    text = (body or "").strip()
+    if not text:
+        raise ConsoleError("empty console response")
+    if text.startswith("{"):
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            raise ConsoleError("invalid console JSON") from e
+    for line in text.splitlines():
+        if line.startswith("data:"):
+            chunk = line[5:].strip()
+            if not chunk:
+                continue
+            try:
+                return json.loads(chunk)
+            except json.JSONDecodeError:
+                continue
+    raise ConsoleError("no JSON-RPC payload in console response")
+
+
+def _models_dev_provider(models_dev: dict[str, Any] | None, slug: str) -> dict[str, Any] | None:
+    if not models_dev:
+        return None
+    entry = models_dev.get(slug)
+    if isinstance(entry, dict):
+        return entry
+    wanted = _slugify(slug)
+    for provider, data in models_dev.items():
+        if _slugify(provider) == wanted:
+            return data
+        if isinstance(data, dict) and _slugify(data.get("name", "")) == wanted:
+            return data
+    return None
+
+
+def _models_dev_model(
+    models_dev: dict[str, Any] | None, slug: str, model_id: str
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Resolve (models.dev entry, api id) for a provider/model pair."""
+    provider = _models_dev_provider(models_dev, slug)
+    if not provider:
+        return None, None
+    models = provider.get("models") or {}
+    entry = models.get(model_id)
+    if isinstance(entry, dict):
+        return entry, model_id
+    wanted = _norm_model_key(model_id)
+    for api, candidate in models.items():
+        if _norm_model_key(api) == wanted and isinstance(candidate, dict):
+            return candidate, api
+    return None, None
+
+
+def fetch_console_inventory(token: str, providers_cfg: dict[str, Any]) -> dict[str, Any] | None:
+    """List the console's providers and models through the console MCP.
+
+    Fail-soft: returns None when the console is unreachable or the token is
+    absent/rejected, so a maintenance run without console access keeps the
+    previously committed external rows (see build_provider_catalog).
+    """
+    console_cfg = providers_cfg.get("console") or {}
+    if console_cfg.get("enabled") is False:
+        print("  i Console inventory disabled in config/providers.yaml")
+        return None
+    aliases = console_cfg.get("slug_aliases") or {}
+    try:
+        client = ConsoleClient(token)
+        client.initialize()
+        listed = client.call("list_providers")
+    except ConsoleError as e:
+        print(f"  w Console inventory unavailable: {e}")
+        return None
+    items = listed.get("items") if isinstance(listed, dict) else None
+    if not isinstance(items, list):
+        print("  w Console inventory returned an unknown shape")
+        return None
+    providers = []
+    for item in items:
+        if not isinstance(item, dict) or not item.get("id"):
+            continue
+        name = str(item.get("name") or "")
+        slug = str(aliases.get(name.lower()) or aliases.get(_slugify(name)) or _slugify(name))
+        models: list[dict[str, Any]] = []
+        if not item.get("built_in"):
+            try:
+                detail = client.call("list_models", {"provider_id": item["id"]})
+            except ConsoleError as e:
+                print(f"  w Console models for {name} unavailable: {e}")
+                detail = {}
+            for model in (detail.get("items") if isinstance(detail, dict) else []) or []:
+                if not isinstance(model, dict) or not model.get("model_id"):
+                    continue
+                models.append(
+                    {
+                        "id": str(model["model_id"]),
+                        "name": model.get("name") or model["model_id"],
+                        "enabled": bool(model.get("enabled")),
+                        "available": bool(model.get("available")),
+                    }
+                )
+        providers.append(
+            {
+                "conn_id": str(item["id"]),
+                "name": name,
+                "slug": slug,
+                "built_in": bool(item.get("built_in")),
+                "models": models,
+            }
+        )
+    print(
+        "  v Console inventory: "
+        + ", ".join(
+            f"{p['name']} ({len(p['models'])} models{', built-in' if p['built_in'] else ''})"
+            for p in providers
+        )
+    )
+    return {"providers": providers}
+
+
+def _row(
+    provider: str,
+    model_id: str,
+    provider_class: str,
+    cost: dict[str, float | None],
+    context: int | None,
+    media_in: list[str] | None,
+    media_out: list[str] | None = None,
+    name: str | None = None,
+) -> dict[str, Any]:
+    blended = cost.get("blended")
+    free = blended is not None and blended == 0
+    return {
+        "provider": provider,
+        "id": model_id,
+        "canonical": _canonical_catalog_key(model_id),
+        "name": name or model_id,
+        "class": "free" if free else provider_class,
+        "free": free,
+        "input_cost": cost.get("input"),
+        "output_cost": cost.get("output"),
+        "blended_cost": blended,
+        "context": context,
+        "media_in": media_in or ["text"],
+        "media_out": media_out or ["text"],
+    }
+
+
+def build_provider_catalog(
+    free_models: list[dict[str, Any]],
+    go_models: list[dict[str, Any]],
+    all_zen_models: list[dict[str, Any]],
+    price_lookup: dict[str, dict[str, Any]] | None,
+    cost_blend: tuple[float, float],
+    capability_map: dict[str, dict[str, Any]],
+    models_dev: dict[str, Any] | None,
+    providers_cfg: dict[str, Any],
+    console_inventory: dict[str, Any] | None,
+    previous: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Assemble data/provider-catalog.json.
+
+    Rows describe capabilities only (cost, context, media). Enabled flags,
+    quota state and budgets stay out: the action and the plugin resolve
+    those with the key they actually run under.
+    """
+    w_in, w_out = cost_blend
+    engine_cfg = providers_cfg.get("engine") or {}
+    providers: dict[str, Any] = {}
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    engine_sources = (
+        ("opencode", all_zen_models, "zen"),
+        ("opencode-go", go_models, "go"),
+    )
+    for provider, models, default_class in engine_sources:
+        cfg = engine_cfg.get(provider) or {}
+        providers[provider] = {
+            "name": cfg.get("name") or provider,
+            "class": cfg.get("class") or default_class,
+            "source": cfg.get("cost_source") or "opencode-docs",
+        }
+        for model in models:
+            mid = str(model.get("id") or "")
+            if not mid:
+                continue
+            key = f"{provider}/{mid}"
+            if key in seen:
+                continue
+            seen.add(key)
+            caps = capability_map.get(mid) or {}
+            rows.append(
+                _row(
+                    provider,
+                    mid,
+                    str(providers[provider]["class"]),
+                    get_model_cost(mid, price_lookup, w_in, w_out),
+                    caps.get("context"),
+                    caps.get("modalities"),
+                    name=model.get("name"),
+                )
+            )
+
+    external_providers = [
+        p
+        for p in (console_inventory or {}).get("providers") or []
+        if isinstance(p, dict) and not p.get("built_in") and p.get("slug")
+    ]
+    if external_providers:
+        for provider in external_providers:
+            slug = str(provider["slug"])
+            providers[slug] = {
+                "name": provider.get("name") or slug,
+                "class": "external",
+                "source": "console",
+            }
+            for model in provider.get("models") or []:
+                mid = str(model.get("id") or "")
+                if not mid:
+                    continue
+                key = f"{slug}/{mid}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                entry, api = _models_dev_model(models_dev, slug, mid)
+                cost_field = (entry or {}).get("cost") or {}
+                cost = {
+                    "input": _to_float(cost_field.get("input")),
+                    "output": _to_float(cost_field.get("output")),
+                    "blended": None,
+                }
+                if cost["input"] is not None and cost["output"] is not None:
+                    cost["blended"] = round(cost["input"] * w_in + cost["output"] * w_out, 6)
+                limit = (entry or {}).get("limit") or {}
+                modalities = (entry or {}).get("modalities") or {}
+                rows.append(
+                    _row(
+                        slug,
+                        mid,
+                        "external",
+                        cost,
+                        limit.get("context") if isinstance(limit.get("context"), int) else None,
+                        modalities.get("input") if isinstance(modalities.get("input"), list) else None,
+                        modalities.get("output") if isinstance(modalities.get("output"), list) else None,
+                        name=model.get("name"),
+                    )
+                )
+    elif previous:
+        # No console access this run: keep the previously catalogued
+        # external providers verbatim (their prices still come from
+        # models.dev, so only the inventory is stale).
+        for provider, info in (previous.get("providers") or {}).items():
+            if provider in providers or not isinstance(info, dict):
+                continue
+            if info.get("class") != "external":
+                continue
+            providers[provider] = info
+        for row in previous.get("models") or []:
+            if not isinstance(row, dict):
+                continue
+            key = f"{row.get('provider')}/{row.get('id')}"
+            if key in seen or row.get("class") == "free" and row.get("provider") not in providers:
+                continue
+            if row.get("provider") in providers and row.get("provider") not in engine_cfg:
+                seen.add(key)
+                rows.append(row)
+        print("  i Console unavailable: reused the previously catalogued external rows")
+
+    rows.sort(key=lambda r: (str(r["provider"]), str(r["canonical"]), str(r["id"])))
+    return {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "sources": {
+            "zen": ZEN_PRICING_URL,
+            "go": GO_PRICING_URL,
+            "models_dev": MODELS_DEV_URL,
+            "console": CONSOLE_MCP_URL if console_inventory else None,
+        },
+        "providers": providers,
+        "models": rows,
+    }
+
+
+def catalog_index(catalog: dict[str, Any] | None) -> dict[str, Any]:
+    """Index a provider catalog by `provider/id` ref and by canonical id."""
+    by_ref: dict[str, str] = {}
+    by_canonical: dict[str, list[dict[str, Any]]] = {}
+    for row in (catalog or {}).get("models") or []:
+        if not isinstance(row, dict):
+            continue
+        canonical = str(row.get("canonical") or _canonical_catalog_key(row.get("id") or ""))
+        provider = str(row.get("provider") or "")
+        model = str(row.get("id") or "")
+        if provider and model:
+            by_ref[f"{provider}/{model}"] = canonical
+        if canonical:
+            by_canonical.setdefault(canonical, []).append(row)
+    return {"by_ref": by_ref, "by_canonical": by_canonical}
+
+
+def write_provider_catalog(catalog: dict[str, Any]) -> bool:
+    """Write data/provider-catalog.json; True when the content changed."""
+    if PROVIDER_CATALOG_PATH.exists():
+        try:
+            current = load_json(PROVIDER_CATALOG_PATH)
+        except (OSError, json.JSONDecodeError):
+            current = None
+        if isinstance(current, dict):
+            left = {k: v for k, v in current.items() if k != "timestamp"}
+            right = {k: v for k, v in catalog.items() if k != "timestamp"}
+            if left == right:
+                print("  v Provider catalog unchanged")
+                return False
+    save_json(PROVIDER_CATALOG_PATH, catalog)
+    print(
+        f"  ! Provider catalog updated — wrote {PROVIDER_CATALOG_PATH} "
+        f"({len(catalog.get('models') or [])} rows, "
+        f"{len(catalog.get('providers') or {})} providers)"
+    )
+    return True
+
+
+def _task_ranked(
+    go_ranked: list[dict[str, Any]],
+    free_ranked: list[dict[str, Any]],
+    index: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Compact provider-agnostic ranking for one task type.
+
+    One entry per canonical model (score kept once, not per provider), in
+    score order, with `free` set when any provider serves it at zero cost.
+    The action and the plugin expand each canonical into its provider rows
+    from the catalog (`core/chain.js`), so the config never repeats a model
+    once per provider.
+    """
+    best: dict[str, float] = {}
+    for row in [*go_ranked, *free_ranked]:
+        if not isinstance(row, dict):
+            continue
+        model = str(row.get("model") or "")
+        score = row.get("score")
+        if not model or not isinstance(score, (int, float)):
+            continue
+        canonical = index["by_ref"].get(model) or _canonical_catalog_key(model)
+        if canonical not in best or score > best[canonical]:
+            best[canonical] = float(score)
+    ranked = [
+        {"model": model, "score": round(score, 2)}
+        for model, score in sorted(best.items(), key=lambda kv: (-kv[1], kv[0]))
+    ]
+    for row in ranked:
+        rows = index["by_canonical"].get(row["model"]) or []
+        row["free"] = any(r.get("class") == "free" for r in rows)
+    return ranked
+
+
 # --- Model Fetching ---
 
 def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -1262,6 +1722,7 @@ def generate_model_config(
     price_lookup: dict[str, dict[str, Any]] | None = None,
     cost_blend: tuple[float, float] | None = None,
     capabilities: dict[str, dict[str, Any]] | None = None,
+    catalog: dict[str, Any] | None = None,
 ) -> bool:
     """Compute the central model config and write it directly.
 
@@ -1273,11 +1734,17 @@ def generate_model_config(
     free/paid models for the task type (prefixed, e.g. `opencode-go/kimi-k3`)
     after the blended cost selector and the free-first policy.
 
+    `catalog` (data/provider-catalog.json) adds the provider-agnostic
+    `ranked` list: one entry per canonical model. Availability, provider
+    choice and failover are resolved at runtime by `core/chain.js`, so the
+    config stays valid for any account/key.
+
     Returns True when the written config differs from the previous commit
     (i.e. the models actually changed).
     """
     task_map: dict[str, Any] = {}
     blend = cost_blend or DEFAULT_COST_BLEND
+    index = catalog_index(catalog)
     free_ids = [m["id"] for m in free_models]
     tier_go_ids = [m["id"] for m in go_models]
     # Routing chains only admit dispatchable wire protocols (mirrors the
@@ -1307,6 +1774,16 @@ def generate_model_config(
             best_free, best_go, livebench, priority, threshold_pct,
             task_types=task_types, task_type=name,
         )
+        go_ranked = _rank_models_for_config(
+            tier_go_ids, livebench, priority, price_lookup, blend,
+            engine="opencode-go", tt=tt, capabilities=capabilities,
+            routable=routable_ids,
+        )
+        free_ranked = _rank_models_for_config(
+            free_ids, livebench, priority, price_lookup, blend,
+            engine="opencode", tt=tt, capabilities=capabilities,
+            routable=routable_ids,
+        )
         task_map[name] = {
             "go": _add_model_prefix(best_go, go_ids) if best_go else None,
             "free": _add_model_prefix(best_free, go_ids) if best_free else None,
@@ -1317,16 +1794,12 @@ def generate_model_config(
             "think": think if think in _THINK_LEVELS else None,
             # Full best-to-worst ranking per tier so the select-model action
             # can walk down to a cheaper fit when `max-cost` filters the pick.
-            "go_ranked": _rank_models_for_config(
-                tier_go_ids, livebench, priority, price_lookup, blend,
-                engine="opencode-go", tt=tt, capabilities=capabilities,
-                routable=routable_ids,
-            ),
-            "free_ranked": _rank_models_for_config(
-                free_ids, livebench, priority, price_lookup, blend,
-                engine="opencode", tt=tt, capabilities=capabilities,
-                routable=routable_ids,
-            ),
+            "go_ranked": go_ranked,
+            "free_ranked": free_ranked,
+            # Provider-agnostic ranking (one row per canonical model).
+            # Consumers expand it into `(provider, model)` candidates from
+            # the provider catalog and filter by their own availability.
+            "ranked": _task_ranked(go_ranked, free_ranked, index),
         }
 
     # Google-native models (Gemini) dispatch through the proxy as chat,
@@ -2856,12 +3329,34 @@ def main() -> None:
     print(f"  v capabilities: {known}/{len(capability_map)} known "
           f"({sum(1 for v in capability_map.values() if v['source'] == 'curated')} curated)")
 
+    # 5c. Provider catalog: one key-agnostic row per (provider, model) with
+    # cost, context and media. Console providers are discovered through the
+    # console MCP with the workflow's own token; enabled flags, quota and
+    # budgets stay out (each consumer resolves them with its own key).
+    print("-> Building provider catalog...")
+    providers_cfg = load_yaml(PROVIDERS_CONFIG_PATH)
+    console_token = (
+        os.environ.get("OPENCODE_CONSOLE_TOKEN")
+        or os.environ.get("OPENCODE_API_KEY")
+        or ""
+    ).strip()
+    console_inventory = fetch_console_inventory(console_token, providers_cfg)
+    previous_catalog = (
+        load_json(PROVIDER_CATALOG_PATH) if PROVIDER_CATALOG_PATH.exists() else None
+    )
+    catalog = build_provider_catalog(
+        free_models, go_models, all_zen_models, price_lookup, cost_blend,
+        capability_map, models_dev, providers_cfg, console_inventory,
+        previous_catalog if isinstance(previous_catalog, dict) else None,
+    )
+    catalog_updated = write_provider_catalog(catalog)
+
     # 6. Recompute the central model config and write it directly — the
     # workflow commits it, so the new models immediately become the target.
     # `config_updated` reports whether the models actually changed this run.
     config_updated = generate_model_config(
         free_models, go_models, livebench, task_types, threshold_pct, go_ids,
-        price_lookup, cost_blend, capability_map,
+        price_lookup, cost_blend, capability_map, catalog,
     )
 
     # 6b. Publish the task-type definitions for the plugin's Jev refinement
@@ -2899,6 +3394,12 @@ def main() -> None:
                 "livebench_snapshot": livebench.get("_snapshot_date")
                 if isinstance(livebench, dict)
                 else None,
+            },
+            "provider_catalog": {
+                "updated": catalog_updated,
+                "rows": len(catalog.get("models") or []),
+                "providers": sorted((catalog.get("providers") or {}).keys()),
+                "console": bool(console_inventory),
             },
         },
     )
@@ -2947,6 +3448,8 @@ def main() -> None:
     print(f"  README updated: {README_PATH}")
     print(f"  Audit data: {AUDIT_RESULTS_PATH}")
     print(f"  Model config: {MODEL_CONFIG_PATH}")
+    print(f"  Provider catalog: {PROVIDER_CATALOG_PATH}"
+          f" ({len(catalog.get('models') or [])} rows)")
     print(f"  Task types: {TASK_TYPES_JSON_PATH}{' (updated)' if task_types_updated else ''}")
     if config_updated:
         print(f"  ! Model config changed — {MODEL_CONFIG_PATH} updated (committed by the workflow)")

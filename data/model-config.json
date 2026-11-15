@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-12T04:39:07.001028+00:00",
+  "timestamp": "2026-11-15T09:41:45.409247+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -530,6 +530,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "gemini-4-argon",
+          "score": 95.1,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 90.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 89.7,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 89.1,
+          "free": true
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 89.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 88.2,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 86.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 83.9,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 83.8,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 83.0,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 82.9,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 82.7,
+          "free": false
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 82.4,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 82.1,
+          "free": false
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 81.8,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 79.6,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 78.8,
+          "free": true
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 78.3,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 77.6,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 76.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 76.7,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 70.0,
+          "free": true
+        },
+        {
+          "model": "big-pickle",
+          "score": 61.5,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 25.0,
+          "free": true
+        }
       ]
     },
     "issue-triage": {
@@ -847,6 +1024,118 @@
           "modalities": [
             "text"
           ]
+        }
+      ],
+      "ranked": [
+        {
+          "model": "longcat-2-0",
+          "score": 90.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 86.0,
+          "free": true
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 81.6,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 81.3,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 79.6,
+          "free": true
+        },
+        {
+          "model": "hy4",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 75.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 71.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 70.3,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 68.2,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 66.9,
+          "free": false
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 65.9,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 65.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 65.0,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 60.0,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 58.0,
+          "free": false
+        },
+        {
+          "model": "iceman",
+          "score": 35.0,
+          "free": true
         }
       ]
     },
@@ -1378,6 +1667,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "gemini-4-argon",
+          "score": 95.1,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 90.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 89.7,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 89.1,
+          "free": true
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 89.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 88.2,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 86.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 83.9,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 83.8,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 83.0,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 82.9,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 82.7,
+          "free": false
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 82.4,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 82.1,
+          "free": false
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 81.8,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 79.6,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 78.8,
+          "free": true
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 78.3,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 77.6,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 76.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 76.7,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 70.0,
+          "free": true
+        },
+        {
+          "model": "big-pickle",
+          "score": 61.5,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 25.0,
+          "free": true
+        }
       ]
     },
     "ui-design": {
@@ -1907,6 +2373,183 @@
           "modalities": [
             "text"
           ]
+        }
+      ],
+      "ranked": [
+        {
+          "model": "hy4",
+          "score": 84.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 84.0,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 79.8,
+          "free": true
+        },
+        {
+          "model": "qwen3-8",
+          "score": 76.6,
+          "free": false
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 76.1,
+          "free": false
+        },
+        {
+          "model": "grok-4-7",
+          "score": 75.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 74.8,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 74.3,
+          "free": false
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 73.7,
+          "free": true
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 73.7,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 72.5,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 71.2,
+          "free": true
+        },
+        {
+          "model": "step-5-preview",
+          "score": 70.8,
+          "free": false
+        },
+        {
+          "model": "gemini-4-argon",
+          "score": 69.2,
+          "free": false
+        },
+        {
+          "model": "glm-5-3",
+          "score": 63.6,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 62.0,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 60.7,
+          "free": false
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 57.0,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 56.4,
+          "free": false
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 55.7,
+          "free": false
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 55.2,
+          "free": true
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 55.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 55.0,
+          "free": true
+        },
+        {
+          "model": "minimax-m3",
+          "score": 50.2,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 40.0,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 40.0,
+          "free": true
+        },
+        {
+          "model": "big-pickle",
+          "score": 8.0,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 8.0,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 5.0,
+          "free": true
+        },
+        {
+          "model": "flint-40b",
+          "score": 5.0,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 5.0,
+          "free": true
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 5.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 5.0,
+          "free": true
         }
       ]
     },
@@ -2438,6 +3081,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "claude-haiku-5-5",
+          "score": 91.4,
+          "free": false
+        },
+        {
+          "model": "gemini-4-argon",
+          "score": 85.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 84.4,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 80.4,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 75.0,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 73.1,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 70.9,
+          "free": true
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 70.8,
+          "free": false
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 70.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 68.8,
+          "free": true
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 67.6,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 67.0,
+          "free": true
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 66.0,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 65.5,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 64.5,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 63.0,
+          "free": false
+        },
+        {
+          "model": "glm-5-3",
+          "score": 62.5,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 62.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 60.9,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 59.3,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 59.0,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 57.0,
+          "free": false
+        },
+        {
+          "model": "hy3",
+          "score": 55.0,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 53.6,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 53.1,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 51.7,
+          "free": false
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 48.7,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 36.2,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 30.0,
+          "free": true
+        }
       ]
     },
     "api-testing": {
@@ -2968,6 +3788,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "claude-haiku-5-5",
+          "score": 91.4,
+          "free": false
+        },
+        {
+          "model": "gemini-4-argon",
+          "score": 85.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 84.4,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 80.4,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 75.0,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 73.1,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 70.9,
+          "free": true
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 70.8,
+          "free": false
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 70.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 68.8,
+          "free": true
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 67.6,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 67.0,
+          "free": true
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 66.0,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 65.5,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 64.5,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 63.0,
+          "free": false
+        },
+        {
+          "model": "glm-5-3",
+          "score": 62.5,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 62.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 60.9,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 59.3,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 59.0,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 57.0,
+          "free": false
+        },
+        {
+          "model": "hy3",
+          "score": 55.0,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 53.6,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 53.1,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 51.7,
+          "free": false
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 48.7,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 36.2,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 30.0,
+          "free": true
+        }
       ]
     },
     "docs": {
@@ -3285,6 +4282,118 @@
           "modalities": [
             "text"
           ]
+        }
+      ],
+      "ranked": [
+        {
+          "model": "longcat-2-0",
+          "score": 90.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 86.0,
+          "free": true
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 81.6,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 81.3,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 79.6,
+          "free": true
+        },
+        {
+          "model": "hy4",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 75.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 71.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 70.3,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 68.2,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 66.9,
+          "free": false
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 65.9,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 65.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 65.0,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 60.0,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 58.0,
+          "free": false
+        },
+        {
+          "model": "iceman",
+          "score": 35.0,
+          "free": true
         }
       ]
     },
@@ -3816,6 +4925,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "gemini-4-argon",
+          "score": 95.1,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 90.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 89.7,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 89.1,
+          "free": true
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 89.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 88.2,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 86.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 83.9,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 83.8,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 83.0,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 82.9,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 82.7,
+          "free": false
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 82.4,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 82.1,
+          "free": false
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 81.8,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 79.6,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 78.8,
+          "free": true
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 78.3,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 77.6,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 76.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 76.7,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 70.0,
+          "free": true
+        },
+        {
+          "model": "big-pickle",
+          "score": 61.5,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 25.0,
+          "free": true
+        }
       ]
     },
     "refactor": {
@@ -4345,6 +5631,183 @@
           "modalities": [
             "text"
           ]
+        }
+      ],
+      "ranked": [
+        {
+          "model": "claude-haiku-5-5",
+          "score": 91.4,
+          "free": false
+        },
+        {
+          "model": "gemini-4-argon",
+          "score": 85.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 84.4,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 80.4,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 75.0,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 73.1,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 70.9,
+          "free": true
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 70.8,
+          "free": false
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 70.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 68.8,
+          "free": true
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 67.6,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 67.0,
+          "free": true
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 66.0,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 65.5,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 64.5,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 63.0,
+          "free": false
+        },
+        {
+          "model": "glm-5-3",
+          "score": 62.5,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 62.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 60.9,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 59.3,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 59.0,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 57.0,
+          "free": false
+        },
+        {
+          "model": "hy3",
+          "score": 55.0,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 53.6,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 53.1,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 51.7,
+          "free": false
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 48.7,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 36.2,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 30.0,
+          "free": true
         }
       ]
     },
@@ -4876,6 +6339,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "gemini-4-argon",
+          "score": 95.1,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 90.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 89.7,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 89.1,
+          "free": true
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 89.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 88.2,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 86.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 83.9,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 83.8,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 83.0,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 82.9,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 82.7,
+          "free": false
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 82.4,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 82.1,
+          "free": false
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 81.8,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 79.6,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 78.8,
+          "free": true
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 78.3,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 77.6,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 76.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 76.7,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 70.0,
+          "free": true
+        },
+        {
+          "model": "big-pickle",
+          "score": 61.5,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 25.0,
+          "free": true
+        }
       ]
     },
     "code": {
@@ -5405,6 +7045,183 @@
           "modalities": [
             "text"
           ]
+        }
+      ],
+      "ranked": [
+        {
+          "model": "claude-haiku-5-5",
+          "score": 91.4,
+          "free": false
+        },
+        {
+          "model": "gemini-4-argon",
+          "score": 85.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 84.4,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 80.4,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 75.0,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 73.1,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 70.9,
+          "free": true
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 70.8,
+          "free": false
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 70.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 68.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 68.8,
+          "free": true
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 67.6,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 67.0,
+          "free": true
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 66.0,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 65.5,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 64.5,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 63.0,
+          "free": false
+        },
+        {
+          "model": "glm-5-3",
+          "score": 62.5,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 62.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 60.9,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 59.3,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 59.0,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 57.0,
+          "free": false
+        },
+        {
+          "model": "hy3",
+          "score": 55.0,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 53.6,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 53.1,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 51.7,
+          "free": false
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 48.7,
+          "free": true
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 36.2,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 30.0,
+          "free": true
         }
       ]
     },
@@ -5936,6 +7753,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "gemini-4-argon",
+          "score": 95.1,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 90.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 89.7,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 89.1,
+          "free": true
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 89.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 88.2,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 86.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 83.9,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 83.8,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 83.0,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 82.9,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 82.7,
+          "free": false
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 82.4,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 82.1,
+          "free": false
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 81.8,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 79.6,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 78.8,
+          "free": true
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 78.3,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 77.6,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 76.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 76.7,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 70.0,
+          "free": true
+        },
+        {
+          "model": "big-pickle",
+          "score": 61.5,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 25.0,
+          "free": true
+        }
       ]
     },
     "web-search": {
@@ -6466,6 +8460,183 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "gemini-4-argon",
+          "score": 95.1,
+          "free": false
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
+          "free": false
+        },
+        {
+          "model": "kimi-k3",
+          "score": 90.7,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-3",
+          "score": 89.7,
+          "free": false
+        },
+        {
+          "model": "deepseek-v4-1-flash",
+          "score": 89.1,
+          "free": true
+        },
+        {
+          "model": "longcat-2-0",
+          "score": 89.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-8",
+          "score": 88.2,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 86.0,
+          "free": false
+        },
+        {
+          "model": "hy4",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 85.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 84.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 83.9,
+          "free": false
+        },
+        {
+          "model": "step-5-preview",
+          "score": 83.8,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 83.0,
+          "free": false
+        },
+        {
+          "model": "minimax-m3-1-flash",
+          "score": 82.9,
+          "free": true
+        },
+        {
+          "model": "grok-4-7",
+          "score": 82.7,
+          "free": false
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 82.4,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 82.1,
+          "free": false
+        },
+        {
+          "model": "gpt-6-luna",
+          "score": 81.8,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-pro",
+          "score": 79.6,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 78.8,
+          "free": true
+        },
+        {
+          "model": "inkling-2-small",
+          "score": 78.3,
+          "free": true
+        },
+        {
+          "model": "glm-5-3-flash",
+          "score": 77.6,
+          "free": true
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 76.9,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 76.7,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 70.0,
+          "free": true
+        },
+        {
+          "model": "big-pickle",
+          "score": 61.5,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 60.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 58.0,
+          "free": true
+        },
+        {
+          "model": "iceman",
+          "score": 25.0,
+          "free": true
+        }
       ]
     },
     "generic": {
@@ -6784,6 +8955,118 @@
             "text"
           ]
         }
+      ],
+      "ranked": [
+        {
+          "model": "longcat-2-0",
+          "score": 90.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 86.0,
+          "free": true
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 81.6,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 81.3,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 79.6,
+          "free": true
+        },
+        {
+          "model": "hy4",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 75.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 71.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 70.3,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 68.2,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 66.9,
+          "free": false
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 65.9,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 65.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 65.0,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 60.0,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 58.0,
+          "free": false
+        },
+        {
+          "model": "iceman",
+          "score": 35.0,
+          "free": true
+        }
       ]
     },
     "small-model": {
@@ -7101,6 +9384,118 @@
           "modalities": [
             "text"
           ]
+        }
+      ],
+      "ranked": [
+        {
+          "model": "longcat-2-0",
+          "score": 90.0,
+          "free": false
+        },
+        {
+          "model": "longcat-2-5",
+          "score": 86.0,
+          "free": true
+        },
+        {
+          "model": "gpt-5-6-luna",
+          "score": 81.6,
+          "free": false
+        },
+        {
+          "model": "qwen3-8-flash",
+          "score": 81.3,
+          "free": false
+        },
+        {
+          "model": "beam",
+          "score": 79.6,
+          "free": true
+        },
+        {
+          "model": "hy4",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "hy4-preview",
+          "score": 78.0,
+          "free": false
+        },
+        {
+          "model": "mimo-v2-6-flash",
+          "score": 76.0,
+          "free": true
+        },
+        {
+          "model": "claude-haiku-5-5",
+          "score": 75.0,
+          "free": false
+        },
+        {
+          "model": "muse-spark-1-2",
+          "score": 74.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-lightning",
+          "score": 72.0,
+          "free": true
+        },
+        {
+          "model": "qwen3-7-plus",
+          "score": 72.0,
+          "free": false
+        },
+        {
+          "model": "nemotron-3-5-super-vl",
+          "score": 71.0,
+          "free": true
+        },
+        {
+          "model": "deepseek-v4-pro",
+          "score": 70.3,
+          "free": false
+        },
+        {
+          "model": "glm-5-2",
+          "score": 68.2,
+          "free": false
+        },
+        {
+          "model": "minimax-m3",
+          "score": 66.9,
+          "free": false
+        },
+        {
+          "model": "kimi-k2-7-code",
+          "score": 65.9,
+          "free": false
+        },
+        {
+          "model": "flint-40b",
+          "score": 65.0,
+          "free": true
+        },
+        {
+          "model": "glm-5-3",
+          "score": 65.0,
+          "free": false
+        },
+        {
+          "model": "big-pickle",
+          "score": 60.0,
+          "free": true
+        },
+        {
+          "model": "hy3",
+          "score": 58.0,
+          "free": false
+        },
+        {
+          "model": "iceman",
+          "score": 35.0,
+          "free": true
         }
       ]
     }

@@ -17,4 +17,6 @@ module.exports = {
   ...require('./budget'),
   ...require('./lookup'),
   ...require('./routing'),
+  ...require('./catalog'),
+  ...require('./chain'),
 };

@@ -87,6 +87,26 @@ inputs:
       when no ranked model fits (unless fallback-model is given).
     required: false
     default: ""
+  available-providers:
+    description: >-
+      Comma-separated provider slugs this job can actually reach (default
+      opencode,opencode-go). The provider chain only emits models of these
+      providers; a catalog model on an unreachable provider is never picked.
+    required: false
+    default: opencode,opencode-go
+  catalog-url:
+    description: >-
+      Remote URL of the key-agnostic provider catalog. Used only when the
+      local catalog-path is absent.
+    required: false
+    default: https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/provider-catalog.json
+  catalog-path:
+    description: >-
+      Local path (relative to GITHUB_WORKSPACE) of the provider catalog. When
+      the file exists it wins over catalog-url. Missing catalog = legacy
+      single-model tiers (no provider expansion, no chain).
+    required: false
+    default: data/provider-catalog.json
 
 outputs:
   model:
@@ -99,6 +119,11 @@ outputs:
     description: >-
       Blended in/out token cost in $/1M of the resolved model, from the
       config ranking. Empty when the cost is unknown (e.g. fallback-model).
+  model-chain:
+    description: >-
+      JSON array of ordered `provider/model` candidates for the task type
+      (best first). Empty when no provider catalog was loaded. A workflow can
+      retry the OpenCode step with chain[1] (and so on) without recomputing.
   config-source:
     description: "Where the config was loaded from: local, remote, local+fallback or remote+fallback."
   task-type:

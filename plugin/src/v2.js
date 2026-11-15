@@ -100,7 +100,7 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, usageNote, shouldAnnounce, loadConfig, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
 const { syncRouting } = require('./shared/routing');
@@ -114,12 +114,16 @@ const {
   mismatchHaystack,
   readModelTable,
 } = require('./shared/freequota');
+const { liveAvailability } = require('./shared/live-catalog');
 
 const { startProxy, HEADER_PROVIDER, HEADER_MODEL, HEADER_ENDPOINT, HEADER_ENDPOINT_PATH, safeEndpointBasePath } = require('./proxy');
 const { resolveToken } = require('./shared/auth');
-const { refreshUsageLimits } = require('./shared/usage');
+const { refreshUsageLimits, readUsageLimits } = require('./shared/usage');
 
 const ID = 'modelselect';
+// Per-session chain-failover history (F4): refs a session already failed
+// on and must not re-pick when the chain re-resolves.
+const triedRefs = new Map(); // sessionID -> string[] (refs to skip)
 // Single virtual provider: `modelselect` owns one model per
 // `autoPreference` (`auto-free-first` pins free-first, `auto-go-first`
 // pins go-first). The provider's baseURL points at a localhost proxy
@@ -326,6 +330,25 @@ function refForFailure(sessionID, eventModel, virtualSessions, lastVirtualPick) 
   return eventModel;
 }
 
+// Chain failover bookkeeping (F4): the refs a session already failed on and
+// must skip when the chain re-resolves (one candidate per retry).
+function triedFor(sessionID) {
+  const list = triedRefs.get(sessionID);
+  if (Array.isArray(list) && list.length) return list;
+  return null;
+}
+function markTried(sessionID, refStr) {
+  if (!sessionID || !refStr) return;
+  const list = triedRefs.get(sessionID) || [];
+  if (list.includes(refStr)) return;
+  list.push(refStr);
+  triedRefs.set(sessionID, list.slice(-3));
+}
+function clearTried(sessionID) {
+  if (!sessionID) return;
+  triedRefs.delete(sessionID);
+}
+
 function cacheDirFor(directory) {
   return path.join(String(directory || process.cwd()), '.opencode', '.modelselect-cache');
 }
@@ -413,6 +436,7 @@ async function setup(ctx) {
   const freeFlipped = new Set(); // sessions already flipped to go (process lifetime)
   const freeRetry = new Map(); // sessionID -> armedAt (epoch ms): one forced retry
   const protocolRetry = new Map(); // sessionID -> armedAt: one re-synced retry after a protocol mismatch
+  const failoverRetry = new Map(); // sessionID -> { armedAt, ref }: one chain-failover retry (skip `ref`)
   const virtualSessions = new Set(); // sessions whose current model is a virtual anchor
   const virtualIds = new Map(); // sessionID -> virtual model id (pins the preference)
   const lastVirtualPick = new Map(); // sessionID -> { providerID, id }: last resolved pick, for aux requests
@@ -420,6 +444,40 @@ async function setup(ctx) {
   const liveCaps = new Map(); // "provider/bare" + bare -> live catalog input capabilities (media filter)
   const registrations = []; // provider/command transform registrations (disposed on cleanup)
   let proxy = null; // localhost forwarder; sessions dispatch through it, it forwards to Zen/Go
+
+  // Key-agnostic provider catalog (`data/provider-catalog.json`) + live
+  // availability (local `/api/model` inventory + Go spend/latches) — the
+  // plugin side of the shared chain (F4). Failures degrade: no catalog →
+  // legacy tier logic; no availability → unfiltered chain.
+  let catalog = null;
+  try {
+    catalog = await loadCatalogFor(opts, cacheDir);
+  } catch {
+    catalog = null;
+  }
+  const availabilityCache = { at: 0, value: null };
+  const AVAIL_TTL_MS = 60 * 1000;
+  // Latest live inventory snapshot (provider → enabled flags); used by
+  // captureUpstream so console/external providers captured here get the
+  // same baseURL/headers treatment as the engine providers.
+  let lastLiveInventory = null;
+  async function currentAvailability() {
+    const nowMs = Date.now();
+    const cached = availabilityCache.value;
+    if (cached && nowMs - availabilityCache.at < AVAIL_TTL_MS) return cached;
+    const value = await liveAvailability({
+      env: process.env,
+      token: opts.token,
+      usageUrl: opts.usageUrl,
+      cacheDir,
+      usage: readUsageLimits(cacheDir),
+      writeSnapshot: false,
+    });
+    availabilityCache.at = nowMs;
+    availabilityCache.value = value;
+    lastLiveInventory = value && value.providers ? value : null;
+    return value;
+  }
 
   // Refresh the upstream map from a live catalog snapshot: baseURL +
   // headers (org id) per real provider. Runs inside every provider
@@ -448,12 +506,21 @@ async function setup(ctx) {
   function captureUpstream(editor) {
     try {
       if (typeof editor.get !== 'function') return;
-      for (const providerID of Object.keys(FALLBACK_UPSTREAM)) {
+      // Engine providers (live-verified bases as fallback) PLUS every
+      // provider the live inventory knows about — console-connected external
+      // providers carry their own baseURL/headers/org ids, captured the same
+      // way (F4: same chain, cross-provider picks need no anchor hop).
+      const ids = new Set(Object.keys(FALLBACK_UPSTREAM));
+      const invProviders = lastLiveInventory && lastLiveInventory.providers ? lastLiveInventory.providers : null;
+      if (invProviders && typeof invProviders === 'object') {
+        for (const k of Object.keys(invProviders)) ids.add(k);
+      }
+      for (const providerID of ids) {
         const live = editor.get(providerID);
         const info = live && live.provider ? live.provider : null;
         const baseURL =
           (info && info.settings && typeof info.settings.baseURL === 'string' && info.settings.baseURL) ||
-          FALLBACK_UPSTREAM[providerID].baseURL;
+          FALLBACK_UPSTREAM[providerID]?.baseURL;
         const headers =
           info && info.headers && typeof info.headers === 'object' ? { ...info.headers } : {};
         upstream.set(providerID, { baseURL, headers });
@@ -1029,7 +1096,7 @@ async function setup(ctx) {
       // records the virtual id).
       const virtualId = virtualIds.get(event.sessionID);
       const effectiveOpts = virtualId ? { ...opts, autoPreference: preferenceForVirtualId(virtualId) } : opts;
-      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
+      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, availability: await currentAvailability(), tried: triedFor(event.sessionID) });
       const key = picked.model;
       const resolved = { picked, virtualId };
       if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return resolved;
@@ -1163,6 +1230,9 @@ async function setup(ctx) {
               cacheDir,
               media: lastMedia.get(event.sessionID) ?? collectMedia({ files }),
               capabilitiesFor: liveCapabilitiesFor,
+              catalog,
+              availability: await currentAvailability(),
+              tried: triedFor(sessionID),
             });
             const ref = splitModelRef(picked.model);
             pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null };
@@ -1250,7 +1320,7 @@ async function setup(ctx) {
         assistantSnippet,
       });
       const effectiveOpts = { ...opts, autoPreference: preferenceForVirtualId(virtualId) };
-      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
+      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, availability: await currentAvailability(), tried: triedFor(sessionID) });
       const ref = splitModelRef(picked.model);
       const key = `${ref.providerID}/${ref.id}`;
       const useNote = usageNote(picked.usage ?? null);
@@ -1343,6 +1413,9 @@ async function setup(ctx) {
             cacheDir,
             media: mediaReq,
             capabilitiesFor: liveCapabilitiesFor,
+            catalog,
+            availability: await currentAvailability(),
+            tried: triedFor(sessionID),
           });
           const ref = splitModelRef(picked.model);
           pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
@@ -1392,7 +1465,7 @@ async function setup(ctx) {
               assistantSnippet: '',
             });
         const mediaReq = lastMedia.get(sessionID) ?? (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []);
-        const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor });
+        const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, availability: await currentAvailability(), tried: triedFor(sessionID) });
         const ref = splitModelRef(picked.model);
         pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
         lastVirtualPick.set(sessionID, pick);
@@ -1479,7 +1552,25 @@ async function setup(ctx) {
       // nothing. A real (non-virtual) event model names the failing side
       // directly and wins (go-side failures must not latch free).
       const ref = refForFailure(event.sessionID, event.model, virtualSessions, lastVirtualPick);
-      if (!isFreeModelRef(ref, readModelTable(cacheDir))) return;
+      const freeSide = isFreeModelRef(ref, readModelTable(cacheDir));
+      if (!freeSide) {
+        // Paid-side / external-provider failure → chain failover (F4): arm
+        // ONE forced retry that re-resolves the chain skipping the failing
+        // ref (the retried dispatch flows through the proxy and re-resolves
+        // with the next candidate). Free-side exhaustion keeps its dedicated
+        // latch-driven retry (`freeRetry`) and never arms the failover.
+        if (event.sessionID && virtualSessions.has(event.sessionID) && !opts.suggestOnly) {
+          const rid = ref && (ref.id ?? ref.modelID);
+          const failingRef = ref && typeof ref === 'object' && rid
+            ? `${String(ref.providerID ?? '').toLowerCase()}/${String(rid)}`
+            : String(ref ?? '');
+          if (failingRef) markTried(event.sessionID, failingRef);
+          if (freeRetry.get(event.sessionID) === undefined) {
+            failoverRetry.set(event.sessionID, { armedAt: Date.now(), ref: failingRef });
+          }
+        }
+        return;
+      }
       await noteFreeExhaustion(
         event.sessionID,
         ref,
@@ -1505,6 +1596,75 @@ async function setup(ctx) {
         if (Date.now() - armedAt <= FREE_RETRY_TTL_MS) {
           event.decision = { retry: true, delay: 0 };
           if (opts.verbose) console.log(`[modelselect] retrying on go after free exhaustion session=${event.sessionID}`);
+        }
+        return;
+      }
+      // Chain failover (F4): a real failure already moved past the free
+      // latch (paid side / external provider / quota). Re-resolve the chain
+      // skipping the failing ref and retry once on the next candidate —
+      // the retried dispatch flows through the proxy again with the fresh
+      // pick stamped into its routing headers. Same one-shot window as the
+      // free arm; OpenCode's built-in attempt cap bounds anything else.
+      const failover = failoverRetry.get(event.sessionID);
+      if (failover !== undefined) {
+        failoverRetry.delete(event.sessionID);
+        if (Date.now() - failover.armedAt <= FREE_RETRY_TTL_MS) {
+          const skip = String(failover.ref ?? '');
+          const sessionID = event.sessionID;
+          const isVirtual = Boolean(sessionID && (virtualSessions.has(sessionID) || isVirtualRef(event.model)));
+          if (!isVirtual || opts.suggestOnly) {
+            event.decision = { retry: true, delay: 0 };
+            return;
+          }
+          try {
+            const virtualId = virtualIds.get(sessionID) || (isVirtualRef(event.model) ? event.model.id : null);
+            const preference = virtualId ? preferenceForVirtualId(virtualId) : opts.autoPreference;
+            const where = sessionTask(sessionID);
+            const taskType = where
+              ? where.taskType
+              : (
+                  await resolveTask({
+                    sessionID,
+                    text: prompts.get(sessionID) ?? '',
+                    files: promptFiles.get(sessionID) ?? [],
+                    agent: undefined,
+                    assistantSnippet: '',
+                  })
+                ).taskType;
+            const picked = await resolveModel({
+              taskType,
+              opts: { ...opts, autoPreference: preference },
+              cacheDir,
+              media:
+                lastMedia.get(sessionID) ??
+                (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []),
+              capabilitiesFor: liveCapabilitiesFor,
+              catalog,
+              availability: await currentAvailability(),
+              tried: [skip],
+            });
+            const ref = splitModelRef(picked.model);
+            const pick = {
+              providerID: ref.providerID,
+              id: ref.id,
+              endpoint: picked.endpoint ?? null,
+              endpointPath: picked.endpointPath ?? null,
+              think: picked.think ?? null,
+              media: picked.media ?? lastMedia.get(sessionID) ?? [],
+            };
+            lastVirtualPick.set(sessionID, pick);
+            if (virtualId) await syncVirtualApiFor(pick, virtualId);
+            clearTried(sessionID);
+            event.decision = { retry: true, delay: 0 };
+            if (opts.verbose) {
+              console.log(`[modelselect] chain failover retry → ${ref.providerID}/${ref.id} session=${sessionID}`);
+            }
+            return;
+          } catch (err) {
+            if (opts.verbose) console.log(`[modelselect] chain failover retry skipped: ${err?.message ?? err}`);
+            event.decision = { retry: true, delay: 0 };
+            return;
+          }
         }
         return;
       }
@@ -1569,6 +1729,9 @@ async function setup(ctx) {
               lastMedia.get(sessionID) ??
               (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []),
             capabilitiesFor: liveCapabilitiesFor,
+            catalog,
+            availability: await currentAvailability(),
+            tried: triedFor(sessionID),
           });
           const ref = splitModelRef(picked.model);
           const pick = {

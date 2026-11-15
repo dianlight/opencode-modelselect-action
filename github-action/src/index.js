@@ -44,12 +44,16 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { selectWithinBudget } = require('./shared/core/budget');
+const { buildChain } = require('./shared/core/chain');
 const { parseGoUsageWindows, goWindowsExhausted, classifyFreeProbe } = require('./shared/core/probe');
 
 const FETCH_TIMEOUT_MS = 15000;
 const DEFAULT_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
 const DEFAULT_PROBE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 const DEFAULT_PROBE_RESPONSES_URL = 'https://opencode.ai/zen/v1/responses';
+const DEFAULT_CATALOG_URL =
+  'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/provider-catalog.json';
+const DEFAULT_PROVIDERS = 'opencode,opencode-go';
 
 function getInput(name, { required = false, fallback = '' } = {}) {
   const key = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
@@ -116,6 +120,40 @@ async function fetchRemoteConfig(url) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Provider catalog (`data/provider-catalog.json`): the key-agnostic model
+ * inventory the chain expands visibility from. Optional — a missing or
+ * unreadable catalog degrades to the legacy single-model tiers.
+ */
+async function loadCatalog(workspace, catalogPath, catalogUrl) {
+  if (catalogPath) {
+    const file = path.isAbsolute(catalogPath)
+      ? catalogPath
+      : path.join(workspace, catalogPath);
+    if (fs.existsSync(file)) {
+      try {
+        return { data: JSON.parse(fs.readFileSync(file, 'utf8')), file };
+      } catch {
+        warn(`Invalid provider catalog ${file}: ignored.`);
+        return null;
+      }
+    }
+  }
+  if (catalogUrl) {
+    const remote = await fetchRemoteConfig(catalogUrl);
+    if (remote) return { data: remote, file: catalogUrl };
+  }
+  return null;
+}
+
+/** Parse the `available-providers` input (comma-separated slugs). */
+function parseProviders(value) {
+  return String(value ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -378,7 +416,6 @@ async function main() {
   const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
   let config = null;
   let source = '';
-
   const local = loadLocalConfig(workspace, configPath);
   if (local) {
     config = local.data;
@@ -398,6 +435,21 @@ async function main() {
       `Central model config unreachable (${configUrl || 'no config-url'}) ` +
         'and no local copy; cannot resolve a model.',
     );
+  }
+
+  // Key-agnostic provider catalog: optional. When present, the chain
+  // (core/chain.js — the SAME algorithm the plugin runs) expands the task's
+  // canonical ranking into provider/model candidates and applies the
+  // caller's provider allowlist, media, context and cost filters.
+  const allowedProviders = parseProviders(
+    getInput('available-providers', { fallback: DEFAULT_PROVIDERS }),
+  );
+  const catalogPath = getInput('catalog-path', { fallback: 'data/provider-catalog.json' });
+  const catalogUrl = getInput('catalog-url', { fallback: DEFAULT_CATALOG_URL });
+  const loadedCatalog = await loadCatalog(workspace, catalogPath, catalogUrl);
+  const catalog = loadedCatalog ? loadedCatalog.data : null;
+  if (catalog) {
+    notice(`Loaded provider catalog from ${loadedCatalog.file} (providers: ${allowedProviders.join(', ')}).`);
   }
 
   const table = config['task-types'] ?? config.task_types;
@@ -549,7 +601,40 @@ async function main() {
     );
   }
 
-  if (maxCost !== null && !fromFallback) {
+  // Chain resolution: expand the task's provider-agnostic `ranked` list
+  // into concrete provider/model candidates with the shared core. The pick
+  // stays the same model class the tier probe validated (free/paid); the
+  // chain only chooses the provider and the failover order.
+  let chainRefs = [];
+  if (!fromFallback && key && catalog && entry && Array.isArray(entry.ranked)) {
+    const chain = buildChain({
+      entry,
+      catalog,
+      mode: tierSelected === 'free' ? 'free' : tierSelected === 'go' ? 'go' : 'abs',
+      preference,
+      providers: allowedProviders,
+      maxCost,
+    });
+    if (chain.length > 0) {
+      chainRefs = chain.map((c) => `${c.provider}/${c.model}`);
+      const first = chain[0];
+      if (chainRefs[0] !== model) {
+        notice(
+          `chain: '${model || '—'}' -> '${chainRefs[0]}' ` +
+            `(${first.class}${first.cost === null ? '' : `, $${first.cost}/1M`}).`,
+        );
+        model = chainRefs[0];
+      }
+      modelCost = first.cost === null || first.cost === undefined ? '' : String(first.cost);
+    } else {
+      warn(
+        `Provider chain empty for task-type='${key}' (providers: ${allowedProviders.join(', ') || 'any'}); ` +
+          'keeping the configured model.',
+      );
+    }
+  }
+
+  if (maxCost !== null && !fromFallback && chainRefs.length === 0) {
     let budgeted;
     try {
       budgeted = selectWithinBudget(entry, key, tierSelected, model, maxCost);
@@ -587,6 +672,7 @@ async function main() {
     'model-go': goModel,
     'model-free': freeModel,
     'model-cost': modelCost,
+    'model-chain': chainRefs.length > 0 ? JSON.stringify(chainRefs) : '',
     'config-source': source,
     'task-type': key ?? taskTypeInput,
     'tier-selected': tierSelected,
