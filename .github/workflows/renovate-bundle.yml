@@ -69,26 +69,30 @@ jobs:
           # A push made with GITHUB_TOKEN does not trigger workflows: GitHub
           # creates the runs for the new commit but holds them back until
           # they are approved. Approve them so the PR is checked by itself.
-          # The records show up one after the other, so keep sweeping until
-          # two rounds in a row find nothing new.
+          # The records show up a few seconds after the push, one after the
+          # other, so keep sweeping until four rounds in a row find
+          # nothing new.
           sha="$(git rev-parse HEAD)"
           empty=0
-          for attempt in $(seq 1 20); do
+          approved=0
+          for attempt in $(seq 1 40); do
             ids="$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$sha&status=action_required" --jq '.workflow_runs[].id')"
-            if [ -z "$ids" ]; then
-              empty=$((empty + 1))
-              if [ "$empty" -ge 2 ]; then
-                break
-              fi
-            else
+            if [ -n "$ids" ]; then
               empty=0
               for id in $ids; do
                 echo "Approving run $id"
                 gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/approve"
+                approved=$((approved + 1))
               done
+            else
+              empty=$((empty + 1))
+              if [ "$empty" -ge 4 ]; then
+                break
+              fi
             fi
             sleep 5
           done
+          echo "Approved $approved run(s) for $sha"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
