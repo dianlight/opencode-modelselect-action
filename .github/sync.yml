@@ -13,3 +13,6 @@ group:
   # cleanup PR job.
   # NOTE: release-plugin.yml is intentionally repo-local (publishes plugin/
   # to npm on plugin-v* tags) and is never synced downstream.
+  # NOTE: renovate-bundle.yml is intentionally repo-local (rebuilds the
+  # committed extension bundles on Renovate's pull requests) and is never
+  # synced downstream.

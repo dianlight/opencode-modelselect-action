@@ -1,4 +1,11 @@
 ## [Unreleased]
+### Fixed
+- A Renovate bump of `@openchamber/sdk` no longer fails CI with "Committed
+  bundles are stale". The extension bundles are committed build artifacts that
+  inline the SDK, so a version bump changes them. The new `renovate-bundle.yml`
+  workflow rebuilds the bundles on Renovate's pull requests and commits the
+  result to the PR branch; the CI staleness check now also covers
+  `background/main.js`.
 
 ## [1.0.1] - 2026-11-15
 ### Changed

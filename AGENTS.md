@@ -111,3 +111,10 @@ When updating `CHANGELOG.md`:
 ## Renovate
 
 `.github/renovate.json` auto-updates GitHub Actions every Monday with automerge enabled.
+
+The extension bundles are committed build artifacts that inline `@openchamber/sdk`, so
+an SDK bump leaves them stale and CI's staleness check fails the PR. The Mend-hosted
+Renovate app cannot run a rebuild (it blocks `postUpgradeTasks`), so
+`.github/workflows/renovate-bundle.yml` rebuilds the bundles on Renovate's pull
+requests and commits the result to the PR branch. Renovate stops updating a branch
+whose commits it did not create, so those PRs need a human merge.

@@ -65,8 +65,9 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
-          if ! git diff --quiet -- openchamber-modelselect/panel/main.js openchamber-modelselect/service/main.js; then
+          bundles="openchamber-modelselect/panel/main.js openchamber-modelselect/service/main.js openchamber-modelselect/background/main.js"
+          if ! git diff --quiet -- $bundles; then
             echo "::error::Committed bundles are stale. Run 'bun run build' in openchamber-modelselect/ and commit the result."
-            git --no-pager diff --stat -- openchamber-modelselect/panel/main.js openchamber-modelselect/service/main.js
+            git --no-pager diff --stat -- $bundles
             exit 1
           fi

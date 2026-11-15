@@ -1,0 +1,64 @@
+name: Rebuild bundles for Renovate PRs
+
+# The extension bundles (panel/main.js, service/main.js, background/main.js) are
+# committed build artifacts that inline @openchamber/sdk. A dependency bump
+# therefore leaves the committed bundles stale, and the CI staleness check in
+# lint-yaml.yml fails the PR. Renovate itself cannot run the rebuild (the
+# hosted app blocks postUpgradeTasks), so this workflow rebuilds the bundles
+# on Renovate's pull requests and commits the result to the PR branch.
+
+on:
+  pull_request:
+    paths:
+      - "openchamber-modelselect/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: renovate-bundle-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    name: Rebuild the OpenChamber bundles
+    # Only Renovate's own branches are touched: the workflow runs the build
+    # from the PR branch and pushes to it.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'renovate/') &&
+      github.event.pull_request.user.login == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: openchamber-modelselect
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build bundles
+        run: bun run build
+
+      - name: Commit the rebuilt bundles
+        working-directory: .
+        run: |
+          set -euo pipefail
+          bundles="openchamber-modelselect/panel/main.js openchamber-modelselect/service/main.js openchamber-modelselect/background/main.js"
+          if git diff --quiet -- $bundles; then
+            echo "The committed bundles are up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $bundles
+          git commit -m "build: rebuild the OpenChamber bundles"
+          git push origin HEAD:refs/heads/${{ github.event.pull_request.head.ref }}
