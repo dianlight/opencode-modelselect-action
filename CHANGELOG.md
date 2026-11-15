@@ -1,5 +1,12 @@
 ## [Unreleased]
 ### Changed
+- The session-control answer is now **off by default**: the new
+  `sessionAnswers` switch (Extension tab → Session control; persisted in
+  `~/.config/openchamber/modelselect.json` as `"sessionAnswers": false`) gates
+  the service's `POST /session-events` handling. With it off, every
+  `permission-asked` / `question-asked` event is dropped unanswered; with it
+  on, the 0.8.0 answer behaviour applies (allow once, fill computed form fields,
+  page → session).
 - OpenChamber extension 0.8.0, rebuilt against SDK `2.7.1`
   (OpenChamber PR 6379). The local service is now the extension's only owner
   of file I/O: the settings panel reads and writes through `GET/POST /config`

@@ -958,6 +958,7 @@ __export(exports_store, {
   sanitizeSessionID: () => sanitizeSessionID,
   saveExtensionConfig: () => saveExtensionConfig,
   savePluginOptions: () => savePluginOptions,
+  sessionAnswersEnabled: () => sessionAnswersEnabled,
   setPluginOption: () => setPluginOption,
   storedPluginOptions: () => storedPluginOptions,
   writeJsonAt: () => writeJsonAt,
@@ -2210,8 +2211,13 @@ async function saveExtensionConfig(directory, values) {
   next.autoWalkthroughModel = Boolean(values.autoWalkthroughModel);
   next.smallModelTask = str3(values.smallModelTask) || "generic";
   next.walkthroughModelTask = str3(values.walkthroughModelTask) || "generic";
+  next.sessionAnswers = values.sessionAnswers === true;
   await writeJsonAt(null, MODELSELECT_CONFIG_PATH, next);
   return next;
+}
+async function sessionAnswersEnabled() {
+  const config = await readExtensionConfig();
+  return config.sessionAnswers === true;
 }
 async function listStatuses(cacheDir) {
   let names;
@@ -2623,6 +2629,9 @@ async function handleSessionEvent(bodyText) {
   const event = request.event;
   const directory = event.project ? event.project.directory : null;
   if (!servesDirectory(directory)) {
+    return { status: 200, body: { ok: true } };
+  }
+  if (!await sessionAnswersEnabled()) {
     return { status: 200, body: { ok: true } };
   }
   if (event.type === "permission-asked") {

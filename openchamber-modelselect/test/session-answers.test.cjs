@@ -78,7 +78,15 @@ describe('session answers', () => {
   let host;
 
   before(async () => {
-    fixture = makeFixture();
+    fixture = makeFixture({
+      extConfig: {
+        autoSmallModel: true,
+        autoWalkthroughModel: true,
+        smallModelTask: 'small-model',
+        keep: 'me',
+        sessionAnswers: true,
+      },
+    });
     host = await startFakeHost();
     service = await startService(fixture, { hostCallbackUrl: host.url });
     // The section poll marks the project as served.
@@ -213,5 +221,69 @@ describe('session answers', () => {
     const res = await postEvent({ v: 99, requestId: 'req_x' });
     assert.equal(res.status, 400);
     assert.equal(res.body.ok, false);
+  });
+});
+
+describe('session answers off by default', () => {
+  let fixture;
+  let service;
+  let host;
+
+  before(async () => {
+    fixture = makeFixture(); // no `sessionAnswers` key: the switch is off
+    host = await startFakeHost();
+    service = await startService(fixture, { hostCallbackUrl: host.url });
+    const res = await service.get('/status', { directory: fixture.project });
+    assert.equal(res.status, 200);
+  });
+
+  after(() => {
+    if (service) service.stop();
+    if (host) host.stop();
+  });
+
+  beforeEach(() => {
+    host.calls.length = 0;
+    host.setHandler(null);
+  });
+
+  const postEvent = (body) => service.post(EVENTS_PATH, {}, body);
+
+  const sessionCalls = () => host.calls.filter((call) => String(call.method || '').startsWith('sessions.'));
+
+  /** Every event kind: with the switch off the service must drop them all unanswered. */
+  const events = () => ([
+    event('permission-asked', {
+      event: Object.assign(event('permission-asked').event, {
+        project: { directory: fixture.project },
+        permission: { requestId: 'perm_off' },
+      }),
+      content: { type: 'permission-asked', sessionTitle: null, action: 'bash', resources: ['ls'], message: null },
+    }),
+    event('question-asked', {
+      event: Object.assign(event('question-asked').event, {
+        project: { directory: fixture.project },
+        question: { kind: 'form', id: 'frm_off' },
+      }),
+      content: {
+        type: 'question-asked',
+        sessionTitle: null,
+        ask: {
+          kind: 'form',
+          id: 'frm_off',
+          title: 'Pick a model',
+          fields: [{ key: 'model', type: 'string', title: 'Model', description: null, required: true }],
+        },
+      },
+    }),
+  ]);
+
+  it('drops every event unanswered when the switch is off', async () => {
+    for (const body of events()) {
+      const res = await postEvent(body);
+      assert.equal(res.status, 200);
+      assert.deepEqual(res.body, { ok: true });
+      assert.equal(sessionCalls().length, 0, 'no answer while the switch is off');
+    }
   });
 });

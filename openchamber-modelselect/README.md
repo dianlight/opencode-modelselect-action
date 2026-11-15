@@ -230,6 +230,12 @@ Only the project the extension was asked about is answered (the section
 polled it, or the panel named it). A request in any other project is left
 alone.
 
+**The switch is off by default.** The manifest grant is static, so OpenChamber
+keeps posting the events; the service drops every one of them unanswered until
+`"sessionAnswers": true` is written to `~/.config/openchamber/modelselect.json`
+— Session control → `sessionAnswers` in the settings panel's Extension tab.
+Off, a permission prompt or a form waits for you exactly as before.
+
 A request that settled meanwhile — you answered it in the app, or on another
 device — comes back as a 404. The service logs that and moves on: it never
 repeats an answer for a request that no longer exists.
@@ -254,7 +260,8 @@ virtual `modelselect/auto-*` models are the routing switch now):
   "autoSmallModel": false,
   "autoWalkthroughModel": false,
   "smallModelTask": "small-model",
-  "walkthroughModelTask": "review"
+  "walkthroughModelTask": "review",
+  "sessionAnswers": false
 }
 ```
 - `autoSmallModel: true` writes the resolved `smallModelTask` model
@@ -266,6 +273,11 @@ virtual `modelselect/auto-*` models are the routing switch now):
   defaults to the small model). Both follow the same go/free
   preference and active free-tier latch window as the categories, write
   only on diff, and never touch `variant`.
+- `sessionAnswers: true` opts the local service in to answering the agent's
+  permission requests and computable forms on the user's behalf (default off,
+  via Session control → `sessionAnswers` in the settings panel's Extension
+  tab). Without it the service stays read-only and an unanswered permission or
+  form stalls the turn until you answer in the app.
 
 ## Usage provider (quota)
 

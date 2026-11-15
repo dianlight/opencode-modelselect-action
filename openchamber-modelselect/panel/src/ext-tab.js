@@ -1,7 +1,7 @@
 /* openchamber-modelselect — Extension tab: the router-sync switch (the same
  * project file the Work Status section toggles) plus the global
- * `~/.config/openchamber/modelselect.json` defaults. Both apply on the next
- * turn — no restart.
+ * `~/.config/openchamber/modelselect.json` defaults and the session-answers
+ * switch. Both apply on the next turn — no restart.
  *
  * Writes go through the service, so the package declares no file grants.
  */
@@ -65,6 +65,14 @@ export function mountExtensionTab(pane, snapshot, ctx) {
     searchPlaceholder: 'Filter task types…'
   });
 
+  sectionTitle(pane, 'Session control');
+  fields.sessionAnswers = mkSwitch(pane, {
+    label: 'sessionAnswers',
+    checked: extConfig.sessionAnswers === true,
+    description: 'Answer the agent\'s permission requests and computable forms on your behalf, ' +
+      'so an unattended turn does not stall. Off by default: every request waits for you.'
+  });
+
   const foot = el('div', 'mp-foot');
   mountButton(foot, {
     label: 'Save extension settings',
@@ -74,7 +82,8 @@ export function mountExtensionTab(pane, snapshot, ctx) {
         autoSmallModel: Boolean(fields.autoSmallModel.checked),
         autoWalkthroughModel: Boolean(fields.autoWalkthroughModel.checked),
         smallModelTask: fields.smallModelTask.value,
-        walkthroughModelTask: fields.walkthroughModelTask.value
+        walkthroughModelTask: fields.walkthroughModelTask.value,
+        sessionAnswers: Boolean(fields.sessionAnswers.checked)
       };
       Promise.all([
         ctx.api.setRouter(Boolean(fields.sync.checked)),

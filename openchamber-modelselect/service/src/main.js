@@ -16,7 +16,8 @@
  * - `GET /pick?session=` — the one-line pick behind the session action.
  * - `POST /quota` — the usage provider (`provides: ["quota"]`).
  * - `POST /session-events` — the agent's permission requests and forms, which
- *   the service answers on the user's behalf (`sessionControl.answers`).
+ *   the service answers on the user's behalf (`sessionControl.answers`) when
+ *   the `sessionAnswers` switch is on; off, every event is dropped.
  * - `GET /health` — the host's ready probe.
  * Every request carries `Authorization: Bearer $OPENCHAMBER_SERVICE_TOKEN`.
  *
@@ -436,6 +437,11 @@ async function handleSessionEvent(bodyText) {
   const event = request.event;
   const directory = event.project ? event.project.directory : null;
   if (!servesDirectory(directory)) {
+    return { status: 200, body: { ok: true } };
+  }
+  // The switch is off by default: the host keeps posting events (the manifest
+  // grant is static), and every one of them is dropped here unanswered.
+  if (!(await store.sessionAnswersEnabled())) {
     return { status: 200, body: { ok: true } };
   }
   if (event.type === 'permission-asked') {

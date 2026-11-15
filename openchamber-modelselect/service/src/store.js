@@ -291,8 +291,19 @@ export async function saveExtensionConfig(directory, values) {
   next.autoWalkthroughModel = Boolean(values.autoWalkthroughModel);
   next.smallModelTask = str(values.smallModelTask) || 'generic';
   next.walkthroughModelTask = str(values.walkthroughModelTask) || 'generic';
+  next.sessionAnswers = values.sessionAnswers === true;
   await writeJsonAt(null, MODELSELECT_CONFIG_PATH, next);
   return next;
+}
+
+/**
+ * May the service answer the agent's requests on the user's behalf?
+ * Off unless the switch in the panel wrote `sessionAnswers: true` — the
+ * manifest grant stays declared either way, so this is the only switch.
+ */
+export async function sessionAnswersEnabled() {
+  const config = await readExtensionConfig();
+  return config.sessionAnswers === true;
 }
 
 // --- project cache ----------------------------------------------------------
