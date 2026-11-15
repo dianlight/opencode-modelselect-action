@@ -1262,7 +1262,7 @@ describe('route refinement (unroutable endpoints + media)', () => {
     ]);
   });
 
-  it('a google-route turn points the virtual entry at the google package + root', async () => {
+  it('a gemini pick routes as chat through the proxy', async () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, RANKED);
@@ -1277,18 +1277,18 @@ describe('route refinement (unroutable endpoints + media)', () => {
       };
       await seen.context(e1);
       const st = JSON.parse(fs.readFileSync(path.join(CACHE(iso.dir), 'status-s1.json'), 'utf8'));
-      assert.equal(st.model, 'opencode-go/gemini-4-argon-contributor', 'omen refined to gemini');
+      assert.equal(st.model, 'opencode/gemini-4-argon', 'omen refined to gemini');
       assert.deepEqual(st.media, ['pdf']);
       const entry = seen.catalog.get('modelselect').models.get('auto-go-first');
       assert.deepEqual(
         entry.api,
-        { id: 'gemini-4-argon-contributor', type: 'aisdk', package: '@ai-sdk/google' },
-        'google driver package with the bare pick id',
+        { id: 'gemini-4-argon', type: 'aisdk', package: '@ai-sdk/openai-compatible' },
+        'chat driver package with the bare pick id',
       );
       assert.equal(
-        entry.settings.baseURL,
-        'https://opencode.ai/inference/google/v1beta',
-        'native Google root incl. v1beta (driver appends only models/<id>)',
+        entry.settings,
+        undefined,
+        'no native Google root on a chat pick',
       );
       // Unknown live capabilities keep the broad static default (fail-open).
       assert.deepEqual(entry.capabilities, { tools: true, input: ['text', 'image', 'pdf'], output: ['text'] });
@@ -1297,7 +1297,7 @@ describe('route refinement (unroutable endpoints + media)', () => {
     }
   });
 
-  it('leaving a google pick drops the native Google root', async () => {
+  it('a chat pick sets no native Google root', async () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, RANKED);
@@ -1311,7 +1311,7 @@ describe('route refinement (unroutable endpoints + media)', () => {
       };
       await seen.context(e1);
       const entry = () => seen.catalog.get('modelselect').models.get('auto-go-first');
-      assert.equal(entry().settings.baseURL, 'https://opencode.ai/inference/google/v1beta', 'Google uses its catalog endpoint root');
+      assert.equal(entry().settings, undefined, 'no native Google root on a chat pick');
       // Same session, free-side pick next: the stale root must go.
       seedCache(iso.dir, {
         'task-types': {
@@ -1371,13 +1371,13 @@ describe('route refinement (unroutable endpoints + media)', () => {
       const entry = seen.catalog.get('modelselect').models.get('auto-go-first');
       assert.deepEqual(
         entry.api,
-        { id: 'gemini-4-argon-contributor', type: 'aisdk', package: '@ai-sdk/google' },
-        'provider-id package falls back to the AI SDK map',
+        { id: 'gemini-4-argon', type: 'aisdk', package: '@ai-sdk/openai-compatible' },
+        'chat pick routes through the proxy',
       );
       assert.equal(
-        entry.settings.baseURL,
-        'https://opencode.ai/inference/google/v1beta',
-        'provider path plus the v1beta the driver does not append',
+        entry.settings,
+        undefined,
+        'no native Google root on a chat pick',
       );
     } finally {
       iso.restore();
