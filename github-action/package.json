@@ -1,6 +1,6 @@
 {
   "name": "opencode-modelselect-action",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Opencode Modelselect — preselect the OpenCode model for a task-type and tier from the central model config",
   "main": "src/index.js",

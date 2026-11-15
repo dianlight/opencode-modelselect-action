@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [1.0.1] - 2026-11-15
 ### Changed
 - CI now authenticates to OpenCode with GitHub OIDC service auth instead of the
   long-lived `OPENCODE_API_KEY` secret: `opencode-maintenance.yaml` exchanges

@@ -1,6 +1,6 @@
 {
   "name": "openchamber-modelselect",
-  "version": "0.8.0",
+  "version": "1.0.1",
   "description": "Host-rendered Work Status section (contributes.statusSection.source) surfacing the modelselect plugin's project pick plus the auto-update-router switch, a settings panel for the plugin options and the extension config, and a session action that shows the pick.",
   "license": "MIT",
   "type": "module",
