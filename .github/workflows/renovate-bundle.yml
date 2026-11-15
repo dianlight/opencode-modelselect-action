@@ -11,23 +11,31 @@ on:
   pull_request:
     paths:
       - "openchamber-modelselect/**"
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "Commit the rebuilt bundles to the branch"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
-  group: renovate-bundle-${{ github.event.pull_request.number }}
+  group: renovate-bundle-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
   rebuild:
     name: Rebuild the OpenChamber bundles
-    # Only Renovate's own branches are touched: the workflow runs the build
-    # from the PR branch and pushes to it.
+    # Only branches of this repository are touched: the workflow runs the
+    # build from the PR branch and pushes to it. The dispatch trigger is the
+    # follow-up verification run the workflow starts for itself.
     if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      startsWith(github.event.pull_request.head.ref, 'renovate/') &&
-      github.event.pull_request.user.login == 'renovate[bot]'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       startsWith(github.event.pull_request.head.ref, 'renovate/'))
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.event.pull_request.head.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -49,6 +57,7 @@ jobs:
         run: bun run build
 
       - name: Commit the rebuilt bundles
+        if: github.event_name == 'pull_request'
         working-directory: .
         run: |
           set -euo pipefail
@@ -62,3 +71,22 @@ jobs:
           git add $bundles
           git commit -m "build: rebuild the OpenChamber bundles"
           git push origin HEAD:refs/heads/${{ github.event.pull_request.head.ref }}
+          # A push made with GITHUB_TOKEN does not trigger workflows, so the
+          # CI run for the new commit has to be started by hand.
+          gh workflow run lint-yaml.yml --ref ${{ github.event.pull_request.head.ref }}
+          gh workflow run renovate-bundle.yml --ref ${{ github.event.pull_request.head.ref }} -f push=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check the committed bundles
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: .
+        run: |
+          set -euo pipefail
+          bundles="openchamber-modelselect/panel/main.js openchamber-modelselect/service/main.js openchamber-modelselect/background/main.js"
+          if ! git diff --quiet -- $bundles; then
+            echo "::error::The committed bundles do not match a fresh build."
+            git --no-pager diff --stat -- $bundles
+            exit 1
+          fi
+          echo "The committed bundles match a fresh build."
