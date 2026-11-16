@@ -830,7 +830,13 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
       source = `${source}+routed`;
     }
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia, chain: chainRefs };
+  // `chainAll` is the full tried-filtered candidate list (refs). The plugin's
+  // failover uses it to pick the next untried candidate and to detect when
+  // every candidate is exhausted, without rebuilding the chain here.
+  const chainAllRefs = (Array.isArray(chain) ? chain : [])
+    .map((c) => (c ? String(c.ref ?? `${c.provider}/${c.model}`).trim() : ''))
+    .filter(Boolean);
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia, chain: chainRefs, chainAll: chainAllRefs };
 }
 
 module.exports = {

@@ -53,6 +53,23 @@ function tmp() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-virt-'));
 }
 
+/** Catalog with a free and a paid candidate, so failover has somewhere to go. */
+function seedRoutedCatalog(dir) {
+  fs.mkdirSync(CACHE(dir), { recursive: true });
+  fs.writeFileSync(
+    path.join(CACHE(dir), 'provider-catalog-cache.json'),
+    JSON.stringify({
+      fetchedAt: Date.now(),
+      catalog: {
+        models: [
+          { provider: 'opencode', id: 'free-a', blended_cost: 0, context: 200000 },
+          { provider: 'opencode-go', id: 'paid-a', blended_cost: 0.1, context: 200000 },
+        ],
+      },
+    }),
+  );
+}
+
 /** Pin MODELSELECT_OPENCHAMBER for one test; returns a restore function. */
 function isolateOpenChamberEnv(value) {
   const saved = process.env.MODELSELECT_OPENCHAMBER;
@@ -678,15 +695,27 @@ describe('virtual routing', () => {
   it('free exhaustion arms a retry without moving the session', async () => {
     const iso = withIsolation(undefined);
     try {
-      seedCache(iso.dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+      seedCache(iso.dir, {
+        'task-types': {
+          review: {
+            go: 'opencode-go/paid-a',
+            free: 'opencode/free-a',
+            ranked: [
+              { model: 'opencode/free-a', score: 95 },
+              { model: 'opencode-go/paid-a', score: 90 },
+            ],
+          },
+        },
+      });
+      seedRoutedCatalog(iso.dir);
       const seen = await setupV2(iso.dir);
 
-      const e = { sessionID: 's1', model: { ...FREE }, messages: [], agent: 'review' };
+      const e = { sessionID: 's-virt-exhaust', model: { ...FREE }, messages: [], agent: 'review' };
       await seen.context(e);
       assert.deepEqual(seen.switches, [], 'precondition: still virtual');
 
       const r = {
-        sessionID: 's1',
+        sessionID: 's-virt-exhaust',
         agent: 'review',
         model: { ...FREE },
         error: { type: 'rate_limit', message: '429 too many requests', status: 429 },

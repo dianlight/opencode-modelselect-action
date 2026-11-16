@@ -2,14 +2,15 @@
 
 /**
  * Free-tier fail-soft (v2): the `http.response`/`retry` hooks classify a
- * real free-side failure, register the 12h latch
- * (`.opencode/.modelselect-cache/free-quota.json`), and — for the virtual
- * session only — arm exactly one forced retry without moving the session
- * (the retried dispatch re-resolves through the proxy, where the fresh
- * latch prefers go). Non-virtual sessions just latch + resync: they are the
- * user's hands-off choice and are never flipped (switchSessionToGo is gone).
- * Also pins the resolveModel latch honoring (auto + pinned free) and the
- * never-loop / never-extend invariants.
+ * real failure (free exhaustion, paid quota, rate limit), register the 12h
+ * latch (`.opencode/.modelselect-cache/free-quota.json`) for free models and
+ * — for virtual sessions only — arm a forced retry without moving the
+ * session. Each failure re-arms so the cascade walks the whole provider
+ * chain (another provider first, then free), skipping every ref already
+ * tried, and stops when no candidate is left. Non-virtual sessions just
+ * latch + resync: they are the user's hands-off choice and are never
+ * flipped. Also pins the resolveModel latch honoring (auto + pinned free)
+ * and the never-extend invariant.
  *
  * `isolateAuth` isolates HOME so the routing sync that runs inside the
  * hooks can never touch the real `~/.config/openchamber/routing.json`.
@@ -32,8 +33,39 @@ const CACHE = (dir) => path.join(dir, '.opencode', '.modelselect-cache');
 const LATCH = (dir) => path.join(CACHE(dir), 'free-quota.json');
 const VIRTUAL = { providerID: 'modelselect', id: 'auto-free-first' };
 
-async function setupSession(dir, options = {}) {
-  seedCache(dir, { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
+// Three catalog candidates over two providers, so a failover has somewhere
+// to go. Chain order (free-first): free-a, free-b-free (opencode), paid-a
+// (opencode-go). A failure on free-a must jump to paid-a first (different
+// provider), then free-b-free, then stop.
+const ROUTED_CONFIG = {
+  'task-types': {
+    review: {
+      go: 'opencode-go/paid-a',
+      free: 'opencode/free-a',
+      ranked: [
+        { model: 'opencode/free-a', score: 95 },
+        { model: 'opencode-go/paid-a', score: 90 },
+        { model: 'opencode/free-b-free', score: 85 },
+      ],
+    },
+  },
+};
+const ROUTED_MODELS = [
+  { provider: 'opencode', id: 'free-a', blended_cost: 0, context: 200000 },
+  { provider: 'opencode-go', id: 'paid-a', blended_cost: 0.1, context: 200000 },
+  { provider: 'opencode', id: 'free-b-free', blended_cost: 0, context: 200000 },
+];
+
+function seedCatalog(dir) {
+  fs.mkdirSync(CACHE(dir), { recursive: true });
+  fs.writeFileSync(
+    path.join(CACHE(dir), 'provider-catalog-cache.json'),
+    JSON.stringify({ fetchedAt: Date.now(), catalog: { models: ROUTED_MODELS } }),
+  );
+}
+
+async function setupSession(dir, options = {}, cfg) {
+  seedCache(dir, cfg || { 'task-types': { review: { go: 'g/a', free: 'f/b' } } });
   const seen = { switches: [] };
   const fakeCtx = {
     options: { tier: 'free', taskType: 'review', ...options },
@@ -49,6 +81,11 @@ async function setupSession(dir, options = {}) {
   };
   await v2.setup(fakeCtx);
   return seen;
+}
+
+async function setupRoutedSession(dir, options = {}) {
+  seedCatalog(dir);
+  return setupSession(dir, options, ROUTED_CONFIG);
 }
 
 // Register a virtual session (the context hook marks it virtual + routes but
@@ -77,6 +114,26 @@ function retryEvent(sessionID, model, decision = { retry: false }, attempt = 2) 
   };
 }
 
+function httpEvent(sessionID) {
+  return {
+    sessionID,
+    model: { ...VIRTUAL },
+    kind: 'primary',
+    request: new Request('http://localhost/', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: VIRTUAL.id, messages: [] }),
+    }),
+  };
+}
+
+function headersOf(event) {
+  return {
+    provider: event.request.headers.get('x-modelselect-provider'),
+    model: event.request.headers.get('x-modelselect-model'),
+  };
+}
+
 describe('v2 free-tier fail-soft', () => {
   it('free 429 on a non-virtual session: latch + sync, no flip, no arm', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-novirt-'));
@@ -99,58 +156,87 @@ describe('v2 free-tier fail-soft', () => {
     }
   });
 
-  it('free 429 on a virtual session: latch + sync + exactly one forced retry', async () => {
+  it('free 429 on a virtual session walks the whole chain, then stops when exhausted', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-'));
     const restore = isolateAuth(dir);
     try {
-      const seen = await setupSession(dir);
-      await virtualTurn(seen);
-      // The virtual session routed + wrote status but never persisted.
+      const seen = await setupRoutedSession(dir);
+      await virtualTurn(seen, 's-chain');
       assert.deepEqual(seen.switches, [], 'virtual sessions never persist via switchModel');
-      const st0 = JSON.parse(fs.readFileSync(path.join(CACHE(dir), 'status-s1.json'), 'utf8'));
-      assert.equal(st0.model, 'f/b');
+      const status = () => JSON.parse(fs.readFileSync(path.join(CACHE(dir), 'status-s-chain.json'), 'utf8'));
+      assert.equal(status().model, 'opencode/free-a');
 
-      await seen['http.response'](freeResponse('s1'));
-      assert.ok(fs.existsSync(LATCH(dir)), 'soft error registered in the latch');
-      assert.equal(isFreeQuotaFresh(CACHE(dir), undefined, 'f/b'), true);
-
-      // The armed retry forces the turn to resume through the proxy —
-      // the session model itself never moves (the retried dispatch
-      // re-resolves with the fresh latch preferring go).
-      const r1 = retryEvent('s1', { ...VIRTUAL });
+      // 1) free-a exhausts → latch it and retry on a different provider.
+      await seen['http.response']({
+        kind: 'primary',
+        sessionID: 's-chain',
+        model: { providerID: 'opencode', id: 'free-a' },
+        response: new Response('rate limited', { status: 429 }),
+      });
+      assert.equal(isFreeQuotaFresh(CACHE(dir), undefined, 'opencode/free-a'), true);
+      const r1 = retryEvent('s-chain', { ...VIRTUAL });
       await seen.retry(r1);
       assert.deepEqual(r1.decision, { retry: true, delay: 0 });
       assert.deepEqual(r1.model, VIRTUAL, 'retry keeps the virtual anchor');
+      const h1 = httpEvent('s-chain');
+      await seen['http.request'](h1);
+      assert.deepEqual(headersOf(h1), { provider: 'opencode-go', model: 'paid-a' }, 'different provider is tried first');
 
-      // second failure: window never extends, arm is spent, no re-arm.
-      const before = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['f/b'];
-      await seen['http.response'](freeResponse('s1'));
-      const after = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['f/b'];
-      assert.equal(after.until, before.until, 'the active window never extends');
-      const r2 = retryEvent('s1', { providerID: 'f', id: 'b' }, { retry: false }, 3);
+      // 2) paid-a hits its quota → retry on the last free candidate.
+      await seen['http.response']({
+        kind: 'primary',
+        sessionID: 's-chain',
+        model: { providerID: 'opencode-go', id: 'paid-a' },
+        response: new Response('quota exceeded', { status: 429 }),
+      });
+      assert.equal(fs.existsSync(LATCH(dir)), true, 'free-a latch still present; go failures are not latched');
+      const r2 = retryEvent('s-chain', { providerID: 'opencode-go', id: 'paid-a' });
       await seen.retry(r2);
-      assert.deepEqual(r2.decision, { retry: false }, 'built-in decision untouched after the arm is spent');
+      assert.deepEqual(r2.decision, { retry: true, delay: 0 }, 'paid failure re-arms the cascade');
+      const h2 = httpEvent('s-chain');
+      await seen['http.request'](h2);
+      assert.deepEqual(headersOf(h2), { provider: 'opencode', model: 'free-b-free' }, 'then the remaining free model');
+
+      // 3) free-b-free exhausts → every candidate is spent, no more retries.
+      const before = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['opencode/free-a'];
+      await seen['http.response']({
+        kind: 'primary',
+        sessionID: 's-chain',
+        model: { providerID: 'opencode', id: 'free-b-free' },
+        response: new Response('rate limited', { status: 429 }),
+      });
+      const after = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['opencode/free-a'];
+      assert.equal(after.until, before.until, 'an active window never extends');
+      assert.equal(isFreeQuotaFresh(CACHE(dir), undefined, 'opencode/free-b-free'), true);
+      const r3 = retryEvent('s-chain', { providerID: 'opencode', id: 'free-b-free' }, { retry: false }, 4);
+      await seen.retry(r3);
+      assert.deepEqual(r3.decision, { retry: false }, 'all candidates exhausted: error surfaces');
     } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it('the requested rate-limit message latches for one hour and arms once (virtual)', async () => {
+  it('the requested rate-limit message latches for one hour and arms a failover (virtual)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-rate-'));
     const restore = isolateAuth(dir);
     try {
-      const seen = await setupSession(dir);
-      await virtualTurn(seen);
-      await seen['http.response'](freeResponse('s1', 429, 'Rate limit exceeded. Please try again later.'));
+      const seen = await setupRoutedSession(dir);
+      await virtualTurn(seen, 's-rate');
+      await seen['http.response']({
+        kind: 'primary',
+        sessionID: 's-rate',
+        model: { providerID: 'opencode', id: 'free-a' },
+        response: new Response('Rate limit exceeded. Please try again later.', { status: 429 }),
+      });
 
-      const entry = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['f/b'];
+      const entry = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['opencode/free-a'];
       assert.equal(entry.kind, 'rate-limit');
       assert.equal(entry.until - entry.at, FREE_RATE_LIMIT_TTL_MS);
-      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until - 1, 'f/b'), true);
-      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until, 'f/b'), false);
+      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until - 1, 'opencode/free-a'), true);
+      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until, 'opencode/free-a'), false);
 
-      const retry = retryEvent('s1', { ...VIRTUAL });
+      const retry = retryEvent('s-rate', { ...VIRTUAL });
       await seen.retry(retry);
       assert.deepEqual(retry.decision, { retry: true, delay: 0 });
       assert.deepEqual(retry.model, VIRTUAL, 'retry keeps the virtual anchor');
@@ -164,17 +250,17 @@ describe('v2 free-tier fail-soft', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-go-'));
     const restore = isolateAuth(dir);
     try {
-      const seen = await setupSession(dir);
-      await virtualTurn(seen);
+      const seen = await setupRoutedSession(dir);
+      await virtualTurn(seen, 's-go');
       await seen['http.response']({
         kind: 'primary',
-        sessionID: 's1',
-        model: { providerID: 'g', id: 'a' },
+        sessionID: 's-go',
+        model: { providerID: 'opencode-go', id: 'paid-a' },
         response: new Response('rate limited', { status: 429 }),
       });
       assert.equal(fs.existsSync(LATCH(dir)), false, 'go-side failures are not free exhaustion');
       assert.deepEqual(seen.switches, [], 'no flip');
-      const r = retryEvent('s1', { providerID: 'g', id: 'a' });
+      const r = retryEvent('s-go', { providerID: 'opencode-go', id: 'paid-a' });
       await seen.retry(r);
       assert.deepEqual(r.decision, { retry: true, delay: 0 }, 'paid failure arms the chain failover retry');
     } finally {
@@ -265,14 +351,14 @@ describe('v2 free-tier fail-soft', () => {
     }
   });
 
-  it('retry classifies an error without a response and arms the retry (virtual)', async () => {
+  it('retry classifies an error without a response and arms the failover (virtual)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-retry-'));
     const restore = isolateAuth(dir);
     try {
-      const seen = await setupSession(dir);
-      await virtualTurn(seen);
+      const seen = await setupRoutedSession(dir);
+      await virtualTurn(seen, 's-retry-error');
       const r = {
-        sessionID: 's1',
+        sessionID: 's-retry-error',
         model: { ...VIRTUAL },
         error: { type: 'provider', message: 'You have exceeded your quota', status: 403 },
         attempt: 2,
@@ -282,6 +368,7 @@ describe('v2 free-tier fail-soft', () => {
       assert.deepEqual(r.decision, { retry: true, delay: 0 }, 'fallback path forces one retry');
       assert.deepEqual(r.model, VIRTUAL, 'retry keeps the virtual anchor');
       assert.ok(fs.existsSync(LATCH(dir)), 'latch registered from the retry path');
+      assert.equal(isFreeQuotaFresh(CACHE(dir), undefined, 'opencode/free-a'), true);
     } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });

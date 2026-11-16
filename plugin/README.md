@@ -422,16 +422,16 @@ A chat command (registered via `ctx.command.transform`):
 The command word is optional: `modelselect off` and a bare `off` behave
 the same.
 
-## Free-tier fail-soft
+## Limit failover / free-tier fail-soft
 
 Zen publishes no free-quota endpoint (upstream
 [anomalyco/opencode#18648](https://github.com/anomalyco/opencode/issues/18648)
 is still open), so exhaustion is detected from the real failed request —
-there is deliberately no probe. When a free-side `primary` model call
-comes back exhausted (402, 429, quota wording, or the transient message
-“Rate limit exceeded. Please try again later.”), the plugin:
+there is deliberately no probe. When a `primary` model call comes back
+exhausted (402, 429, quota wording, or the transient message “Rate limit
+exceeded. Please try again later.”), the plugin:
 
-1. registers a PER-MODEL latch in
+1. registers a PER-MODEL latch for free models in
    `<project>/.opencode/.modelselect-cache/free-quota.json`
    (`{version: 2, models: {"<provider/id>": {at, until, kind, …}}}`) —
    while fresh for that model, routing sync writes the `go` side of
@@ -441,12 +441,16 @@ comes back exhausted (402, 429, quota wording, or the transient message
    are unaffected and keep routing free. Spent quota uses a 12h window;
    transient rate limiting uses a 1h window. A legacy model-less entry
    still reads as a global latch over every free model;
-2. forces exactly one retry of the turn on its task's `go` model — no
-   dummy probe, no loop (the flip latches per session and OpenCode's
-   attempt cap bounds the rest). On a virtual `modelselect/auto` session
-   the flip is skipped (the session must keep re-routing): the plugin
-   only arms the retry and re-points the retry event at the `go` model
-   in place.
+2. on a virtual `modelselect/auto-*` session, arms a forced retry. Every
+   retry re-resolves the whole provider chain, skipping all refs that
+   session already failed on, preferring another provider and then free
+   models, so the cascade walks every available candidate until one works
+   or none is left. A paid-side or external-provider limit arms the same
+   cascade. The session never leaves its virtual anchor — each retried
+   attempt is re-pointed through the proxy's routing headers. A single
+   episode is bounded to 12 retries, and a new user prompt resets the
+   history. When no candidate survives, no retry is forced and the error
+   surfaces.
 
 Each window runs from its first detection and never extends; after it
 expires, the next real failure may register again (the "new check").

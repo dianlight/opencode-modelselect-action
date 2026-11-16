@@ -38,13 +38,15 @@
  *   cache/free-quota.json`): spent quota uses 12h, transient rate
  *   limiting uses 1h, and only the failing model is suspended — its
  *   siblings keep routing free. Routing sync + `resolveModel` then prefer
- *   `go` for tasks on that model, and the failing session arms exactly
- *   one forced retry so the turn resumes on the paid alternative through
- *   the proxy (the retry re-resolves through the same routing headers —
- *   the session model itself never moves). The latch expires after its
- *   first-detection window (never extended), allowing a new check;
- *   non-virtual sessions and `suggestOnly` still latch + resync routing
- *   (while the router sync is on) but never arm the retry.
+ *   `go` for tasks on that model, and a failing VIRTUAL session arms a
+ *   forced retry: the whole chain is re-resolved, skipping every ref that
+ *   session already failed on, preferring another provider and then free
+ *   models, until one works or every candidate is exhausted. The retried
+ *   dispatch re-resolves through the same routing headers — the session
+ *   model itself never moves. The latch expires after its first-detection
+ *   window (never extended), allowing a new check; non-virtual sessions
+ *   and `suggestOnly` still latch + resync routing (while the router sync
+ *   is on) but never arm the retry.
  * - Host detection (`./shared/host.js`): explicit `openchamber` option →
  *   `MODELSELECT_OPENCHAMBER` env → extension-written session map →
  *   standalone. Display/status only (`/modelselect`); per-turn routing
@@ -64,10 +66,10 @@
  *   model picker IS the switch) while the `http.request` hook stamps the
  *   resolved pick into routing headers + body per physical attempt. There
  *   are no anchor hops and no leaving virtual mode: every pick, whatever
- *   its provider, flows through the same proxy. Free-exhaustion on a
- *   virtual session arms the forced retry without ever moving the session;
- *   the armed retry re-resolves through the same headers, where the fresh
- *   latch prefers go.
+ *   its provider, flows through the same proxy. Any classified limit on a
+ *   virtual session arms the failover cascade without ever moving the
+ *   session; each armed retry re-resolves through the same headers, where
+ *   the fresh latch and tried history steer to the next candidate.
  * - Thinking level: the two virtual models register the six config
  *   think levels (`default|minimal|low|medium|high|xhigh`) as picker
  *   variants, and the per-turn task `think` hint syncs onto the virtual
@@ -101,6 +103,7 @@ const {
   truncate,
 } = require('./shared/continuation');
 const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
+const { nextCandidate } = require('./shared/core/chain');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
 const { syncRouting } = require('./shared/routing');
@@ -212,6 +215,10 @@ function endpointBaseURLFor(upstreamBaseURL, endpointPath) {
 // Forced-retry arm window: a retry follows its failure within seconds, so
 // an arm older than this (consumed late) is stale and must not fire.
 const FREE_RETRY_TTL_MS = 60 * 1000;
+// Hard ceiling on forced retries within one episode (one user prompt). Each
+// retry advances one chain candidate; this bound keeps a degenerate config
+// from looping even if the host's own attempt cap is generous.
+const MAX_FAILOVER_ATTEMPTS = 12;
 // Protocol-mismatch arm window: the one-shot fail-soft retry must not stick
 // forever — a retried turn that succeeds leaves its arm behind, and without
 // a TTL that stale arm would swallow the next independent mismatch. Arms
@@ -331,7 +338,9 @@ function refForFailure(sessionID, eventModel, virtualSessions, lastVirtualPick) 
 }
 
 // Chain failover bookkeeping (F4): the refs a session already failed on and
-// must skip when the chain re-resolves (one candidate per retry).
+// must skip when the chain re-resolves. The history lives for the whole
+// episode (one user prompt) so the cascade can walk every candidate without
+// re-picking a model that already failed.
 function triedFor(sessionID) {
   const list = triedRefs.get(sessionID);
   if (Array.isArray(list) && list.length) return list;
@@ -342,11 +351,30 @@ function markTried(sessionID, refStr) {
   const list = triedRefs.get(sessionID) || [];
   if (list.includes(refStr)) return;
   list.push(refStr);
-  triedRefs.set(sessionID, list.slice(-3));
+  triedRefs.set(sessionID, list);
 }
 function clearTried(sessionID) {
   if (!sessionID) return;
   triedRefs.delete(sessionID);
+}
+
+/**
+ * Failover order: candidates on a provider other than the one that just
+ * failed come first, then the remaining candidates. Within each group the
+ * chain's own order is kept (free-first / go-first by `autoPreference`),
+ * so a different provider is tried before falling back to another model on
+ * the same provider, and a free candidate is still preferred where possible.
+ */
+function orderFailoverChain(refs, failingProvider) {
+  const list = (Array.isArray(refs) ? refs : [])
+    .map((r) => String(r == null ? '' : r).trim())
+    .filter(Boolean);
+  const failed = String(failingProvider ?? '').toLowerCase();
+  const different = list.filter((r) => String(r).split('/')[0].toLowerCase() !== failed);
+  const same = list.filter((r) => String(r).split('/')[0].toLowerCase() === failed);
+  // Tier preference is already encoded in the chain order, so grouping by
+  // provider is all that is needed here.
+  return different.concat(same);
 }
 
 function cacheDirFor(directory) {
@@ -433,10 +461,9 @@ async function setup(ctx) {
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
-  const freeFlipped = new Set(); // sessions already flipped to go (process lifetime)
-  const freeRetry = new Map(); // sessionID -> armedAt (epoch ms): one forced retry
+  const failoverArmed = new Map(); // sessionID -> { armedAt, ref }: pending forced retry after a classified failure
+  const failoverAttempts = new Map(); // sessionID -> forced retries used in this episode
   const protocolRetry = new Map(); // sessionID -> armedAt: one re-synced retry after a protocol mismatch
-  const failoverRetry = new Map(); // sessionID -> { armedAt, ref }: one chain-failover retry (skip `ref`)
   const virtualSessions = new Set(); // sessions whose current model is a virtual anchor
   const virtualIds = new Map(); // sessionID -> virtual model id (pins the preference)
   const lastVirtualPick = new Map(); // sessionID -> { providerID, id }: last resolved pick, for aux requests
@@ -1154,16 +1181,131 @@ async function setup(ctx) {
     return h && h.task ? { taskType: h.task, prev: null } : null;
   }
 
-  // Register a free-side exhaustion: latch the observation PER MODEL
-  // (quota uses a 12h window, rate limiting uses a 1h window — read by
-  // routing sync + resolveModel), refresh routing.json right away (while
-  // the router sync is on), and on the first failure per VIRTUAL session
-  // while `suggestOnly` is off arm the one forced retry — the retried
-  // dispatch flows through the proxy again and re-resolves with the fresh
-  // latch preferring go. Non-virtual sessions are the user's
-  // manual choice: latch + sync only, never armed. Zen publishes no
+  // A classified failure on a virtual session: remember the ref (so the
+  // cascade never re-picks it) and arm a forced retry. Free failures latch
+  // the model before reaching here. Non-virtual sessions are the user's
+  // manual choice: they latch + resync but never failover. Zen publishes no
   // free-quota endpoint (anomalyco/opencode#18648), so the failed real
   // request IS the check.
+  function armFailover(sessionID, ref, cause) {
+    if (!sessionID || opts.suggestOnly) return;
+    if (!virtualSessions.has(sessionID) && !isVirtualRef(ref)) return;
+    const rid = ref && (ref.id ?? ref.modelID);
+    const failingRef = ref && typeof ref === 'object' && rid
+      ? `${String(ref.providerID ?? '').toLowerCase()}/${String(rid)}`
+      : String(ref ?? '');
+    if (!failingRef) return;
+    markTried(sessionID, failingRef);
+    failoverArmed.set(sessionID, { armedAt: Date.now(), ref: failingRef });
+    if (opts.verbose) {
+      console.log(`[modelselect] failover armed after ${failingRef} (${cause}) session=${sessionID}`);
+    }
+  }
+
+  /**
+   * Consume a failover arm: re-resolve the chain skipping every ref this
+   * session already failed on, prefer a different provider, then the next
+   * candidate in configured order, and force one more attempt on that pick.
+   * When no candidate survives, leave the decision untouched so the error
+   * surfaces — that is the "all limits reached" terminal case.
+   */
+  async function forceFailoverRetry(event, armed) {
+    const sessionID = event.sessionID;
+    const isVirtual = Boolean(
+      sessionID && (virtualSessions.has(sessionID) || isVirtualRef(event.model)),
+    );
+    if (!isVirtual || opts.suggestOnly) {
+      event.decision = { retry: true, delay: 0 };
+      return;
+    }
+    const attempts = failoverAttempts.get(sessionID) || 0;
+    if (attempts >= MAX_FAILOVER_ATTEMPTS) {
+      if (opts.verbose) console.log(`[modelselect] failover exhausted (max attempts) session=${sessionID}`);
+      return;
+    }
+    try {
+      const virtualId = virtualIds.get(sessionID) || (isVirtualRef(event.model) ? event.model.id : null);
+      const preference = virtualId ? preferenceForVirtualId(virtualId) : opts.autoPreference;
+      const where = sessionTask(sessionID);
+      const taskType = where
+        ? where.taskType
+        : (
+            await resolveTask({
+              sessionID,
+              text: prompts.get(sessionID) ?? '',
+              files: promptFiles.get(sessionID) ?? [],
+              agent: undefined,
+              assistantSnippet: '',
+            })
+          ).taskType;
+      const media =
+        lastMedia.get(sessionID) ??
+        (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []);
+      const tried = triedFor(sessionID) || [];
+      const resolveWithTried = async (skip) => resolveModel({
+        taskType,
+        opts: { ...opts, autoPreference: preference },
+        cacheDir,
+        media,
+        capabilitiesFor: liveCapabilitiesFor,
+        catalog,
+        availability: await currentAvailability(),
+        tried: skip,
+      });
+      let picked = await resolveWithTried(tried);
+      const ordered = orderFailoverChain(
+        picked.chainAll,
+        String(armed.ref ?? '').split('/')[0],
+      );
+      const next = nextCandidate(ordered.map((ref) => ({ ref })), tried);
+      let chosen = next && next.ref;
+      if (!chosen) {
+        // No catalog candidate survives: a legacy (no-catalog) pick is the
+        // only remaining option. Try it once; the next failure marks it and
+        // the cascade stops.
+        const r = splitModelRef(picked.model);
+        const legacyRef = `${r.providerID}/${r.id}`;
+        if (tried.includes(legacyRef)) {
+          if (opts.verbose) console.log(`[modelselect] failover exhausted (no candidate left) session=${sessionID}`);
+          return;
+        }
+        chosen = legacyRef;
+      }
+      // `ordered` may have moved a later chain row to the front (different
+      // provider). Re-resolve with every earlier *chain* row skipped so the
+      // chosen ref is the pick and its endpoint/protocol metadata is correct.
+      const chainIdx = picked.chainAll.indexOf(chosen);
+      if (chainIdx > 0) {
+        picked = await resolveWithTried(tried.concat(picked.chainAll.slice(0, chainIdx)));
+      }
+      const ref = splitModelRef(picked.model);
+      const pick = {
+        providerID: ref.providerID,
+        id: ref.id,
+        endpoint: picked.endpoint ?? null,
+        endpointPath: picked.endpointPath ?? null,
+        think: picked.think ?? null,
+        media: picked.media ?? lastMedia.get(sessionID) ?? [],
+      };
+      lastVirtualPick.set(sessionID, pick);
+      if (virtualId) await syncVirtualApiFor(pick, virtualId);
+      failoverAttempts.set(sessionID, attempts + 1);
+      event.decision = { retry: true, delay: 0 };
+      if (opts.verbose) {
+        console.log(`[modelselect] chain failover ${armed.ref} → ${ref.providerID}/${ref.id} (${attempts + 1}/${MAX_FAILOVER_ATTEMPTS}) session=${sessionID}`);
+      }
+    } catch (err) {
+      if (opts.verbose) console.log(`[modelselect] chain failover retry skipped: ${err?.message ?? err}`);
+      // A transient re-resolve failure still retries; the next failure
+      // re-arms and advances to the following candidate.
+      event.decision = { retry: true, delay: 0 };
+    }
+  }
+
+  // Register a free-side exhaustion: latch the observation PER MODEL
+  // (quota 12h / rate limit 1h) and refresh routing.json immediately, then
+  // arm the virtual session's failover. Non-virtual sessions latch + sync
+  // only and are never flipped.
   async function noteFreeExhaustion(sessionID, ref, detail, kind = 'exhaustion') {
     const rid = ref && (ref.id ?? ref.modelID);
     markFreeQuota(cacheDir, {
@@ -1172,15 +1314,7 @@ async function setup(ctx) {
       detail,
     });
     await syncRoutingNow();
-    if (!sessionID || freeFlipped.has(sessionID)) return;
-    if (!virtualSessions.has(sessionID) || opts.suggestOnly) return;
-    freeFlipped.add(sessionID);
-    const cause = kind === 'rate-limit' ? 'rate-limited' : 'exhausted';
-    // Never switchModel here: the session must keep re-routing every turn.
-    // Arm the one forced retry; the retried dispatch re-resolves through
-    // the routing headers, where the fresh latch prefers go.
-    freeRetry.set(sessionID, Date.now());
-    console.log(`[modelselect] free tier ${cause} (${detail}) — virtual session stays virtual, retry armed`);
+    armFailover(sessionID, ref, kind === 'rate-limit' ? 'rate-limited' : 'exhausted');
   }
 
   console.log(
@@ -1197,6 +1331,12 @@ async function setup(ctx) {
       // the session); the announce then lands on the next turn instead.
       await syncRoutingNow();
       if (!virtualSessions.has(event.sessionID)) return;
+      // A new user prompt starts a fresh failover episode: clear the tried
+      // history and attempt count so a later turn can retry every candidate
+      // again from scratch.
+      clearTried(event.sessionID);
+      failoverAttempts.delete(event.sessionID);
+      failoverArmed.delete(event.sessionID);
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
       // delivery }. `event.agent` does not exist here — the agent tag comes
       // from prompt mentions (best-effort; undefined when absent).
@@ -1364,15 +1504,6 @@ async function setup(ctx) {
       // before the runner resolves the model (per-model wanted state —
       // the two virtual models route independently).
       await syncVirtualApiFor({ providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null }, virtualId);
-      // A resolved free pick with no fresh latch closes the previous
-      // free episode so a later exhaustion can arm a new retry.
-      if (virtual && sessionID) {
-        try {
-          if (!isFreeQuotaFresh(cacheDir, Date.now(), key)) freeFlipped.delete(sessionID);
-        } catch {
-          // never break the turn
-        }
-      }
       if (opts.verbose) {
         console.log(
           `[modelselect] task=${picked.taskType} tier=${picked.tier} model=${key} jev=${jev} (virtual ${VIRTUAL_PROVIDER}/${virtualId})`,
@@ -1524,11 +1655,12 @@ async function setup(ctx) {
   }
   await ctx.session.hook('http.request', routeVirtualRequest);
 
-  // Fail-soft: classify real free-side failures (Zen has no quota
-  // endpoint to probe — the failed request IS the check; quota uses a 12h
-  // latch, transient rate limiting uses a 1h latch in shared/freequota.js).
-  // Only agent-loop (`primary`) traffic flips: title/compaction/generate
-  // calls on non-virtual sessions keep their own models.
+  // Fail-soft: classify real failures (Zen has no quota endpoint to probe —
+  // the failed request IS the check; free quota uses a 12h latch, transient
+  // rate limiting a 1h latch in shared/freequota.js). Free failures latch
+  // and arm the virtual session's failover; paid/external failures arm the
+  // same cascade. Only agent-loop (`primary`) traffic flips: title/
+  // compaction/generate calls keep their own models.
   await ctx.session.hook('http.response', async (event) => {
     try {
       if (event.kind && event.kind !== 'primary') return;
@@ -1554,21 +1686,10 @@ async function setup(ctx) {
       const ref = refForFailure(event.sessionID, event.model, virtualSessions, lastVirtualPick);
       const freeSide = isFreeModelRef(ref, readModelTable(cacheDir));
       if (!freeSide) {
-        // Paid-side / external-provider failure → chain failover (F4): arm
-        // ONE forced retry that re-resolves the chain skipping the failing
-        // ref (the retried dispatch flows through the proxy and re-resolves
-        // with the next candidate). Free-side exhaustion keeps its dedicated
-        // latch-driven retry (`freeRetry`) and never arms the failover.
-        if (event.sessionID && virtualSessions.has(event.sessionID) && !opts.suggestOnly) {
-          const rid = ref && (ref.id ?? ref.modelID);
-          const failingRef = ref && typeof ref === 'object' && rid
-            ? `${String(ref.providerID ?? '').toLowerCase()}/${String(rid)}`
-            : String(ref ?? '');
-          if (failingRef) markTried(event.sessionID, failingRef);
-          if (freeRetry.get(event.sessionID) === undefined) {
-            failoverRetry.set(event.sessionID, { armedAt: Date.now(), ref: failingRef });
-          }
-        }
+        // Paid-side / external-provider failure → same full-chain failover
+        // as free exhaustion: remember the ref and arm one retry that
+        // re-resolves past every ref this session already failed on.
+        armFailover(event.sessionID, ref, 'paid-limit');
         return;
       }
       await noteFreeExhaustion(
@@ -1582,89 +1703,25 @@ async function setup(ctx) {
     }
   });
 
-  // Exactly one forced retry per flip so the session resumes on the go
-  // model; the arm is consumed once (60s TTL) and OpenCode's built-in
-  // attempt cap bounds anything else — this can never loop. The retried
-  // dispatch flows through the proxy again and re-resolves with the fresh
-  // latch preferring go — the session model itself never moves. Also the
-  // fallback when a failure arrives without a response we classified.
+  // One forced retry per classified failure: each failure re-arms, so the
+  // cascade advances one chain candidate per attempt (60s TTL per arm,
+  // MAX_FAILOVER_ATTEMPTS per episode) and stops when none is left. The
+  // retried dispatch flows through the proxy again and re-resolves with the
+  // fresh latch + tried history — the session model itself never moves.
+  // Also the fallback when a failure arrives without a response we
+  // classified.
   await ctx.session.hook('retry', async (event) => {
     try {
-      const armedAt = freeRetry.get(event.sessionID);
-      if (armedAt !== undefined) {
-        freeRetry.delete(event.sessionID);
-        if (Date.now() - armedAt <= FREE_RETRY_TTL_MS) {
-          event.decision = { retry: true, delay: 0 };
-          if (opts.verbose) console.log(`[modelselect] retrying on go after free exhaustion session=${event.sessionID}`);
-        }
-        return;
-      }
-      // Chain failover (F4): a real failure already moved past the free
-      // latch (paid side / external provider / quota). Re-resolve the chain
-      // skipping the failing ref and retry once on the next candidate —
-      // the retried dispatch flows through the proxy again with the fresh
-      // pick stamped into its routing headers. Same one-shot window as the
-      // free arm; OpenCode's built-in attempt cap bounds anything else.
-      const failover = failoverRetry.get(event.sessionID);
-      if (failover !== undefined) {
-        failoverRetry.delete(event.sessionID);
-        if (Date.now() - failover.armedAt <= FREE_RETRY_TTL_MS) {
-          const skip = String(failover.ref ?? '');
-          const sessionID = event.sessionID;
-          const isVirtual = Boolean(sessionID && (virtualSessions.has(sessionID) || isVirtualRef(event.model)));
-          if (!isVirtual || opts.suggestOnly) {
-            event.decision = { retry: true, delay: 0 };
-            return;
-          }
-          try {
-            const virtualId = virtualIds.get(sessionID) || (isVirtualRef(event.model) ? event.model.id : null);
-            const preference = virtualId ? preferenceForVirtualId(virtualId) : opts.autoPreference;
-            const where = sessionTask(sessionID);
-            const taskType = where
-              ? where.taskType
-              : (
-                  await resolveTask({
-                    sessionID,
-                    text: prompts.get(sessionID) ?? '',
-                    files: promptFiles.get(sessionID) ?? [],
-                    agent: undefined,
-                    assistantSnippet: '',
-                  })
-                ).taskType;
-            const picked = await resolveModel({
-              taskType,
-              opts: { ...opts, autoPreference: preference },
-              cacheDir,
-              media:
-                lastMedia.get(sessionID) ??
-                (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []),
-              capabilitiesFor: liveCapabilitiesFor,
-              catalog,
-              availability: await currentAvailability(),
-              tried: [skip],
-            });
-            const ref = splitModelRef(picked.model);
-            const pick = {
-              providerID: ref.providerID,
-              id: ref.id,
-              endpoint: picked.endpoint ?? null,
-              endpointPath: picked.endpointPath ?? null,
-              think: picked.think ?? null,
-              media: picked.media ?? lastMedia.get(sessionID) ?? [],
-            };
-            lastVirtualPick.set(sessionID, pick);
-            if (virtualId) await syncVirtualApiFor(pick, virtualId);
-            clearTried(sessionID);
-            event.decision = { retry: true, delay: 0 };
-            if (opts.verbose) {
-              console.log(`[modelselect] chain failover retry → ${ref.providerID}/${ref.id} session=${sessionID}`);
-            }
-            return;
-          } catch (err) {
-            if (opts.verbose) console.log(`[modelselect] chain failover retry skipped: ${err?.message ?? err}`);
-            event.decision = { retry: true, delay: 0 };
-            return;
-          }
+      // A classified failure (free exhaustion, paid quota, rate limit)
+      // armed a failover. Re-resolve the whole chain past every ref this
+      // session already failed on and force one more attempt on the next
+      // candidate. Each subsequent failure re-arms, so the cascade walks
+      // every available model until one works or all are exhausted.
+      const armed = failoverArmed.get(event.sessionID);
+      if (armed !== undefined) {
+        failoverArmed.delete(event.sessionID);
+        if (Date.now() - armed.armedAt <= FREE_RETRY_TTL_MS) {
+          await forceFailoverRetry(event, armed);
         }
         return;
       }
@@ -1799,17 +1856,22 @@ async function setup(ctx) {
       const outcome = classifyFreeFailure(errStatus, mismatchHaystack(err, ''));
       if (!outcome.exhausted) return;
       const ref = refForFailure(event.sessionID, event.model, virtualSessions, lastVirtualPick);
-      if (!isFreeModelRef(ref, readModelTable(cacheDir))) return;
-      await noteFreeExhaustion(
-        event.sessionID,
-        ref,
-        `retry ${err?.type ?? 'error'}`,
-        outcome.rateLimited ? 'rate-limit' : 'exhaustion',
-      );
-      const now = freeRetry.get(event.sessionID);
-      if (now !== undefined && Date.now() - now <= FREE_RETRY_TTL_MS) {
-        freeRetry.delete(event.sessionID);
-        event.decision = { retry: true, delay: 0 };
+      if (isFreeModelRef(ref, readModelTable(cacheDir))) {
+        await noteFreeExhaustion(
+          event.sessionID,
+          ref,
+          `retry ${err?.type ?? 'error'}`,
+          outcome.rateLimited ? 'rate-limit' : 'exhaustion',
+        );
+      } else {
+        armFailover(event.sessionID, ref, 'paid-limit');
+      }
+      const armedAfterError = failoverArmed.get(event.sessionID);
+      if (armedAfterError !== undefined) {
+        failoverArmed.delete(event.sessionID);
+        if (Date.now() - armedAfterError.armedAt <= FREE_RETRY_TTL_MS) {
+          await forceFailoverRetry(event, armedAfterError);
+        }
       }
     } catch {
       // never break the session
