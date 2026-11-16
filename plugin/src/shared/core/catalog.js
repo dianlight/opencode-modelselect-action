@@ -53,8 +53,11 @@ function bareModelName(value) {
 
 /**
  * Reduce a model id to the identity shared by every provider that serves
- * it: `opencode/muse-spark-1.3-contributor-free`, `muse-spark-1.3-xhigh`
- * and `anthropic/claude-opus-4.6` all collapse to a stable base.
+ * it: `opencode/muse-spark-1.3-contributor-free`, `muse-spark-1.3-xhigh`,
+ * `openrouter/gemini-4-argon:free` and `anthropic/claude-opus-4.6` all
+ * collapse to a stable base. Tier/effort suffixes are stripped with either
+ * a `-` or `:` separator so provider aliases like `provider/modello:free`
+ * join the same canonical as `opencode/modello-free`.
  */
 function canonicalModel(value) {
   let name = bareModelName(value);
@@ -62,12 +65,15 @@ function canonicalModel(value) {
   while (changed) {
     changed = false;
     for (const suffix of VARIANT_SUFFIXES.concat(EFFORT_SUFFIXES)) {
-      const token = `-${suffix}`;
-      if (name.endsWith(token) && name.length > token.length) {
-        name = name.slice(0, -token.length);
-        changed = true;
-        break;
+      for (const sep of ["-", ":"]) {
+        const token = `${sep}${suffix}`;
+        if (name.endsWith(token) && name.length > token.length) {
+          name = name.slice(0, -token.length);
+          changed = true;
+          break;
+        }
       }
+      if (changed) continue;
     }
     if (changed) continue;
     const nx = NX_SUFFIX_RE.exec(name);

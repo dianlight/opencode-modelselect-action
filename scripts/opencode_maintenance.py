@@ -1995,10 +1995,15 @@ def _canonical_model_base(model_name: str) -> str:
     first): `-free`/`-contributor`/`-unlimited` tier variants, `-<N>x` scale
     variants, LiveBench effort suffixes (`-xhigh`, `-high`, `-max-effort`,
     ...), and trailing snapshot dates (`-YYYY-MM-DD`, `-YYYYMMDD`).
+
+    Both `-` and `:` are accepted as the tier/effort separator (e.g. a
+    provider alias like `provider/modello:free` collapses like
+    `opencode/modello-free` -> `modello`).
     Examples:
       `opencode/muse-spark-1.3-contributor-free` -> `muse-spark-1.3`
       `muse-spark-1.3-xhigh` -> `muse-spark-1.3`
       `claude-opus-4-8-max-effort` -> `claude-opus-4-8`
+      `openrouter/gemini-4-argon:free` -> `gemini-4-argon`
     """
     name = model_name.strip().lower()
     if "/" in name and not name.startswith("http"):
@@ -2007,11 +2012,14 @@ def _canonical_model_base(model_name: str) -> str:
     while changed:
         changed = False
         for sfx in _CANONICAL_VARIANT_SUFFIXES + _CANONICAL_EFFORT_SUFFIXES:
-            token = f"-{sfx}"
-            if name.endswith(token) and len(name) > len(token):
-                name = name[: -len(token)]
-                changed = True
-                break
+            for sep in ("-", ":"):
+                token = f"{sep}{sfx}"
+                if name.endswith(token) and len(name) > len(token):
+                    name = name[: -len(token)]
+                    changed = True
+                    break
+        if changed:
+            continue
         if changed:
             continue
         nx = _parse_nx_multiplier(name)

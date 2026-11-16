@@ -42,16 +42,16 @@ function splitModelRefStrict(model) {
 }
 
 // True when a `"provider/model"` string routes to the free tier: the
-// `opencode` provider, a `-free` suffix on either provider (paid mirrors
-// like `opencode-go/longcat-2.5-preview-free` share the free quota), or
-// the suffix-less `big-pickle` free model.
+// `opencode` provider, a `-free`/`:free` suffix on either provider (paid
+// mirrors like `opencode-go/longcat-2.5-preview-free` share the free
+// quota), or the suffix-less `big-pickle` free model.
 function isFreeModelString(s) {
   const str = String(s ?? '').trim();
   if (!str) return false;
   if (/big-pickle$/i.test(str)) return true;
   const ref = splitModelRef(str);
-  if (!ref) return /-free$/i.test(str);
-  if (/-free$/i.test(ref.modelID)) return true;
+  if (!ref) return /[-:]free$/i.test(str);
+  if (/[-:]free$/i.test(ref.modelID)) return true;
   return String(ref.providerID).toLowerCase() === 'opencode';
 }
 
