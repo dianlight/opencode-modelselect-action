@@ -74,7 +74,7 @@ automatically at their next run.
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-11-16 00:34 UTC**.
+> Last updated: **2026-11-16 03:29 UTC**.
 > LiveBench data: **350 models scored** (35 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-11-06**.
 > v2 Source: https://livebench.ai/data/20261106/table.csv
@@ -150,6 +150,7 @@ automatically at their next run.
 | `qwen3.7-plus` | Go (Paid) | 📋 Fallback | Plan, Triage | 66.0 | 62.0 | 72.0 | 62.0 | 72.0 | $0.4 | $1.6 | $0.7 | 94.3 |
 | `qwen3.8-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 62.9 | 59.0 | 86.0 | 60.0 | 81.3 | $0.15 | $0.47 | $0.23 | 273.5 |
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 64.7 | 60.9 | 88.2 | 76.6 | — | $2 | $6 | $3 | 21.6 |
+| `qwen4-max` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $1.5 | $4.5 | $2.25 | — |
 | `step-5-preview` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 57.9 | 67.6 | 83.8 | 70.8 | — | $1 | $2.7 | $1.425 | 40.6 |
 ## Sponsor
 

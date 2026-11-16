@@ -1,6 +1,11 @@
 {
   "stale_fallback": [],
-  "missing_scores": [],
+  "missing_scores": [
+    {
+      "model": "qwen4-max",
+      "tier": "Go (Paid)"
+    }
+  ],
   "missing_prices": [],
   "missing_capabilities": [],
   "fallback_mismatch": []
