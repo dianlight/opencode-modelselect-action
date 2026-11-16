@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-11-15T09:41:36.284981+00:00",
+  "timestamp": "2026-11-16T00:35:03.422838+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
     "models_dev": "https://models.dev/api.json",
-    "console": "https://opencode.ai/console/mcp"
+    "console": null
   },
   "providers": {
     "opencode": {
@@ -587,11 +587,9 @@
       "input_cost": 10.0,
       "output_cost": 50.0,
       "blended_cost": 20.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -607,11 +605,9 @@
       "input_cost": 10.0,
       "output_cost": 50.0,
       "blended_cost": 20.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -627,11 +623,9 @@
       "input_cost": 8.0,
       "output_cost": 40.0,
       "blended_cost": 16.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -647,11 +641,9 @@
       "input_cost": 1.0,
       "output_cost": 5.0,
       "blended_cost": 2.0,
-      "context": 200000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -687,11 +679,9 @@
       "input_cost": 5.0,
       "output_cost": 25.0,
       "blended_cost": 10.0,
-      "context": 200000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -707,10 +697,9 @@
       "input_cost": 5.0,
       "output_cost": 25.0,
       "blended_cost": 10.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -726,11 +715,9 @@
       "input_cost": 5.0,
       "output_cost": 25.0,
       "blended_cost": 10.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -746,11 +733,9 @@
       "input_cost": 5.0,
       "output_cost": 25.0,
       "blended_cost": 10.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -766,11 +751,9 @@
       "input_cost": 5.0,
       "output_cost": 25.0,
       "blended_cost": 10.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -786,11 +769,9 @@
       "input_cost": 4.0,
       "output_cost": 20.0,
       "blended_cost": 8.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -806,11 +787,9 @@
       "input_cost": 3.0,
       "output_cost": 15.0,
       "blended_cost": 6.0,
-      "context": 200000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -826,11 +805,9 @@
       "input_cost": 3.0,
       "output_cost": 15.0,
       "blended_cost": 6.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -846,11 +823,9 @@
       "input_cost": 2.0,
       "output_cost": 10.0,
       "blended_cost": 4.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -866,11 +841,9 @@
       "input_cost": 2.0,
       "output_cost": 10.0,
       "blended_cost": 4.0,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -960,13 +933,9 @@
       "input_cost": 1.5,
       "output_cost": 9.0,
       "blended_cost": 3.375,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "audio",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -982,13 +951,9 @@
       "input_cost": 0.3,
       "output_cost": 2.5,
       "blended_cost": 0.85,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "audio",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1004,13 +969,9 @@
       "input_cost": 1.5,
       "output_cost": 7.5,
       "blended_cost": 3.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "audio",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1026,13 +987,9 @@
       "input_cost": 1.5,
       "output_cost": 7.5,
       "blended_cost": 3.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "audio",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1048,13 +1005,9 @@
       "input_cost": 1.5,
       "output_cost": 7.5,
       "blended_cost": 3.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "audio",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1092,12 +1045,9 @@
       "input_cost": 4.0,
       "output_cost": 20.0,
       "blended_cost": 8.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "audio",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1113,12 +1063,9 @@
       "input_cost": 1.5,
       "output_cost": 7.5,
       "blended_cost": 3.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "audio",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1134,7 +1081,7 @@
       "input_cost": 1.0,
       "output_cost": 3.2,
       "blended_cost": 1.55,
-      "context": 204800,
+      "context": null,
       "media_in": [
         "text"
       ],
@@ -1152,7 +1099,7 @@
       "input_cost": 1.4,
       "output_cost": 4.4,
       "blended_cost": 2.15,
-      "context": 200000,
+      "context": null,
       "media_in": [
         "text"
       ],
@@ -1247,10 +1194,9 @@
       "input_cost": 1.07,
       "output_cost": 8.5,
       "blended_cost": 2.9275,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1266,10 +1212,9 @@
       "input_cost": 1.07,
       "output_cost": 8.5,
       "blended_cost": 2.9275,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1285,10 +1230,9 @@
       "input_cost": 1.07,
       "output_cost": 8.5,
       "blended_cost": 2.9275,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1304,10 +1248,9 @@
       "input_cost": 1.25,
       "output_cost": 10.0,
       "blended_cost": 3.4375,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1323,10 +1266,9 @@
       "input_cost": 0.25,
       "output_cost": 2.0,
       "blended_cost": 0.6875,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1342,10 +1284,9 @@
       "input_cost": 1.75,
       "output_cost": 14.0,
       "blended_cost": 4.8125,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1361,10 +1302,9 @@
       "input_cost": 1.75,
       "output_cost": 14.0,
       "blended_cost": 4.8125,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1380,10 +1320,9 @@
       "input_cost": 1.75,
       "output_cost": 14.0,
       "blended_cost": 4.8125,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1399,11 +1338,9 @@
       "input_cost": 1.75,
       "output_cost": 14.0,
       "blended_cost": 4.8125,
-      "context": 128000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1419,11 +1356,9 @@
       "input_cost": 2.5,
       "output_cost": 15.0,
       "blended_cost": 5.625,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1439,10 +1374,9 @@
       "input_cost": 0.75,
       "output_cost": 4.5,
       "blended_cost": 1.6875,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1458,10 +1392,9 @@
       "input_cost": 0.2,
       "output_cost": 1.25,
       "blended_cost": 0.4625,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1477,11 +1410,9 @@
       "input_cost": 30.0,
       "output_cost": 180.0,
       "blended_cost": 67.5,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1497,11 +1428,9 @@
       "input_cost": 5.0,
       "output_cost": 30.0,
       "blended_cost": 11.25,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1517,11 +1446,9 @@
       "input_cost": 30.0,
       "output_cost": 180.0,
       "blended_cost": 67.5,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1557,11 +1484,9 @@
       "input_cost": 4.0,
       "output_cost": 20.0,
       "blended_cost": 8.0,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1577,11 +1502,9 @@
       "input_cost": 2.0,
       "output_cost": 12.0,
       "blended_cost": 4.5,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1597,10 +1520,9 @@
       "input_cost": 1.07,
       "output_cost": 8.5,
       "blended_cost": 2.9275,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1616,10 +1538,9 @@
       "input_cost": 0.05,
       "output_cost": 0.4,
       "blended_cost": 0.1375,
-      "context": 400000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1635,11 +1556,9 @@
       "input_cost": 2.0,
       "output_cost": 10.0,
       "blended_cost": 4.0,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1655,11 +1574,9 @@
       "input_cost": 10.0,
       "output_cost": 50.0,
       "blended_cost": 20.0,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1695,11 +1612,9 @@
       "input_cost": 2.0,
       "output_cost": 10.0,
       "blended_cost": 4.0,
-      "context": 1050000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "pdf"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1715,10 +1630,9 @@
       "input_cost": 2.0,
       "output_cost": 6.0,
       "blended_cost": 3.0,
-      "context": 500000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1734,10 +1648,9 @@
       "input_cost": 2.0,
       "output_cost": 6.0,
       "blended_cost": 3.0,
-      "context": 500000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1773,10 +1686,9 @@
       "input_cost": 1.0,
       "output_cost": 2.0,
       "blended_cost": 1.25,
-      "context": 256000,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1829,11 +1741,9 @@
       "input_cost": 0.6,
       "output_cost": 3.0,
       "blended_cost": 1.2,
-      "context": 262144,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1849,11 +1759,9 @@
       "input_cost": 0.95,
       "output_cost": 4.0,
       "blended_cost": 1.7125,
-      "context": 262144,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video"
+        "text"
       ],
       "media_out": [
         "text"
@@ -1949,7 +1857,7 @@
       "input_cost": 0.3,
       "output_cost": 1.2,
       "blended_cost": 0.525,
-      "context": 204800,
+      "context": null,
       "media_in": [
         "text"
       ],
@@ -1967,7 +1875,7 @@
       "input_cost": 0.3,
       "output_cost": 1.2,
       "blended_cost": 0.525,
-      "context": 204800,
+      "context": null,
       "media_in": [
         "text"
       ],
@@ -2025,10 +1933,9 @@
       "input_cost": 1.36,
       "output_cost": 4.18,
       "blended_cost": 2.065,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image"
+        "text"
       ],
       "media_out": [
         "text"
@@ -2044,13 +1951,9 @@
       "input_cost": 0.1,
       "output_cost": 0.5,
       "blended_cost": 0.2,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "pdf",
-        "audio"
+        "text"
       ],
       "media_out": [
         "text"
@@ -2066,12 +1969,9 @@
       "input_cost": 1.25,
       "output_cost": 4.25,
       "blended_cost": 2.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "audio",
-        "video"
+        "text"
       ],
       "media_out": [
         "text"
@@ -2087,13 +1987,9 @@
       "input_cost": 1.25,
       "output_cost": 4.25,
       "blended_cost": 2.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "pdf",
-        "audio"
+        "text"
       ],
       "media_out": [
         "text"
@@ -2109,13 +2005,9 @@
       "input_cost": 4.0,
       "output_cost": 20.0,
       "blended_cost": 8.0,
-      "context": 1048576,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video",
-        "pdf",
-        "audio"
+        "text"
       ],
       "media_out": [
         "text"
@@ -2168,11 +2060,9 @@
       "input_cost": 0.2,
       "output_cost": 1.2,
       "blended_cost": 0.45,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video"
+        "text"
       ],
       "media_out": [
         "text"
@@ -2188,11 +2078,9 @@
       "input_cost": 0.5,
       "output_cost": 3.0,
       "blended_cost": 1.125,
-      "context": 1000000,
+      "context": null,
       "media_in": [
-        "text",
-        "image",
-        "video"
+        "text"
       ],
       "media_out": [
         "text"
