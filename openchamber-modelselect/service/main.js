@@ -77,8 +77,8 @@ var require_model_ref = __commonJS(function(exports, module) {
       return true;
     const ref = splitModelRef(str);
     if (!ref)
-      return /-free$/i.test(str);
-    if (/-free$/i.test(ref.modelID))
+      return /[-:]free$/i.test(str);
+    if (/[-:]free$/i.test(ref.modelID))
       return true;
     return String(ref.providerID).toLowerCase() === "opencode";
   }
@@ -920,6 +920,630 @@ var require_budget = __commonJS(function(exports, module) {
   };
 });
 
+// ../core/catalog.js
+var require_catalog = __commonJS(function(exports, module) {
+  var VARIANT_SUFFIXES = ["contributor", "unlimited", "free"];
+  var EFFORT_SUFFIXES = [
+    "max-effort",
+    "high-effort",
+    "medium-effort",
+    "low-effort",
+    "xhigh",
+    "high",
+    "medium",
+    "low",
+    "max"
+  ];
+  var NX_SUFFIX_RE = /-(\d+)x$/;
+  var DATE_SUFFIX_RES = [/-(\d{4}-\d{2}-\d{2})$/, /-(\d{8})$/];
+  function isObject(v) {
+    return Boolean(v) && typeof v === "object" && !Array.isArray(v);
+  }
+  function bareModelName(value) {
+    let name = String(value == null ? "" : value).trim().toLowerCase();
+    if (name.includes("/") && !name.startsWith("http"))
+      name = name.slice(name.lastIndexOf("/") + 1);
+    return name.replace(/\./g, "-");
+  }
+  function canonicalModel(value) {
+    let name = bareModelName(value);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const suffix of VARIANT_SUFFIXES.concat(EFFORT_SUFFIXES)) {
+        for (const sep of ["-", ":"]) {
+          const token = `${sep}${suffix}`;
+          if (name.endsWith(token) && name.length > token.length) {
+            name = name.slice(0, -token.length);
+            changed = true;
+            break;
+          }
+        }
+        if (changed)
+          continue;
+      }
+      if (changed)
+        continue;
+      const nx = NX_SUFFIX_RE.exec(name);
+      if (nx && name.slice(0, nx.index)) {
+        name = name.slice(0, nx.index);
+        changed = true;
+        continue;
+      }
+      for (const rx of DATE_SUFFIX_RES) {
+        if (rx.test(name)) {
+          name = name.replace(rx, "");
+          changed = true;
+          break;
+        }
+      }
+    }
+    return name;
+  }
+  function providerSlug(row) {
+    if (!isObject(row))
+      return "";
+    const provider = String(row.provider == null ? "" : row.provider).trim().toLowerCase();
+    if (provider)
+      return provider;
+    const canonical = String(row.canonical == null ? "" : row.canonical).trim().toLowerCase();
+    if (canonical)
+      return canonical;
+    return String(row.providerID ?? "").trim().toLowerCase();
+  }
+  function rowKey(row) {
+    if (!isObject(row))
+      return "";
+    const provider = String(row.provider ?? row.providerID ?? "").trim();
+    const id = String(row.id ?? row.modelID ?? "").trim();
+    return provider && id ? `${provider}/${id}` : "";
+  }
+  function knownCost(value) {
+    const n = Number(value);
+    return value !== null && value !== undefined && Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  function classOf(row) {
+    if (!isObject(row))
+      return "external";
+    if (row.free === true)
+      return "free";
+    const cost = knownCost(row.blended_cost);
+    if (cost === 0)
+      return "free";
+    const provider = String(row.provider ?? row.providerID ?? "").trim().toLowerCase();
+    if (provider === "opencode-go")
+      return "go-plan";
+    if (provider === "opencode")
+      return "zen-paid";
+    return "external";
+  }
+  function catalogRows(catalog) {
+    if (Array.isArray(catalog))
+      return catalog.filter(isObject);
+    if (!isObject(catalog))
+      return [];
+    if (Array.isArray(catalog.models))
+      return catalog.models.filter(isObject);
+    return [];
+  }
+  function indexCatalog(catalog) {
+    const index = new Map;
+    for (const row of catalogRows(catalog)) {
+      const id = String(row.id ?? row.modelID ?? "").trim();
+      const provider = providerSlug(row);
+      if (!id || !provider)
+        continue;
+      const canonical = canonicalModel(row.canonical || id);
+      const normalized = {
+        provider,
+        id,
+        canonical,
+        name: row.name ?? id,
+        input_cost: knownCost(row.input_cost),
+        output_cost: knownCost(row.output_cost),
+        blended_cost: knownCost(row.blended_cost),
+        context: knownCost(row.context),
+        media_in: Array.isArray(row.media_in) ? row.media_in.slice() : null,
+        media_out: Array.isArray(row.media_out) ? row.media_out.slice() : null
+      };
+      normalized.class = classOf(normalized);
+      normalized.free = normalized.class === "free";
+      normalized.key = rowKey(normalized);
+      if (!index.has(canonical))
+        index.set(canonical, []);
+      index.get(canonical).push(normalized);
+    }
+    return index;
+  }
+  function rowsForModel(index, model) {
+    if (!index || !index.size)
+      return [];
+    const raw = String(model == null ? "" : model).trim();
+    if (!raw)
+      return [];
+    const direct = index.get(raw.toLowerCase());
+    if (direct)
+      return direct;
+    const canonical = canonicalModel(raw);
+    if (!canonical)
+      return [];
+    if (index.has(canonical))
+      return index.get(canonical);
+    const out = [];
+    for (const [key, rows] of index) {
+      if (key === canonical || key.endsWith(`-${canonical}`) || canonical.endsWith(`-${key}`)) {
+        out.push(...rows);
+      }
+    }
+    return out;
+  }
+  module.exports = {
+    bareModelName,
+    canonicalModel,
+    providerSlug,
+    rowKey,
+    classOf,
+    catalogRows,
+    indexCatalog,
+    rowsForModel
+  };
+});
+
+// ../core/chain.js
+var require_chain = __commonJS(function(exports, module) {
+  var { indexCatalog, rowsForModel, rowKey, classOf } = require_catalog();
+  var TIER_CLASSES = {
+    free: ["free"],
+    paid: ["go-plan", "zen-paid", "external"]
+  };
+  function isAllowedProvider(row, providers) {
+    if (!Array.isArray(providers) || providers.length === 0)
+      return true;
+    const slug = String(row.provider).toLowerCase();
+    return providers.some((p) => {
+      const wanted = String(p == null ? "" : p).trim().toLowerCase();
+      return wanted && (wanted === slug || wanted === String(row.providerID ?? "").toLowerCase());
+    });
+  }
+  function providerState(availability, row) {
+    const providers = availability && availability.providers;
+    if (!providers)
+      return {};
+    const key = String(row.provider).toLowerCase();
+    const state = Object.prototype.hasOwnProperty.call(providers, key) ? providers[key] : Object.prototype.hasOwnProperty.call(providers, row.providerID) ? providers[row.providerID] : undefined;
+    if (state === undefined || state === true)
+      return {};
+    if (state === false)
+      return { unavailable: true };
+    if (state && typeof state === "object")
+      return state;
+    return {};
+  }
+  function latched(availability, row) {
+    const list = availability && availability.latched;
+    if (!list)
+      return false;
+    const key = rowKey(row);
+    if (!key)
+      return false;
+    if (typeof list.has === "function")
+      return list.has(key);
+    return Array.isArray(list) && list.includes(key);
+  }
+  function supportsMedia(row, media) {
+    if (!Array.isArray(media) || media.length === 0)
+      return true;
+    if (!Array.isArray(row.media_in) || row.media_in.length === 0)
+      return true;
+    const have = new Set(row.media_in.map((m) => String(m).toLowerCase()));
+    return media.every((m) => have.has(String(m).toLowerCase()));
+  }
+  function withinContext(row, contextNeed) {
+    if (!(contextNeed > 0))
+      return true;
+    const context = Number(row.context);
+    if (!Number.isFinite(context) || context <= 0)
+      return true;
+    return context >= contextNeed;
+  }
+  function withinBudget(row, maxCost) {
+    if (maxCost === null || maxCost === undefined)
+      return true;
+    const cost = row.blended_cost;
+    if (cost === null || cost === undefined)
+      return true;
+    return Number(cost) <= Number(maxCost);
+  }
+  function withinSpend(row, state) {
+    if (!state || state.budget_remaining === undefined || state.budget_remaining === null)
+      return true;
+    const remaining = Number(state.budget_remaining);
+    if (!Number.isFinite(remaining))
+      return true;
+    return remaining > 0;
+  }
+  function rankedModels(entry, tier) {
+    if (!entry || typeof entry !== "object")
+      return [];
+    const out = [];
+    const seen = new Set;
+    const push = (model, score) => {
+      const value = String(model == null ? "" : model).trim();
+      if (!value)
+        return;
+      const key = value.toLowerCase();
+      if (seen.has(key))
+        return;
+      seen.add(key);
+      out.push({ model: value, score: typeof score === "number" ? score : null });
+    };
+    const ranked = Array.isArray(entry.ranked) ? entry.ranked : [];
+    for (const row of ranked) {
+      if (tier && tier !== "abs" && row && !rowMatchesTier(row, tier))
+        continue;
+      push(row && row.model, row && row.score);
+    }
+    if (out.length > 0)
+      return out;
+    const lists = tier === "free" ? ["free_ranked"] : tier === "go" ? ["go_ranked"] : ["go_ranked", "free_ranked"];
+    for (const field of lists) {
+      const list = Array.isArray(entry[field]) ? entry[field] : [];
+      for (const row of list)
+        push(row && row.model, row && row.score);
+    }
+    if (out.length === 0) {
+      push(entry.go, null);
+      push(entry.free, null);
+    }
+    return out;
+  }
+  function rowMatchesTier(row, tier) {
+    if (!row || typeof row !== "object")
+      return false;
+    if (row.free === undefined && row.class === undefined)
+      return true;
+    const isFree = row.free === true || String(row.class).toLowerCase() === "free";
+    return tier === "free" ? isFree : !isFree;
+  }
+  function sortRows(rows) {
+    return rows.slice().sort((a, b) => {
+      const ca = a.blended_cost;
+      const cb = b.blended_cost;
+      if (ca === null && cb === null)
+        return 0;
+      if (ca === null)
+        return 1;
+      if (cb === null)
+        return -1;
+      if (ca !== cb)
+        return ca - cb;
+      return String(a.provider).localeCompare(String(b.provider));
+    });
+  }
+  function buildChain({
+    entry,
+    catalog,
+    availability,
+    mode = "auto",
+    preference = "free-first",
+    media,
+    contextNeed = 0,
+    maxCost = null,
+    providers = null
+  } = {}) {
+    const index = indexCatalog(catalog);
+    const tier = mode === "free" ? "free" : mode === "go" ? "go" : "abs";
+    const seen = new Set;
+    const candidates = [];
+    for (const ranked of rankedModels(entry, tier)) {
+      const rows = sortRows(rowsForModel(index, ranked.model));
+      for (const row of rows) {
+        if (!row.key || seen.has(row.key))
+          continue;
+        seen.add(row.key);
+        if (!isAllowedProvider(row, providers))
+          continue;
+        const state = providerState(availability, row);
+        if (state.unavailable === true || state.available === false)
+          continue;
+        if (!withinSpend(row, state))
+          continue;
+        if (latched(availability, row))
+          continue;
+        if (!supportsMedia(row, media))
+          continue;
+        if (!withinContext(row, contextNeed))
+          continue;
+        if (!withinBudget(row, maxCost))
+          continue;
+        candidates.push({
+          provider: row.provider,
+          model: row.id,
+          ref: row.key,
+          canonical: row.canonical,
+          class: classOf(row),
+          cost: row.blended_cost,
+          context: row.context,
+          media_in: row.media_in,
+          score: ranked.score
+        });
+      }
+    }
+    if (mode === "abs") {
+      return candidates.slice().sort((a, b) => {
+        const sa = a.score === null ? -Infinity : a.score;
+        const sb = b.score === null ? -Infinity : b.score;
+        if (sb !== sa)
+          return sb - sa;
+        return (a.cost === null ? Infinity : a.cost) - (b.cost === null ? Infinity : b.cost);
+      });
+    }
+    const free = candidates.filter((c) => c.class === "free");
+    const paid = candidates.filter((c) => c.class !== "free");
+    const freeFirst = mode === "free" ? true : mode === "go" ? false : preference !== "go-first";
+    return freeFirst ? free.concat(paid) : paid.concat(free);
+  }
+  function nextCandidate(chain, tried) {
+    if (!Array.isArray(chain))
+      return null;
+    const done = new Set((Array.isArray(tried) ? tried : []).map((t) => String(t == null ? "" : t).trim()).filter(Boolean));
+    for (const row of chain) {
+      if (!row)
+        continue;
+      const ref = String(row.ref ?? `${row.provider}/${row.model}`);
+      if (!done.has(ref))
+        return row;
+    }
+    return null;
+  }
+  function partitionTiers(chain) {
+    const free = [];
+    const paid = [];
+    for (const row of Array.isArray(chain) ? chain : []) {
+      if (!row)
+        continue;
+      (row.class === "free" ? free : paid).push(row);
+    }
+    return { free, paid };
+  }
+  module.exports = {
+    TIER_CLASSES,
+    buildChain,
+    nextCandidate,
+    partitionTiers,
+    rankedModels,
+    isAllowedProvider,
+    providerState,
+    latched,
+    supportsMedia,
+    withinContext,
+    withinBudget,
+    withinSpend,
+    sortRows
+  };
+});
+
+// ../core/registry.js
+var require_registry = __commonJS(function(exports, module) {
+  var { classOf, canonicalModel, providerSlug } = require_catalog();
+  var {
+    isAllowedProvider,
+    providerState,
+    latched,
+    supportsMedia,
+    withinContext,
+    withinBudget,
+    withinSpend
+  } = require_chain();
+  var V2_SCHEMA_VERSION = 2;
+  var ENGINE_PROVIDERS = new Set(["opencode", "opencode-go"]);
+  function isObject(v) {
+    return Boolean(v) && typeof v === "object" && !Array.isArray(v);
+  }
+  function str(v) {
+    return v == null ? "" : String(v).trim();
+  }
+  function knownCost(value) {
+    const n = Number(value);
+    return value !== null && value !== undefined && Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  function taskTableV2(config) {
+    if (!isObject(config))
+      return null;
+    const table = config["task-types-v2"] ?? config.task_types_v2;
+    return isObject(table) ? table : null;
+  }
+  function taskEntryV2(config, taskType) {
+    const table = taskTableV2(config);
+    if (!table)
+      return null;
+    const wanted = str(taskType).toLowerCase();
+    const key = Object.keys(table).find((k) => String(k).toLowerCase() === wanted);
+    if (!key)
+      return null;
+    const entry = table[key];
+    if (!isObject(entry))
+      return null;
+    const model = str(entry.model);
+    if (!model)
+      return null;
+    return { key, entry, model };
+  }
+  function registryModels(registry) {
+    if (!isObject(registry))
+      return {};
+    if (Array.isArray(registry.models)) {
+      const out = {};
+      for (const model of registry.models) {
+        if (!isObject(model))
+          continue;
+        const id = str(model.id ?? model.model);
+        if (id)
+          out[id] = model;
+      }
+      return out;
+    }
+    if (isObject(registry.models))
+      return registry.models;
+    return {};
+  }
+  function modelEntry(registry, modelId) {
+    const models = registryModels(registry);
+    const raw = str(modelId);
+    if (!raw)
+      return null;
+    if (isObject(models[raw]))
+      return models[raw];
+    const lower = raw.toLowerCase();
+    for (const [key, value] of Object.entries(models)) {
+      if (String(key).toLowerCase() === lower && isObject(value))
+        return value;
+    }
+    const canonical = canonicalModel(raw);
+    if (!canonical)
+      return null;
+    for (const [key, value] of Object.entries(models)) {
+      if (!isObject(value))
+        continue;
+      const id = str(value.id ?? key);
+      if (canonicalModel(id) === canonical)
+        return value;
+    }
+    return null;
+  }
+  function variantRows(entry) {
+    if (!isObject(entry))
+      return [];
+    const baseScore = typeof entry.score === "number" && Number.isFinite(entry.score) ? entry.score : null;
+    const out = [];
+    const seen = new Set;
+    for (const variant of Array.isArray(entry.variants) ? entry.variants : []) {
+      if (!isObject(variant))
+        continue;
+      const provider = providerSlug(variant);
+      const model = str(variant.model ?? variant.id);
+      if (!provider || !model)
+        continue;
+      const key = `${provider}/${model}`;
+      if (seen.has(key))
+        continue;
+      seen.add(key);
+      const cost = knownCost(variant.cost ?? variant.blended_cost);
+      const score = typeof variant.score === "number" && Number.isFinite(variant.score) ? variant.score : baseScore;
+      const normalized = {
+        provider,
+        model,
+        id: model,
+        canonical: canonicalModel(variant.canonical ?? entry.id ?? model),
+        name: variant.name ?? entry.name ?? model,
+        free: variant.free === true || cost === 0,
+        cost,
+        blended_cost: cost,
+        input_cost: knownCost(variant.input_cost),
+        output_cost: knownCost(variant.output_cost),
+        context: knownCost(variant.context),
+        media_in: Array.isArray(variant.media_in) ? variant.media_in.slice() : null,
+        score,
+        key,
+        ref: key
+      };
+      normalized.class = classOf(normalized);
+      normalized.free = normalized.class === "free";
+      out.push(normalized);
+    }
+    return out;
+  }
+  function engineRank(row) {
+    return ENGINE_PROVIDERS.has(providerSlug(row)) ? 0 : 1;
+  }
+  function compareVariants(a, b) {
+    const sa = a.score === null ? -Infinity : a.score;
+    const sb = b.score === null ? -Infinity : b.score;
+    if (sb !== sa)
+      return sb - sa;
+    const ca = a.cost === null ? Infinity : a.cost;
+    const cb = b.cost === null ? Infinity : b.cost;
+    if (ca !== cb)
+      return ca - cb;
+    const ea = engineRank(a);
+    const eb = engineRank(b);
+    if (ea !== eb)
+      return ea - eb;
+    const pa = String(a.provider).localeCompare(String(b.provider));
+    if (pa !== 0)
+      return pa;
+    return String(a.model).localeCompare(String(b.model));
+  }
+  function rankVariants(rows, { preference = "free-first", tier = null } = {}) {
+    const list = (Array.isArray(rows) ? rows : []).filter(isObject);
+    const freeFirst = tier === "free" ? true : tier === "go" ? false : preference !== "go-first";
+    const free = list.filter((r) => r.free === true || r.class === "free").sort(compareVariants);
+    const paid = list.filter((r) => !(r.free === true || r.class === "free")).sort(compareVariants);
+    return freeFirst ? free.concat(paid) : paid.concat(free);
+  }
+  function buildV2Chain({
+    taskEntry,
+    registry,
+    availability,
+    preference = "free-first",
+    tier = null,
+    media,
+    contextNeed = 0,
+    maxCost = null,
+    providers = null
+  } = {}) {
+    if (!isObject(taskEntry))
+      return [];
+    const model = str(taskEntry.model ?? taskEntry.id);
+    if (!model)
+      return [];
+    const entry = modelEntry(registry, model);
+    if (!entry)
+      return [];
+    const candidates = [];
+    for (const row of variantRows(entry)) {
+      if (!isAllowedProvider(row, providers))
+        continue;
+      const state = providerState(availability, row);
+      if (state.unavailable === true || state.available === false)
+        continue;
+      if (!withinSpend(row, state))
+        continue;
+      if (latched(availability, row))
+        continue;
+      if (!supportsMedia(row, media))
+        continue;
+      if (!withinContext(row, contextNeed))
+        continue;
+      if (!withinBudget(row, maxCost))
+        continue;
+      candidates.push({
+        provider: row.provider,
+        model: row.model,
+        ref: row.ref,
+        canonical: row.canonical,
+        class: row.class,
+        cost: row.cost,
+        context: row.context,
+        media_in: row.media_in,
+        score: row.score
+      });
+    }
+    return rankVariants(candidates, { preference, tier });
+  }
+  module.exports = {
+    V2_SCHEMA_VERSION,
+    taskTableV2,
+    taskEntryV2,
+    registryModels,
+    modelEntry,
+    variantRows,
+    compareVariants,
+    rankVariants,
+    buildV2Chain
+  };
+});
+
 // service/src/store.js
 var exports_store = {};
 __export(exports_store, {
@@ -945,11 +1569,13 @@ __export(exports_store, {
   listStatuses: () => listStatuses,
   newestStatus: () => newestStatus,
   readCatalog: () => readCatalog,
+  readConfigV2: () => readConfigV2,
   readExtensionConfig: () => readExtensionConfig,
   readJsonAt: () => readJsonAt,
   readJsonFile: () => readJsonFile,
   readLatch: () => readLatch,
   readManagedConfig: () => readManagedConfig,
+  readRegistry: () => readRegistry,
   readRoutingSync: () => readRoutingSync,
   readSessionStatus: () => readSessionStatus,
   readUsage: () => readUsage,
@@ -1573,10 +2199,12 @@ var import_lookup = __toESM(require_lookup(), 1);
 var import_model_ref = __toESM(require_model_ref(), 1);
 var import_budget = __toESM(require_budget(), 1);
 var import_free_quota = __toESM(require_free_quota(), 1);
+var import_registry = __toESM(require_registry(), 1);
 var { entryFor } = import_lookup.default;
 var { firstPaidModel } = import_model_ref.default;
 var { selectWithinBudget } = import_budget.default;
 var { latchEntries: latchEntries2, freeQuotaFresh: freeQuotaFresh2, latchKeyApplies } = import_free_quota.default;
+var { taskEntryV2, modelEntry, variantRows, buildV2Chain } = import_registry.default;
 function str2(v) {
   return v == null ? "" : String(v);
 }
@@ -1667,7 +2295,7 @@ function usageBar(row, usage, at) {
   }
   return { pct: 45, tone: "muted", label: row.side === "free" ? "free · no quota cap" : "standby" };
 }
-function computeModelsView({ taskType, catalogConfig, options, latchData, usage, now }) {
+function computeModelsView({ taskType, catalogConfig, configV2, options, latchData, usage, registry, now }) {
   const at = typeof now === "number" ? now : Date.now();
   const table = catalogConfig && (catalogConfig["task-types"] || catalogConfig.task_types) || {};
   let key = null;
@@ -1702,6 +2330,12 @@ function computeModelsView({ taskType, catalogConfig, options, latchData, usage,
     return null;
   };
   const latched = (model) => Boolean(model && latchHitFor(model));
+  const v2Task = registry ? taskEntryV2(configV2 || {}, taskType) : null;
+  if (v2Task) {
+    const v2 = previewV2(v2Task);
+    if (v2)
+      return v2;
+  }
   let side;
   let sideNote;
   const pinned = tier === "go" || tier === "free";
@@ -1776,6 +2410,94 @@ function computeModelsView({ taskType, catalogConfig, options, latchData, usage,
         chain: buildChain()
       };
     }
+  }
+  function previewV2(v2TaskEntry) {
+    let ordered = [];
+    try {
+      ordered = buildV2Chain({
+        taskEntry: v2TaskEntry.entry,
+        registry,
+        preference,
+        tier: tier === "go" || tier === "free" ? tier : null,
+        maxCost
+      });
+    } catch (e) {
+      return null;
+    }
+    let all = [];
+    try {
+      all = variantRows(modelEntry(registry, v2TaskEntry.model));
+    } catch (e) {
+      all = [];
+    }
+    if (!all.length)
+      return null;
+    const hitFor = (variant) => latchHitFor(variant.ref) || latchHitFor(variant.model);
+    const usable = ordered.filter((c) => !hitFor(c));
+    const pickRow = usable[0] || null;
+    const pickName = pickRow ? pickRow.ref : "";
+    const side = pickRow ? pickRow.class === "free" ? "free" : "go" : preference === "go-first" ? "go" : "free";
+    const rank = new Map;
+    ordered.forEach((c, i) => rank.set(c.ref, i));
+    const rows = all.slice().sort((a, b) => (rank.has(a.ref) ? rank.get(a.ref) : 1000) - (rank.has(b.ref) ? rank.get(b.ref) : 1000)).map((variant) => {
+      const rowSide = variant.class === "free" ? "free" : "go";
+      const view = {
+        model: variant.ref,
+        provider: variant.provider,
+        id: variant.model,
+        score: typeof variant.score === "number" ? variant.score : null,
+        cost: typeof variant.cost === "number" ? variant.cost : null,
+        context: typeof variant.context === "number" && variant.context > 0 ? variant.context : null,
+        modalities: Array.isArray(variant.media_in) ? variant.media_in.filter(function(m) {
+          return typeof m === "string" && m;
+        }) : null,
+        inputCost: typeof variant.input_cost === "number" ? variant.input_cost : null,
+        outputCost: typeof variant.output_cost === "number" ? variant.output_cost : null,
+        side: rowSide,
+        status: "ok",
+        reason: "",
+        latchText: ""
+      };
+      if (variant.ref === pickName) {
+        view.status = "pick";
+        return view;
+      }
+      const hit = hitFor(variant);
+      if (hit) {
+        view.status = "excluded";
+        view.reason = (hit.kind === "rate-limit" ? "rate-limited" : "quota latched") + " · retry in " + formatCountdown2(hit.until - at);
+        view.latchText = view.reason;
+        return view;
+      }
+      if (maxCost !== null && (view.cost === null || view.cost > maxCost)) {
+        view.status = "excluded";
+        view.reason = view.cost === null ? "no cost data (cap set)" : "over maxCost $" + maxCost;
+        return view;
+      }
+      if (rowSide !== side) {
+        view.status = "excluded";
+        view.reason = "off-side · v2 " + preference;
+        return view;
+      }
+      return view;
+    });
+    rows.forEach((r) => {
+      r.bar = usageBar(r, usage, at);
+    });
+    const fallbackPick = !pickName && fallback ? fallback : null;
+    return {
+      found: true,
+      key,
+      side,
+      sideNote: "v2 · model=" + str2(v2TaskEntry.model) + " · " + preference,
+      maxCost,
+      fallback,
+      pick: pickName || fallbackPick,
+      pickSource: pickName ? "chain" : fallbackPick ? "fallback" : null,
+      pickNote: pickName ? "" : fallbackPick ? "No usable v2 variant — fallback" : "No usable v2 variant",
+      chain: rows,
+      registry: true
+    };
   }
   function buildChain() {
     const rows = [];
@@ -2305,6 +3027,12 @@ async function readCatalog(directory) {
   }
   return { types, bounds, config: data && data.config || null };
 }
+function readConfigV2(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, "model-config-v2-cache.json")).then((data) => data && data.config || null);
+}
+function readRegistry(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, "model-registry-v2-cache.json")).then((data) => data && data.registry || null);
+}
 function readLatch(directory) {
   return readJsonAt(directory, path.join(CACHE_REL, "free-quota.json"));
 }
@@ -2565,8 +3293,10 @@ async function readConfig(directory, sessionID) {
   };
 }
 async function readChain(directory, taskType) {
-  const [catalog, options, latch, usage] = await Promise.all([
+  const [catalog, configV2, registry, options, latch, usage] = await Promise.all([
     readCatalog(directory),
+    readConfigV2(directory),
+    readRegistry(directory),
     storedPluginOptions(),
     readLatch(directory),
     readUsage(directory)
@@ -2574,9 +3304,11 @@ async function readChain(directory, taskType) {
   return computeModelsView({
     taskType,
     catalogConfig: catalog.config,
+    configV2,
     options,
     latchData: latch,
     usage,
+    registry,
     now: Date.now()
   });
 }

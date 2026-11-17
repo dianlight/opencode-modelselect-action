@@ -1,0 +1,216 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>sim report</title>
+<style>
+body{font-family:ui-monospace,monospace;margin:2rem;color:#111;background:#fafafa}
+h1{font-size:1.2rem}.pass td:first-child,.pass{color:#0a7f2c}.fail td:first-child,.fail{color:#b42318}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:.4rem .6rem;text-align:left;vertical-align:top}
+pre{white-space:pre-wrap;margin:0;font-size:.75rem}
+</style></head><body>
+<h1>sim: 29/29 scenarios passed</h1>
+<p>2026-11-17T22:37:14.145Z</p>
+<table><thead><tr><th>scenario</th><th>component</th><th>result</th><th>duration</th><th>detail</th></tr></thead>
+<tbody>
+    <tr class="pass">
+      <td>action/auto-both-exhausted-fails</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>2300ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/auto-falls-back-to-go</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>329ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/auto-prefers-free</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>310ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/auto-waits-for-quota</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>1302ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/config-url-unreachable</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>208ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/fallback-model-used</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>291ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/free-tier-case-insensitive</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>273ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/go-tier</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>276ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/invalid-tier-rejected</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>208ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/max-cost-walks-ranked</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>285ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>action/missing-task-type-fails-closed</td>
+      <td>action</td>
+      <td>pass</td>
+      <td>282ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>plugin/announce-off-stays-quiet</td>
+      <td>plugin</td>
+      <td>pass</td>
+      <td>313ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>plugin/fixed-task-type-pin</td>
+      <td>plugin</td>
+      <td>pass</td>
+      <td>322ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>plugin/http-request-stamps-pick</td>
+      <td>plugin</td>
+      <td>pass</td>
+      <td>312ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>plugin/routes-review-announce</td>
+      <td>plugin</td>
+      <td>pass</td>
+      <td>301ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>plugin/virtual-anchor-kept</td>
+      <td>plugin</td>
+      <td>pass</td>
+      <td>305ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>plugin/virtual-provider-registered</td>
+      <td>plugin</td>
+      <td>pass</td>
+      <td>275ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>service/health-requires-token</td>
+      <td>service</td>
+      <td>pass</td>
+      <td>154ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>service/read-never-writes-routing</td>
+      <td>service</td>
+      <td>pass</td>
+      <td>139ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>service/status-ok</td>
+      <td>service</td>
+      <td>pass</td>
+      <td>134ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>service/tier-control-writes-managed</td>
+      <td>service</td>
+      <td>pass</td>
+      <td>139ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>panel/render-from-managed</td>
+      <td>panel</td>
+      <td>pass</td>
+      <td>179ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>panel/save-history-chars</td>
+      <td>panel</td>
+      <td>pass</td>
+      <td>257ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>pipeline/benchmark-dry-run</td>
+      <td>pipeline</td>
+      <td>pass</td>
+      <td>657ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>pipeline/benchmark-no-key</td>
+      <td>pipeline</td>
+      <td>pass</td>
+      <td>79ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>pipeline/maintenance-coverage-issues</td>
+      <td>pipeline</td>
+      <td>pass</td>
+      <td>63ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>pipeline/maintenance-online-catalog</td>
+      <td>pipeline</td>
+      <td>pass</td>
+      <td>71ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>pipeline/maintenance-zen-down</td>
+      <td>pipeline</td>
+      <td>pass</td>
+      <td>71ms</td>
+      <td><pre></pre></td>
+    </tr>
+    <tr class="pass">
+      <td>fuzz/routing-invariants</td>
+      <td>fuzz</td>
+      <td>pass</td>
+      <td>13ms</td>
+      <td><pre></pre></td>
+    </tr></tbody></table>
+</body></html>

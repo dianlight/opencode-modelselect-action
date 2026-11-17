@@ -14,7 +14,8 @@
  * - `token` / `jevToken` are write-only: a blank draft keeps the stored value.
  * - Project cache (`<directory>/.opencode/.modelselect-cache/`) is written by
  *   the plugin: `status-<sessionID>.json`, `model-config-cache.json`,
- *   `free-quota.json`, `usage-limits.json`, `routing-sync.json`.
+ *   `model-config-v2-cache.json`, `free-quota.json`, `usage-limits.json`,
+ *   `routing-sync.json`.
  */
 import fsp from 'node:fs/promises';
 import os from 'node:os';
@@ -404,6 +405,24 @@ export async function readCatalog(directory) {
     if (bounds.max <= bounds.min) bounds.max = bounds.min + 1;
   }
   return { types: types, bounds: bounds, config: (data && data.config) || null };
+}
+
+/**
+ * Provider-model v2 task table (`model-config-v2-cache.json`), the v2 half
+ * of the plugin's config cache. Null when the plugin has not cached it.
+ */
+export function readConfigV2(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, 'model-config-v2-cache.json'))
+    .then((data) => (data && data.config) || null);
+}
+
+/**
+ * Provider-model v2 registry (`model-registry-v2-cache.json`), written by the
+ * plugin beside the model config. Null when the plugin has not cached it.
+ */
+export function readRegistry(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, 'model-registry-v2-cache.json'))
+    .then((data) => (data && data.registry) || null);
 }
 
 export function readLatch(directory) {

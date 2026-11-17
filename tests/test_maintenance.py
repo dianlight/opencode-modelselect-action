@@ -772,7 +772,8 @@ class ModelConfigThinkTest(unittest.TestCase):
     def _generate(self, task_types, tmp):
         import json
 
-        with patch.object(m, "MODEL_CONFIG_PATH", Path(tmp) / "model-config.json"):
+        with patch.object(m, "MODEL_CONFIG_PATH", Path(tmp) / "model-config.json"), \
+             patch.object(m, "MODEL_CONFIG_V2_PATH", Path(tmp) / "model-config-v2.json"):
             m.generate_model_config(
                 free_models=[
                     {"id": "f-a"},

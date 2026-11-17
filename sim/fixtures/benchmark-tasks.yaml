@@ -1,0 +1,12 @@
+# Tiny task bank for the sim pipeline scenarios.
+version: 1
+tasks:
+  - id: coding-puzzle
+    subscore: coding
+    kind: integer
+    prompt: |
+      Answer with only the final integer.
+      What is the output of this Python snippet?
+      def f(x): return x*x + 1
+      print(f(3))
+    expected: 10

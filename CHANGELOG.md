@@ -1,4 +1,18 @@
 ## [Unreleased]
+### Added
+- Provider-model v2 data layer in its own `-v2` files:
+  `data/model-registry-v2.json` holds one entry per model with its
+  free/non-free provider variants and costs, and `data/model-config-v2.json`
+  holds `task-types-v2` (task -> model id references) plus `schema_version`.
+  The v1 artifacts are kept; readers prefer v2 and fall back to v1
+  (OpenSpec change `provider-model-v2`).
+- Shared selection core resolves task -> model -> variant with runtime ordering
+  (score desc, cost asc; free-first/go-first applied at selection time, engine
+  provider wins exact ties) and is vendored to the plugin, extension and GitHub
+  Action through `scripts/build-core.js`.
+- README now links to the generated docs; the model and provider tables moved
+  to `docs/models.md` and `docs/providers.md`.
+
 ### Fixed
 - A Renovate bump of `@openchamber/sdk` no longer fails CI with "Committed
   bundles are stale". The extension bundles are committed build artifacts that

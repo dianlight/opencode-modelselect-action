@@ -1,0 +1,4 @@
+# Minimal provider config: console inventory disabled so the maintenance
+# run never touches the console MCP.
+console:
+  enabled: false

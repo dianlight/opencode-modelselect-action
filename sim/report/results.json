@@ -1,0 +1,241 @@
+{
+  "runId": "2026-11-17T22-37-14-145Z",
+  "startedAt": "2026-11-17T22:37:14.145Z",
+  "total": 29,
+  "passed": 29,
+  "failed": 0,
+  "rows": [
+    {
+      "id": "action/auto-both-exhausted-fails",
+      "component": "action",
+      "ok": true,
+      "durationMs": 2300,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/auto-falls-back-to-go",
+      "component": "action",
+      "ok": true,
+      "durationMs": 329,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/auto-prefers-free",
+      "component": "action",
+      "ok": true,
+      "durationMs": 310,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/auto-waits-for-quota",
+      "component": "action",
+      "ok": true,
+      "durationMs": 1302,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/config-url-unreachable",
+      "component": "action",
+      "ok": true,
+      "durationMs": 208,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/fallback-model-used",
+      "component": "action",
+      "ok": true,
+      "durationMs": 291,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/free-tier-case-insensitive",
+      "component": "action",
+      "ok": true,
+      "durationMs": 273,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/go-tier",
+      "component": "action",
+      "ok": true,
+      "durationMs": 276,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/invalid-tier-rejected",
+      "component": "action",
+      "ok": true,
+      "durationMs": 208,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/max-cost-walks-ranked",
+      "component": "action",
+      "ok": true,
+      "durationMs": 285,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/missing-task-type-fails-closed",
+      "component": "action",
+      "ok": true,
+      "durationMs": 282,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/announce-off-stays-quiet",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 313,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/fixed-task-type-pin",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 322,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/http-request-stamps-pick",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 312,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/routes-review-announce",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 301,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/virtual-anchor-kept",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 305,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/virtual-provider-registered",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 275,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/health-requires-token",
+      "component": "service",
+      "ok": true,
+      "durationMs": 154,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/read-never-writes-routing",
+      "component": "service",
+      "ok": true,
+      "durationMs": 139,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/status-ok",
+      "component": "service",
+      "ok": true,
+      "durationMs": 134,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/tier-control-writes-managed",
+      "component": "service",
+      "ok": true,
+      "durationMs": 139,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "panel/render-from-managed",
+      "component": "panel",
+      "ok": true,
+      "durationMs": 179,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "panel/save-history-chars",
+      "component": "panel",
+      "ok": true,
+      "durationMs": 257,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/benchmark-dry-run",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 657,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/benchmark-no-key",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 79,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-coverage-issues",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 63,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-online-catalog",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 71,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-zen-down",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 71,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "fuzz/routing-invariants",
+      "component": "fuzz",
+      "ok": true,
+      "durationMs": 13,
+      "failures": [],
+      "error": null
+    }
+  ]
+}

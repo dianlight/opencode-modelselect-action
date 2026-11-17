@@ -33,6 +33,11 @@ ROOT = Path(__file__).parent.parent
 CONFIG_DIR = ROOT / "config"
 DATA_DIR = ROOT / "data"
 README_PATH = ROOT / "README.md"
+# Generated reference tables live in their own files; README keeps a short
+# description plus links (design D6).
+DOCS_DIR = ROOT / "docs"
+MODELS_DOC_PATH = DOCS_DIR / "models.md"
+PROVIDERS_DOC_PATH = DOCS_DIR / "providers.md"
 
 TASK_TYPES_PATH = CONFIG_DIR / "task-types.yaml"
 MODEL_SCORES_PATH = CONFIG_DIR / "model-scores.yaml"
@@ -55,10 +60,21 @@ COVERAGE_ISSUES_PATH = DATA_DIR / "coverage_issues.json"
 # maintenance run recomputes it and the workflow commits it directly, so the
 # newly computed models immediately become the selection target.
 MODEL_CONFIG_PATH = DATA_DIR / "model-config.json"
+# Provider-model v2 task table (task -> ONE model id), kept in its own file
+# so data/model-config.json stays pure v1. Resolved at runtime through the
+# v2 registry by core/registry.js.
+MODEL_CONFIG_V2_PATH = DATA_DIR / "model-config-v2.json"
 # Key-agnostic provider catalog: one row per (provider, model) with price,
 # context and media. Consumed by core/catalog.js + core/chain.js in the
 # action and the plugin; availability is resolved by each consumer.
 PROVIDER_CATALOG_PATH = DATA_DIR / "provider-catalog.json"
+# Provider-model v2 registry: one entry per model with its free/non-free
+# provider variants and costs. Coexists with the v1 catalog during the
+# transition; readers prefer v2 (core/registry.js) and fall back to v1.
+MODEL_REGISTRY_PATH = DATA_DIR / "model-registry-v2.json"
+# v2 data schema version published in data/model-config-v2.json and
+# data/model-registry-v2.json.
+MODEL_SCHEMA_VERSION = 2
 # Remote task-type definitions consumed by the plugin's Jev refinement
 # (see plugin/src/shared/tasktypes.js, option B: standalone file with its
 # own parallel cache, generated from config/task-types.yaml).
@@ -1152,6 +1168,99 @@ def write_provider_catalog(catalog: dict[str, Any]) -> bool:
     return True
 
 
+def _variant_order(variant: dict[str, Any]) -> tuple:
+    """Registry file order: free first, cheapest, engine provider first."""
+    cost = variant.get("cost")
+    provider = str(variant.get("provider") or "")
+    return (
+        0 if variant.get("free") else 1,
+        cost if isinstance(cost, (int, float)) else float("inf"),
+        0 if provider in ("opencode", "opencode-go") else 1,
+        provider,
+        str(variant.get("model") or ""),
+    )
+
+
+def build_model_registry(
+    catalog: dict[str, Any] | None,
+    livebench: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Assemble data/model-registry-v2.json (provider-model v2).
+
+    One entry per canonical model, listing every provider variant that
+    serves it with its cost and free/non-free state. v2 task entries
+    (`data/model-config-v2.json` `task-types-v2`) reference these ids and
+    `core/registry.js` resolves the variant at runtime. The v1 catalog and
+    v1 task entries stay in place during the transition (design D1).
+    """
+    models: dict[str, Any] = {}
+    for row in (catalog or {}).get("models") or []:
+        if not isinstance(row, dict):
+            continue
+        provider = str(row.get("provider") or "")
+        model_id = str(row.get("id") or "")
+        if not provider or not model_id:
+            continue
+        canonical = str(row.get("canonical") or _canonical_catalog_key(model_id))
+        if not canonical:
+            continue
+        cost = row.get("blended_cost")
+        free = row.get("class") == "free" or row.get("free") is True or cost == 0
+        entry = models.setdefault(
+            canonical,
+            {"id": canonical, "name": canonical, "variants": []},
+        )
+        name = str(row.get("name") or "")
+        if name and entry["name"] == canonical:
+            entry["name"] = name
+        entry["variants"].append(
+            {
+                "provider": provider,
+                "model": model_id,
+                "free": bool(free),
+                "cost": cost if isinstance(cost, (int, float)) else None,
+                "input_cost": row.get("input_cost"),
+                "output_cost": row.get("output_cost"),
+                "context": row.get("context"),
+                "media_in": row.get("media_in") or ["text"],
+            }
+        )
+
+    for entry in models.values():
+        if isinstance(livebench, dict) and livebench:
+            score = get_model_score(entry["id"], livebench, "overall")
+            if score is not None:
+                entry["score"] = round(float(score), 2)
+        entry["variants"].sort(key=_variant_order)
+
+    return {
+        "schema_version": MODEL_SCHEMA_VERSION,
+        "timestamp": datetime.now(UTC).isoformat(),
+        "models": {key: models[key] for key in sorted(models)},
+    }
+
+
+def write_model_registry(registry: dict[str, Any]) -> bool:
+    """Write data/model-registry-v2.json; True when the content changed."""
+    if MODEL_REGISTRY_PATH.exists():
+        try:
+            current = load_json(MODEL_REGISTRY_PATH)
+        except (OSError, json.JSONDecodeError):
+            current = None
+        if isinstance(current, dict):
+            left = {k: v for k, v in current.items() if k != "timestamp"}
+            right = {k: v for k, v in registry.items() if k != "timestamp"}
+            if left == right:
+                print("  v Model registry unchanged")
+                return False
+    save_json(MODEL_REGISTRY_PATH, registry)
+    print(
+        f"  ! Model registry updated — wrote {MODEL_REGISTRY_PATH} "
+        f"({len(registry.get('models') or {})} models, schema v{MODEL_SCHEMA_VERSION})"
+    )
+    return True
+
+
 def _task_ranked(
     go_ranked: list[dict[str, Any]],
     free_ranked: list[dict[str, Any]],
@@ -1739,10 +1848,17 @@ def generate_model_config(
     choice and failover are resolved at runtime by `core/chain.js`, so the
     config stays valid for any account/key.
 
+    The same run publishes the v2 layer in its own file
+    (data/model-config-v2.json): top-level `schema_version` plus
+    `task-types-v2.<task>.model` (ONE model id per task, resolved through
+    data/model-registry-v2.json by `core/registry.js`). The v1 entries above
+    stay untouched during the transition.
+
     Returns True when the written config differs from the previous commit
     (i.e. the models actually changed).
     """
     task_map: dict[str, Any] = {}
+    task_map_v2: dict[str, Any] = {}
     blend = cost_blend or DEFAULT_COST_BLEND
     index = catalog_index(catalog)
     free_ids = [m["id"] for m in free_models]
@@ -1784,6 +1900,7 @@ def generate_model_config(
             engine="opencode", tt=tt, capabilities=capabilities,
             routable=routable_ids,
         )
+        ranked = _task_ranked(go_ranked, free_ranked, index)
         task_map[name] = {
             "go": _add_model_prefix(best_go, go_ids) if best_go else None,
             "free": _add_model_prefix(best_free, go_ids) if best_free else None,
@@ -1799,8 +1916,19 @@ def generate_model_config(
             # Provider-agnostic ranking (one row per canonical model).
             # Consumers expand it into `(provider, model)` candidates from
             # the provider catalog and filter by their own availability.
-            "ranked": _task_ranked(go_ranked, free_ranked, index),
+            "ranked": ranked,
         }
+        # v2: task -> ONE model id, resolved through the model registry
+        # (data/model-registry-v2.json) at runtime. Variant/provider choice and
+        # the free-first/go-first preference are runtime concerns, so they
+        # never appear here. v1 entries above stay for the transition.
+        model_v2 = ranked[0]["model"] if ranked else _canonical_catalog_key(best_go or best_free or "")
+        if model_v2:
+            task_map_v2[name] = {
+                "model": model_v2,
+                "score": ranked[0]["score"] if ranked else None,
+                "think": think if think in _THINK_LEVELS else None,
+            }
 
     # Google-native models (Gemini) dispatch through the proxy as chat,
     # translated by the Console: the native Google route 404s from
@@ -1851,6 +1979,9 @@ def generate_model_config(
                 proposed["endpoint_paths"][ref] = chat_base
                 print(f"  i {ref}: google-native route remapped to proxy chat ({chat_base})")
 
+    # v2 task table in its own file; the v1 config above stays pure v1.
+    v2_updated = _write_model_config_v2(task_map_v2)
+
     if not MODEL_CONFIG_PATH.exists():
         # No committed config yet: write the computed one so the action has
         # a target to resolve from.
@@ -1866,10 +1997,32 @@ def generate_model_config(
         and (current.get("endpoint_paths") or {}) == proposed["endpoint_paths"]
     ):
         print("  v Central model config unchanged")
-        return False
+        return v2_updated
 
     save_json(MODEL_CONFIG_PATH, proposed)
     print(f"  ! Central model config updated — wrote {MODEL_CONFIG_PATH} (committed by the workflow)")
+    return True
+
+
+def _write_model_config_v2(task_map_v2: dict[str, Any]) -> bool:
+    """Write data/model-config-v2.json (the v2 task layer); True when changed."""
+    proposed = {
+        "schema_version": MODEL_SCHEMA_VERSION,
+        "task-types-v2": task_map_v2,
+    }
+    if MODEL_CONFIG_V2_PATH.exists():
+        try:
+            current = load_json(MODEL_CONFIG_V2_PATH)
+        except (OSError, json.JSONDecodeError):
+            current = None
+        if isinstance(current, dict):
+            left = {k: v for k, v in current.items() if k != "timestamp"}
+            right = {k: v for k, v in proposed.items() if k != "timestamp"}
+            if left == right:
+                print("  v Model v2 config unchanged")
+                return False
+    save_json(MODEL_CONFIG_V2_PATH, proposed)
+    print(f"  ! Model v2 config updated — wrote {MODEL_CONFIG_V2_PATH}")
     return True
 
 
@@ -3192,8 +3345,98 @@ def generate_score_reference_table(
     return "\n".join(lines)
 
 
-def update_readme(model_table: str, score_table: str) -> bool:
-    """Update README.md with the new tables."""
+def generate_provider_table(catalog: dict[str, Any] | None) -> str:
+    """Markdown provider table generated from the provider catalog."""
+    providers = (catalog or {}).get("providers") or {}
+    rows = (catalog or {}).get("models") or []
+    lines = [
+        "# Provider Catalog",
+        "",
+        "> Automatically updated by the `opencode-maintenance` workflow from",
+        "> `data/provider-catalog.json` (one row per provider/model) and",
+        "> `data/model-registry-v2.json` (the v2 model variants). Do not edit by hand.",
+        "",
+        "| Provider | Class | Models | Free variants | Cheapest paid $/1M |",
+        "|----------|-------|--------|---------------|--------------------|",
+    ]
+    for slug in sorted(providers):
+        info = providers[slug] if isinstance(providers[slug], dict) else {}
+        own = [r for r in rows if isinstance(r, dict) and r.get("provider") == slug]
+        free = sum(1 for r in own if r.get("class") == "free" or r.get("free") is True)
+        paid = [
+            r["blended_cost"]
+            for r in own
+            if isinstance(r.get("blended_cost"), (int, float)) and r["blended_cost"] > 0
+        ]
+        cheapest = f"${min(paid):g}" if paid else "—"
+        lines.append(
+            f"| `{slug}` | {info.get('class') or '—'} | {len(own)} | {free} | {cheapest} |"
+        )
+    return "\n".join(lines)
+
+
+def update_docs(
+    model_table: str,
+    score_table: str,
+    catalog: dict[str, Any] | None,
+) -> bool:
+    """Write the generated model/provider tables to docs/*.md."""
+    print("-> Updating docs/ tables...")
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    models_doc = (
+        "# Model Recommendations by Task Type\n\n"
+        "> Automatically updated by the `opencode-maintenance` workflow from\n"
+        "> `data/model-config.json` and LiveBench. Do not edit by hand.\n\n"
+        f"{model_table}\n\n{score_table}\n"
+    )
+    _ = MODELS_DOC_PATH.write_text(models_doc, encoding="utf-8")
+    _ = PROVIDERS_DOC_PATH.write_text(generate_provider_table(catalog) + "\n", encoding="utf-8")
+    print(f"  v {MODELS_DOC_PATH.relative_to(ROOT)} + {PROVIDERS_DOC_PATH.relative_to(ROOT)} updated")
+    return True
+
+
+README_RECOMMENDATIONS_SECTION = """## Model Recommendations by Task Type
+
+> Automatically updated by the `opencode-maintenance` workflow.
+
+The generated tables live in their own files:
+
+- [Model recommendations by task type](./docs/models.md) — the best Zen,
+  free and Go pick per task, with LiveBench score and blended cost.
+- [Provider catalog](./docs/providers.md) — every provider the routing model
+  knows, its class and the models it serves.
+"""
+
+README_V2_SECTION = """## Provider-model v2
+
+The v1 config keeps publishing the v1 layer; the v2 layer lives in its own
+files (`-v2` suffix), same data, separate concerns:
+
+- **v1** (`data/model-config.json` `task-types.<name>`) — `go`/`free` picks
+  plus the per-tier ranked lists (`go_ranked`, `free_ranked`,
+  provider-agnostic `ranked`).
+- **v2** (`data/model-config-v2.json` `schema_version: 2`,
+  `task-types-v2.<name>.model`) — each task references **one** model id.
+  `data/model-registry-v2.json` lists every model once, with its
+  free/non-free provider **variants** and their costs.
+
+At selection time the runtime (action, plugin, OpenChamber models preview)
+prefers v2: it resolves task → model id → variant, ordering the variants by
+the `free-first` / `go-first` preference, then cost, and on equal cost+score
+it picks the engine provider (`opencode` / `opencode-go`) over an external
+one. When v2 has no entry or no usable variant (provider unreachable,
+latched, over budget), the reader falls back to the v1 task entries. The
+v1 and v2 artifacts are written by the same maintenance run.
+"""
+
+
+def update_readme(model_table: str | None = None, score_table: str | None = None) -> bool:
+    """Keep README short: a v2 section plus links to the generated tables.
+
+    The tables themselves are written by `update_docs` to `docs/models.md`
+    and `docs/providers.md`; when an older README still embeds them this
+    replaces the whole section body with the links block.
+    """
     print("-> Updating README.md...")
 
     if README_PATH.exists():
@@ -3201,28 +3444,21 @@ def update_readme(model_table: str, score_table: str) -> bool:
     else:
         content = "# Opencode Modelselect\n\n"
 
-    # Define markers for sections to replace
-    sections = {
-        "## Model Recommendations by Task Type": model_table,
-        "### LiveBench Score Reference": score_table,
-    }
+    marker = "## Model Recommendations by Task Type"
+    if marker in content:
+        before, _, after_marker = content.partition(marker)
+        next_header = re.search(r"\n(?=## )", after_marker)
+        after = after_marker[next_header.start() :] if next_header else ""
+        content = before + README_RECOMMENDATIONS_SECTION + after
+    else:
+        content = content.rstrip() + "\n\n" + README_RECOMMENDATIONS_SECTION
 
-    for marker, new_content in sections.items():
-        if marker in content:
-            # Replace from marker to next ## or ### or end
-            parts = content.split(marker)
-            before = parts[0]
-            after_marker = parts[1] if len(parts) > 1 else ""
-            # Find next section header
-            next_header = re.search(r"\n(?=## |### )", after_marker)
-            if next_header:
-                after = after_marker[next_header.start() :]
-            else:
-                after = ""
-            content = before + new_content + after
+    if "## Provider-model v2" not in content:
+        anchor = content.find(marker)
+        if anchor >= 0:
+            content = content[:anchor] + README_V2_SECTION + "\n" + content[anchor:]
         else:
-            # Append at end
-            content = content.rstrip() + "\n\n" + new_content
+            content = content.rstrip() + "\n\n" + README_V2_SECTION
 
     _ = README_PATH.write_text(content, encoding="utf-8")
     print("  v README.md updated")
@@ -3319,8 +3555,10 @@ def main() -> None:
     )
     print(f"  v Benchmark data saved to {benchmark_path}")
 
-    # 5. Update README
-    _ = update_readme(model_table, score_table)
+    # 5. Update README + generated docs (README links; tables in docs/).
+    # The provider table needs the catalog from 5c, so the docs write runs
+    # after it.
+    _ = update_readme()
 
     # 5b. Resolve per-model capabilities (context + modalities) for the
     # config rows: curated table first, models.dev fills the gaps.
@@ -3358,6 +3596,18 @@ def main() -> None:
         previous_catalog if isinstance(previous_catalog, dict) else None,
     )
     catalog_updated = write_provider_catalog(catalog)
+
+    # 5d. Provider-model v2 registry: one entry per model with its
+    # free/non-free provider variants and costs, built from the same catalog
+    # rows. Coexists with the v1 catalog during the transition (design D1);
+    # readers prefer v2 and fall back to v1.
+    print("-> Building provider-model v2 registry...")
+    registry = build_model_registry(catalog, livebench)
+    registry_updated = write_model_registry(registry)
+
+    # 5e. Generated docs: README keeps the links, docs/*.md carry the tables
+    # (the provider table is built from the catalog written just above).
+    update_docs(model_table, score_table, catalog)
 
     # 6. Recompute the central model config and write it directly — the
     # workflow commits it, so the new models immediately become the target.
@@ -3409,6 +3659,11 @@ def main() -> None:
                 "providers": sorted((catalog.get("providers") or {}).keys()),
                 "console": bool(console_inventory),
             },
+            "model_registry": {
+                "updated": registry_updated,
+                "schema_version": MODEL_SCHEMA_VERSION,
+                "models": len(registry.get("models") or {}),
+            },
         },
     )
 
@@ -3456,8 +3711,11 @@ def main() -> None:
     print(f"  README updated: {README_PATH}")
     print(f"  Audit data: {AUDIT_RESULTS_PATH}")
     print(f"  Model config: {MODEL_CONFIG_PATH}")
+    print(f"  Model v2 config: {MODEL_CONFIG_V2_PATH}")
     print(f"  Provider catalog: {PROVIDER_CATALOG_PATH}"
           f" ({len(catalog.get('models') or [])} rows)")
+    print(f"  Model registry (v2): {MODEL_REGISTRY_PATH}"
+          f" ({len(registry.get('models') or {})} models)")
     print(f"  Task types: {TASK_TYPES_JSON_PATH}{' (updated)' if task_types_updated else ''}")
     if config_updated:
         print(f"  ! Model config changed — {MODEL_CONFIG_PATH} updated (committed by the workflow)")

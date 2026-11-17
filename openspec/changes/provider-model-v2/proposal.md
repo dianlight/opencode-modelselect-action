@@ -26,7 +26,8 @@ The select-model action, the OpenCode plugin and the OpenChamber extension all r
 ## Impact
 
 - `scripts/opencode_maintenance.py` (v1+v2 writes, v2 registry build).
-- `data/model-config.json`, `data/provider-catalog.json`, `config/task-types.yaml` (v2 shapes).
+- `data/model-config-v2.json`, `data/model-registry-v2.json`,
+  `data/provider-catalog.json`, `config/task-types.yaml` (v2 shapes).
 - `core/`, `plugin/src/shared/`, `github-action/src/` (shared base chain, v2 resolution).
 - `openchamber-modelselect/service/src/` (status surfaces).
 - `README.md` plus new referenced Markdown tables.

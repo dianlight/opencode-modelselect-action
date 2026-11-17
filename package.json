@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "node --test github-action/test/",
-    "coverage": "node --test --experimental-test-coverage github-action/test/"
+    "coverage": "node --test --experimental-test-coverage github-action/test/",
+    "sim": "node sim/run.js --all"
   }
 }

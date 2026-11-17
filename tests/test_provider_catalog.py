@@ -126,5 +126,102 @@ class BuildProviderCatalogTest(unittest.TestCase):
         self.assertTrue(ranked[1]["free"])
 
 
+class BuildModelRegistryTest(unittest.TestCase):
+    def _catalog(self):
+        return {
+            "providers": {"opencode": {}, "opencode-go": {}},
+            "models": [
+                {
+                    "provider": "opencode", "id": "muse-spark-1.3-contributor-free",
+                    "canonical": "muse-spark-1-3", "name": "Muse Spark",
+                    "class": "free", "free": True, "blended_cost": 0,
+                    "input_cost": 0, "output_cost": 0, "context": 128000,
+                    "media_in": ["text"],
+                },
+                {
+                    "provider": "opencode-go", "id": "muse-spark-1.3-contributor",
+                    "canonical": "muse-spark-1-3", "class": "go-plan", "free": False,
+                    "blended_cost": 0.125, "input_cost": 0.1, "output_cost": 0.2,
+                    "context": 200000, "media_in": ["text", "image"],
+                },
+                {
+                    "provider": "anthropic", "id": "muse-spark-1.3",
+                    "canonical": "muse-spark-1-3", "class": "external", "free": False,
+                    "blended_cost": 1.5, "input_cost": 1, "output_cost": 3,
+                    "context": 200000, "media_in": ["text"],
+                },
+                {
+                    "provider": "opencode", "id": "tiny-model",
+                    "canonical": "tiny-model", "class": "zen-paid", "free": False,
+                    "blended_cost": 0.5, "input_cost": 0.1, "output_cost": 1,
+                    "context": 64000, "media_in": ["text"],
+                },
+            ],
+        }
+
+    def test_groups_variants_by_canonical_model(self):
+        registry = m.build_model_registry(self._catalog())
+        self.assertEqual(registry["schema_version"], 2)
+        self.assertEqual(sorted(registry["models"]), ["muse-spark-1-3", "tiny-model"])
+        entry = registry["models"]["muse-spark-1-3"]
+        self.assertEqual(entry["id"], "muse-spark-1-3")
+        self.assertEqual(entry["name"], "Muse Spark")
+        # One entry per model: every provider variant is listed once, free
+        # first, then cheapest, engine provider before external.
+        self.assertEqual(
+            [v["provider"] for v in entry["variants"]],
+            ["opencode", "opencode-go", "anthropic"],
+        )
+        self.assertTrue(entry["variants"][0]["free"])
+        self.assertFalse(entry["variants"][1]["free"])
+        self.assertEqual(entry["variants"][1]["cost"], 0.125)
+        self.assertEqual(entry["variants"][1]["input_cost"], 0.1)
+
+    def test_zero_cost_variant_is_free(self):
+        catalog = {"models": [{
+            "provider": "opencode", "id": "zero", "canonical": "zero",
+            "class": "zen-paid", "blended_cost": 0,
+        }]}
+        registry = m.build_model_registry(catalog)
+        self.assertTrue(registry["models"]["zero"]["variants"][0]["free"])
+
+    def test_no_catalog_yields_empty_registry(self):
+        self.assertEqual(m.build_model_registry(None)["models"], {})
+        self.assertEqual(m.build_model_registry({"models": []})["models"], {})
+
+
+class ProviderModelV2ArtifactsTest(unittest.TestCase):
+    """The committed artifacts coexist during the transition (task 1.2)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.config = json.loads((ROOT / "data" / "model-config.json").read_text(encoding="utf-8"))
+        cls.config_v2 = json.loads((ROOT / "data" / "model-config-v2.json").read_text(encoding="utf-8"))
+        cls.registry = json.loads((ROOT / "data" / "model-registry-v2.json").read_text(encoding="utf-8"))
+
+    def test_v1_and_v2_task_entries_coexist(self):
+        self.assertEqual(self.config_v2.get("schema_version"), 2)
+        self.assertTrue(self.config.get("task-types"))
+        v2 = self.config_v2.get("task-types-v2") or {}
+        self.assertTrue(v2)
+        self.assertEqual(set(self.config["task-types"]), set(v2))
+
+    def test_every_v2_task_model_resolves_in_the_registry(self):
+        registry_models = self.registry.get("models") or {}
+        for name, entry in (self.config_v2.get("task-types-v2") or {}).items():
+            self.assertIn(entry["model"], registry_models, name)
+
+    def test_registry_entries_carry_variants_with_costs(self):
+        self.assertEqual(self.registry.get("schema_version"), 2)
+        for model_id, entry in (self.registry.get("models") or {}).items():
+            self.assertEqual(entry["id"], model_id)
+            self.assertTrue(entry["variants"], model_id)
+            for variant in entry["variants"]:
+                self.assertTrue(variant["provider"])
+                self.assertTrue(variant["model"])
+                self.assertIsInstance(variant["free"], bool)
+                self.assertTrue(variant["cost"] is None or variant["cost"] >= 0)
+
+
 if __name__ == "__main__":
     unittest.main()

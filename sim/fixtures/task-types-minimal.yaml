@@ -1,0 +1,7 @@
+task_types:
+  - id: generic
+    name: Generic
+    label: Generic
+    description: Everything else.
+    think: low
+free_first_threshold_pct: 5
