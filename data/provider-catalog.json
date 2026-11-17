@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-16T03:29:47.821900+00:00",
+  "timestamp": "2026-11-17T05:29:31.055115+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -1696,6 +1696,25 @@
     },
     {
       "provider": "opencode",
+      "id": "hy4-flash-free",
+      "canonical": "hy4-flash",
+      "name": "Hy4 flash Free",
+      "class": "free",
+      "free": true,
+      "input_cost": 0.0,
+      "output_cost": 0.0,
+      "blended_cost": 0.0,
+      "context": 1048576,
+      "media_in": [
+        "text",
+        "image"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "iceman-free",
       "canonical": "iceman",
       "name": "Iceman Free",
@@ -1894,26 +1913,6 @@
       "output_cost": 1.2,
       "blended_cost": 0.525,
       "context": 1048576,
-      "media_in": [
-        "text",
-        "image",
-        "video"
-      ],
-      "media_out": [
-        "text"
-      ]
-    },
-    {
-      "provider": "opencode",
-      "id": "minimax-m3.1-flash-free",
-      "canonical": "minimax-m3-1-flash",
-      "name": "MiniMax M3.1 Flash Free",
-      "class": "free",
-      "free": true,
-      "input_cost": 0.0,
-      "output_cost": 0.0,
-      "blended_cost": 0.0,
-      "context": 1000000,
       "media_in": [
         "text",
         "image",
@@ -2380,6 +2379,25 @@
     },
     {
       "provider": "opencode-go",
+      "id": "hy4-flash-free",
+      "canonical": "hy4-flash",
+      "name": "Hy4 flash Free",
+      "class": "free",
+      "free": true,
+      "input_cost": 0.0,
+      "output_cost": 0.0,
+      "blended_cost": 0.0,
+      "context": 1048576,
+      "media_in": [
+        "text",
+        "image"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode-go",
       "id": "hy4-preview",
       "canonical": "hy4-preview",
       "name": "Hy4 preview",
@@ -2605,8 +2623,10 @@
       "blended_cost": 0.125,
       "context": 1048576,
       "media_in": [
+        "image",
+        "pdf",
         "text",
-        "image"
+        "video"
       ],
       "media_out": [
         "text"
@@ -2705,7 +2725,7 @@
       "input_cost": 1.5,
       "output_cost": 4.5,
       "blended_cost": 2.25,
-      "context": 1000000,
+      "context": 983616,
       "media_in": [
         "text",
         "image",
