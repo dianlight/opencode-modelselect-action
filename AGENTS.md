@@ -109,6 +109,15 @@ When updating `CHANGELOG.md`:
   `contributes.capabilities` and `contributes.filesystem` absent; the panel
   talks to the service through `panel/src/api.js` only.
 
+## Sim harness
+
+The component simulator (`sim/`, `npm run sim` → `node sim/run.js --all`) boots action, plugin, service, panel and pipeline components against sandboxed scenarios (fixtures under `sim/fixtures/`, net replay, subprocess/vm boundaries), plus a seeded generative fuzz pack over the shared routing/budget core.
+
+- **Maintain the sim with shipped code.** Any change to behavior under `github-action/`, `plugin/`, `openchamber-modelselect/`, `scripts/`, or `core/` must ship with a matching sim scenario (new or updated) under the right `sim/scenarios/<component>/` and any new fixtures under `sim/fixtures/`.
+- Run `npm run sim` before committing; the full suite must pass. Keep scenarios deterministic (fixed seeds, replayed network, sandboxed FS).
+- Scenario discovery is automatic (`sim/scenarios/<component>/*.cjs`) — no registry list to update when adding a scenario.
+- CI wiring for the sim is intentionally not added yet.
+
 ## Renovate
 
 `.github/renovate.json` auto-updates GitHub Actions every Monday with automerge enabled.

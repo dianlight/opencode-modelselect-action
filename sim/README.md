@@ -33,6 +33,15 @@ Copy an existing file in `sim/scenarios/<component>/`, change `id`/`title`,
 edit `world` (files + net), `env`/`seed`/`steps`/`ops` and `expect`. The
 loader validates every case at start; a malformed scenario fails loudly.
 
+## Adding coverage for a new feature
+
+When a shipped change adds, alters, or removes observable behavior, extend the sim in the same change:
+
+1. Pick the component directory that owns the behavior: `action`, `plugin`, `service`, `panel`, or `pipeline` (plus the fuzz pack for shared core changes under `core/`).
+2. Add fixtures under `sim/fixtures/` if the scenario needs new config shapes, catalogs or task banks.
+3. Add `sim/scenarios/<component>/<kebab-id>.cjs` using the scenario DSL (`world.files` / `world.net`, `env`, `seed`, `steps` / `ops`, `expect`). The loader validates strictly and stamps `__file` on each scenario for error messages.
+4. Run `node sim/run.js --component <c> --id <substr>` then the full `node sim/run.js --all`; iterate to green before committing.
+
 ## Deliberate deviations from the original proposal
 
 - Scenarios are `.cjs` data modules, not YAML: zero new dependencies and no
