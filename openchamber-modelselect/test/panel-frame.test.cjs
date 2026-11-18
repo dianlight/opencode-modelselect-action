@@ -306,7 +306,7 @@ describe('panel frame', () => {
 
     const text = textOf(frame.root);
     assert.match(text, /Save plugin settings/);
-    assert.match(text, /Editing: opencode-modelselect-plugin/);
+    assert.match(text, /Editing: @dianlight\/opencode-modelselect-plugin/);
     assert.match(text, /Also present|ignored by OpenChamber/i);
     assert.equal(fieldInput(frame.root, 'historyChars').value, '1200');
     // Stored secrets are never rendered.

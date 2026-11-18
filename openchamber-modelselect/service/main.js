@@ -2711,7 +2711,7 @@ var GLOBAL_CONFIG_PATHS = [
 ];
 var GLOBAL_NOTE_PATHS = GLOBAL_CONFIG_PATHS;
 var ROUTING_SYNC_FILE = "routing-sync.json";
-var PLUGIN_PACKAGE = "opencode-modelselect-plugin";
+var PLUGIN_PACKAGE = "@dianlight/opencode-modelselect-plugin";
 var DEFAULT_CONFIG_URL = "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json";
 var DEFAULT_TASK_TYPES_URL = "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/task-types.json";
 var DEFAULT_JEV_ENDPOINT = "https://opencode.ai/zen/v1/systemone";

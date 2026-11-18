@@ -15,7 +15,20 @@
 - README now links to the generated docs; the model and provider tables moved
   to `docs/models.md` and `docs/providers.md`.
 
+### Changed
+- The plugin now publishes to **GitHub Packages** as
+  `@dianlight/opencode-modelselect-plugin` — GitHub Packages only hosts scoped
+  package names. Update the `plugins` entry in `opencode.json` to the scoped
+  name, and route the `@dianlight` scope at `https://npm.pkg.github.com` in
+  your npm config to install it. The `release-plugin` workflow authenticates
+  with the job's `GITHUB_TOKEN` (`packages: write`), so the `NPM_TOKEN`
+  repository secret is no longer used.
+
 ### Fixed
+- The `release-plugin` workflow actually publishes `plugin/`. It ran
+  `npm publish --working-directory plugin`, a flag npm does not have: npm
+  parsed `plugin` as a registry package spec and tried to publish the public
+  package named `plugin` instead of ours.
 - A Renovate bump of `@openchamber/sdk` no longer fails CI with "Committed
   bundles are stale". The extension bundles are committed build artifacts that
   inline the SDK, so a version bump changes them. The new `renovate-bundle.yml`

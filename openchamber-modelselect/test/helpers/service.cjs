@@ -28,7 +28,7 @@ const MANAGED_OBJECT = JSON.stringify({
   plugins: [
     'some-other-plugin',
     {
-      package: 'opencode-modelselect-plugin',
+      package: '@dianlight/opencode-modelselect-plugin',
       options: {
         tier: 'go',
         verbose: false,

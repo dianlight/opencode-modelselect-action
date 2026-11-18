@@ -35,7 +35,7 @@ export const GLOBAL_CONFIG_PATHS = [
 /** Paths the plugin tab names as "present but ignored" (read-only, never written). */
 export const GLOBAL_NOTE_PATHS = GLOBAL_CONFIG_PATHS;
 export const ROUTING_SYNC_FILE = 'routing-sync.json';
-export const PLUGIN_PACKAGE = 'opencode-modelselect-plugin';
+export const PLUGIN_PACKAGE = '@dianlight/opencode-modelselect-plugin';
 
 // Plugin defaults (mirror plugin/src/shared — keep in sync).
 export const DEFAULT_CONFIG_URL =
