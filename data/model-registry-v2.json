@@ -1,0 +1,2619 @@
+{
+  "schema_version": 2,
+  "timestamp": "2026-11-18T13:58:58.644805+00:00",
+  "models": {
+    "beam": {
+      "id": "beam",
+      "name": "Beam Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "beam-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1048576,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "beam-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1048576,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 56.5
+    },
+    "big-pickle": {
+      "id": "big-pickle",
+      "name": "Big Pickle",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "big-pickle",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 200000,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 61.5
+    },
+    "claude-fable-5": {
+      "id": "claude-fable-5",
+      "name": "Claude Fable 5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-fable-5",
+          "free": false,
+          "cost": 20.0,
+          "input_cost": 10.0,
+          "output_cost": 50.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 75.7
+    },
+    "claude-fable-5-1": {
+      "id": "claude-fable-5-1",
+      "name": "Claude Fable 5.1",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-fable-5-1",
+          "free": false,
+          "cost": 20.0,
+          "input_cost": 10.0,
+          "output_cost": 50.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "claude-fable-5-2": {
+      "id": "claude-fable-5-2",
+      "name": "Claude Fable 5.2",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-fable-5-2",
+          "free": false,
+          "cost": 16.0,
+          "input_cost": 8.0,
+          "output_cost": 40.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "claude-haiku-4-5": {
+      "id": "claude-haiku-4-5",
+      "name": "Claude Haiku 4.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-haiku-4-5",
+          "free": false,
+          "cost": 2.0,
+          "input_cost": 1.0,
+          "output_cost": 5.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 43.0
+    },
+    "claude-haiku-5-5": {
+      "id": "claude-haiku-5-5",
+      "name": "Claude Haiku 5.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-haiku-5-5",
+          "free": false,
+          "cost": 0.2,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "claude-haiku-5-5",
+          "free": false,
+          "cost": 0.2,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        }
+      ],
+      "score": 75.6
+    },
+    "claude-opus-4-5": {
+      "id": "claude-opus-4-5",
+      "name": "Claude Opus 4.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-opus-4-5",
+          "free": false,
+          "cost": 10.0,
+          "input_cost": 5.0,
+          "output_cost": 25.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 57.0
+    },
+    "claude-opus-4-6": {
+      "id": "claude-opus-4-6",
+      "name": "Claude Opus 4.6",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-opus-4-6",
+          "free": false,
+          "cost": 10.0,
+          "input_cost": 5.0,
+          "output_cost": 25.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 75.1
+    },
+    "claude-opus-4-7": {
+      "id": "claude-opus-4-7",
+      "name": "Claude Opus 4.7",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-opus-4-7",
+          "free": false,
+          "cost": 10.0,
+          "input_cost": 5.0,
+          "output_cost": 25.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 74.7
+    },
+    "claude-opus-4-8": {
+      "id": "claude-opus-4-8",
+      "name": "Claude Opus 4.8",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-opus-4-8",
+          "free": false,
+          "cost": 10.0,
+          "input_cost": 5.0,
+          "output_cost": 25.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 77.7
+    },
+    "claude-opus-5": {
+      "id": "claude-opus-5",
+      "name": "Claude Opus 5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-opus-5",
+          "free": false,
+          "cost": 10.0,
+          "input_cost": 5.0,
+          "output_cost": 25.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 84.7
+    },
+    "claude-opus-5-5": {
+      "id": "claude-opus-5-5",
+      "name": "Claude Opus 5.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-opus-5-5",
+          "free": false,
+          "cost": 8.0,
+          "input_cost": 4.0,
+          "output_cost": 20.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "claude-sonnet-4-5": {
+      "id": "claude-sonnet-4-5",
+      "name": "Claude Sonnet 4.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-sonnet-4-5",
+          "free": false,
+          "cost": 6.0,
+          "input_cost": 3.0,
+          "output_cost": 15.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 51.3
+    },
+    "claude-sonnet-4-6": {
+      "id": "claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-sonnet-4-6",
+          "free": false,
+          "cost": 6.0,
+          "input_cost": 3.0,
+          "output_cost": 15.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 73.4
+    },
+    "claude-sonnet-5": {
+      "id": "claude-sonnet-5",
+      "name": "Claude Sonnet 5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-sonnet-5",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 75.5
+    },
+    "claude-sonnet-5-5": {
+      "id": "claude-sonnet-5-5",
+      "name": "Claude Sonnet 5.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "claude-sonnet-5-5",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "deep-research-max-preview-04-2026": {
+      "id": "deep-research-max-preview-04-2026",
+      "name": "Deep Research Max Preview (Apr-21-2026)",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "deep-research-max-preview-04-2026",
+          "free": false,
+          "cost": 4.5,
+          "input_cost": 2.0,
+          "output_cost": 12.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "deep-research-preview-04-2026": {
+      "id": "deep-research-preview-04-2026",
+      "name": "Deep Research Preview (Apr-21-2026)",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "deep-research-preview-04-2026",
+          "free": false,
+          "cost": 4.5,
+          "input_cost": 2.0,
+          "output_cost": 12.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "deepseek-v4-1-flash": {
+      "id": "deepseek-v4-1-flash",
+      "name": "DeepSeek V4.1 Flash 1017",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "deepseek-v4.1-flash-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 200000,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        },
+        {
+          "provider": "opencode",
+          "model": "deepseek-v4.1-flash",
+          "free": false,
+          "cost": 0.525,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "deepseek-v4.1-flash",
+          "free": false,
+          "cost": 0.525,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ]
+    },
+    "deepseek-v4-pro": {
+      "id": "deepseek-v4-pro",
+      "name": "DeepSeek V4 Pro",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "deepseek-v4-pro",
+          "free": false,
+          "cost": 2.175,
+          "input_cost": 1.74,
+          "output_cost": 3.48,
+          "context": 1000000,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "deepseek-v4-pro",
+          "free": false,
+          "cost": 2.175,
+          "input_cost": 1.74,
+          "output_cost": 3.48,
+          "context": 1000000,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 72.6
+    },
+    "flint-40b": {
+      "id": "flint-40b",
+      "name": "Flint 40B Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "flint-40b-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 262144,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 63.0
+    },
+    "gemini-2-5-computer-use-preview-10-2025": {
+      "id": "gemini-2-5-computer-use-preview-10-2025",
+      "name": "Gemini 2.5 Computer Use Preview 10-2025",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-2.5-computer-use-preview-10-2025",
+          "free": false,
+          "cost": 3.4375,
+          "input_cost": 1.25,
+          "output_cost": 10.0,
+          "context": 128000,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ]
+    },
+    "gemini-2-5-flash": {
+      "id": "gemini-2-5-flash",
+      "name": "Gemini 2.5 Flash",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-2.5-flash",
+          "free": false,
+          "cost": 0.85,
+          "input_cost": 0.3,
+          "output_cost": 2.5,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "audio",
+            "video",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-2-5-flash-lite": {
+      "id": "gemini-2-5-flash-lite",
+      "name": "Gemini 2.5 Flash-Lite",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-2.5-flash-lite",
+          "free": false,
+          "cost": 0.175,
+          "input_cost": 0.1,
+          "output_cost": 0.4,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "audio",
+            "video",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-2-5-pro": {
+      "id": "gemini-2-5-pro",
+      "name": "Gemini 2.5 Pro",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-2.5-pro",
+          "free": false,
+          "cost": 3.4375,
+          "input_cost": 1.25,
+          "output_cost": 10.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "audio",
+            "video",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-3-1-flash-lite": {
+      "id": "gemini-3-1-flash-lite",
+      "name": "Gemini 3.1 Flash Lite",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-3.1-flash-lite",
+          "free": false,
+          "cost": 0.5625,
+          "input_cost": 0.25,
+          "output_cost": 1.5,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-3-1-pro-preview": {
+      "id": "gemini-3-1-pro-preview",
+      "name": "Gemini 3.1 Pro Preview",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-3.1-pro-preview",
+          "free": false,
+          "cost": 4.5,
+          "input_cost": 2.0,
+          "output_cost": 12.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-3-1-pro-preview-customtools": {
+      "id": "gemini-3-1-pro-preview-customtools",
+      "name": "Gemini 3.1 Pro Preview Custom Tools",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-3.1-pro-preview-customtools",
+          "free": false,
+          "cost": 4.5,
+          "input_cost": 2.0,
+          "output_cost": 12.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-3-5-flash": {
+      "id": "gemini-3-5-flash",
+      "name": "Gemini 3.5 Flash",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gemini-3.5-flash",
+          "free": false,
+          "cost": 3.375,
+          "input_cost": 1.5,
+          "output_cost": 9.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "google",
+          "model": "gemini-3.5-flash",
+          "free": false,
+          "cost": 3.375,
+          "input_cost": 1.5,
+          "output_cost": 9.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-3-5-flash-lite": {
+      "id": "gemini-3-5-flash-lite",
+      "name": "Gemini 3.5 Flash Lite",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gemini-3.5-flash-lite",
+          "free": false,
+          "cost": 0.85,
+          "input_cost": 0.3,
+          "output_cost": 2.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "google",
+          "model": "gemini-3.5-flash-lite",
+          "free": false,
+          "cost": 0.85,
+          "input_cost": 0.3,
+          "output_cost": 2.5,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-3-6-flash": {
+      "id": "gemini-3-6-flash",
+      "name": "Gemini 3.6 Flash",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-3.6-flash",
+          "free": false,
+          "cost": 1.5,
+          "input_cost": 0.75,
+          "output_cost": 3.75,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode",
+          "model": "gemini-3.6-flash",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 1.5,
+          "output_cost": 7.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gemini-3-7-flash": {
+      "id": "gemini-3-7-flash",
+      "name": "Gemini 3.7 Flash",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-3.7-flash",
+          "free": false,
+          "cost": 1.5,
+          "input_cost": 0.75,
+          "output_cost": 3.75,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode",
+          "model": "gemini-3.7-flash",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 1.5,
+          "output_cost": 7.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gemini-3-8-flash": {
+      "id": "gemini-3-8-flash",
+      "name": "Gemini 3.8 Flash",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-3.8-flash",
+          "free": false,
+          "cost": 1.5,
+          "input_cost": 0.75,
+          "output_cost": 3.75,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode",
+          "model": "gemini-3.8-flash",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 1.5,
+          "output_cost": 7.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gemini-3-flash-preview": {
+      "id": "gemini-3-flash-preview",
+      "name": "Gemini 3 Flash Preview",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-3-flash-preview",
+          "free": false,
+          "cost": 1.125,
+          "input_cost": 0.5,
+          "output_cost": 3.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ],
+      "score": 73.0
+    },
+    "gemini-4-argon": {
+      "id": "gemini-4-argon",
+      "name": "Gemini 4 Argon",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-4-argon",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode",
+          "model": "gemini-4-argon",
+          "free": false,
+          "cost": 8.0,
+          "input_cost": 4.0,
+          "output_cost": 20.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "gemini-4-argon",
+          "free": false,
+          "cost": 8.0,
+          "input_cost": 4.0,
+          "output_cost": 20.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ],
+      "score": 80.5
+    },
+    "gemini-4-carbon": {
+      "id": "gemini-4-carbon",
+      "name": "Gemini 4 Carbon",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-4-carbon",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode",
+          "model": "gemini-4-carbon",
+          "free": false,
+          "cost": 8.0,
+          "input_cost": 4.0,
+          "output_cost": 20.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 84.8
+    },
+    "gemini-4-hydrogen": {
+      "id": "gemini-4-hydrogen",
+      "name": "Gemini 4 Hydrogen",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gemini-4-hydrogen",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 1.5,
+          "output_cost": 7.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "google",
+          "model": "gemini-4-hydrogen",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 1.5,
+          "output_cost": 7.5,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ],
+      "score": 79.0
+    },
+    "gemini-flash-latest": {
+      "id": "gemini-flash-latest",
+      "name": "Gemini Flash Latest",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-flash-latest",
+          "free": false,
+          "cost": 1.5,
+          "input_cost": 0.75,
+          "output_cost": 3.75,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-flash-lite-latest": {
+      "id": "gemini-flash-lite-latest",
+      "name": "Gemini Flash-Lite Latest",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-flash-lite-latest",
+          "free": false,
+          "cost": 0.85,
+          "input_cost": 0.3,
+          "output_cost": 2.5,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-pro-latest": {
+      "id": "gemini-pro-latest",
+      "name": "Gemini Pro Latest",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-pro-latest",
+          "free": false,
+          "cost": 4.5,
+          "input_cost": 2.0,
+          "output_cost": 12.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "gemini-robotics-er-2-preview": {
+      "id": "gemini-robotics-er-2-preview",
+      "name": "Gemini Robotics-ER 2 Preview",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemini-robotics-er-2-preview",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gemma-4-26b-a4b-it": {
+      "id": "gemma-4-26b-a4b-it",
+      "name": "Gemma 4 26B A4B IT",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemma-4-26b-a4b-it",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 262144,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ]
+    },
+    "gemma-4-31b-it": {
+      "id": "gemma-4-31b-it",
+      "name": "Gemma 4 31B IT",
+      "variants": [
+        {
+          "provider": "google",
+          "model": "gemma-4-31b-it",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 262144,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ],
+      "score": 62.4
+    },
+    "glm-5": {
+      "id": "glm-5",
+      "name": "GLM-5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "glm-5",
+          "free": false,
+          "cost": 1.55,
+          "input_cost": 1.0,
+          "output_cost": 3.2,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 68.7
+    },
+    "glm-5-1": {
+      "id": "glm-5-1",
+      "name": "GLM-5.1",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "glm-5.1",
+          "free": false,
+          "cost": 2.15,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 68.7
+    },
+    "glm-5-2": {
+      "id": "glm-5-2",
+      "name": "GLM-5.2",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "glm-5.2",
+          "free": false,
+          "cost": 2.15,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "context": 1000000,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "glm-5.2",
+          "free": false,
+          "cost": 2.15,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "context": 1000000,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 68.7
+    },
+    "glm-5-3": {
+      "id": "glm-5-3",
+      "name": "GLM-5.3",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "glm-5.3",
+          "free": false,
+          "cost": 2.15,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "context": 1000000,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "glm-5.3",
+          "free": false,
+          "cost": 2.15,
+          "input_cost": 1.4,
+          "output_cost": 4.4,
+          "context": 1000000,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 68.7
+    },
+    "glm-5-3-flash": {
+      "id": "glm-5-3-flash",
+      "name": "GLM-5.3-Flash",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "glm-5.3-flash",
+          "free": false,
+          "cost": 0.2375,
+          "input_cost": 0.15,
+          "output_cost": 0.5,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "free": false,
+          "cost": 0.2375,
+          "input_cost": 0.15,
+          "output_cost": 0.5,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "pdf"
+          ]
+        }
+      ],
+      "score": 68.7
+    },
+    "gpt-5": {
+      "id": "gpt-5",
+      "name": "GPT-5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5",
+          "free": false,
+          "cost": 2.9275,
+          "input_cost": 1.07,
+          "output_cost": 8.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-1": {
+      "id": "gpt-5-1",
+      "name": "GPT-5.1",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.1",
+          "free": false,
+          "cost": 2.9275,
+          "input_cost": 1.07,
+          "output_cost": 8.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-1-codex": {
+      "id": "gpt-5-1-codex",
+      "name": "GPT-5.1 Codex",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.1-codex",
+          "free": false,
+          "cost": 2.9275,
+          "input_cost": 1.07,
+          "output_cost": 8.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode",
+          "model": "gpt-5.1-codex-max",
+          "free": false,
+          "cost": 3.4375,
+          "input_cost": 1.25,
+          "output_cost": 10.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-1-codex-mini": {
+      "id": "gpt-5-1-codex-mini",
+      "name": "GPT-5.1 Codex Mini",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.1-codex-mini",
+          "free": false,
+          "cost": 0.6875,
+          "input_cost": 0.25,
+          "output_cost": 2.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-2": {
+      "id": "gpt-5-2",
+      "name": "GPT-5.2",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.2",
+          "free": false,
+          "cost": 4.8125,
+          "input_cost": 1.75,
+          "output_cost": 14.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-2-codex": {
+      "id": "gpt-5-2-codex",
+      "name": "GPT-5.2 Codex",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.2-codex",
+          "free": false,
+          "cost": 4.8125,
+          "input_cost": 1.75,
+          "output_cost": 14.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-3-codex": {
+      "id": "gpt-5-3-codex",
+      "name": "GPT-5.3 Codex",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.3-codex",
+          "free": false,
+          "cost": 4.8125,
+          "input_cost": 1.75,
+          "output_cost": 14.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-3-codex-spark": {
+      "id": "gpt-5-3-codex-spark",
+      "name": "GPT-5.3 Codex Spark",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.3-codex-spark",
+          "free": false,
+          "cost": 4.8125,
+          "input_cost": 1.75,
+          "output_cost": 14.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-4": {
+      "id": "gpt-5-4",
+      "name": "GPT-5.4",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.4",
+          "free": false,
+          "cost": 5.625,
+          "input_cost": 2.5,
+          "output_cost": 15.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-4-mini": {
+      "id": "gpt-5-4-mini",
+      "name": "GPT-5.4 Mini",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.4-mini",
+          "free": false,
+          "cost": 1.6875,
+          "input_cost": 0.75,
+          "output_cost": 4.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-4-nano": {
+      "id": "gpt-5-4-nano",
+      "name": "GPT-5.4 Nano",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.4-nano",
+          "free": false,
+          "cost": 0.4625,
+          "input_cost": 0.2,
+          "output_cost": 1.25,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-4-pro": {
+      "id": "gpt-5-4-pro",
+      "name": "GPT-5.4 Pro",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.4-pro",
+          "free": false,
+          "cost": 67.5,
+          "input_cost": 30.0,
+          "output_cost": 180.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-5": {
+      "id": "gpt-5-5",
+      "name": "GPT-5.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.5",
+          "free": false,
+          "cost": 11.25,
+          "input_cost": 5.0,
+          "output_cost": 30.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-5-pro": {
+      "id": "gpt-5-5-pro",
+      "name": "GPT-5.5 Pro",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.5-pro",
+          "free": false,
+          "cost": 67.5,
+          "input_cost": 30.0,
+          "output_cost": 180.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-6-luna": {
+      "id": "gpt-5-6-luna",
+      "name": "GPT-5.6 Luna",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.6-luna",
+          "free": false,
+          "cost": 0.45,
+          "input_cost": 0.2,
+          "output_cost": 1.2,
+          "context": 1050000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "gpt-5.6-luna",
+          "free": false,
+          "cost": 0.45,
+          "input_cost": 0.2,
+          "output_cost": 1.2,
+          "context": 1050000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-6-sol": {
+      "id": "gpt-5-6-sol",
+      "name": "GPT-5.6 Sol",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.6-sol",
+          "free": false,
+          "cost": 8.0,
+          "input_cost": 4.0,
+          "output_cost": 20.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-6-terra": {
+      "id": "gpt-5-6-terra",
+      "name": "GPT-5.6 Terra",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5.6-terra",
+          "free": false,
+          "cost": 4.5,
+          "input_cost": 2.0,
+          "output_cost": 12.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.8
+    },
+    "gpt-5-codex": {
+      "id": "gpt-5-codex",
+      "name": "GPT-5 Codex",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5-codex",
+          "free": false,
+          "cost": 2.9275,
+          "input_cost": 1.07,
+          "output_cost": 8.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 78.5
+    },
+    "gpt-5-nano": {
+      "id": "gpt-5-nano",
+      "name": "GPT-5 Nano",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-5-nano",
+          "free": false,
+          "cost": 0.1375,
+          "input_cost": 0.05,
+          "output_cost": 0.4,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 48.0
+    },
+    "gpt-6-1-sol": {
+      "id": "gpt-6-1-sol",
+      "name": "GPT-6.1 Sol",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-6.1-sol",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gpt-6-2-astra": {
+      "id": "gpt-6-2-astra",
+      "name": "GPT-6.2 Astra",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-6.2-astra",
+          "free": false,
+          "cost": 16.0,
+          "input_cost": 8.0,
+          "output_cost": 40.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gpt-6-2-sol": {
+      "id": "gpt-6-2-sol",
+      "name": "GPT-6.2 Sol",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-6.2-sol",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gpt-6-astra": {
+      "id": "gpt-6-astra",
+      "name": "GPT-6 Astra",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-6-astra",
+          "free": false,
+          "cost": 20.0,
+          "input_cost": 10.0,
+          "output_cost": 50.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 85.8
+    },
+    "gpt-6-luna": {
+      "id": "gpt-6-luna",
+      "name": "GPT-6 Luna",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-6-luna",
+          "free": false,
+          "cost": 0.2,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "context": 1050000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "gpt-6-luna",
+          "free": false,
+          "cost": 0.2,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "context": 1050000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        }
+      ],
+      "score": 63.7
+    },
+    "gpt-6-sol": {
+      "id": "gpt-6-sol",
+      "name": "GPT-6 Sol",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-6-sol",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "grok-4-5": {
+      "id": "grok-4-5",
+      "name": "Grok 4.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "grok-4.5",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 2.0,
+          "output_cost": 6.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "grok-4-6": {
+      "id": "grok-4-6",
+      "name": "Grok 4.6",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "grok-4.6",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 2.0,
+          "output_cost": 6.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "grok-4-7": {
+      "id": "grok-4-7",
+      "name": "Grok 4.7",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "grok-4.7",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 2.0,
+          "output_cost": 6.0,
+          "context": 500000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "grok-4.7",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 2.0,
+          "output_cost": 6.0,
+          "context": 500000,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "grok-build-0-1": {
+      "id": "grok-build-0-1",
+      "name": "Grok Build 0.1",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "grok-build-0.1",
+          "free": false,
+          "cost": 1.25,
+          "input_cost": 1.0,
+          "output_cost": 2.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "hy3": {
+      "id": "hy3",
+      "name": "Hy3",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "hy3",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 256000,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 54.0
+    },
+    "hy4": {
+      "id": "hy4",
+      "name": "Hy4",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "hy4",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ],
+      "score": 79.2
+    },
+    "hy4-flash": {
+      "id": "hy4-flash",
+      "name": "Hy4 flash Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "hy4-flash-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "hy4-flash-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ]
+    },
+    "hy4-preview": {
+      "id": "hy4-preview",
+      "name": "Hy4 preview",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "hy4-preview",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1024000,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 79.2
+    },
+    "iceman": {
+      "id": "iceman",
+      "name": "Iceman Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "iceman-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 262144,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "iceman-contributor-free",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 262144,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 19.0
+    },
+    "inkling-2-small": {
+      "id": "inkling-2-small",
+      "name": "Inkling 2 Small Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "inkling-2-small-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ],
+      "score": 48.2
+    },
+    "kimi-k2-5": {
+      "id": "kimi-k2-5",
+      "name": "Kimi K2.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "kimi-k2.5",
+          "free": false,
+          "cost": 1.2,
+          "input_cost": 0.6,
+          "output_cost": 3.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "kimi-k2-6": {
+      "id": "kimi-k2-6",
+      "name": "Kimi K2.6",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "kimi-k2.6",
+          "free": false,
+          "cost": 1.7125,
+          "input_cost": 0.95,
+          "output_cost": 4.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "kimi-k2-7-code": {
+      "id": "kimi-k2-7-code",
+      "name": "Kimi K2.7 Code",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "kimi-k2.7-code",
+          "free": false,
+          "cost": 1.7125,
+          "input_cost": 0.95,
+          "output_cost": 4.0,
+          "context": 262144,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "kimi-k2.7-code",
+          "free": false,
+          "cost": 1.7125,
+          "input_cost": 0.95,
+          "output_cost": 4.0,
+          "context": 262144,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ]
+    },
+    "kimi-k3": {
+      "id": "kimi-k3",
+      "name": "Kimi K3",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "kimi-k3",
+          "free": false,
+          "cost": 6.0,
+          "input_cost": 3.0,
+          "output_cost": 15.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "kimi-k3",
+          "free": false,
+          "cost": 6.0,
+          "input_cost": 3.0,
+          "output_cost": 15.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ],
+      "score": 69.4
+    },
+    "kimi-k3-1-pro": {
+      "id": "kimi-k3-1-pro",
+      "name": "Kimi K3.1 Pro",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "kimi-k3.1-pro",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ],
+      "score": 69.4
+    },
+    "longcat-2-0": {
+      "id": "longcat-2-0",
+      "name": "LongCat-2.0",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "longcat-2.0",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1000000,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "longcat-2-5": {
+      "id": "longcat-2-5",
+      "name": "LongCat 2.5 Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "longcat-2.5-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "longcat-2.5-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ]
+    },
+    "mimo-v2-6-flash": {
+      "id": "mimo-v2-6-flash",
+      "name": "MiMo-V2.6-Flash Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "mimo-v2.6-flash-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 200000,
+          "media_in": [
+            "text",
+            "image",
+            "audio",
+            "video"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "mimo-v2.6-flash",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "audio",
+            "video"
+          ]
+        }
+      ]
+    },
+    "mimo-v2-6-pro": {
+      "id": "mimo-v2-6-pro",
+      "name": "MiMo-V2.6-Pro",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "mimo-v2.6-pro",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "audio",
+            "video"
+          ]
+        }
+      ]
+    },
+    "minimax-m2-5": {
+      "id": "minimax-m2-5",
+      "name": "MiniMax-M2.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "minimax-m2.5",
+          "free": false,
+          "cost": 0.525,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 64.2
+    },
+    "minimax-m2-7": {
+      "id": "minimax-m2-7",
+      "name": "MiniMax-M2.7",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "minimax-m2.7",
+          "free": false,
+          "cost": 0.525,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 64.2
+    },
+    "minimax-m3": {
+      "id": "minimax-m3",
+      "name": "MiniMax-M3",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "minimax-m3",
+          "free": false,
+          "cost": 0.525,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "minimax-m3",
+          "free": false,
+          "cost": 0.525,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ],
+      "score": 67.5
+    },
+    "minimax-m3-1-flash": {
+      "id": "minimax-m3-1-flash",
+      "name": "MiniMax M3.1 Flash",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "minimax-m3.1-flash",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ],
+      "score": 67.5
+    },
+    "mistral-large-4": {
+      "id": "mistral-large-4",
+      "name": "Mistral Large 4",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "mistral-large-4",
+          "free": false,
+          "cost": 2.065,
+          "input_cost": 1.36,
+          "output_cost": 4.18,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ],
+      "score": 43.7
+    },
+    "muse-ember-1-0": {
+      "id": "muse-ember-1-0",
+      "name": "Muse Ember 1.0",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "muse-ember-1.0",
+          "free": false,
+          "cost": 0.2,
+          "input_cost": 0.1,
+          "output_cost": 0.5,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "muse-spark-1-2": {
+      "id": "muse-spark-1-2",
+      "name": "Muse Spark 1.2",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "muse-spark-1.2",
+          "free": false,
+          "cost": 2.0,
+          "input_cost": 1.25,
+          "output_cost": 4.25,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "muse-spark-1.2-contributor",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1048576,
+          "media_in": [
+            "image",
+            "pdf",
+            "text",
+            "video"
+          ]
+        }
+      ]
+    },
+    "muse-spark-1-3": {
+      "id": "muse-spark-1-3",
+      "name": "Muse Spark 1.3",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "muse-spark-1.3",
+          "free": false,
+          "cost": 2.0,
+          "input_cost": 1.25,
+          "output_cost": 4.25,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "muse-spark-1.3-contributor",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "pdf",
+            "audio"
+          ]
+        }
+      ]
+    },
+    "muse-wonder-1-0": {
+      "id": "muse-wonder-1-0",
+      "name": "Muse Wonder",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "muse-wonder-1.0",
+          "free": false,
+          "cost": 8.0,
+          "input_cost": 4.0,
+          "output_cost": 20.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "nemotron-3-5-lightning": {
+      "id": "nemotron-3-5-lightning",
+      "name": "Nemotron 3.5 Lightning Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "nemotron-3.5-lightning-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 262144,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "nemotron-3-5-super-vl": {
+      "id": "nemotron-3-5-super-vl",
+      "name": "Nemotron 3.5 Super VL Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "nemotron-3.5-super-vl-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image"
+          ]
+        }
+      ]
+    },
+    "qwen3-5-plus": {
+      "id": "qwen3-5-plus",
+      "name": "Qwen3.5 Plus",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "qwen3.5-plus",
+          "free": false,
+          "cost": 0.45,
+          "input_cost": 0.2,
+          "output_cost": 1.2,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "qwen3-6-plus": {
+      "id": "qwen3-6-plus",
+      "name": "Qwen3.6 Plus",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "qwen3.6-plus",
+          "free": false,
+          "cost": 1.125,
+          "input_cost": 0.5,
+          "output_cost": 3.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "qwen3-7-plus": {
+      "id": "qwen3-7-plus",
+      "name": "Qwen3.7 Plus",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "qwen3.7-plus",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ]
+    },
+    "qwen3-8": {
+      "id": "qwen3-8",
+      "name": "Qwen3.8 Max",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "qwen3.8-max",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 2.0,
+          "output_cost": 6.0,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "qwen3.8-max",
+          "free": false,
+          "cost": 3.0,
+          "input_cost": 2.0,
+          "output_cost": 6.0,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "pdf"
+          ]
+        }
+      ]
+    },
+    "qwen3-8-flash": {
+      "id": "qwen3-8-flash",
+      "name": "Qwen3.8 Flash",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "qwen3.8-flash",
+          "free": false,
+          "cost": 0.23,
+          "input_cost": 0.15,
+          "output_cost": 0.47,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "qwen3.8-flash",
+          "free": false,
+          "cost": 0.23,
+          "input_cost": 0.15,
+          "output_cost": 0.47,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ]
+    },
+    "qwen4": {
+      "id": "qwen4",
+      "name": "Qwen4 Max",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "qwen4-max",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 983616,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ],
+      "score": 76.8
+    },
+    "step-5-preview": {
+      "id": "step-5-preview",
+      "name": "Step 5 Preview",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "step-5-preview",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ],
+      "score": 57.9
+    }
+  }
+}

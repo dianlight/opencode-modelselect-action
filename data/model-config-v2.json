@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "task-types-v2": {
+    "plan": {
+      "model": "gemini-4-argon",
+      "score": 95.1,
+      "think": "xhigh"
+    },
+    "issue-triage": {
+      "model": "longcat-2-5",
+      "score": 86.0,
+      "think": "low"
+    },
+    "review": {
+      "model": "gemini-4-argon",
+      "score": 95.1,
+      "think": "high"
+    },
+    "ui-design": {
+      "model": "deepseek-v4-1-flash",
+      "score": 79.8,
+      "think": "medium"
+    },
+    "ui-testing": {
+      "model": "claude-haiku-5-5",
+      "score": 91.4,
+      "think": "medium"
+    },
+    "api-testing": {
+      "model": "claude-haiku-5-5",
+      "score": 91.4,
+      "think": "medium"
+    },
+    "docs": {
+      "model": "longcat-2-5",
+      "score": 86.0,
+      "think": "low"
+    },
+    "debug": {
+      "model": "gemini-4-argon",
+      "score": 95.1,
+      "think": "high"
+    },
+    "refactor": {
+      "model": "claude-haiku-5-5",
+      "score": 91.4,
+      "think": "medium"
+    },
+    "security": {
+      "model": "gemini-4-argon",
+      "score": 95.1,
+      "think": "high"
+    },
+    "code": {
+      "model": "claude-haiku-5-5",
+      "score": 91.4,
+      "think": "medium"
+    },
+    "mechanical-engineer": {
+      "model": "gemini-4-argon",
+      "score": 95.1,
+      "think": "xhigh"
+    },
+    "web-search": {
+      "model": "gemini-4-argon",
+      "score": 95.1,
+      "think": "medium"
+    },
+    "generic": {
+      "model": "longcat-2-5",
+      "score": 86.0,
+      "think": "default"
+    },
+    "small-model": {
+      "model": "longcat-2-5",
+      "score": 86.0,
+      "think": "minimal"
+    }
+  }
+}

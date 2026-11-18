@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-18T04:55:17.687918+00:00",
+  "timestamp": "2026-11-18T13:58:58.518250+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -1159,26 +1159,6 @@
         "image",
         "video",
         "pdf"
-      ],
-      "media_out": [
-        "text"
-      ]
-    },
-    {
-      "provider": "opencode",
-      "id": "glm-5.3-flash-free",
-      "canonical": "glm-5-3-flash",
-      "name": "GLM-5.3-Flash Free",
-      "class": "free",
-      "free": true,
-      "input_cost": 0.0,
-      "output_cost": 0.0,
-      "blended_cost": 0.0,
-      "context": 200000,
-      "media_in": [
-        "text",
-        "image",
-        "video"
       ],
       "media_out": [
         "text"
