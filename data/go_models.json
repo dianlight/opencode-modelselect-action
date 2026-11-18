@@ -3,7 +3,7 @@
     {
       "id": "deepseek-v4.1-flash",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "DeepSeek V4.1 Flash 1017",
       "canonical_id": "deepseek/deepseek-v4.1-flash-1017",
@@ -126,7 +126,7 @@
                 "required",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -139,7 +139,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "$0.30",
@@ -148,12 +149,12 @@
         "cached_write": null,
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "deepseek-v4-pro",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "DeepSeek V4 Pro",
       "canonical_id": "deepseek/deepseek-v4-pro",
@@ -271,7 +272,7 @@
                 "required",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -284,7 +285,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$1.74",
@@ -293,12 +295,12 @@
         "cached_write": null,
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "glm-5.2",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "GLM-5.2",
       "canonical_id": "zhipuai/glm-5.2",
@@ -366,7 +368,7 @@
               "choice": [
                 "auto"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -379,7 +381,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$1.40",
@@ -388,12 +391,12 @@
         "cached_write": null,
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "glm-5.3",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "GLM-5.3",
       "canonical_id": "zhipuai/glm-5.3",
@@ -462,20 +465,21 @@
               "choice": [
                 "auto"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
       },
       "go": {
         "monthly_usage": {
-          "go": 15,
-          "go-plus": 120,
-          "go-teams": 20
+          "go": 200,
+          "go-plus": 400,
+          "go-teams": 205
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "$1.40",
@@ -484,12 +488,12 @@
         "cached_write": null,
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "grok-4.7",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Grok 4.7",
       "canonical_id": "xai/grok-4.7",
@@ -586,7 +590,7 @@
                 "required",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -599,7 +603,8 @@
         },
         "training": false,
         "zdr": false,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$2.00",
@@ -625,12 +630,12 @@
           }
         ]
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/responses"
+      "endpoint": "https://opencode.ai/inference/openai/v1/responses"
     },
     {
       "id": "muse-spark-1.2-contributor",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Muse Spark 1.2 Contributor",
       "canonical_id": "meta/muse-spark-1.2",
@@ -703,7 +708,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -716,21 +721,15 @@
         },
         "training": true,
         "zdr": false,
-        "limited_regions": true
+        "limited_regions": true,
+        "featured": false
       },
-      "pricing": {
-        "input": "$0.10",
-        "output": "$0.20",
-        "cached_read": "$0.002",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/responses"
+      "endpoint": "https://opencode.ai/inference/openai/v1/responses"
     },
     {
       "id": "muse-spark-1.3-contributor",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Muse Spark 1.3 Contributor",
       "canonical_id": "meta/muse-spark-1.3",
@@ -803,7 +802,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -816,21 +815,15 @@
         },
         "training": true,
         "zdr": false,
-        "limited_regions": true
+        "limited_regions": true,
+        "featured": true
       },
-      "pricing": {
-        "input": "$0.10",
-        "output": "$0.20",
-        "cached_read": "$0.002",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/responses"
+      "endpoint": "https://opencode.ai/inference/openai/v1/responses"
     },
     {
       "id": "glm-5.3-flash",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "GLM-5.3-Flash",
       "canonical_id": "zhipuai/glm-5.3-flash",
@@ -904,7 +897,7 @@
               "choice": [
                 "auto"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -917,7 +910,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "$0.15",
@@ -926,12 +920,12 @@
         "cached_write": null,
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "gpt-5.6-luna",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "GPT-5.6 Luna",
       "canonical_id": "openai/gpt-5.6-luna",
@@ -1048,7 +1042,11 @@
                 "lark",
                 "regex"
               ],
-              "updates": true
+              "updates": [
+                "add",
+                "remove",
+                "replace"
+              ]
             }
           }
         }
@@ -1061,7 +1059,8 @@
         },
         "training": false,
         "zdr": false,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$0.20",
@@ -1087,12 +1086,12 @@
           }
         ]
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/responses"
+      "endpoint": "https://opencode.ai/inference/openai/v1/responses"
     },
     {
       "id": "gpt-6-luna",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "GPT-6 Luna",
       "canonical_id": "openai/gpt-6-luna",
@@ -1209,7 +1208,11 @@
                 "lark",
                 "regex"
               ],
-              "updates": true
+              "updates": [
+                "add",
+                "remove",
+                "replace"
+              ]
             }
           }
         }
@@ -1222,7 +1225,8 @@
         },
         "training": false,
         "zdr": false,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "$0.10",
@@ -1248,12 +1252,12 @@
           }
         ]
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/responses"
+      "endpoint": "https://opencode.ai/inference/openai/v1/responses"
     },
     {
       "id": "claude-haiku-5-5",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Claude Haiku 5.5",
       "canonical_id": "anthropic/claude-haiku-5-5",
@@ -1358,7 +1362,11 @@
                 "tool"
               ],
               "search": true,
-              "updates": true
+              "updates": [
+                "add",
+                "remove",
+                "replace"
+              ]
             }
           }
         }
@@ -1371,7 +1379,8 @@
         },
         "training": false,
         "zdr": false,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "$0.10",
@@ -1397,12 +1406,12 @@
           }
         ]
       },
-      "endpoint": "https://opencode.ai/inference/go/anthropic/v1/messages"
+      "endpoint": "https://opencode.ai/inference/anthropic/v1/messages"
     },
     {
       "id": "hy3",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Hy3",
       "canonical_id": "tencent/hy3",
@@ -1465,7 +1474,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -1478,21 +1487,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.14",
-        "output": "$0.58",
-        "cached_read": "$0.035",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "hy4-preview",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Hy4 preview",
       "canonical_id": "tencent/hy4-preview",
@@ -1553,7 +1555,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -1566,21 +1568,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.834",
-        "output": "$2.501",
-        "cached_read": "$0.042",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "kimi-k2.7-code",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Kimi K2.7 Code",
       "canonical_id": "moonshotai/kimi-k2.7-code",
@@ -1663,7 +1658,7 @@
                 "auto",
                 "none"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -1676,7 +1671,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$0.95",
@@ -1685,12 +1681,12 @@
         "cached_write": null,
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "kimi-k3",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Kimi K3",
       "canonical_id": "moonshotai/kimi-k3",
@@ -1777,7 +1773,9 @@
                 "none",
                 "required"
               ],
-              "updates": true
+              "updates": [
+                "add"
+              ]
             }
           }
         }
@@ -1790,7 +1788,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$3.00",
@@ -1799,12 +1798,12 @@
         "cached_write": "$3.00",
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "mimo-v2.6-flash",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "MiMo-V2.6-Flash",
       "canonical_id": "xiaomi/mimo-v2.6-flash",
@@ -1882,7 +1881,7 @@
               "choice": [
                 "auto"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -1895,21 +1894,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.14",
-        "output": "$0.28",
-        "cached_read": "$0.0028",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": true
+      }
     },
     {
       "id": "mimo-v2.6-pro",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "MiMo-V2.6-Pro",
       "canonical_id": "xiaomi/mimo-v2.6-pro",
@@ -1987,7 +1979,7 @@
               "choice": [
                 "auto"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2000,21 +1992,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.435",
-        "output": "$0.87",
-        "cached_read": "$0.003625",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "minimax-m3",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "MiniMax-M3",
       "canonical_id": "minimax/MiniMax-M3",
@@ -2107,7 +2092,7 @@
               "choice": [
                 "auto"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2120,7 +2105,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$0.30",
@@ -2129,12 +2115,12 @@
         "cached_write": null,
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/anthropic/v1/messages"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "minimax-m3.1-flash",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "MiniMax M3.1 Flash",
       "canonical_id": "minimax/MiniMax-M3.1-Flash",
@@ -2212,7 +2198,7 @@
               "choice": [
                 "auto"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2225,21 +2211,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.15",
-        "output": "$0.60",
-        "cached_read": "$0.015",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "longcat-2.0",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "LongCat-2.0",
       "canonical_id": "meituan/longcat-2.0",
@@ -2300,7 +2279,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2313,21 +2292,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.30",
-        "output": "$1.20",
-        "cached_read": "$0.006",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "step-5-preview",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Step 5 Preview",
       "canonical_id": "stepfun/step-5-preview",
@@ -2400,7 +2372,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2413,21 +2385,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$1.00",
-        "output": "$2.70",
-        "cached_read": "$0.10",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "beam-free",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Beam Free",
       "canonical_id": "reflection/beam-1.0-501b-a23b",
@@ -2503,7 +2468,7 @@
                 "required",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2512,7 +2477,8 @@
         "monthly_usage": null,
         "training": false,
         "zdr": false,
-        "limited_regions": true
+        "limited_regions": true,
+        "featured": true
       },
       "pricing": {
         "input": "Free",
@@ -2521,12 +2487,12 @@
         "cached_write": null,
         "free": true
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "qwen3.8-max",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Qwen3.8 Max",
       "canonical_id": "alibaba/qwen3.8-max",
@@ -2611,7 +2577,7 @@
                 "none",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2624,7 +2590,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "$2.00",
@@ -2633,12 +2600,12 @@
         "cached_write": "$2.50",
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/anthropic/v1/messages"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "qwen3.8-flash",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Qwen3.8 Flash",
       "canonical_id": "alibaba/qwen3.8-flash",
@@ -2721,7 +2688,7 @@
                 "none",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2734,7 +2701,8 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "$0.15",
@@ -2743,12 +2711,12 @@
         "cached_write": "$0.20",
         "free": false
       },
-      "endpoint": "https://opencode.ai/inference/go/anthropic/v1/messages"
+      "endpoint": "https://opencode.ai/inference/anthropic/v1/messages"
     },
     {
       "id": "qwen3.7-plus",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Qwen3.7 Plus",
       "canonical_id": "alibaba/qwen3.7-plus",
@@ -2852,7 +2820,7 @@
                 "none",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -2865,38 +2833,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.40",
-        "output": "$1.60",
-        "cached_read": "$0.04",
-        "cached_write": "$0.50",
-        "free": false,
-        "tiers": [
-          {
-            "range": "\u2264 256K tokens",
-            "input": "$0.40",
-            "output": "$1.60",
-            "cached_read": "$0.04",
-            "cached_write": "$0.50",
-            "free": false
-          },
-          {
-            "range": "> 256K tokens",
-            "input": "$1.20",
-            "output": "$4.80",
-            "cached_read": "$0.12",
-            "cached_write": "$1.50"
-          }
-        ]
-      },
-      "endpoint": "https://opencode.ai/inference/go/anthropic/v1/messages"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "kimi-k3.1-pro",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Kimi K3.1 Pro",
       "canonical_id": "moonshotai/kimi-k3.1-pro",
@@ -2989,7 +2933,7 @@
                 "none",
                 "required"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -3002,21 +2946,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$2.00",
-        "output": "$10.00",
-        "cached_read": "$0.20",
-        "cached_write": "$2.00",
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": true
+      }
     },
     {
       "id": "iceman-contributor-free",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Iceman Contributor Free",
       "type": "chat",
@@ -3068,7 +3005,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -3077,21 +3014,14 @@
         "monthly_usage": null,
         "training": true,
         "zdr": false,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "Free",
-        "output": "Free",
-        "cached_read": "Free",
-        "cached_write": null,
-        "free": true
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "gemini-4-argon",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Gemini 4 Argon",
       "canonical_id": "google/gemini-4-argon",
@@ -3207,7 +3137,7 @@
                 "required",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -3220,7 +3150,8 @@
         },
         "training": false,
         "zdr": false,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "$4.00 $2.00",
@@ -3239,12 +3170,12 @@
           }
         ]
       },
-      "endpoint": "https://opencode.ai/inference/go/google/v1beta/models/gemini-4-argon"
+      "endpoint": "https://opencode.ai/inference/google/v1beta/models/gemini-4-argon"
     },
     {
       "id": "hy4",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Hy4",
       "canonical_id": "tencent/hy4",
@@ -3310,7 +3241,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -3323,21 +3254,14 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$0.834",
-        "output": "$2.501",
-        "cached_read": "$0.042",
-        "cached_write": null,
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+        "limited_regions": false,
+        "featured": false
+      }
     },
     {
       "id": "longcat-2.5-free",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "LongCat 2.5 Free",
       "canonical_id": "meituan/longcat-2.5",
@@ -3399,7 +3323,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -3408,7 +3332,8 @@
         "monthly_usage": null,
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": false
       },
       "pricing": {
         "input": "Free",
@@ -3417,12 +3342,12 @@
         "cached_write": null,
         "free": true
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "hy4-flash-free",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Hy4 flash Free",
       "canonical_id": "tencent/hy4-flash",
@@ -3488,7 +3413,7 @@
           },
           "capabilities": {
             "tools": {
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -3497,7 +3422,8 @@
         "monthly_usage": null,
         "training": false,
         "zdr": true,
-        "limited_regions": false
+        "limited_regions": false,
+        "featured": true
       },
       "pricing": {
         "input": "Free",
@@ -3506,12 +3432,12 @@
         "cached_write": null,
         "free": true
       },
-      "endpoint": "https://opencode.ai/inference/go/openai/v1/chat/completions"
+      "endpoint": "https://opencode.ai/inference/openai/v1/chat/completions"
     },
     {
       "id": "qwen4-max",
       "object": "model",
-      "created": 1794893359,
+      "created": 1794977706,
       "owned_by": "opencode",
       "name": "Qwen4 Max",
       "canonical_id": "alibaba/qwen4-max",
@@ -3608,7 +3534,7 @@
                 "none",
                 "tool"
               ],
-              "updates": false
+              "updates": []
             }
           }
         }
@@ -3621,16 +3547,9 @@
         },
         "training": false,
         "zdr": true,
-        "limited_regions": false
-      },
-      "pricing": {
-        "input": "$1.50",
-        "output": "$4.50",
-        "cached_read": "$0.075",
-        "cached_write": "$1.875",
-        "free": false
-      },
-      "endpoint": "https://opencode.ai/inference/go/anthropic/v1/messages"
+        "limited_regions": false,
+        "featured": false
+      }
     }
   ],
   "pricing_source": "https://opencode.ai/docs/go"

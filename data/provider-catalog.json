@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-17T05:29:31.055115+00:00",
+  "timestamp": "2026-11-18T04:55:17.687918+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -1566,6 +1566,42 @@
     },
     {
       "provider": "opencode",
+      "id": "gpt-6.2-astra",
+      "canonical": "gpt-6-2-astra",
+      "name": "GPT-6.2 Astra",
+      "class": "zen",
+      "free": false,
+      "input_cost": 8.0,
+      "output_cost": 40.0,
+      "blended_cost": 16.0,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "gpt-6.2-sol",
+      "canonical": "gpt-6-2-sol",
+      "name": "GPT-6.2 Sol",
+      "class": "zen",
+      "free": false,
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "gpt-6-astra",
       "canonical": "gpt-6-astra",
       "name": "GPT-6 Astra",
@@ -2347,9 +2383,9 @@
       "name": "Hy3",
       "class": "go",
       "free": false,
-      "input_cost": 0.14,
-      "output_cost": 0.58,
-      "blended_cost": 0.25,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 256000,
       "media_in": [
         "text"
@@ -2365,9 +2401,9 @@
       "name": "Hy4",
       "class": "go",
       "free": false,
-      "input_cost": 0.834,
-      "output_cost": 2.501,
-      "blended_cost": 1.2508,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1048576,
       "media_in": [
         "text",
@@ -2403,9 +2439,9 @@
       "name": "Hy4 preview",
       "class": "go",
       "free": false,
-      "input_cost": 0.834,
-      "output_cost": 2.501,
-      "blended_cost": 1.2508,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1024000,
       "media_in": [
         "text"
@@ -2419,11 +2455,11 @@
       "id": "iceman-contributor-free",
       "canonical": "iceman",
       "name": "Iceman Contributor Free",
-      "class": "free",
-      "free": true,
-      "input_cost": 0.0,
-      "output_cost": 0.0,
-      "blended_cost": 0.0,
+      "class": "go",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 262144,
       "media_in": [
         "text"
@@ -2479,9 +2515,9 @@
       "name": "Kimi K3.1 Pro",
       "class": "go",
       "free": false,
-      "input_cost": 2.0,
-      "output_cost": 10.0,
-      "blended_cost": 4.0,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1048576,
       "media_in": [
         "text",
@@ -2499,9 +2535,9 @@
       "name": "LongCat-2.0",
       "class": "go",
       "free": false,
-      "input_cost": 0.3,
-      "output_cost": 1.2,
-      "blended_cost": 0.525,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1000000,
       "media_in": [
         "text"
@@ -2536,9 +2572,9 @@
       "name": "MiMo-V2.6-Flash",
       "class": "go",
       "free": false,
-      "input_cost": 0.14,
-      "output_cost": 0.28,
-      "blended_cost": 0.175,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1048576,
       "media_in": [
         "text",
@@ -2557,9 +2593,9 @@
       "name": "MiMo-V2.6-Pro",
       "class": "go",
       "free": false,
-      "input_cost": 0.435,
-      "output_cost": 0.87,
-      "blended_cost": 0.5437,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1048576,
       "media_in": [
         "text",
@@ -2598,9 +2634,9 @@
       "name": "MiniMax M3.1 Flash",
       "class": "go",
       "free": false,
-      "input_cost": 0.15,
-      "output_cost": 0.6,
-      "blended_cost": 0.2625,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1000000,
       "media_in": [
         "text",
@@ -2618,9 +2654,9 @@
       "name": "Muse Spark 1.2 Contributor",
       "class": "go",
       "free": false,
-      "input_cost": 0.1,
-      "output_cost": 0.2,
-      "blended_cost": 0.125,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1048576,
       "media_in": [
         "image",
@@ -2639,9 +2675,9 @@
       "name": "Muse Spark 1.3 Contributor",
       "class": "go",
       "free": false,
-      "input_cost": 0.1,
-      "output_cost": 0.2,
-      "blended_cost": 0.125,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1048576,
       "media_in": [
         "text",
@@ -2661,9 +2697,9 @@
       "name": "Qwen3.7 Plus",
       "class": "go",
       "free": false,
-      "input_cost": 0.4,
-      "output_cost": 1.6,
-      "blended_cost": 0.7,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1000000,
       "media_in": [
         "text",
@@ -2722,9 +2758,9 @@
       "name": "Qwen4 Max",
       "class": "go",
       "free": false,
-      "input_cost": 1.5,
-      "output_cost": 4.5,
-      "blended_cost": 2.25,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 983616,
       "media_in": [
         "text",
@@ -2742,9 +2778,9 @@
       "name": "Step 5 Preview",
       "class": "go",
       "free": false,
-      "input_cost": 1.0,
-      "output_cost": 2.7,
-      "blended_cost": 1.425,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": 1000000,
       "media_in": [
         "text",
