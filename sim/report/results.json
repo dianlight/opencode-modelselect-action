@@ -1,6 +1,6 @@
 {
-  "runId": "2026-11-17T22-37-14-145Z",
-  "startedAt": "2026-11-17T22:37:14.145Z",
+  "runId": "2026-11-18T13-25-36-916Z",
+  "startedAt": "2026-11-18T13:25:36.916Z",
   "total": 29,
   "passed": 29,
   "failed": 0,
@@ -9,7 +9,7 @@
       "id": "action/auto-both-exhausted-fails",
       "component": "action",
       "ok": true,
-      "durationMs": 2300,
+      "durationMs": 2554,
       "failures": [],
       "error": null
     },
@@ -17,7 +17,7 @@
       "id": "action/auto-falls-back-to-go",
       "component": "action",
       "ok": true,
-      "durationMs": 329,
+      "durationMs": 330,
       "failures": [],
       "error": null
     },
@@ -25,7 +25,7 @@
       "id": "action/auto-prefers-free",
       "component": "action",
       "ok": true,
-      "durationMs": 310,
+      "durationMs": 336,
       "failures": [],
       "error": null
     },
@@ -33,7 +33,7 @@
       "id": "action/auto-waits-for-quota",
       "component": "action",
       "ok": true,
-      "durationMs": 1302,
+      "durationMs": 1300,
       "failures": [],
       "error": null
     },
@@ -41,7 +41,7 @@
       "id": "action/config-url-unreachable",
       "component": "action",
       "ok": true,
-      "durationMs": 208,
+      "durationMs": 207,
       "failures": [],
       "error": null
     },
@@ -49,7 +49,7 @@
       "id": "action/fallback-model-used",
       "component": "action",
       "ok": true,
-      "durationMs": 291,
+      "durationMs": 297,
       "failures": [],
       "error": null
     },
@@ -57,7 +57,7 @@
       "id": "action/free-tier-case-insensitive",
       "component": "action",
       "ok": true,
-      "durationMs": 273,
+      "durationMs": 289,
       "failures": [],
       "error": null
     },
@@ -65,7 +65,7 @@
       "id": "action/go-tier",
       "component": "action",
       "ok": true,
-      "durationMs": 276,
+      "durationMs": 284,
       "failures": [],
       "error": null
     },
@@ -73,7 +73,7 @@
       "id": "action/invalid-tier-rejected",
       "component": "action",
       "ok": true,
-      "durationMs": 208,
+      "durationMs": 205,
       "failures": [],
       "error": null
     },
@@ -81,7 +81,7 @@
       "id": "action/max-cost-walks-ranked",
       "component": "action",
       "ok": true,
-      "durationMs": 285,
+      "durationMs": 301,
       "failures": [],
       "error": null
     },
@@ -89,7 +89,7 @@
       "id": "action/missing-task-type-fails-closed",
       "component": "action",
       "ok": true,
-      "durationMs": 282,
+      "durationMs": 291,
       "failures": [],
       "error": null
     },
@@ -97,7 +97,7 @@
       "id": "plugin/announce-off-stays-quiet",
       "component": "plugin",
       "ok": true,
-      "durationMs": 313,
+      "durationMs": 513,
       "failures": [],
       "error": null
     },
@@ -105,7 +105,7 @@
       "id": "plugin/fixed-task-type-pin",
       "component": "plugin",
       "ok": true,
-      "durationMs": 322,
+      "durationMs": 310,
       "failures": [],
       "error": null
     },
@@ -113,7 +113,7 @@
       "id": "plugin/http-request-stamps-pick",
       "component": "plugin",
       "ok": true,
-      "durationMs": 312,
+      "durationMs": 324,
       "failures": [],
       "error": null
     },
@@ -121,7 +121,7 @@
       "id": "plugin/routes-review-announce",
       "component": "plugin",
       "ok": true,
-      "durationMs": 301,
+      "durationMs": 318,
       "failures": [],
       "error": null
     },
@@ -129,7 +129,7 @@
       "id": "plugin/virtual-anchor-kept",
       "component": "plugin",
       "ok": true,
-      "durationMs": 305,
+      "durationMs": 329,
       "failures": [],
       "error": null
     },
@@ -137,7 +137,7 @@
       "id": "plugin/virtual-provider-registered",
       "component": "plugin",
       "ok": true,
-      "durationMs": 275,
+      "durationMs": 291,
       "failures": [],
       "error": null
     },
@@ -145,7 +145,7 @@
       "id": "service/health-requires-token",
       "component": "service",
       "ok": true,
-      "durationMs": 154,
+      "durationMs": 153,
       "failures": [],
       "error": null
     },
@@ -153,7 +153,7 @@
       "id": "service/read-never-writes-routing",
       "component": "service",
       "ok": true,
-      "durationMs": 139,
+      "durationMs": 135,
       "failures": [],
       "error": null
     },
@@ -161,7 +161,7 @@
       "id": "service/status-ok",
       "component": "service",
       "ok": true,
-      "durationMs": 134,
+      "durationMs": 145,
       "failures": [],
       "error": null
     },
@@ -169,7 +169,7 @@
       "id": "service/tier-control-writes-managed",
       "component": "service",
       "ok": true,
-      "durationMs": 139,
+      "durationMs": 142,
       "failures": [],
       "error": null
     },
@@ -185,7 +185,7 @@
       "id": "panel/save-history-chars",
       "component": "panel",
       "ok": true,
-      "durationMs": 257,
+      "durationMs": 250,
       "failures": [],
       "error": null
     },
@@ -193,7 +193,7 @@
       "id": "pipeline/benchmark-dry-run",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 657,
+      "durationMs": 688,
       "failures": [],
       "error": null
     },
@@ -201,7 +201,7 @@
       "id": "pipeline/benchmark-no-key",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 79,
+      "durationMs": 69,
       "failures": [],
       "error": null
     },
@@ -209,7 +209,7 @@
       "id": "pipeline/maintenance-coverage-issues",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 63,
+      "durationMs": 60,
       "failures": [],
       "error": null
     },
@@ -217,7 +217,7 @@
       "id": "pipeline/maintenance-online-catalog",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 71,
+      "durationMs": 60,
       "failures": [],
       "error": null
     },
@@ -225,7 +225,7 @@
       "id": "pipeline/maintenance-zen-down",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 71,
+      "durationMs": 59,
       "failures": [],
       "error": null
     },
@@ -233,7 +233,7 @@
       "id": "fuzz/routing-invariants",
       "component": "fuzz",
       "ok": true,
-      "durationMs": 13,
+      "durationMs": 12,
       "failures": [],
       "error": null
     }
