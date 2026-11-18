@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-18T04:55:19.336939+00:00",
+  "timestamp": "2026-11-18T13:59:00.113136+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -329,19 +329,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 77.6,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/beam-free",
           "score": 76.0,
           "input_cost": 0.0,
@@ -486,7 +473,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 77.6,
-          "free": true
+          "free": false
         },
         {
           "model": "kimi-k2-7-code",
@@ -1204,19 +1191,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 77.6,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/beam-free",
           "score": 76.0,
           "input_cost": 0.0,
@@ -1361,7 +1335,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 77.6,
-          "free": true
+          "free": false
         },
         {
           "model": "kimi-k2-7-code",
@@ -1687,19 +1661,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 73.7,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/inkling-2-small-free",
           "score": 55.2,
           "input_cost": 0.0,
@@ -1834,7 +1795,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 73.7,
-          "free": true
+          "free": false
         },
         {
           "model": "kimi-k3",
@@ -2245,19 +2206,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/big-pickle",
           "score": 67.0,
           "input_cost": 0.0,
@@ -2377,7 +2325,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 70.9,
-          "free": true
+          "free": false
         },
         {
           "model": "gpt-6-luna",
@@ -2778,19 +2726,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/big-pickle",
           "score": 67.0,
           "input_cost": 0.0,
@@ -2910,7 +2845,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 70.9,
-          "free": true
+          "free": false
         },
         {
           "model": "gpt-6-luna",
@@ -3678,19 +3613,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 77.6,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/beam-free",
           "score": 76.0,
           "input_cost": 0.0,
@@ -3835,7 +3757,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 77.6,
-          "free": true
+          "free": false
         },
         {
           "model": "kimi-k2-7-code",
@@ -4186,19 +4108,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/big-pickle",
           "score": 67.0,
           "input_cost": 0.0,
@@ -4318,7 +4227,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 70.9,
-          "free": true
+          "free": false
         },
         {
           "model": "gpt-6-luna",
@@ -4744,19 +4653,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 77.6,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/beam-free",
           "score": 76.0,
           "input_cost": 0.0,
@@ -4901,7 +4797,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 77.6,
-          "free": true
+          "free": false
         },
         {
           "model": "kimi-k2-7-code",
@@ -5252,19 +5148,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 70.9,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/big-pickle",
           "score": 67.0,
           "input_cost": 0.0,
@@ -5384,7 +5267,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 70.9,
-          "free": true
+          "free": false
         },
         {
           "model": "gpt-6-luna",
@@ -5810,19 +5693,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 77.6,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/beam-free",
           "score": 76.0,
           "input_cost": 0.0,
@@ -5967,7 +5837,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 77.6,
-          "free": true
+          "free": false
         },
         {
           "model": "kimi-k2-7-code",
@@ -6343,19 +6213,6 @@
           ]
         },
         {
-          "model": "opencode/glm-5.3-flash-free",
-          "score": 77.6,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 200000,
-          "modalities": [
-            "text",
-            "image",
-            "video"
-          ]
-        },
-        {
           "model": "opencode/beam-free",
           "score": 76.0,
           "input_cost": 0.0,
@@ -6500,7 +6357,7 @@
         {
           "model": "glm-5-3-flash",
           "score": 77.6,
-          "free": true
+          "free": false
         },
         {
           "model": "kimi-k2-7-code",
@@ -7238,7 +7095,6 @@
     "big-pickle": "chat",
     "mimo-v2.6-flash-free": "chat",
     "deepseek-v4.1-flash-free": "chat",
-    "glm-5.3-flash-free": "chat",
     "longcat-2.5-free": "chat",
     "iceman-free": "chat",
     "inkling-2-small-free": "chat",
@@ -7269,7 +7125,6 @@
     "opencode/big-pickle": "/inference/openai/v1",
     "opencode/mimo-v2.6-flash-free": "/inference/openai/v1",
     "opencode/deepseek-v4.1-flash-free": "/inference/openai/v1",
-    "opencode/glm-5.3-flash-free": "/inference/openai/v1",
     "opencode/longcat-2.5-free": "/inference/openai/v1",
     "opencode/iceman-free": "/inference/openai/v1",
     "opencode/inkling-2-small-free": "/inference/openai/v1",

@@ -1,0 +1,16 @@
+{
+  "task-types": {
+    "pr-review": {
+      "go": "opencode-go/pricey",
+      "free": "opencode/cheap-free",
+      "go_ranked": [
+        { "model": "opencode-go/pricey", "score": 90, "input_cost": 10, "output_cost": 50, "blended_cost": 20 },
+        { "model": "opencode-go/mid", "score": 88, "input_cost": 1, "output_cost": 3, "blended_cost": 1.5 },
+        { "model": "opencode-go/unknown", "score": 87, "input_cost": null, "output_cost": null, "blended_cost": null }
+      ],
+      "free_ranked": [
+        { "model": "opencode/cheap-free", "score": 75, "input_cost": 0, "output_cost": 0, "blended_cost": 0 }
+      ]
+    }
+  }
+}

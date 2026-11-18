@@ -153,7 +153,7 @@ describe('status service', () => {
       const snap = res.body;
       assert.equal(snap.managed.parseOk, true);
       assert.equal(snap.managed.entry.form, 'object');
-      assert.equal(snap.managed.entry.package, 'opencode-modelselect-plugin');
+      assert.equal(snap.managed.entry.package, '@dianlight/opencode-modelselect-plugin');
       assert.equal(snap.managed.entry.options.historyChars, 1200);
       assert.equal(snap.managedPath, '~/.config/openchamber/opencode.managed.json');
       assert.deepEqual(snap.catalog.types.sort(), ['bugfix', 'code', 'generic', 'review']);
@@ -226,7 +226,7 @@ describe('status service', () => {
 
     it('converts a string plugin entry in place', async () => {
       const fixture2 = makeFixture({
-        managed: JSON.stringify({ plugins: ['some-other-plugin', 'opencode-modelselect-plugin'] }),
+        managed: JSON.stringify({ plugins: ['some-other-plugin', '@dianlight/opencode-modelselect-plugin'] }),
       });
       const service2 = await startService(fixture2);
       try {
@@ -239,7 +239,7 @@ describe('status service', () => {
         assert.equal(res.status, 200);
         const plugins = JSON.parse(fs.readFileSync(managedPath(fixture2), 'utf8')).plugins;
         assert.equal(plugins[0], 'some-other-plugin');
-        assert.equal(plugins[1].package, 'opencode-modelselect-plugin');
+        assert.equal(plugins[1].package, '@dianlight/opencode-modelselect-plugin');
         assert.equal(plugins[1].options.historyChars, 2500);
       } finally {
         service2.stop();
@@ -256,7 +256,7 @@ describe('status service', () => {
         const second = await service3.post('/config', { directory: fixture3.project }, { kind: 'plugin-add' });
         assert.equal(second.body.added, false);
         const plugins = JSON.parse(fs.readFileSync(managedPath(fixture3), 'utf8')).plugins;
-        assert.equal(plugins.filter((p) => p && p.package === 'opencode-modelselect-plugin').length, 1);
+        assert.equal(plugins.filter((p) => p && p.package === '@dianlight/opencode-modelselect-plugin').length, 1);
       } finally {
         service3.stop();
       }

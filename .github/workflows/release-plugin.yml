@@ -1,11 +1,12 @@
 name: Release Plugin
 
-# Publishes plugin/ to npm and attaches the tarball to a GitHub Release.
-# Tags are namespaced as plugin-v* (e.g. plugin-v0.1.0) so they never clash
-# with the select-model action releases (v*). The tag version must match
+# Publishes plugin/ to GitHub Packages and attaches the tarball to a GitHub
+# Release. Tags are namespaced as plugin-v* (e.g. plugin-v1.1.0) so they never
+# clash with the select-model action releases (v*). The tag version must match
 # plugin/package.json. Manual runs only verify + dry-run publish.
-# Requires a NPM_TOKEN repository secret (npm access token with publish
-# rights on opencode-modelselect-plugin).
+# Publishes as @dianlight/opencode-modelselect-plugin — GitHub Packages only
+# hosts scoped names — authenticated with the workflow's GITHUB_TOKEN
+# (packages: write), so no repository secret is required.
 
 on:
   push:
@@ -25,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -34,7 +36,7 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 26
-          registry-url: https://registry.npmjs.org
+          registry-url: https://npm.pkg.github.com
       - name: Check syntax
         run: |
           set -euo pipefail
@@ -55,24 +57,20 @@ jobs:
             echo "::error::Tag ${TAG_NAME} does not match plugin/package.json version ${PKG_VERSION}."
             exit 1
           fi
-      - name: Publish to npm (dry-run)
+      - name: Publish to GitHub Packages (dry-run)
         if: github.event_name == 'workflow_dispatch'
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          npm publish --dry-run --access public --working-directory plugin
-      - name: Publish to npm
+          npm publish --dry-run ./plugin
+      - name: Publish to GitHub Packages
         if: startsWith(github.ref, 'refs/tags/plugin-v')
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ -z "${NODE_AUTH_TOKEN}" ]; then
-            echo "::error::NPM_TOKEN secret is not set; cannot publish."
-            exit 1
-          fi
-          npm publish --access public --working-directory plugin
+          npm publish ./plugin
       - name: Attach tarball to GitHub Release
         if: startsWith(github.ref, 'refs/tags/plugin-v')
         env:
@@ -80,9 +78,10 @@ jobs:
           TAG_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          TARBALL="$(npm pack --pack-destination /tmp --working-directory plugin | tail -n 1)"
-          NOTES="Plugin release ${TAG_NAME}. Prefer installing from npm:"
-          NOTES="${NOTES} \`opencode-modelselect-plugin\`. See the README"
+          TARBALL="$(npm pack ./plugin --pack-destination /tmp | tail -n 1)"
+          NOTES="Plugin release ${TAG_NAME}. Install from GitHub Packages:"
+          NOTES="${NOTES} \`@dianlight/opencode-modelselect-plugin\`"
+          NOTES="${NOTES} (registry https://npm.pkg.github.com). See the README"
           NOTES="${NOTES} Modelselect Plugin section for v1/v2 setup."
           if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
             gh release upload "${TAG_NAME}" "/tmp/${TARBALL}" --clobber

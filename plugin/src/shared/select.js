@@ -29,10 +29,13 @@ const { isFreeModelString, firstPaidModel, splitModelRefStrict } = require('./co
 const { selectWithinBudget } = require('./core/budget');
 const { entryFor, normalizeThink } = require('./core/lookup');
 const { buildChain } = require('./core/chain');
+const { buildV2Chain, taskEntryV2 } = require('./core/registry');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
+const DEFAULT_CONFIG_V2_URL = 'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config-v2.json';
 const DEFAULT_CATALOG_URL = 'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/provider-catalog.json';
+const DEFAULT_REGISTRY_URL = 'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-registry-v2.json';
 const DEFAULT_CATALOG_REFRESH_MINUTES = 1440;
 const DEFAULT_USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
 const FETCH_TIMEOUT_MS = 10000;
@@ -92,6 +95,7 @@ function normalizeOptions(raw = {}, env = process.env) {
     tier,
     autoPreference: preference === 'go-first' ? 'go-first' : 'free-first',
     configUrl: String(raw.configUrl ?? raw['config-url'] ?? DEFAULT_CONFIG_URL),
+    configV2Url: String(raw.configV2Url ?? raw['config-v2-url'] ?? DEFAULT_CONFIG_V2_URL),
     configRefreshMinutes: refresh,
     taskTypesUrl: String(
       raw.taskTypesUrl ?? raw['task-types-url'] ?? raw.tasktypesUrl ?? DEFAULT_TASK_TYPES_URL,
@@ -100,6 +104,7 @@ function normalizeOptions(raw = {}, env = process.env) {
     maxCost,
     openchamber,
     catalogUrl: String(raw.catalogUrl ?? raw['catalog-url'] ?? DEFAULT_CATALOG_URL),
+    registryUrl: String(raw.registryUrl ?? raw['registry-url'] ?? DEFAULT_REGISTRY_URL),
     catalogRefreshMinutes: (() => {
       const r = raw.catalogRefreshMinutes ?? raw['catalog-refresh-minutes'] ?? DEFAULT_CATALOG_REFRESH_MINUTES;
       const n = Number(r);
@@ -232,6 +237,52 @@ async function loadCatalogFor(opts, cacheDir) {
   return cached ? cached.catalog ?? null : null;
 }
 
+const REGISTRY_CACHE_BASENAME = 'model-registry-v2-cache.json';
+
+function readRegistryCache(cacheDir) {
+  try {
+    const raw = JSON.parse(fs.readFileSync(cacheFile(cacheDir, REGISTRY_CACHE_BASENAME), 'utf8'));
+    if (raw && typeof raw === 'object' && typeof raw.fetchedAt === 'number' && raw.registry) return raw;
+  } catch {
+    // no usable registry cache
+  }
+  return null;
+}
+
+function writeRegistryCache(cacheDir, registry) {
+  fs.mkdirSync(String(cacheDir), { recursive: true });
+  fs.writeFileSync(cacheFile(cacheDir, REGISTRY_CACHE_BASENAME), JSON.stringify({ fetchedAt: Date.now(), registry }), 'utf8');
+}
+
+/**
+ * Provider-model v2 registry (`data/model-registry-v2.json`), cached like the
+ * config with the catalog refresh window. Never throws; null degrades to the
+ * v1 task entries.
+ */
+async function loadRegistryFor(opts, cacheDir) {
+  const url = String(opts?.registryUrl ?? DEFAULT_REGISTRY_URL);
+  const refresh = Number(opts?.catalogRefreshMinutes ?? DEFAULT_CATALOG_REFRESH_MINUTES);
+  const cached = readRegistryCache(cacheDir);
+  if (cached && (refresh <= 0 || Date.now() - cached.fetchedAt < refresh * 60 * 1000)) {
+    return cached.registry ?? null;
+  }
+  let data = null;
+  try {
+    data = await fetchRemote(url);
+  } catch {
+    data = null;
+  }
+  if (data) {
+    try {
+      writeRegistryCache(cacheDir, data);
+    } catch {
+      // best-effort: next run refetches
+    }
+    return data;
+  }
+  return cached ? cached.registry ?? null : null;
+}
+
 async function fetchRemote(url) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
@@ -270,6 +321,39 @@ async function loadConfig(opts, cacheDir) {
   }
   if (cached) return { config: cached.config, source: 'cache-stale', stale: true, error };
   throw new Error(`Model config unreachable (${opts.configUrl}): ${error?.message ?? 'no cache'}`);
+}
+
+const CONFIG_V2_CACHE_BASENAME = 'model-config-v2-cache.json';
+
+/**
+ * Provider-model v2 task table (`data/model-config-v2.json`), cached beside
+ * the v1 config with the same refresh window. Never throws; null degrades to
+ * the v1 task entries.
+ */
+async function loadConfigV2(opts, cacheDir) {
+  const url = String(opts?.configV2Url ?? DEFAULT_CONFIG_V2_URL);
+  const refresh = Number(opts?.configRefreshMinutes ?? 1440);
+  const cached = readCache(cacheDir, CONFIG_V2_CACHE_BASENAME);
+  if (cached && (refresh <= 0 || Date.now() - cached.fetchedAt < refresh * 60 * 1000)) {
+    return { config: cached.config, source: 'cache', stale: false };
+  }
+  let remote = null;
+  let error = null;
+  try {
+    remote = await fetchRemote(url);
+  } catch (err) {
+    error = err;
+  }
+  if (remote) {
+    try {
+      writeCache(cacheDir, remote, CONFIG_V2_CACHE_BASENAME);
+    } catch {
+      // best-effort: next run refetches
+    }
+    return { config: remote, source: 'remote', stale: false };
+  }
+  if (cached) return { config: cached.config, source: 'cache-stale', stale: true, error };
+  throw new Error(`Model v2 config unreachable (${url}): ${error?.message ?? 'no cache'}`);
 }
 
 const GO_QUOTA_TTL_MS = 5 * 60 * 1000;
@@ -642,9 +726,17 @@ function refinePickForRoute(entry, tier, model, { config, cacheDir, media, capab
 }
 
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
-async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, catalog, availability, tried }) {
+async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, catalog, registry: registryIn, availability, tried }) {
   const { config, source: source0, stale } = await loadConfig(opts, cacheDir);
   let source = source0;
+  // Provider-model v2 task table, in its own file/cache; fail-soft so an
+  // unreachable v2 config leaves the v1 task entries in charge.
+  let configV2 = null;
+  try {
+    configV2 = (await loadConfigV2(opts, cacheDir)).config || null;
+  } catch {
+    configV2 = null;
+  }
   const { key, entry } = entryFor(config, taskType);
   // Free-tier soft-error latch, PER MODEL (quota 12h / rate-limit 1h;
   // see shared/freequota.js): Zen has no free-quota endpoint, so a real
@@ -735,18 +827,75 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
     throw new Error(`No '${tier}' model for task-type='${key}'.`);
   }
 
-  // Provider chain (F4): expand the task's ranked list into concrete
-  // provider/model candidates through the shared core (`core/chain.js` —
-  // the SAME algorithm the GitHub Action runs), applying the live
-  // availability (enabled flags, Go spend, free latches), the provider
-  // allowlist, media/context/budget filters. The pick becomes the first
-  // surviving chain row; `tried` refs (per-session failover history) are
-  // skipped. Without a catalog (or an empty chain) the legacy tier logic
-  // above stands untouched.
+  // Provider model v2 (preferred): the task names ONE model id and the
+  // registry lists its free/paid provider variants. Resolution applies the
+  // runtime preference (free-first/go-first) and the availability filters
+  // inside `core/registry.js`; the first surviving variant becomes the pick.
+  // The same registry/latch semantics as v1, so both layers agree on what is
+  // usable. No v2 entry (or no usable variant) leaves the v1 path below
+  // untouched — readers prefer v2 and fall back to v1.
   let chain = null;
+  let sourceV2 = false;
+  const v2Task = taskEntryV2(configV2, taskType);
+  if (v2Task) {
+    let registry = registryIn || null;
+    if (!registry) {
+      try {
+        registry = await loadRegistryFor(opts, cacheDir);
+      } catch {
+        registry = null;
+      }
+    }
+    if (registry) {
+      try {
+        chain = buildV2Chain({
+          taskEntry: v2Task.entry,
+          registry,
+          availability: availability || null,
+          preference: opts.autoPreference,
+          tier: tier === 'free' ? 'free' : tier === 'go' ? 'go' : null,
+          media,
+          contextNeed: 0,
+          maxCost: opts.maxCost,
+          providers: Array.isArray(opts.availableProviders) && opts.availableProviders.length > 0 ? opts.availableProviders : null,
+        });
+        if (Array.isArray(tried) && tried.length > 0) {
+          const done = new Set(tried.map((t) => String(t ?? '').trim()).filter(Boolean));
+          chain = (Array.isArray(chain) ? chain : []).filter(
+            (c) => !done.has(String(c.ref ?? `${c.provider}/${c.model}`)),
+          );
+        }
+        if (Array.isArray(chain) && chain.length > 0) {
+          sourceV2 = true;
+          const first = chain[0];
+          const refStr = `${first.provider}/${first.model}`;
+          if (opts.verbose && refStr !== model) {
+            console.log(`[modelselect] registry pick ${model} → ${refStr} (${first.class})`);
+          }
+          model = refStr;
+          tier = first.class === 'free' ? 'free' : 'go';
+          source = `${source}+v2`;
+        } else {
+          chain = null;
+        }
+      } catch (err) {
+        if (opts.verbose) console.log(`[modelselect] registry skipped: ${err?.message ?? err}`);
+        chain = null;
+      }
+    }
+  }
+
+  // Provider chain (F4, v1 fallback): expand the task's ranked list into
+  // concrete provider/model candidates through the shared core
+  // (`core/chain.js` — the SAME algorithm the GitHub Action runs), applying
+  // the live availability (enabled flags, Go spend, free latches), the
+  // provider allowlist, media/context/budget filters. The pick becomes the
+  // first surviving chain row; `tried` refs (per-session failover history)
+  // are skipped. Without a catalog (or an empty chain) the legacy tier logic
+  // above stands untouched.
   const rankedLists = [entry.ranked, entry.go_ranked, entry.free_ranked];
   const hasRanked = rankedLists.some((l) => Array.isArray(l) && l.length > 0);
-  if (catalog && entry && hasRanked) {
+  if (!sourceV2 && catalog && entry && hasRanked) {
     try {
       chain = buildChain({
         entry,
@@ -785,7 +934,8 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
   // Budget cap (mirrors the action): an over-budget pick is replaced by the
   // best-scoring ranked model within budget; nothing fitting falls back to
   // `fallbackModel` or throws (the context hook keeps the current model).
-  if (opts.maxCost !== null && opts.maxCost !== undefined) {
+  // The v2 chain already applied `maxCost` to its variants.
+  if (!sourceV2 && opts.maxCost !== null && opts.maxCost !== undefined) {
     let budgeted;
     try {
       budgeted = selectWithinBudget(entry, key, tier, model, opts.maxCost);
@@ -845,7 +995,9 @@ module.exports = {
   usageNote,
   shouldAnnounce,
   loadConfig,
+  loadConfigV2,
   loadCatalogFor,
+  loadRegistryFor,
   resolveModel,
   endpointPathFor,
   splitModelRef: splitModelRefStrict,
@@ -860,4 +1012,5 @@ module.exports = {
   modelSupportsMedia,
   refinePickForRoute,
   DEFAULT_CONFIG_URL,
+  DEFAULT_CONFIG_V2_URL,
 };

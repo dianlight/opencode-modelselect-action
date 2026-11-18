@@ -14,7 +14,8 @@
  * - `token` / `jevToken` are write-only: a blank draft keeps the stored value.
  * - Project cache (`<directory>/.opencode/.modelselect-cache/`) is written by
  *   the plugin: `status-<sessionID>.json`, `model-config-cache.json`,
- *   `free-quota.json`, `usage-limits.json`, `routing-sync.json`.
+ *   `model-config-v2-cache.json`, `free-quota.json`, `usage-limits.json`,
+ *   `routing-sync.json`.
  */
 import fsp from 'node:fs/promises';
 import os from 'node:os';
@@ -34,7 +35,7 @@ export const GLOBAL_CONFIG_PATHS = [
 /** Paths the plugin tab names as "present but ignored" (read-only, never written). */
 export const GLOBAL_NOTE_PATHS = GLOBAL_CONFIG_PATHS;
 export const ROUTING_SYNC_FILE = 'routing-sync.json';
-export const PLUGIN_PACKAGE = 'opencode-modelselect-plugin';
+export const PLUGIN_PACKAGE = '@dianlight/opencode-modelselect-plugin';
 
 // Plugin defaults (mirror plugin/src/shared — keep in sync).
 export const DEFAULT_CONFIG_URL =
@@ -404,6 +405,24 @@ export async function readCatalog(directory) {
     if (bounds.max <= bounds.min) bounds.max = bounds.min + 1;
   }
   return { types: types, bounds: bounds, config: (data && data.config) || null };
+}
+
+/**
+ * Provider-model v2 task table (`model-config-v2-cache.json`), the v2 half
+ * of the plugin's config cache. Null when the plugin has not cached it.
+ */
+export function readConfigV2(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, 'model-config-v2-cache.json'))
+    .then((data) => (data && data.config) || null);
+}
+
+/**
+ * Provider-model v2 registry (`model-registry-v2-cache.json`), written by the
+ * plugin beside the model config. Null when the plugin has not cached it.
+ */
+export function readRegistry(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, 'model-registry-v2-cache.json'))
+    .then((data) => (data && data.registry) || null);
 }
 
 export function readLatch(directory) {

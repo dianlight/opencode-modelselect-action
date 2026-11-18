@@ -12,6 +12,9 @@
  * - catalogConfig: the parsed `model-config-cache.json` `config` object
  *   (`config['task-types'][task] = { go, free, go_ranked[], free_ranked[] }`,
  *   rows `{ model, score, input_cost, output_cost, blended_cost }`).
+ * - configV2: the parsed `model-config-v2-cache.json` `config` object
+ *   (`config['task-types-v2'][task] = { model }`), null when the plugin has
+ *   not cached the v2 task table.
  * - options: the saved modelselect plugin options (camelCase/kebab-case
  *   aliases tolerated, like the plugin).
  * - latchData: the parsed `free-quota.json` (or null when unreadable).
@@ -21,12 +24,14 @@ import lookupShared from '../../../core/lookup.js';
 import modelRefShared from '../../../core/model-ref.js';
 import budgetShared from '../../../core/budget.js';
 import freeQuotaShared from '../../../core/free-quota.js';
+import registryShared from '../../../core/registry.js';
 import { usageMonthly } from './view.js';
 
 const { entryFor } = lookupShared;
 const { firstPaidModel } = modelRefShared;
 const { selectWithinBudget } = budgetShared;
 const { latchEntries, freeQuotaFresh, latchKeyApplies } = freeQuotaShared;
+const { taskEntryV2, modelEntry, variantRows, buildV2Chain } = registryShared;
 
 function str(v) { return v == null ? '' : String(v); }
 
@@ -122,7 +127,7 @@ function usageBar(row, usage, at) {
 
 // Preview the chain for one task-type. Never throws: bad shapes yield
 // `{ found: false }` and the UI shows the fallback line.
-function computeModelsView({ taskType, catalogConfig, options, latchData, usage, now }) {
+function computeModelsView({ taskType, catalogConfig, configV2, options, latchData, usage, registry, now }) {
   const at = typeof now === 'number' ? now : Date.now();
   const table = (catalogConfig && (catalogConfig['task-types'] || catalogConfig.task_types)) || {};
   let key = null;
@@ -155,6 +160,15 @@ function computeModelsView({ taskType, catalogConfig, options, latchData, usage,
     return null;
   };
   const latched = (model) => Boolean(model && latchHitFor(model));
+
+  // Provider-model v2: the task names ONE model id and the registry lists its
+  // free/paid provider variants. Preview that chain when the registry is
+  // available; an empty result keeps the v1 preview below.
+  const v2Task = registry ? taskEntryV2(configV2 || {}, taskType) : null;
+  if (v2Task) {
+    const v2 = previewV2(v2Task);
+    if (v2) return v2;
+  }
 
   // Side selection mirrors resolveModel without the live Go probe.
   let side;
@@ -219,6 +233,93 @@ function computeModelsView({ taskType, catalogConfig, options, latchData, usage,
         chain: buildChain(),
       };
     }
+  }
+
+  function previewV2(v2TaskEntry) {
+    let ordered = [];
+    try {
+      ordered = buildV2Chain({
+        taskEntry: v2TaskEntry.entry,
+        registry,
+        preference,
+        tier: tier === 'go' || tier === 'free' ? tier : null,
+        maxCost,
+      });
+    } catch (e) {
+      return null;
+    }
+    let all = [];
+    try {
+      all = variantRows(modelEntry(registry, v2TaskEntry.model));
+    } catch (e) {
+      all = [];
+    }
+    if (!all.length) return null;
+    const hitFor = (variant) => latchHitFor(variant.ref) || latchHitFor(variant.model);
+    const usable = ordered.filter((c) => !hitFor(c));
+    const pickRow = usable[0] || null;
+    const pickName = pickRow ? pickRow.ref : '';
+    const side = pickRow
+      ? (pickRow.class === 'free' ? 'free' : 'go')
+      : (preference === 'go-first' ? 'go' : 'free');
+    const rank = new Map();
+    ordered.forEach((c, i) => rank.set(c.ref, i));
+    const rows = all.slice()
+      .sort((a, b) => (rank.has(a.ref) ? rank.get(a.ref) : 1000) - (rank.has(b.ref) ? rank.get(b.ref) : 1000))
+      .map((variant) => {
+        const rowSide = variant.class === 'free' ? 'free' : 'go';
+        const view = {
+          model: variant.ref,
+          provider: variant.provider,
+          id: variant.model,
+          score: typeof variant.score === 'number' ? variant.score : null,
+          cost: typeof variant.cost === 'number' ? variant.cost : null,
+          context: typeof variant.context === 'number' && variant.context > 0 ? variant.context : null,
+          modalities: Array.isArray(variant.media_in)
+            ? variant.media_in.filter(function (m) { return typeof m === 'string' && m; })
+            : null,
+          inputCost: typeof variant.input_cost === 'number' ? variant.input_cost : null,
+          outputCost: typeof variant.output_cost === 'number' ? variant.output_cost : null,
+          side: rowSide, status: 'ok', reason: '', latchText: '',
+        };
+        if (variant.ref === pickName) {
+          view.status = 'pick';
+          return view;
+        }
+        const hit = hitFor(variant);
+        if (hit) {
+          view.status = 'excluded';
+          view.reason = (hit.kind === 'rate-limit' ? 'rate-limited' : 'quota latched') +
+            ' · retry in ' + formatCountdown(hit.until - at);
+          view.latchText = view.reason;
+          return view;
+        }
+        if (maxCost !== null && (view.cost === null || view.cost > maxCost)) {
+          view.status = 'excluded';
+          view.reason = view.cost === null ? 'no cost data (cap set)' : 'over maxCost $' + maxCost;
+          return view;
+        }
+        if (rowSide !== side) {
+          view.status = 'excluded';
+          view.reason = 'off-side · v2 ' + preference;
+          return view;
+        }
+        return view;
+      });
+    rows.forEach((r) => { r.bar = usageBar(r, usage, at); });
+    const fallbackPick = !pickName && fallback ? fallback : null;
+    return {
+      found: true, key, side,
+      sideNote: 'v2 · model=' + str(v2TaskEntry.model) + ' · ' + preference,
+      maxCost, fallback,
+      pick: pickName || fallbackPick,
+      pickSource: pickName ? 'chain' : (fallbackPick ? 'fallback' : null),
+      pickNote: pickName
+        ? ''
+        : (fallbackPick ? 'No usable v2 variant — fallback' : 'No usable v2 variant'),
+      chain: rows,
+      registry: true,
+    };
   }
 
   function buildChain() {

@@ -46,6 +46,7 @@ The select-model action (canonical `github-action/action.yml` + `github-action/s
 ### Central model config
 
 `data/model-config.json` is the **actual configuration**, keyed by task-type only (`task-types.<name>.{go,free,think}`, where `think` is the default|minimal|low|medium|high|xhigh reasoning-effort hint fed from `config/task-types.yaml`), consumed by every OpenCode step at startup via the select-model action (`model: ${{ steps.resolve.outputs.model }}`).
+The v2 layer lives in its own `-v2` files: `data/model-config-v2.json` (`schema_version` + `task-types-v2.<name>.model`, task -> ONE model id) and `data/model-registry-v2.json` (one entry per model with its free/paid provider variants). The maintenance run writes both; readers prefer v2 and fall back to v1.
 
 The maintenance script recomputes the config each run and the workflow commits `data/model-config.json` directly, so the new models immediately become the selection target. When the audit detects coverage issues (stale fallback entries, missing scores, vision mismatches), the workflow acts directly in the same run — no checkbox round-trip: it opens a fresh maintenance issue (assigned to the repo owner) and immediately runs OpenCode to research the missing scores and open the "Fix model coverage issues" PR (assigned to the repo owner, always superseding any open automation PR). Each audit run closes any open maintenance issue and opens a fresh one. The report issue carries no checkboxes and there are no `issues`/`issue_comment` triggers anymore.
 
@@ -107,6 +108,15 @@ When updating `CHANGELOG.md`:
   service is the extension's only owner of file I/O — the package must keep
   `contributes.capabilities` and `contributes.filesystem` absent; the panel
   talks to the service through `panel/src/api.js` only.
+
+## Sim harness
+
+The component simulator (`sim/`, `npm run sim` → `node sim/run.js --all`) boots action, plugin, service, panel and pipeline components against sandboxed scenarios (fixtures under `sim/fixtures/`, net replay, subprocess/vm boundaries), plus a seeded generative fuzz pack over the shared routing/budget core.
+
+- **Maintain the sim with shipped code.** Any change to behavior under `github-action/`, `plugin/`, `openchamber-modelselect/`, `scripts/`, or `core/` must ship with a matching sim scenario (new or updated) under the right `sim/scenarios/<component>/` and any new fixtures under `sim/fixtures/`.
+- Run `npm run sim` before committing; the full suite must pass. Keep scenarios deterministic (fixed seeds, replayed network, sandboxed FS).
+- Scenario discovery is automatic (`sim/scenarios/<component>/*.cjs`) — no registry list to update when adding a scenario.
+- CI wiring for the sim is intentionally not added yet.
 
 ## Renovate
 

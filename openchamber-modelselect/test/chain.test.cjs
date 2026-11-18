@@ -139,3 +139,67 @@ describe('models chain', () => {
     assert.equal(view.found, false);
   });
 });
+
+describe('models chain — provider-model v2', () => {
+  const REGISTRY = {
+    schema_version: 2,
+    models: {
+      'gpt-5.6-luna': {
+        id: 'gpt-5.6-luna',
+        score: 93,
+        variants: [
+          { provider: 'google', model: 'gpt-5.6-luna', free: false, cost: 0.5, media_in: ['text'] },
+          { provider: 'opencode-go', model: 'gpt-5.6-luna', free: false, cost: 0.5, media_in: ['text'] },
+          { provider: 'opencode', model: 'gpt-5.6-luna-free', free: true, cost: 0, media_in: ['text'] },
+        ],
+      },
+    },
+  };
+  const V2_CONFIG = catalogConfig({ 'task-types-v2': { generic: { model: 'gpt-5.6-luna', score: 93 } } });
+
+  it('previews the v2 chain and prefers the free variant', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'free-first' },
+      latchData: null,
+      registry: REGISTRY,
+      now: NOW,
+    });
+    assert.equal(view.found, true);
+    assert.equal(view.registry, true);
+    assert.equal(view.side, 'free');
+    assert.equal(view.pick, 'opencode/gpt-5.6-luna-free');
+    assert.equal(view.pickSource, 'chain');
+    assert.equal(view.chain.filter((r) => r.status === 'pick').length, 1);
+    assert.match(view.sideNote, /v2 · model=gpt-5\.6-luna/);
+  });
+
+  it('applies go-first and the engine tie-break', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'go-first' },
+      latchData: null,
+      registry: REGISTRY,
+      now: NOW,
+    });
+    assert.equal(view.side, 'go');
+    assert.equal(view.pick, 'opencode-go/gpt-5.6-luna');
+  });
+
+  it('falls back to the v1 preview without a registry', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'free-first' },
+      latchData: null,
+      now: NOW,
+    });
+    assert.equal(view.registry, undefined);
+    assert.equal(view.pick, 'opencode/deepseek-free');
+  });
+});

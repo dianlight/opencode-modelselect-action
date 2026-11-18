@@ -1,5 +1,34 @@
 ## [Unreleased]
+
+## [1.1.0] - 2026-11-18
+### Added
+- Provider-model v2 data layer in its own `-v2` files:
+  `data/model-registry-v2.json` holds one entry per model with its
+  free/non-free provider variants and costs, and `data/model-config-v2.json`
+  holds `task-types-v2` (task -> model id references) plus `schema_version`.
+  The v1 artifacts are kept; readers prefer v2 and fall back to v1
+  (OpenSpec change `provider-model-v2`).
+- Shared selection core resolves task -> model -> variant with runtime ordering
+  (score desc, cost asc; free-first/go-first applied at selection time, engine
+  provider wins exact ties) and is vendored to the plugin, extension and GitHub
+  Action through `scripts/build-core.js`.
+- README now links to the generated docs; the model and provider tables moved
+  to `docs/models.md` and `docs/providers.md`.
+
+### Changed
+- The plugin now publishes to **GitHub Packages** as
+  `@dianlight/opencode-modelselect-plugin` — GitHub Packages only hosts scoped
+  package names. Update the `plugins` entry in `opencode.json` to the scoped
+  name, and route the `@dianlight` scope at `https://npm.pkg.github.com` in
+  your npm config to install it. The `release-plugin` workflow authenticates
+  with the job's `GITHUB_TOKEN` (`packages: write`), so the `NPM_TOKEN`
+  repository secret is no longer used.
+
 ### Fixed
+- The `release-plugin` workflow actually publishes `plugin/`. It ran
+  `npm publish --working-directory plugin`, a flag npm does not have: npm
+  parsed `plugin` as a registry package spec and tried to publish the public
+  package named `plugin` instead of ours.
 - A Renovate bump of `@openchamber/sdk` no longer fails CI with "Committed
   bundles are stale". The extension bundles are committed build artifacts that
   inline the SDK, so a version bump changes them. The new `renovate-bundle.yml`

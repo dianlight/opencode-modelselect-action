@@ -70,6 +70,19 @@ inputs:
       When the file exists it wins over the remote URL.
     required: false
     default: data/model-config.json
+  config-v2-url:
+    description: >-
+      Remote URL of the provider-model v2 task table (task -> one model id).
+      Used only when the local config-v2-path is absent. Missing = v1 task
+      entries only.
+    required: false
+    default: https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config-v2.json
+  config-v2-path:
+    description: >-
+      Local path (relative to GITHUB_WORKSPACE) of the provider-model v2
+      task table. When the file exists it wins over config-v2-url.
+    required: false
+    default: data/model-config-v2.json
   fallback-model:
     description: >-
       Optional escape hatch used only when the task-type has no entry in the
@@ -107,6 +120,19 @@ inputs:
       single-model tiers (no provider expansion, no chain).
     required: false
     default: data/provider-catalog.json
+  registry-url:
+    description: >-
+      Remote URL of the provider-model v2 registry (one entry per model with
+      its free/non-free provider variants). Used only when the local
+      registry-path is absent. Missing registry = v1 task entries only.
+    required: false
+    default: https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-registry-v2.json
+  registry-path:
+    description: >-
+      Local path (relative to GITHUB_WORKSPACE) of the provider-model v2
+      registry. When the file exists it wins over registry-url.
+    required: false
+    default: data/model-registry-v2.json
 
 outputs:
   model:

@@ -92,10 +92,10 @@ describe('routing core helpers', () => {
     assert.equal(autoPreferenceOf({}), 'free-first');
     assert.equal(autoPreferenceOf({ autoPreference: 'GO-First ' }), 'go-first');
     assert.deepEqual(
-      findPluginOptions({ plugins: [{ package: 'opencode-modelselect-plugin', options: { autoPreference: 'go-first' } }] }),
+      findPluginOptions({ plugins: [{ package: '@dianlight/opencode-modelselect-plugin', options: { autoPreference: 'go-first' } }] }),
       { autoPreference: 'go-first' },
     );
-    assert.deepEqual(findPluginOptions({ plugin: [['opencode-modelselect-plugin', { tier: 'go' }]] }), { tier: 'go' });
+    assert.deepEqual(findPluginOptions({ plugin: [['@dianlight/opencode-modelselect-plugin', { tier: 'go' }]] }), { tier: 'go' });
     assert.deepEqual(findPluginOptions({ plugins: ['./plugin'] }), {});
     assert.deepEqual(findPluginOptions(null), {});
   });
@@ -219,7 +219,7 @@ describe('syncRouting', () => {
     const io = fakeIo({
       ...caches(),
       '~/.config/openchamber/opencode.managed.json': {
-        plugins: [{ package: 'opencode-modelselect-plugin', options: { autoPreference: 'go-first' } }],
+        plugins: [{ package: '@dianlight/opencode-modelselect-plugin', options: { autoPreference: 'go-first' } }],
       },
     });
     await syncRouting(io);

@@ -19,4 +19,5 @@ module.exports = {
   ...require('./routing'),
   ...require('./catalog'),
   ...require('./chain'),
+  ...require('./registry'),
 };

@@ -1,0 +1,5 @@
+{
+  "task-types": {
+    "pr-review": { "go": "opencode-go/model-a", "free": "opencode/model-b-free" }
+  }
+}

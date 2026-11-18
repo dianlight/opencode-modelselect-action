@@ -265,4 +265,14 @@ module.exports = {
   nextCandidate,
   partitionTiers,
   rankedModels,
+  // Shared availability filters, reused by the v2 registry path so both
+  // layers reject a candidate for exactly the same reasons.
+  isAllowedProvider,
+  providerState,
+  latched,
+  supportsMedia,
+  withinContext,
+  withinBudget,
+  withinSpend,
+  sortRows,
 };

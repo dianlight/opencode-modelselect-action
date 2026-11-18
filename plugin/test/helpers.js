@@ -22,9 +22,36 @@ function seedCache(dir, config) {
     path.join(cache, 'model-config-cache.json'),
     JSON.stringify({ fetchedAt: Date.now(), config }),
   );
+  // Seed an EMPTY provider-model v2 table too: `resolveModel` fetches
+  // `model-config-v2.json` whenever the cache misses, and a fetch that
+  // fails is never cached — so without this every call would hit the
+  // network (breaking fetch-counting tests), and once `main` hosts the
+  // real v2 data the v2 path would override the seeded v1 picks. An empty
+  // table keeps the v2 path inactive; call seedConfigV2(dir, cfg) with
+  // real `task-types-v2` content to exercise it.
+  fs.writeFileSync(
+    path.join(cache, 'model-config-v2-cache.json'),
+    JSON.stringify({ fetchedAt: Date.now(), config: {} }),
+  );
   // The router-sync switch is ON by default; tests that want it off seed
   // routing-sync.json themselves before setup. The virtual model is the
   // routing switch, so there is no global mode file to pin here.
+}
+
+/**
+ * Seed the provider-model v2 task table beside the v1 config. Without
+ * this `resolveModel` fetches `model-config-v2.json` on every call when a
+ * fetch stub keeps failing (failed fetches are never cached), which breaks
+ * tests that count network calls. `{}` keeps the v2 path inactive (no
+ * `task-types-v2` entry), so callers stay on the seeded v1 task entries.
+ */
+function seedConfigV2(dir, config = {}) {
+  const cache = path.join(dir, '.opencode', '.modelselect-cache');
+  fs.mkdirSync(cache, { recursive: true });
+  fs.writeFileSync(
+    path.join(cache, 'model-config-v2-cache.json'),
+    JSON.stringify({ fetchedAt: Date.now(), config }),
+  );
 }
 
 function seedTaskTypes(dir, taskTypes) {
@@ -63,4 +90,4 @@ function writeAuthFile(dir, contents) {
   return file;
 }
 
-module.exports = { seedCache, seedTaskTypes, isolateAuth, writeAuthFile };
+module.exports = { seedCache, seedConfigV2, seedTaskTypes, isolateAuth, writeAuthFile };

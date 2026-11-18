@@ -1,4 +1,4 @@
-# opencode-modelselect-plugin
+# @dianlight/opencode-modelselect-plugin
 
 Auto-select the OpenCode model from project signals, prompt text and agent tag.
 OpenCode v2 only: the package root `/index.js` loads the v2 `{ id, setup }`
@@ -8,21 +8,29 @@ Zero dependencies, Node >= 20. Requires OpenCode v2.
 
 ## Install
 
-Get the package from npm (published by the `release-plugin` workflow on
-`plugin-v*` tags) or point at a local checkout:
+Published to **GitHub Packages** by the `release-plugin` workflow on
+`plugin-v*` tags (GitHub Packages only hosts scoped names), or point at a
+local checkout. Route the `@dianlight` scope at the registry in your npm
+config — plus a token with `read:packages` on
+`//npm.pkg.github.com/:_authToken=…` for private access:
+
+```ini
+# ~/.npmrc or <project>/.npmrc
+@dianlight:registry=https://npm.pkg.github.com
+```
 
 ```sh
-npm install opencode-modelselect-plugin
+npm install @dianlight/opencode-modelselect-plugin
 ```
 
 ```jsonc
 // opencode.json / opencode.jsonc — OpenCode v2 (key is plural "plugins")
 {
   "plugins": [
-    // from npm:
-    "opencode-modelselect-plugin",
+    // from GitHub Packages:
+    "@dianlight/opencode-modelselect-plugin",
     // ...with options:
-    // { "package": "opencode-modelselect-plugin", "options": { "tier": "auto" } },
+    // { "package": "@dianlight/opencode-modelselect-plugin", "options": { "tier": "auto" } },
     // ...or from a local checkout (v2 also loads .opencode/plugins/):
     // { "package": "./plugin", "options": { "tier": "auto" } }
   ]
@@ -185,7 +193,7 @@ with the plugin entry:
 {
   "plugins": [
     {
-      "package": "opencode-modelselect-plugin",
+      "package": "@dianlight/opencode-modelselect-plugin",
       "options": { "tier": "auto", "token": "sk-…" }
     }
   ]

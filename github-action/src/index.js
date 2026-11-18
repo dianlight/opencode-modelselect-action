@@ -29,6 +29,14 @@
  *   config-url      Remote URL of the central model config.
  *   config-path     Local path (relative to GITHUB_WORKSPACE) preferred
  *                   over the remote URL when present.
+ *   config-v2-url   Remote URL of the v2 task table
+ *                   (`data/model-config-v2.json`).
+ *   config-v2-path  Local path of the v2 task table, preferred when present.
+ *   registry-url    Remote URL of the provider-model v2 registry
+ *                   (`data/model-registry-v2.json`).
+ *   registry-path   Local path of the v2 registry, preferred when present.
+ *                   The v2 task entry (`task-types-v2`) + this registry win
+ *                   over the v1 task entries; no v2 answer falls back to v1.
  *   fallback-model  Optional escape hatch when the task-type has no entry.
  *   max-cost        Optional budget cap as blended $/1M: an over-budget pick
  *                   is replaced by the best-scoring ranked model within budget.
@@ -45,6 +53,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { selectWithinBudget } = require('./shared/core/budget');
 const { buildChain } = require('./shared/core/chain');
+const { buildV2Chain, taskEntryV2 } = require('./shared/core/registry');
 const { parseGoUsageWindows, goWindowsExhausted, classifyFreeProbe } = require('./shared/core/probe');
 
 const FETCH_TIMEOUT_MS = 15000;
@@ -53,6 +62,10 @@ const DEFAULT_PROBE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 const DEFAULT_PROBE_RESPONSES_URL = 'https://opencode.ai/zen/v1/responses';
 const DEFAULT_CATALOG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/provider-catalog.json';
+const DEFAULT_CONFIG_V2_URL =
+  'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config-v2.json';
+const DEFAULT_REGISTRY_URL =
+  'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-registry-v2.json';
 const DEFAULT_PROVIDERS = 'opencode,opencode-go';
 
 function getInput(name, { required = false, fallback = '' } = {}) {
@@ -127,7 +140,7 @@ function sleep(ms) {
  * inventory the chain expands visibility from. Optional — a missing or
  * unreadable catalog degrades to the legacy single-model tiers.
  */
-async function loadCatalog(workspace, catalogPath, catalogUrl) {
+async function loadCatalog(workspace, catalogPath, catalogUrl, label = 'provider catalog') {
   if (catalogPath) {
     const file = path.isAbsolute(catalogPath)
       ? catalogPath
@@ -136,7 +149,7 @@ async function loadCatalog(workspace, catalogPath, catalogUrl) {
       try {
         return { data: JSON.parse(fs.readFileSync(file, 'utf8')), file };
       } catch {
-        warn(`Invalid provider catalog ${file}: ignored.`);
+        warn(`Invalid ${label} ${file}: ignored.`);
         return null;
       }
     }
@@ -353,6 +366,8 @@ async function main() {
   const tierInput = getInput('tier');
   const configUrl = getInput('config-url');
   const configPath = getInput('config-path', { fallback: 'data/model-config.json' });
+  const configV2Url = getInput('config-v2-url');
+  const configV2Path = getInput('config-v2-path', { fallback: 'data/model-config-v2.json' });
   const fallbackModel = getInput('fallback-model');
   const maxCostInput = getInput('max-cost');
   const tokenInput = getInput('opencode-token');
@@ -437,6 +452,23 @@ async function main() {
     );
   }
 
+  // Provider-model v2 task table (data/model-config-v2.json): optional and
+  // fail-soft — without it the v1 task entries drive selection (design D1).
+  let configV2 = null;
+  const localV2 = loadLocalConfig(workspace, configV2Path);
+  if (localV2) {
+    configV2 = localV2.data;
+    notice(`Loaded model v2 config from ${localV2.file}`);
+  } else if (configV2Url) {
+    const remoteV2 = await fetchRemoteConfig(configV2Url);
+    if (remoteV2) {
+      configV2 = remoteV2;
+      notice(`Loaded model v2 config from ${configV2Url}`);
+    } else {
+      notice(`Model v2 config unreachable (${configV2Url}); using the v1 task entries.`);
+    }
+  }
+
   // Key-agnostic provider catalog: optional. When present, the chain
   // (core/chain.js — the SAME algorithm the plugin runs) expands the task's
   // canonical ranking into provider/model candidates and applies the
@@ -450,6 +482,17 @@ async function main() {
   const catalog = loadedCatalog ? loadedCatalog.data : null;
   if (catalog) {
     notice(`Loaded provider catalog from ${loadedCatalog.file} (providers: ${allowedProviders.join(', ')}).`);
+  }
+
+  // Provider-model v2 registry (`data/model-registry-v2.json`): one entry per
+  // model with its free/paid provider variants. Optional — without it the v1
+  // task entries drive selection.
+  const registryPath = getInput('registry-path', { fallback: 'data/model-registry-v2.json' });
+  const registryUrl = getInput('registry-url', { fallback: DEFAULT_REGISTRY_URL });
+  const loadedRegistry = await loadCatalog(workspace, registryPath, registryUrl, 'model registry');
+  const registry = loadedRegistry ? loadedRegistry.data : null;
+  if (registry) {
+    notice(`Loaded provider-model v2 registry from ${loadedRegistry.file}.`);
   }
 
   const table = config['task-types'] ?? config.task_types;
@@ -601,12 +644,52 @@ async function main() {
     );
   }
 
-  // Chain resolution: expand the task's provider-agnostic `ranked` list
-  // into concrete provider/model candidates with the shared core. The pick
-  // stays the same model class the tier probe validated (free/paid); the
-  // chain only chooses the provider and the failover order.
+  // Provider-model v2 (preferred): the task entry names ONE model id and the
+  // registry lists its free/paid provider variants. The runtime preference
+  // (free-first/go-first) decides the order, availability comes from the
+  // provider allowlist, and on equal cost+score an engine provider beats an
+  // external one (core/registry.js). No v2 entry or no usable variant falls
+  // back to the v1 chain below.
   let chainRefs = [];
-  if (!fromFallback && key && catalog && entry && Array.isArray(entry.ranked)) {
+  let v2Picked = false;
+  const v2Task = registry ? taskEntryV2(configV2, taskTypeInput) : null;
+  if (!fromFallback && v2Task) {
+    const v2Chain = buildV2Chain({
+      taskEntry: v2Task.entry,
+      registry,
+      preference,
+      tier: tierSelected === 'free' ? 'free' : tierSelected === 'go' ? 'go' : null,
+      providers: allowedProviders,
+      maxCost,
+    });
+    if (v2Chain.length > 0) {
+      const first = v2Chain[0];
+      chainRefs = v2Chain.map((c) => `${c.provider}/${c.model}`);
+      const refStr = chainRefs[0];
+      if (refStr !== model) {
+        notice(
+          `v2: task='${v2Task.key}' model='${v2Task.model}' -> '${refStr}' ` +
+            `(${first.class}${first.cost === null ? '' : `, $${first.cost}/1M`}, preference=${preference}).`,
+        );
+      }
+      model = refStr;
+      modelCost = first.cost === null || first.cost === undefined ? '' : String(first.cost);
+      tierSelected = first.class === 'free' ? 'free' : 'go';
+      source = `${source}+v2`;
+      v2Picked = true;
+    } else {
+      notice(
+        `v2: registry has no usable variant for task='${v2Task.key}' ` +
+          `(providers: ${allowedProviders.join(', ') || 'any'}); using the v1 chain.`,
+      );
+    }
+  }
+
+  // Chain resolution (v1 fallback): expand the task's provider-agnostic
+  // `ranked` list into concrete provider/model candidates with the shared
+  // core. The pick stays the same model class the tier probe validated
+  // (free/paid); the chain only chooses the provider and the failover order.
+  if (!v2Picked && !fromFallback && key && catalog && entry && Array.isArray(entry.ranked)) {
     const chain = buildChain({
       entry,
       catalog,

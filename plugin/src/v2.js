@@ -102,7 +102,7 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, loadRegistryFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
 const { nextCandidate } = require('./shared/core/chain');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
@@ -481,6 +481,15 @@ async function setup(ctx) {
     catalog = await loadCatalogFor(opts, cacheDir);
   } catch {
     catalog = null;
+  }
+  // Provider-model v2 registry (`data/model-registry-v2.json`): task -> model id
+  // -> provider variants. Loaded once beside the catalog; null leaves the v1
+  // task entries in charge.
+  let registry = null;
+  try {
+    registry = await loadRegistryFor(opts, cacheDir);
+  } catch {
+    registry = null;
   }
   const availabilityCache = { at: 0, value: null };
   const AVAIL_TTL_MS = 60 * 1000;
@@ -1123,7 +1132,7 @@ async function setup(ctx) {
       // records the virtual id).
       const virtualId = virtualIds.get(event.sessionID);
       const effectiveOpts = virtualId ? { ...opts, autoPreference: preferenceForVirtualId(virtualId) } : opts;
-      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, availability: await currentAvailability(), tried: triedFor(event.sessionID) });
+      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, registry, availability: await currentAvailability(), tried: triedFor(event.sessionID) });
       const key = picked.model;
       const resolved = { picked, virtualId };
       if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return resolved;
@@ -1249,6 +1258,7 @@ async function setup(ctx) {
         media,
         capabilitiesFor: liveCapabilitiesFor,
         catalog,
+        registry,
         availability: await currentAvailability(),
         tried: skip,
       });
@@ -1371,6 +1381,7 @@ async function setup(ctx) {
               media: lastMedia.get(event.sessionID) ?? collectMedia({ files }),
               capabilitiesFor: liveCapabilitiesFor,
               catalog,
+              registry,
               availability: await currentAvailability(),
               tried: triedFor(sessionID),
             });
@@ -1460,7 +1471,7 @@ async function setup(ctx) {
         assistantSnippet,
       });
       const effectiveOpts = { ...opts, autoPreference: preferenceForVirtualId(virtualId) };
-      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, availability: await currentAvailability(), tried: triedFor(sessionID) });
+      const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, registry, availability: await currentAvailability(), tried: triedFor(sessionID) });
       const ref = splitModelRef(picked.model);
       const key = `${ref.providerID}/${ref.id}`;
       const useNote = usageNote(picked.usage ?? null);
@@ -1545,6 +1556,7 @@ async function setup(ctx) {
             media: mediaReq,
             capabilitiesFor: liveCapabilitiesFor,
             catalog,
+            registry,
             availability: await currentAvailability(),
             tried: triedFor(sessionID),
           });
@@ -1596,7 +1608,7 @@ async function setup(ctx) {
               assistantSnippet: '',
             });
         const mediaReq = lastMedia.get(sessionID) ?? (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []);
-        const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, availability: await currentAvailability(), tried: triedFor(sessionID) });
+        const picked = await resolveModel({ taskType, opts: { ...opts, autoPreference: preference }, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, registry, availability: await currentAvailability(), tried: triedFor(sessionID) });
         const ref = splitModelRef(picked.model);
         pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
         lastVirtualPick.set(sessionID, pick);
@@ -1787,6 +1799,7 @@ async function setup(ctx) {
               (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []),
             capabilitiesFor: liveCapabilitiesFor,
             catalog,
+            registry,
             availability: await currentAvailability(),
             tried: triedFor(sessionID),
           });
