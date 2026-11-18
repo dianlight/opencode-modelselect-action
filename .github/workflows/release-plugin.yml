@@ -61,7 +61,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
-          npm publish --dry-run --access public --working-directory plugin
+          npm publish --dry-run --access public ./plugin
       - name: Publish to npm
         if: startsWith(github.ref, 'refs/tags/plugin-v')
         env:
@@ -72,7 +72,7 @@ jobs:
             echo "::error::NPM_TOKEN secret is not set; cannot publish."
             exit 1
           fi
-          npm publish --access public --working-directory plugin
+          npm publish --access public ./plugin
       - name: Attach tarball to GitHub Release
         if: startsWith(github.ref, 'refs/tags/plugin-v')
         env:
@@ -80,7 +80,7 @@ jobs:
           TAG_NAME: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          TARBALL="$(npm pack --pack-destination /tmp --working-directory plugin | tail -n 1)"
+          TARBALL="$(npm pack ./plugin --pack-destination /tmp | tail -n 1)"
           NOTES="Plugin release ${TAG_NAME}. Prefer installing from npm:"
           NOTES="${NOTES} \`opencode-modelselect-plugin\`. See the README"
           NOTES="${NOTES} Modelselect Plugin section for v1/v2 setup."
