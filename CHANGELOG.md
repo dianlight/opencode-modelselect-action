@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [1.1.0] - 2026-11-18
 ### Added
 - Provider-model v2 data layer in its own `-v2` files:
   `data/model-registry-v2.json` holds one entry per model with its
