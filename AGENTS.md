@@ -109,6 +109,13 @@ When updating `CHANGELOG.md`:
   `contributes.capabilities` and `contributes.filesystem` absent; the panel
   talks to the service through `panel/src/api.js` only.
 
+## Product scope
+
+Voice is not a thread to follow for this project. Do not propose or implement
+voice input, speech recognition or microphone capabilities for the modelselect
+plugin or extension; model selection stays on the panel, command palette and
+session action surfaces.
+
 ## Sim harness
 
 The component simulator (`sim/`, `npm run sim` → `node sim/run.js --all`) boots action, plugin, service, panel and pipeline components against sandboxed scenarios (fixtures under `sim/fixtures/`, net replay, subprocess/vm boundaries), plus a seeded generative fuzz pack over the shared routing/budget core.

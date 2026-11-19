@@ -59,9 +59,8 @@ Settings → Extensions → install from Folder / ZIP / URL pointing at
   `question-asked`, with their content) — the permission's detail and the
   form's fields. Nothing else of the conversation is read.
 
-Folder installs do not update themselves; a git-installable distribution (with
-OpenChamber's Update button) is specified in
-`openspec/changes/git-installable-extension/`.
+Folder installs do not update themselves: reinstall from the same Folder/ZIP/URL
+source to pick up a new version (see Update below).
 
 ## Build and test
 
@@ -77,11 +76,11 @@ Always rebuild + commit all three bundles after editing a source file. The
 extension never compiles TypeScript on the host, so a stale bundle ships stale
 code; CI fails on a bundle that does not match its source.
 
-The SDK is pinned to `@openchamber/sdk` `2.7.1` — the first stable release that
-carries the `sessionControl.answers` grant and the session events the service
-subscribes to, so the extension needs no canary host. A bump means: change the
-pin in `package.json`, run the four commands above, and commit the three
-rebuilt bundles with it.
+The SDK is pinned to `@openchamber/sdk` `2.7.2` in `package.json` and `bun.lock`.
+`2.7.1` was the first stable release carrying the `sessionControl.answers` grant
+and the session events the service subscribes to, so the extension needs no
+canary host. A bump means: change the pin in `package.json`, run the four
+commands above, and commit the three rebuilt bundles with it.
 
 Tests: `status-view` (the host schema, every row state), `chain` (the models
 preview), `status-service` (the real bundle over HTTP: status, controls,
