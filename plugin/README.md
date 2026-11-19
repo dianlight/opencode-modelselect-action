@@ -426,6 +426,13 @@ A chat command (registered via `ctx.command.transform`):
   model turn, no tokens), falling back to a steered prompt.
 - `/modelselect sync on|off` — writes the router-sync file
   (`{"sync": true|false}`) and echoes the new state.
+- `/modelselect doctor` — runtime catalog health: age of the live
+  `/api/model` inventory, registry variants it does not serve, and recent
+  catalog misses recorded in `.opencode/.modelselect-cache/catalog-miss.json`.
+  A ref that is published remotely but absent from the runtime inventory is
+  skipped in the chain (the next candidate is used) and, if it still fails at
+  dispatch, skipped for one forced retry. No provider aliasing, quota latch
+  or session-model switch is involved.
 
 The command word is optional: `modelselect off` and a bare `off` behave
 the same.

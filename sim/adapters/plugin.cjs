@@ -74,6 +74,13 @@ function verify(scenario, result) {
   if (e.promptsMin !== undefined && (seen.promptsOut || []).length < e.promptsMin) {
     failures.push(`prompt hooks fired ${(seen.promptsOut || []).length} < ${e.promptsMin}`);
   }
+  const retried = (seen.decisions || []).some((d) => d && d.retry === true);
+  if (e.decisionRetry !== undefined && retried !== e.decisionRetry) {
+    failures.push(`retry decision ${retried} != ${e.decisionRetry} (decisions: ${JSON.stringify(seen.decisions)})`);
+  }
+  if (e.catalogMissRef && !String(seen.catalogMiss || '').includes(e.catalogMissRef)) {
+    failures.push(`catalog-miss.json missing ${e.catalogMissRef}`);
+  }
   return failures;
 }
 

@@ -24,7 +24,8 @@
  *   - candidates are the catalog rows of each ranked model, in rank order;
  *     within one model the cheapest provider variant comes first;
  *   - a row must pass the availability filters: provider allowed and
- *     reachable, model not latched, budget remaining, context window large
+ *     reachable, model present in the live inventory (when known),
+ *     model not latched, budget remaining, context window large
  *     enough, requested input media supported (unknown = fail-open), cost
  *     within `maxCost` when known;
  *   - tier (`free` / `go`) is a partition of the chain, never a separate
@@ -70,6 +71,24 @@ function latched(availability, row) {
   if (!key) return false;
   if (typeof list.has === 'function') return list.has(key);
   return Array.isArray(list) && list.includes(key);
+}
+
+/**
+ * Per-model runtime inventory gate. `availability.models` holds the enabled
+ * `provider/model` keys from the live `/api/model` inventory (a Set or an
+ * array). Unlike `providerState` — which only asks whether a provider has
+ * ANY enabled model — this rejects a row that the runtime cannot dispatch,
+ * e.g. `opencode/qwen3.8-flash` when only `opencode-go/qwen3.8-flash` is
+ * served. Absent inventory (CI/action path, offline plugin) fails open.
+ */
+function modelPresent(availability, row) {
+  const list = availability && availability.models;
+  if (!list) return true;
+  const key = rowKey(row);
+  if (!key) return true;
+  if (typeof list.has === 'function') return list.has(key);
+  if (Array.isArray(list)) return list.includes(key);
+  return true;
 }
 
 function supportsMedia(row, media) {
@@ -194,6 +213,7 @@ function buildChain({
       const state = providerState(availability, row);
       if (state.unavailable === true || state.available === false) continue;
       if (!withinSpend(row, state)) continue;
+      if (!modelPresent(availability, row)) continue;
       if (latched(availability, row)) continue;
       if (!supportsMedia(row, media)) continue;
       if (!withinContext(row, contextNeed)) continue;
@@ -270,6 +290,7 @@ module.exports = {
   isAllowedProvider,
   providerState,
   latched,
+  modelPresent,
   supportsMedia,
   withinContext,
   withinBudget,

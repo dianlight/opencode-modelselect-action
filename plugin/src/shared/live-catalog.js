@@ -106,11 +106,14 @@ function normalizeInventory(data) {
 /**
  * Availability object for the shared chain core:
  *   `{ providers: { <slug>: bool | { unavailable?, budget_remaining? } },
- *      latched: string[] }`
+ *      models?: Set<string>, latched: string[] }`
  * - `providers` carries the LIVE enabled flags (a provider whose models are
  *   all disabled reads as unavailable) and the Go spend state (a vetoed Go
  *   plan reads as `{ budget_remaining: 0 }`, which the chain's spend filter
  *   turns into "skip").
+ * - `models` carries the enabled `provider/id` keys so the chain can reject
+ *   a variant the runtime does not serve. It is absent when no inventory was
+ *   returned, in which case resolution fails open.
  * - `latched` carries the keys (`provider/id`) of freshly-latched free
  *   models.
  *
@@ -119,6 +122,11 @@ function normalizeInventory(data) {
 function availabilityFromLive({ inventory, usage, latchData, now } = {}) {
   const providers = {};
   const latched = [];
+  // Enabled `provider/model` keys. The provider booleans below only say
+  // whether a provider has ANY enabled model, which lets a dead variant such
+  // as `opencode/qwen3.8-flash` survive when a sibling is enabled. The chain
+  // filters on this set when it is present (absent = fail open).
+  const models = new Set();
   if (inventory && Array.isArray(inventory.models) && inventory.models.length) {
     const byProvider = new Map();
     for (const m of inventory.models) {
@@ -126,6 +134,9 @@ function availabilityFromLive({ inventory, usage, latchData, now } = {}) {
       if (!slug) continue;
       if (!byProvider.has(slug)) byProvider.set(slug, []);
       byProvider.get(slug).push(m);
+      if (m.enabled === false) continue;
+      const id = String(m.id ?? '').trim();
+      if (id) models.add(`${slug}/${id}`);
     }
     for (const [slug, list] of byProvider) {
       providers[slug] = list.some((m) => m.enabled);
@@ -148,7 +159,9 @@ function availabilityFromLive({ inventory, usage, latchData, now } = {}) {
       if (key) latched.push(key);
     }
   }
-  return { providers, latched };
+  const result = { providers, latched };
+  if (models.size) result.models = models;
+  return result;
 }
 
 /** Live provider inventory: first answering local port wins. Never throws. */

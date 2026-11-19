@@ -118,6 +118,14 @@ const {
   readModelTable,
 } = require('./shared/freequota');
 const { liveAvailability } = require('./shared/live-catalog');
+const {
+  freshInventoryKeys,
+  inventoryKeySet,
+  refreshRuntimeInventory,
+  readCatalogMisses,
+  recordModelMiss,
+} = require('./shared/runtime-catalog');
+const { classifyModelMissing } = require('./shared/core/free-quota');
 
 const { startProxy, HEADER_PROVIDER, HEADER_MODEL, HEADER_ENDPOINT, HEADER_ENDPOINT_PATH, safeEndpointBasePath } = require('./proxy');
 const { resolveToken } = require('./shared/auth');
@@ -224,6 +232,10 @@ const MAX_FAILOVER_ATTEMPTS = 12;
 // a TTL that stale arm would swallow the next independent mismatch. Arms
 // older than this are treated as absent (a fresh mismatch retries again).
 const PROTOCOL_RETRY_TTL_MS = 60 * 1000;
+// Catalog-miss arm window: a ref that OpenCode does not serve is skipped for
+// this long after the first observation. It is NOT a quota latch, and it
+// never moves the session off its virtual anchor.
+const CATALOG_MISS_RETRY_TTL_MS = 5 * 60 * 1000;
 
 // Fallback virtual limits: the session stays on a virtual `auto` anchor, so
 // OpenCode drives its compaction threshold off the virtual
@@ -464,6 +476,7 @@ async function setup(ctx) {
   const failoverArmed = new Map(); // sessionID -> { armedAt, ref }: pending forced retry after a classified failure
   const failoverAttempts = new Map(); // sessionID -> forced retries used in this episode
   const protocolRetry = new Map(); // sessionID -> armedAt: one re-synced retry after a protocol mismatch
+  const catalogMissRetry = new Map(); // sessionID|ref -> armedAt: one retry after a runtime catalog miss
   const virtualSessions = new Set(); // sessions whose current model is a virtual anchor
   const virtualIds = new Map(); // sessionID -> virtual model id (pins the preference)
   const lastVirtualPick = new Map(); // sessionID -> { providerID, id }: last resolved pick, for aux requests
@@ -497,10 +510,10 @@ async function setup(ctx) {
   // captureUpstream so console/external providers captured here get the
   // same baseURL/headers treatment as the engine providers.
   let lastLiveInventory = null;
-  async function currentAvailability() {
+  async function currentAvailability({ force = false } = {}) {
     const nowMs = Date.now();
     const cached = availabilityCache.value;
-    if (cached && nowMs - availabilityCache.at < AVAIL_TTL_MS) return cached;
+    if (!force && cached && nowMs - availabilityCache.at < AVAIL_TTL_MS) return cached;
     const value = await liveAvailability({
       env: process.env,
       token: opts.token,
@@ -509,10 +522,29 @@ async function setup(ctx) {
       usage: readUsageLimits(cacheDir),
       writeSnapshot: false,
     });
+    // A live inventory answers most calls. When the local server does not
+    // answer /api/model, fall back to the persisted snapshot so a recently
+    // observed catalog miss is not immediately forgotten. Absent either way
+    // means no `models` set and the chain fails open.
+    if (value && !value.models) {
+      const keys = freshInventoryKeys(cacheDir, nowMs);
+      if (keys) value.models = keys;
+    }
     availabilityCache.at = nowMs;
     availabilityCache.value = value;
     lastLiveInventory = value && value.providers ? value : null;
     return value;
+  }
+
+  // Warm the persisted inventory at setup so the first turn already has a
+  // per-model gate (the live fetch above still wins when it answers).
+  try {
+    refreshRuntimeInventory(cacheDir).then(
+      () => {},
+      () => {},
+    );
+  } catch {
+    // never break setup
   }
 
   // Refresh the upstream map from a live catalog snapshot: baseURL +
@@ -947,6 +979,30 @@ async function setup(ctx) {
       } else {
         lines.push(`[modelselect] sync wants on or off (got '${tokens[1] ?? ''}')`);
       }
+    } else if (arg === 'doctor') {
+      const snap = readRuntimeInventory(cacheDir);
+      const keys = snap ? inventoryKeySet(snap) : null;
+      lines.push(
+        snap
+          ? `[modelselect] runtime inventory: ${keys.size} enabled models, ${Math.round((Date.now() - snap.fetchedAt) / 1000)}s old`
+          : '[modelselect] runtime inventory: none (chain fails open)',
+      );
+      if (keys) {
+        const missing = [];
+        const models = registry && typeof registry === 'object' && registry.models ? registry.models : {};
+        for (const entry of Object.values(models)) {
+          for (const v of Array.isArray(entry && entry.variants) ? entry.variants : []) {
+            const provider = String((v && v.provider) ?? '').toLowerCase();
+            const id = String((v && (v.model ?? v.id)) ?? '').trim();
+            if (!provider || !id) continue;
+            const ref = `${provider}/${id}`;
+            if (!keys.has(ref)) missing.push(ref);
+          }
+        }
+        lines.push(`[modelselect] registry variants absent at runtime: ${missing.length ? missing.slice(0, 10).join(', ') : 'none'}`);
+      }
+      const misses = readCatalogMisses(cacheDir);
+      lines.push(`[modelselect] catalog misses: ${misses.length ? misses.map((e) => `${e.key} x${e.count}`).join(', ') : 'none'}`);
     } else if (arg) {
       lines.push(`[modelselect] unknown argument '${tokens[0]}' — use sync on or sync off`);
     } else {
@@ -996,7 +1052,7 @@ async function setup(ctx) {
       await ctx.command.transform((editor) => {
         editor.add({
           name: ID,
-          description: 'Show modelselect status or toggle the router sync (sync on|off)',
+          description: 'Show modelselect status, router sync (sync on|off) or runtime catalog health (doctor)',
           execute: async (input) => {
             try {
               await runModelselectCommand(input);
@@ -1188,6 +1244,63 @@ async function setup(ctx) {
     }
     const h = sessionID && history.get(sessionID);
     return h && h.task ? { taskType: h.task, prev: null } : null;
+  }
+
+  /** Normalize a Model.Ref / split ref to the `provider/id` key used by tried + inventory. */
+  function refString(ref) {
+    const rid = ref && (ref.id ?? ref.modelID);
+    if (ref && typeof ref === 'object' && rid) {
+      return `${String(ref.providerID ?? '').toLowerCase()}/${String(rid)}`;
+    }
+    return String(ref ?? '');
+  }
+
+  /** True when the live inventory is known and does not contain this ref. */
+  function inventoryRejects(availability, ref) {
+    const keys = availability && availability.models;
+    if (!keys || typeof keys.has !== 'function') return false;
+    const key = refString(ref).toLowerCase();
+    return Boolean(key) && !keys.has(key);
+  }
+
+  /** Re-resolve one pick for a session using its remembered task/media/tried state. */
+  async function resolveSessionPick(sessionID, { preference, availability, tried, media } = {}) {
+    const where = sessionTask(sessionID);
+    const taskType = where
+      ? where.taskType
+      : (
+          await resolveTask({
+            sessionID,
+            text: prompts.get(sessionID) ?? '',
+            files: promptFiles.get(sessionID) ?? [],
+            agent: undefined,
+            assistantSnippet: '',
+          })
+        ).taskType;
+    return resolveModel({
+      taskType,
+      opts: { ...opts, autoPreference: preference || opts.autoPreference },
+      cacheDir,
+      media: media || lastMedia.get(sessionID) || (where && where.prev && Array.isArray(where.prev.media) ? where.prev.media : []),
+      capabilitiesFor: liveCapabilitiesFor,
+      catalog,
+      registry,
+      availability: availability || await currentAvailability(),
+      tried: tried || triedFor(sessionID) || [],
+    });
+  }
+
+  /** Pick record stored for aux/retry dispatch from a resolveModel result. */
+  function pickFrom(picked, media) {
+    const ref = splitModelRef(picked.model);
+    return {
+      providerID: ref.providerID,
+      id: ref.id,
+      endpoint: picked.endpoint ?? null,
+      endpointPath: picked.endpointPath ?? null,
+      think: picked.think ?? null,
+      media: picked.media ?? media ?? [],
+    };
   }
 
   // A classified failure on a virtual session: remember the ref (so the
@@ -1613,6 +1726,28 @@ async function setup(ctx) {
         pick = { providerID: ref.providerID, id: ref.id, endpoint: picked.endpoint ?? null, endpointPath: picked.endpointPath ?? null, think: picked.think ?? null, media: picked.media ?? mediaReq };
         lastVirtualPick.set(sessionID, pick);
       }
+      // Catalog-miss guard: a ref absent from the runtime inventory can never
+      // dispatch (OpenCode rejects it before any request). Skip it in this
+      // session's tried history and resolve the next chain candidate. This is
+      // not a quota latch and the session stays virtual. Without an inventory
+      // answer the check is a no-op and behavior is unchanged.
+      const liveAvailabilityNow = await currentAvailability();
+      const failingRef = refString(pick);
+      if (inventoryRejects(liveAvailabilityNow, failingRef) && !(triedFor(sessionID) || []).includes(failingRef)) {
+        markTried(sessionID, failingRef);
+        recordModelMiss(cacheDir, failingRef, { source: 'http.request' });
+        try {
+          const picked = await resolveSessionPick(sessionID, { preference, availability: await currentAvailability({ force: true }) });
+          const nextPick = pickFrom(picked, pick.media);
+          if (refString(nextPick) !== failingRef) {
+            pick = nextPick;
+            lastVirtualPick.set(sessionID, pick);
+            if (opts.verbose) console.log(`[modelselect] catalog miss ${failingRef} → ${refString(pick)} session=${sessionID}`);
+          }
+        } catch (err) {
+          if (opts.verbose) console.log(`[modelselect] catalog-miss re-resolve skipped: ${err?.message ?? err}`);
+        }
+      }
       // Re-assert this virtual model's protocol (covers armed retries,
       // which do not re-run the context hook, and picks stored without
       // an endpoint).
@@ -1688,6 +1823,14 @@ async function setup(ctx) {
         } catch {
           // unreadable body -> status-only classification below
         }
+        if (classifyModelMissing(text)) {
+          // A local catalog miss is not quota: record it and take the same
+          // chain-failover path, but never write a free-quota latch.
+          const ref = refForFailure(event.sessionID, event.model, virtualSessions, lastVirtualPick);
+          recordModelMiss(cacheDir, refString(ref), { source: 'http.response' });
+          armFailover(event.sessionID, ref, 'catalog-miss');
+          return;
+        }
         outcome = classifyFreeFailure(res.status, text);
         if (!outcome.exhausted) return;
       }
@@ -1738,6 +1881,54 @@ async function setup(ctx) {
         return;
       }
       const err = event.error;
+      // Catalog miss: OpenCode rejected the ref before dispatch because it
+      // is not in the runtime's provider catalog (e.g.
+      // `opencode/qwen3.8-flash` when only `opencode-go/qwen3.8-flash` is
+      // served). No HTTP response exists to classify. Refresh the inventory,
+      // skip that ref and force one retry on the next chain candidate. This
+      // is NOT quota (never latch) and never leaves virtual mode.
+      if (classifyModelMissing(err)) {
+        const sessionID = event.sessionID;
+        const isVirtual = Boolean(
+          sessionID && (virtualSessions.has(sessionID) || isVirtualRef(event.model)),
+        );
+        if (!isVirtual || opts.suggestOnly) return;
+        // The error itself often names the exact ref (OpenCode's
+        // ModelNotFoundError carries providerID/modelID); prefer it over the
+        // session's stored pick, which may be stale after a catalog refresh.
+        const errRef = err && (err.providerID || err.modelID) ? err : (err && err.error);
+        const errRefStr = errRef && (errRef.providerID || errRef.modelID) ? refString(errRef) : '';
+        const missingRef = errRefStr || refString(refForFailure(sessionID, event.model, virtualSessions, lastVirtualPick));
+        if (!missingRef || missingRef === '/') return;
+        const armKey = `${sessionID}|${missingRef}`;
+        const armedAt = catalogMissRetry.get(armKey);
+        // One retry per ref per window: a fresh arm means the retried attempt
+        // already had its chance. A stale arm is replaced below.
+        if (armedAt !== undefined && Date.now() - armedAt <= CATALOG_MISS_RETRY_TTL_MS) return;
+        catalogMissRetry.set(armKey, Date.now());
+        markTried(sessionID, missingRef);
+        recordModelMiss(cacheDir, missingRef, { source: 'retry' });
+        try {
+          const virtualId = virtualIds.get(sessionID) || (isVirtualRef(event.model) ? event.model.id : null);
+          const preference = virtualId ? preferenceForVirtualId(virtualId) : opts.autoPreference;
+          const picked = await resolveSessionPick(sessionID, {
+            preference,
+            availability: await currentAvailability({ force: true }),
+          });
+          const nextPick = pickFrom(picked, lastMedia.get(sessionID));
+          if (refString(nextPick) === missingRef) {
+            // No other candidate: retrying would hit the same catalog miss.
+            return;
+          }
+          lastVirtualPick.set(sessionID, nextPick);
+          if (virtualId) await syncVirtualApiFor(nextPick, virtualId);
+          event.decision = { retry: true, delay: 0 };
+          if (opts.verbose) console.log(`[modelselect] catalog miss retry ${missingRef} → ${refString(nextPick)} session=${sessionID}`);
+        } catch (missErr) {
+          if (opts.verbose) console.log(`[modelselect] catalog-miss retry skipped: ${missErr?.message ?? missErr}`);
+        }
+        return;
+      }
       // Wire-protocol mismatch on a virtual session: the virtual entry's
       // catalog `api` missed the pick's protocol (stale endpoints map,
       // first-turn race, title/warming aux request, or a host that pins

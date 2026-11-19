@@ -58,6 +58,16 @@ const MODEL_UNAVAILABLE_RE = /model\s+unavailable/i;
 // session retries once on the paid side.
 const DEPRECATED_MODEL_RE = /has\s+been\s+deprecated|is\s+deprecated|model\s+has\s+been\s+(removed|retired|discontinued)|no\s+longer\s+(available|supported)/i;
 
+// Local catalog miss (OpenCode `ModelNotFoundError`, or
+// `Model unavailable: <provider>/<model>` from a host's small-model call):
+// the ref is NOT in the runtime's provider catalog, so retrying it can never
+// succeed. This is deliberately separate from the upstream "Model is
+// unavailable." wording above — a rotated free model still latches — so a
+// catalog miss never triggers a 12h quota latch. The shapes are narrow:
+// the local error names a provider/model ref or carries the tagged type.
+const MODEL_MISSING_RE =
+  /modelnotfounderror|model\s+unavailable\s*:\s*[\w.-]+\/[\w.-]+|model\s+not\s+found|no\s+such\s+model|model\s+.*?does\s+not\s+exist/i;
+
 // Wrong-wire-protocol dispatch (e.g. `ModelProtocolUnsupported` / "Model
 // does not support this protocol."): the virtual entry's catalog `api`
 // missed the pick's protocol, so the driver sent chat/completions to a
@@ -133,6 +143,19 @@ function mismatchHaystack(error, bodyText) {
   push(error, 0);
   if (bodyText !== undefined && bodyText !== null) parts.push(String(bodyText));
   return parts.join(' ');
+}
+
+/**
+ * True when a failure says the model ref itself is absent from the runtime
+ * catalog — not quota, not a wire-protocol miss. Accepts the same nested
+ * shapes as `isProtocolMismatch`; never throws.
+ */
+function classifyModelMissing(error, bodyText) {
+  try {
+    return MODEL_MISSING_RE.test(mismatchHaystack(error, bodyText));
+  } catch {
+    return false;
+  }
 }
 
 function isProtocolMismatch(error, bodyText) {
@@ -327,8 +350,10 @@ module.exports = {
   ACCESS_DISABLED_RE,
   MODEL_UNAVAILABLE_RE,
   DEPRECATED_MODEL_RE,
+  MODEL_MISSING_RE,
   PROTOCOL_MISMATCH_RE,
   mismatchHaystack,
+  classifyModelMissing,
   isProtocolMismatch,
   classifyFreeExhaustion,
   classifyFreeFailure,

@@ -27,8 +27,8 @@
  *   - on equal cost and score the engine provider (opencode / opencode-go)
  *     wins over an external provider;
  *   - a variant must pass the same availability filters as the v1 chain
- *     (provider allowed/reachable, not latched, spend left, media, context,
- *     max cost).
+ *     (provider allowed/reachable, present in the live inventory when known,
+ *     not latched, spend left, media, context, max cost).
  *
  * Readers prefer v2 and fall back to v1: an empty result means the caller
  * runs the v1 path unchanged.
@@ -39,6 +39,7 @@ const {
   isAllowedProvider,
   providerState,
   latched,
+  modelPresent,
   supportsMedia,
   withinContext,
   withinBudget,
@@ -245,6 +246,7 @@ function buildV2Chain({
     const state = providerState(availability, row);
     if (state.unavailable === true || state.available === false) continue;
     if (!withinSpend(row, state)) continue;
+    if (!modelPresent(availability, row)) continue;
     if (latched(availability, row)) continue;
     if (!supportsMedia(row, media)) continue;
     if (!withinContext(row, contextNeed)) continue;

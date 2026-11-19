@@ -26,7 +26,7 @@ for (const [rel, value] of Object.entries(scenario.seed?.files || {})) {
 const restoreEnv = isolateAuth(dir);
 for (const [k, v] of Object.entries(scenario.seed?.env || {})) process.env[k] = v;
 
-const seen = { switches: [], synthetics: [], promptsOut: [], added: [] };
+const seen = { switches: [], synthetics: [], promptsOut: [], added: [], decisions: [] };
 const providers = new Map();
 for (const id of ['opencode', 'opencode-go']) {
   providers.set(id, {
@@ -98,8 +98,15 @@ const fakeCtx = {
       await hook(ev);
       if (step.hook === 'prompt') seen.promptText = typeof ev.prompt === 'string' ? ev.prompt : ev.prompt?.text;
       if (step.hook === 'context') seen.contextModel = ev.model;
+      if (step.hook === 'retry') seen.decisions.push(ev.decision ?? null);
     }
     const virtualRec = providers.get('modelselect');
+    let catalogMiss = '';
+    try {
+      catalogMiss = fs.readFileSync(path.join(dir, '.opencode', '.modelselect-cache', 'catalog-miss.json'), 'utf8');
+    } catch {
+      catalogMiss = '';
+    }
     const out = {
       seen: {
         switched: seen.switched,
@@ -112,6 +119,8 @@ const fakeCtx = {
         promptText: seen.promptText,
         contextModel: seen.contextModel,
         headers: seen.headers,
+        decisions: seen.decisions,
+        catalogMiss,
       },
       error: null,
     };
