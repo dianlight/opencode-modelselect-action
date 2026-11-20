@@ -9,6 +9,6 @@ module.exports = {
   ],
   expect: {
     http: [{ status: 200, jsonContains: { ok: true } }],
-    managedContains: '"tier": "free"',
+    pluginConfigContains: '"tier": "free"',
   },
 };

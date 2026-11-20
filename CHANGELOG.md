@@ -1,4 +1,13 @@
 ## [Unreleased]
+### Changed
+- The extension's settings panel and Work Status service now read and write
+  plugin options in the user's **global** OpenCode config
+  (`~/.config/opencode/opencode.json(c)`) instead of the legacy
+  `~/.config/openchamber/opencode.managed.json`. That one entry works in
+  OpenChamber and standalone `opencode` TUI alike. Writes are surgical JSONC
+  edits, so comments and unrelated settings in your config survive.
+- The shared routing core no longer reads the legacy managed config for
+  `autoPreference`; it reads the global config only.
 
 ## [1.1.0] - 2026-11-18
 ### Added

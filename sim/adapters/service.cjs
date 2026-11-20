@@ -7,7 +7,7 @@
  */
 
 const fs = require('node:fs');
-const { makeFixture, startService, managedPath, extConfigPath } = require('../../openchamber-modelselect/test/helpers/service.cjs');
+const { makeFixture, startService, globalConfigPath, extConfigPath } = require('../../openchamber-modelselect/test/helpers/service.cjs');
 
 async function run(scenario, ctx) {
   const fixture = makeFixture(scenario.fixture || {});
@@ -34,7 +34,7 @@ async function run(scenario, ctx) {
     http,
     fsRoot: fixture.root,
     calls: [],
-    managed: fs.existsSync(managedPath(fixture)) ? fs.readFileSync(managedPath(fixture), 'utf8') : '',
+    pluginConfig: fs.existsSync(globalConfigPath(fixture)) ? fs.readFileSync(globalConfigPath(fixture), 'utf8') : '',
     extConfig: fs.existsSync(extConfigPath(fixture)) ? fs.readFileSync(extConfigPath(fixture), 'utf8') : '',
   };
 }
@@ -49,7 +49,7 @@ function verify(scenario, result) {
     if (want.status !== undefined && got.status !== want.status) failures.push(`step ${i} ${got.path}: status ${got.status} != ${want.status}`);
     if (want.jsonContains && !deepPartial(got.body, want.jsonContains)) failures.push(`step ${i} ${got.path}: body does not contain ${JSON.stringify(want.jsonContains)}`);
   }
-  if (e.managedContains && !result.managed.includes(e.managedContains)) failures.push(`managed config missing ${JSON.stringify(e.managedContains)}`);
+  if (e.pluginConfigContains && !result.pluginConfig.includes(e.pluginConfigContains)) failures.push(`global config missing ${JSON.stringify(e.pluginConfigContains)}`);
   if (e.extConfigContains && !result.extConfig.includes(e.extConfigContains)) failures.push(`ext config missing ${JSON.stringify(e.extConfigContains)}`);
   return failures;
 }

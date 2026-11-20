@@ -48,8 +48,7 @@ import * as store from './store.js';
 const { syncRouting } = routingShared;
 const {
   CACHE_REL,
-  SESSION_MAP_FILE,
-  GLOBAL_NOTE_PATHS
+  SESSION_MAP_FILE
 } = store;
 
 // Keep in sync with the plugin read window (plugin/src/shared/host.js).
@@ -61,7 +60,6 @@ const SESSION_MAP_TOUCH_MS = 60 * 1000;
 const HOST_EVIDENCE_KEY = 'openchamber';
 
 const ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
-const GLOBAL_PROBE_MS = 30 * 1000;
 const MAINTAIN_EVERY_MS = 60 * 1000;
 const BODY_MAX = 16 * 1024;
 // A session event carries the form the agent shows, so it needs more room
@@ -72,7 +70,7 @@ const TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
 // OpenCode local port candidates, same as plugin/src/shared/usage.js.
 // The config reload endpoint lives on the bundled OpenCode server inside
 // OpenChamber; the service calls POST /api/location/reload after the
-// panel writes the managed config so plugin options apply without restart.
+// panel writes the global config so plugin options apply without restart.
 const RELOAD_PATH = '/api/location/reload';
 const DEFAULT_PORT = 4096;
 function reloadPorts(env = process.env) {
@@ -151,29 +149,6 @@ function reportCardState(state, message) {
   });
 }
 
-// --- plugin presence ------------------------------------------------------
-
-let probeCache = { at: 0, value: { checked: false, entry: false } };
-
-/** Does any readable global config mention the plugin? Cached 30 s. */
-async function pluginEntry() {
-  if (Date.now() - probeCache.at < GLOBAL_PROBE_MS) return probeCache.value;
-  const results = await Promise.all(GLOBAL_NOTE_PATHS.map(async (logical) => {
-    try {
-      const text = await fsp.readFile(store.resolveLogicalPath(null, logical), 'utf8');
-      return /modelselect/i.test(text);
-    } catch (e) {
-      return null; // unreadable (missing/denied) — not evidence
-    }
-  }));
-  const readable = results.filter((r) => r !== null);
-  const value = readable.length
-    ? { checked: true, entry: readable.some((r) => r === true) }
-    : { checked: false, entry: false };
-  probeCache = { at: Date.now(), value: value };
-  return value;
-}
-
 // --- side effects (best effort, never block the answer) -------------------
 
 const syncAt = new Map();
@@ -241,10 +216,10 @@ async function maintain() {
 
 // --- views ----------------------------------------------------------------
 
-/** The stored plugin `tier` option, from an already-read managed config. */
-function tierOf(managed) {
-  if (!managed || !managed.parseOk || managed.entry.form === 'missing') return null;
-  const tier = typeof managed.entry.options.tier === 'string' ? managed.entry.options.tier : 'auto';
+/** The stored plugin `tier` option, from an already-read global config. */
+function tierOf(current) {
+  if (!current || !current.parseOk || current.entry.form === 'missing') return null;
+  const tier = typeof current.entry.options.tier === 'string' ? current.entry.options.tier : 'auto';
   return TIER_VALUES.includes(tier) ? tier : 'auto';
 }
 
@@ -259,24 +234,23 @@ async function readView(directory) {
   const cacheDir = store.cacheDirOf(directory);
   const statuses = await store.listStatuses(cacheDir);
   const newest = store.newestStatus(statuses);
-  const [syncOn, freeQuota, usage, config, entry, managed] = await Promise.all([
+  const [syncOn, freeQuota, usage, config, pluginConfig] = await Promise.all([
     store.readRoutingSync(directory),
     store.readLatch(directory),
     store.readUsage(directory),
     store.readJsonAt(directory, path.join(CACHE_REL, 'model-config-cache.json')),
-    pluginEntry(),
-    store.readManagedConfig()
+    store.readPluginConfig()
   ]);
 
   // The card carries the fix; the section only says it is empty.
-  if (!managed.parseOk) {
-    reportCardState('managed-broken',
-      'The OpenChamber managed OpenCode config is not valid JSON, so the settings panel cannot save. Fix ' +
-      store.MANAGED_CONFIG_PATH + ' and reopen OpenChamber.');
-  } else if (managed.entry.form === 'missing') {
+  if (!pluginConfig.parseOk) {
+    reportCardState('config-broken',
+      'The global OpenCode config is not valid JSON, so the settings panel cannot save. Fix ' +
+      pluginConfig.path + ' and reload OpenCode.');
+  } else if (pluginConfig.entry.form === 'missing') {
     reportCardState('plugin-missing',
-      'Add the modelselect plugin to ' + store.MANAGED_CONFIG_PATH +
-      ' and reopen OpenChamber — it is the only config OpenChamber\'s server loads.');
+      'Add the modelselect plugin to ' + pluginConfig.path +
+      ' — it is loaded by both OpenChamber and standalone OpenCode.');
   } else {
     reportCardState('ok', null);
   }
@@ -291,8 +265,8 @@ async function readView(directory) {
     sync: syncOn,
     freeQuota: freeQuota,
     usage: usage,
-    globalEntry: entry,
-    tierOption: tierOf(managed)
+    globalEntry: { checked: true, entry: pluginConfig.entry.form !== 'missing' },
+    tierOption: tierOf(pluginConfig)
   });
 }
 
@@ -306,35 +280,26 @@ function publicOptions(options) {
 
 /** Everything the settings panel needs for its three tabs, in one read. */
 async function readConfig(directory, sessionID) {
-  const [managed, globalPresent, catalog, extConfig, syncOn, sessionStatus] = await Promise.all([
-    store.readManagedConfig(),
-    Promise.all(GLOBAL_NOTE_PATHS.map(async (logical) => {
-      try {
-        await fsp.stat(store.resolveLogicalPath(null, logical));
-        return logical;
-      } catch (e) {
-        return null;
-      }
-    })),
+  const [pluginConfig, catalog, extConfig, syncOn, sessionStatus] = await Promise.all([
+    store.readPluginConfig(),
     store.readCatalog(directory),
     store.readExtensionConfig(),
     store.readRoutingSync(directory),
     store.readSessionStatus(directory, sessionID)
   ]);
   return {
-    managed: {
-      parseOk: managed.parseOk,
-      exists: managed.exists,
-      parseError: managed.parseError || '',
+    pluginConfig: {
+      parseOk: pluginConfig.parseOk,
+      exists: pluginConfig.exists,
+      parseError: pluginConfig.parseError || '',
       entry: {
-        form: managed.entry.form,
-        package: managed.entry.package,
-        options: publicOptions(managed.entry.options)
+        form: pluginConfig.entry.form,
+        package: pluginConfig.entry.package,
+        options: publicOptions(pluginConfig.entry.options)
       }
     },
-    managedPath: store.MANAGED_CONFIG_PATH,
+    pluginConfigPath: pluginConfig.path,
     extensionPath: store.MODELSELECT_CONFIG_PATH,
-    globalPaths: globalPresent.filter(Boolean),
     catalog: { types: catalog.types, bounds: catalog.bounds },
     extConfig: extConfig,
     syncOn: syncOn,
@@ -590,7 +555,7 @@ async function handleConfigSave(directory, body) {
       saved = await store.savePluginOptions(directory, request.values || {});
     } catch (e) {
       const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
-      return { status: status, body: { message: messageOf(e, 'Could not write the managed config.') } };
+      return { status: status, body: { message: messageOf(e, 'Could not write the global OpenCode config.') } };
     }
     const reload = await reloadOpenCode();
     return {
@@ -626,7 +591,7 @@ async function handleConfigSave(directory, body) {
       };
     } catch (e) {
       const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
-      return { status: status, body: { message: messageOf(e, 'Could not write the managed config.') } };
+      return { status: status, body: { message: messageOf(e, 'Could not write the global OpenCode config.') } };
     }
   }
   if (request.kind === 'extension') {

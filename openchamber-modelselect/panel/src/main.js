@@ -88,8 +88,8 @@ function renderShell(snapshot) {
   title.textContent = 'Model select settings';
   shell.append(title);
   const note = el('div', 'mp-note');
-  note.textContent = 'Plugin options live in the OpenChamber managed OpenCode config; ' +
-    'the global opencode.json(c) is ignored by OpenChamber\'s server.';
+  note.textContent = 'Plugin options live in your global OpenCode config ' +
+    '(opencode.json / opencode.jsonc), shared by OpenChamber and standalone OpenCode.';
   shell.append(note);
 
   const panes = { plugin: null, extension: null, models: null };

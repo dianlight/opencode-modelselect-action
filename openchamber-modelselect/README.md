@@ -105,7 +105,7 @@ open. Rows, in order:
   absent from `model-config-cache.json`;
 - `Tier` — the picked tier, with a status dot from the last Go probe
   (success = OK, error = exhausted, muted = unknown) and the explanation in its
-  tooltip. When the managed config has a modelselect entry the row carries a
+  tooltip. When the global OpenCode config has a modelselect entry the row carries a
   `select` (auto / go / free) that writes the plugin option and reloads
   OpenCode, so the tier changes without opening the panel;
 - `Model` — `provider/id`; `suggest only` info badge (and tooltip) while the
@@ -126,18 +126,20 @@ open. Rows, in order:
 - `Auto-update router` — a segmented On / Off control, always the last row so
   it survives the 16-row cap.
 
-States: `plugin-missing` (no readable modelselect entry in the managed config
-— one short row; the full fix is on the extension card, see below),
+States: `plugin-missing` (no readable modelselect entry in the global OpenCode
+config — one short row; the full fix is on the extension card, see below),
 `no-pick` (plugin installed, no routed turn yet).
 
 ## Where the fix text lives
 
 The service calls `createServiceHost().needsConfiguration(message)` once per
 state change, so OpenChamber shows "Add the modelselect plugin to
-`<dataDir>/opencode.managed.json` and reopen OpenChamber" on the extension's
-card instead of inside a row of the section. Global
-`~/.config/opencode/opencode.json(c)` entries do not load in OpenChamber's
-panel; the managed config is the only one its server reads.
+`~/.config/opencode/opencode.json(c)`" on the extension's card instead of
+inside a row of the section. That global config is the plugin's single home:
+OpenCode loads it for every instance — OpenChamber's managed server and
+standalone TUI alike — and merges it with the per-instance config OpenChamber
+owns. This extension never writes to the OpenChamber-owned config; the old
+`~/.config/openchamber/opencode.managed.json` entry is no longer used.
 
 ## Routing sync
 
@@ -161,8 +163,8 @@ the repo root); the service wraps it in a plain-fs adapter (`store.js`).
 
 - Source: plugin `task-types-cache.json` (`jev_criteria` + `agent`) plus
   `model-config-cache.json` (`go`/`free` per task type).
-- `autoPreference` from the modelselect plugin options in the managed/global
-  OpenCode config picks the `go` (`go-first`) or `free` (`free-first`,
+- `autoPreference` from the modelselect plugin options in the global OpenCode
+  config picks the `go` (`go-first`) or `free` (`free-first`,
   default) side for every category and for `fallback` (which follows
   `generic`). Missing `autoPreference` means `free-first`.
 - Category `description` is the `jev_criteria` verbatim (what Jev reads).
@@ -301,9 +303,9 @@ The `Model select` rail icon (`panel/index.html` → `panel/main.js`) opens a
 three-tab settings panel. It reads one `GET /config` snapshot on open and
 writes through the service, so it needs no file grants of its own:
 
-- **Plugin tab** — the modelselect entry's `options` inside the OpenChamber
-  managed OpenCode config (`~/.config/openchamber/opencode.managed.json`,
-  the only OpenCode config OpenChamber's own server loads). Covers tier,
+- **Plugin tab** — the modelselect entry's `options` inside the user's global
+  OpenCode config (`~/.config/opencode/opencode.json` / `opencode.jsonc`),
+  shared by OpenChamber and standalone OpenCode. Covers tier,
   autoPreference, taskType, defaultTaskType, announce, the OpenChamber
   host force, the maxCost slider (0 … catalog max, rightmost = No limit,
   with tick labels for the catalog min/max blended cost from the plugin's
@@ -312,16 +314,17 @@ writes through the service, so it needs no file grants of its own:
   taskTypesUrl, fallbackModel, agentTaskMap (JSON), and the write-only
   `token` / `jevToken` password fields (blank = keep the stored value,
   never rendered and never returned by `/config`). Save is read-modify-write
-  inside the service: unknown option keys and unknown top-level config keys
-  are preserved, and the Save button stays disabled until something actually
-  changed (secret drafts count as a change; after a successful save the
-  drafts clear and the button gates again). String / tuple entries are
-  converted to `{ package, options }` in place. A missing entry shows an
-  "Add to managed config" button that writes a bare entry and reloads the
-  panel. An unparseable config shows an error banner and no form — nothing
-  is ever written over it. After a successful save the service reloads
-  OpenCode's configuration (`POST /api/location/reload`, OpenCode >= 2.2.1)
-  so the new options apply without restarting OpenChamber; if the reload
+  inside the service as a surgical JSONC edit: comments, key order, unknown
+  option keys and unknown top-level config keys are preserved, and the Save
+  button stays disabled until something actually changed (secret drafts count
+  as a change; after a successful save the drafts clear and the button gates
+  again). String / tuple entries are converted to `{ package, options }` in
+  place. A missing entry shows an "Add to global config" button that writes a
+  bare entry and reloads the panel. An unparseable config shows an error
+  banner and no form — nothing is ever written over it. After a successful
+  save the service reloads OpenCode's configuration
+  (`POST /api/location/reload`, OpenCode >= 2.2.1) so the new options apply
+  without restarting OpenChamber; if the reload
   endpoint is unavailable the familiar "restart required" notice is shown
   instead.
 - **Extension tab** — the router-sync switch (project

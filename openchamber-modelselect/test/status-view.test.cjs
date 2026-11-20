@@ -93,7 +93,7 @@ describe('status view', () => {
     const row = rowsById(view)['plugin-missing'];
     assert.equal(row.kind, 'note');
     assert.equal(row.tone, 'error');
-    assert.match(row.text, /opencode\.managed\.json/);
+    assert.match(row.text, /opencode\.json/);
     assert.equal(rowsById(view).router.kind, 'line');
   });
 

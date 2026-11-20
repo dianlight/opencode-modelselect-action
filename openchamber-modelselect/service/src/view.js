@@ -50,7 +50,7 @@ export const TIER_OPTIONS = [
   { value: 'free', label: 'free' }
 ];
 
-const MISSING_NOTE = 'ModelSelect plugin not in opencode.managed.json — ' +
+const MISSING_NOTE = 'ModelSelect plugin not in the global opencode.json(c) — ' +
   'the extension card shows the fix; only this section stays empty.';
 
 function str(v) {
@@ -251,7 +251,7 @@ function statusRows(snap, rows) {
     ...(unlisted ? { badge: { label: 'unlisted task', tone: 'warning' } } : {}),
     ...(unlisted ? { tooltip: 'This task type is not in the plugin model config.' } : {}) }));
   // The tier is the one option worth changing without the panel: the
-  // service writes it to the managed config and reloads OpenCode. The row's
+  // service writes it to the global config and reloads OpenCode. The row's
   // value is the tier the last turn used; the control shows the stored
   // option, so the tooltip names both.
   rows.push(line({ id: 'tier', label: 'Tier', value: status.tier || '—',

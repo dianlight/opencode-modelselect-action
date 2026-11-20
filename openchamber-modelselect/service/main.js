@@ -371,9 +371,8 @@ var require_routing = __commonJS(function(exports, module) {
   var SETTINGS_PATH = "~/.config/openchamber/settings.json";
   var PREFERENCES_PATH = "~/.config/openchamber/preferences.json";
   var GLOBAL_CONFIG_PATHS = [
-    "~/.config/openchamber/opencode.managed.json",
-    "~/.config/opencode/opencode.json",
-    "~/.config/opencode/opencode.jsonc"
+    "~/.config/opencode/opencode.jsonc",
+    "~/.config/opencode/opencode.json"
   ];
   var MODEL_CACHE_FILE = ".opencode/.modelselect-cache/model-config-cache.json";
   var TASK_TYPES_CACHE_FILE = ".opencode/.modelselect-cache/task-types-cache.json";
@@ -1583,9 +1582,8 @@ __export(exports_store, {
   FALLBACK_COST_MAX: () => FALLBACK_COST_MAX,
   FALLBACK_COST_MIN: () => FALLBACK_COST_MIN,
   GLOBAL_CONFIG_PATHS: () => GLOBAL_CONFIG_PATHS,
-  GLOBAL_NOTE_PATHS: () => GLOBAL_NOTE_PATHS,
-  MANAGED_CONFIG_PATH: () => MANAGED_CONFIG_PATH,
   MODELSELECT_CONFIG_PATH: () => MODELSELECT_CONFIG_PATH,
+  PLUGIN_CONFIG_PATH: () => PLUGIN_CONFIG_PATH,
   PLUGIN_PACKAGE: () => PLUGIN_PACKAGE,
   ROUTING_SYNC_FILE: () => ROUTING_SYNC_FILE,
   SESSION_MAP_FILE: () => SESSION_MAP_FILE,
@@ -1603,7 +1601,7 @@ __export(exports_store, {
   readJsonAt: () => readJsonAt,
   readJsonFile: () => readJsonFile,
   readLatch: () => readLatch,
-  readManagedConfig: () => readManagedConfig,
+  readPluginConfig: () => readPluginConfig,
   readRegistry: () => readRegistry,
   readRoutingSync: () => readRoutingSync,
   readSessionStatus: () => readSessionStatus,
@@ -1622,9 +1620,8 @@ __export(exports_store, {
 });
 
 // service/src/main.js
-var import_routing3 = __toESM(require_routing(), 1);
 import http from "node:http";
-import fsp2 from "node:fs/promises";
+var import_routing3 = __toESM(require_routing(), 1);
 import path2 from "node:path";
 import crypto from "node:crypto";
 // node_modules/@openchamber/sdk/dist/scrollbar-style.js
@@ -1923,7 +1920,7 @@ var TIER_OPTIONS = [
   { value: "go", label: "go" },
   { value: "free", label: "free" }
 ];
-var MISSING_NOTE = "ModelSelect plugin not in opencode.managed.json — " + "the extension card shows the fix; only this section stays empty.";
+var MISSING_NOTE = "ModelSelect plugin not in the global opencode.json(c) — " + "the extension card shows the fix; only this section stays empty.";
 function str(v) {
   return v == null ? "" : String(v);
 }
@@ -2732,13 +2729,12 @@ import path from "node:path";
 var { parseJsonLenient } = import_routing2.default;
 var CACHE_REL = ".opencode/.modelselect-cache";
 var SESSION_MAP_FILE = "openchamber-sessions.json";
-var MANAGED_CONFIG_PATH = "~/.config/openchamber/opencode.managed.json";
 var MODELSELECT_CONFIG_PATH = "~/.config/openchamber/modelselect.json";
 var GLOBAL_CONFIG_PATHS = [
-  "~/.config/opencode/opencode.json",
-  "~/.config/opencode/opencode.jsonc"
+  "~/.config/opencode/opencode.jsonc",
+  "~/.config/opencode/opencode.json"
 ];
-var GLOBAL_NOTE_PATHS = GLOBAL_CONFIG_PATHS;
+var PLUGIN_CONFIG_PATH = GLOBAL_CONFIG_PATHS[0];
 var ROUTING_SYNC_FILE = "routing-sync.json";
 var PLUGIN_PACKAGE = "@dianlight/opencode-modelselect-plugin";
 var DEFAULT_CONFIG_URL = "https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json";
@@ -2820,49 +2816,269 @@ function findPluginEntry(config) {
   }
   return { form: "missing", index: -1, package: PLUGIN_PACKAGE, options: {} };
 }
-async function readManagedConfig() {
-  const file = resolveLogicalPath(null, MANAGED_CONFIG_PATH);
-  let raw;
+function decodeJsonString(literal) {
   try {
-    raw = await fsp.readFile(file, "utf8");
+    return JSON.parse(literal);
   } catch (e) {
-    if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) {
-      return { parseOk: true, exists: false, config: { plugins: [] }, entry: findPluginEntry({}) };
+    return "";
+  }
+}
+function jsonTokens(raw) {
+  const out = [];
+  let i = 0;
+  while (i < raw.length) {
+    const c = raw[i];
+    if (c === '"') {
+      const start = i;
+      i += 1;
+      while (i < raw.length) {
+        if (raw[i] === "\\") {
+          i += 2;
+          continue;
+        }
+        if (raw[i] === '"') {
+          i += 1;
+          break;
+        }
+        i += 1;
+      }
+      out.push({ type: "string", start, end: i, value: decodeJsonString(raw.slice(start, i)) });
+      continue;
     }
+    if (c === "/" && raw[i + 1] === "/") {
+      while (i < raw.length && raw[i] !== `
+`)
+        i += 1;
+      continue;
+    }
+    if (c === "/" && raw[i + 1] === "*") {
+      i += 2;
+      while (i < raw.length && !(raw[i] === "*" && raw[i + 1] === "/"))
+        i += 1;
+      i += 2;
+      continue;
+    }
+    if (c === "{" || c === "}" || c === "[" || c === "]")
+      out.push({ type: c, start: i, end: i + 1 });
+    i += 1;
+  }
+  return out;
+}
+function matchBracket(tokens, openIndex) {
+  const open = tokens[openIndex].type;
+  const close = open === "{" ? "}" : "]";
+  let depth = 0;
+  for (let i = openIndex;i < tokens.length; i += 1) {
+    if (tokens[i].type === open)
+      depth += 1;
+    else if (tokens[i].type === close) {
+      depth -= 1;
+      if (depth === 0)
+        return i;
+    }
+  }
+  return -1;
+}
+function lineIndent(raw, pos) {
+  const lineStart = raw.lastIndexOf(`
+`, Math.max(0, pos - 1)) + 1;
+  const m = /^\s*/.exec(raw.slice(lineStart));
+  return m ? m[0] : "";
+}
+function prettyAt(value, indent) {
+  return JSON.stringify(value, null, 2).split(`
+`).map((line, i) => i === 0 ? line : indent + line).join(`
+`);
+}
+function findOptionsBlock(raw, packageName) {
+  const tokens = jsonTokens(raw);
+  const pkgIdx = tokens.findIndex((t) => t.type === "string" && t.value === packageName);
+  if (pkgIdx < 0)
+    return null;
+  let openIdx = -1;
+  let depth = 0;
+  for (let i = pkgIdx - 1;i >= 0; i -= 1) {
+    if (tokens[i].type === "}")
+      depth += 1;
+    else if (tokens[i].type === "{") {
+      if (depth === 0) {
+        openIdx = i;
+        break;
+      }
+      depth -= 1;
+    }
+  }
+  if (openIdx < 0)
+    return null;
+  const entryClose = matchBracket(tokens, openIdx);
+  if (entryClose < 0)
+    return null;
+  for (let i = pkgIdx + 1;i < entryClose; i += 1) {
+    if (tokens[i].type !== "string" || tokens[i].value !== "options")
+      continue;
+    let braceIdx = -1;
+    for (let j = i + 1;j < entryClose; j += 1) {
+      if (tokens[j].type === "{") {
+        braceIdx = j;
+        break;
+      }
+      if (tokens[j].type !== ":" && tokens[j].type !== "string")
+        break;
+    }
+    if (braceIdx < 0)
+      break;
+    const endIdx = matchBracket(tokens, braceIdx);
+    if (endIdx < 0 || endIdx > entryClose)
+      break;
+    return {
+      start: tokens[braceIdx].start,
+      end: tokens[endIdx].end,
+      indent: lineIndent(raw, tokens[braceIdx].start),
+      entryClose,
+      entryOpen: openIdx,
+      tokens
+    };
+  }
+  return { entryClose, entryOpen: openIdx, tokens };
+}
+function plainEntryRange(raw, packageName, form) {
+  const tokens = jsonTokens(raw);
+  const pkgIdx = tokens.findIndex((t) => t.type === "string" && t.value === packageName);
+  if (pkgIdx < 0)
+    return null;
+  if (form === "string") {
+    return { start: tokens[pkgIdx].start, end: tokens[pkgIdx].end };
+  }
+  let openIdx = -1;
+  for (let i = pkgIdx - 1;i >= 0; i -= 1) {
+    if (tokens[i].type === "[") {
+      openIdx = i;
+      break;
+    }
+    if (tokens[i].type === "}" || tokens[i].type === "]")
+      break;
+  }
+  if (openIdx < 0)
+    return null;
+  const closeIdx = matchBracket(tokens, openIdx);
+  if (closeIdx < 0)
+    return null;
+  return { start: tokens[openIdx].start, end: tokens[closeIdx].end };
+}
+function replaceOptionsInJsonc(raw, packageName, form, nextOptions) {
+  if (form === "string" || form === "tuple") {
+    const range = plainEntryRange(raw, packageName, form);
+    if (!range)
+      throw new Error("No modelselect entry in the global OpenCode config.");
+    const indent = lineIndent(raw, range.start);
+    return raw.slice(0, range.start) + prettyAt({ package: packageName, options: nextOptions }, indent) + raw.slice(range.end);
+  }
+  const block = findOptionsBlock(raw, packageName);
+  if (!block)
+    throw new Error("No modelselect entry in the global OpenCode config.");
+  if (typeof block.start === "number") {
+    return raw.slice(0, block.start) + prettyAt(nextOptions, block.indent) + raw.slice(block.end);
+  }
+  const tokens = block.tokens;
+  const insertAt = tokens[block.entryClose].start;
+  const indent = lineIndent(raw, insertAt);
+  const emptyEntry = block.entryClose === block.entryOpen + 1;
+  const addition = (emptyEntry ? "" : `,
+`) + indent + '  "options": ' + prettyAt(nextOptions, indent + "  ");
+  return raw.slice(0, insertAt) + addition + raw.slice(insertAt);
+}
+function addEntryToJsonc(raw) {
+  const tokens = jsonTokens(raw);
+  const keyIdx = tokens.findIndex((t) => t.type === "string" && t.value === "plugins");
+  if (keyIdx < 0)
+    throw new Error("The global OpenCode config has no plugins array.");
+  let arrayIdx = -1;
+  for (let i = keyIdx + 1;i < tokens.length; i += 1) {
+    if (tokens[i].type === "[") {
+      arrayIdx = i;
+      break;
+    }
+    if (tokens[i].type === "{" || tokens[i].type === "string")
+      break;
+  }
+  if (arrayIdx < 0)
+    throw new Error("The global OpenCode config has no plugins array.");
+  const closeIdx = matchBracket(tokens, arrayIdx);
+  if (closeIdx < 0)
+    throw new Error("The global OpenCode config plugins array is unbalanced.");
+  const insertAt = tokens[closeIdx].start;
+  const indent = lineIndent(raw, insertAt);
+  const entry = prettyAt({ package: PLUGIN_PACKAGE, options: {} }, indent + "  ");
+  const empty = closeIdx === arrayIdx + 1;
+  const addition = (empty ? `
+` : `,
+`) + indent + "  " + entry + (empty ? `
+` + indent : "");
+  return raw.slice(0, insertAt) + addition + raw.slice(insertAt);
+}
+async function writeTextAtomic(file, text) {
+  await fsp.mkdir(path.dirname(file), { recursive: true });
+  const tmp = file + "." + process.pid + ".tmp";
+  await fsp.writeFile(tmp, text);
+  await fsp.rename(tmp, file);
+}
+async function readPluginConfig() {
+  const rejected = [];
+  for (const logical of GLOBAL_CONFIG_PATHS) {
+    const file = resolveLogicalPath(null, logical);
+    let raw;
+    try {
+      raw = await fsp.readFile(file, "utf8");
+    } catch (e) {
+      if (e && (e.code === "ENOENT" || e.code === "ENOTDIR"))
+        continue;
+      rejected.push({ logical, file, raw: "", parseError: String(e && e.message || e) });
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = parseJsonLenient(raw);
+    } catch (e) {
+      rejected.push({ logical, file, raw, parseError: "not valid JSON: " + String(e && e.message || e) });
+      continue;
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      rejected.push({ logical, file, raw, parseError: "the config is not a JSON object" });
+      continue;
+    }
+    const entry = findPluginEntry(parsed);
+    if (entry.form !== "missing" || rejected.length === 0) {
+      return { parseOk: true, exists: true, config: parsed, entry, file, path: logical, raw, parseError: "" };
+    }
+    rejected.push({ logical, file, raw, parseError: "no modelselect entry" });
+  }
+  if (rejected.length) {
+    const first = rejected[0];
     return {
       parseOk: false,
       exists: true,
       config: null,
       entry: findPluginEntry({}),
-      parseError: String(e && e.message || e)
+      file: first.file,
+      path: first.logical,
+      raw: first.raw,
+      parseError: first.parseError
     };
   }
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    return {
-      parseOk: false,
-      exists: true,
-      config: null,
-      entry: findPluginEntry({}),
-      parseError: "not valid JSON: " + String(e && e.message || e)
-    };
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return {
-      parseOk: false,
-      exists: true,
-      config: null,
-      entry: findPluginEntry({}),
-      parseError: "the managed config is not a JSON object"
-    };
-  }
-  return { parseOk: true, exists: true, config: parsed, entry: findPluginEntry(parsed) };
+  return {
+    parseOk: true,
+    exists: false,
+    config: { plugins: [] },
+    entry: findPluginEntry({}),
+    file: resolveLogicalPath(null, PLUGIN_CONFIG_PATH),
+    path: PLUGIN_CONFIG_PATH,
+    raw: "",
+    parseError: ""
+  };
 }
 async function storedPluginOptions() {
-  const managed = await readManagedConfig();
-  return managed.entry.options || {};
+  const current = await readPluginConfig();
+  return current.entry.options || {};
 }
 function buildPluginOptions(base, v) {
   const next = shallowCopy(base);
@@ -2902,55 +3118,42 @@ function buildPluginOptions(base, v) {
   return next;
 }
 async function savePluginOptions(directory, values) {
-  const managed = await readManagedConfig();
-  if (!managed.parseOk) {
-    throw new Error("The managed config is not valid JSON — nothing was written. Fix the file first.");
+  const current = await readPluginConfig();
+  if (!current.parseOk) {
+    throw new Error("The global OpenCode config is not valid JSON — nothing was written. Fix the file first.");
   }
-  const config = managed.config;
-  if (!Array.isArray(config.plugins))
-    config.plugins = [];
-  const entry = managed.entry;
-  if (entry.form === "missing") {
-    throw new Error("No modelselect entry in the managed config.");
+  if (current.entry.form === "missing") {
+    throw new Error("No modelselect entry in the global OpenCode config.");
   }
-  const nextOptions = buildPluginOptions(entry.options, values);
-  if (entry.form === "object") {
-    config.plugins[entry.index].options = nextOptions;
-  } else {
-    config.plugins[entry.index] = { package: entry.package, options: nextOptions };
-  }
-  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
-  return { entry: findPluginEntry(config), options: nextOptions };
+  const nextOptions = buildPluginOptions(current.entry.options, values);
+  const text = replaceOptionsInJsonc(current.raw, current.entry.package, current.entry.form, nextOptions);
+  await writeTextAtomic(current.file, text);
+  return { entry: findPluginEntry(parseJsonLenient(text)), options: nextOptions };
 }
 async function addPluginEntry() {
-  const managed = await readManagedConfig();
-  if (!managed.parseOk) {
-    throw new Error("The managed config is not valid JSON — nothing was written. Fix the file first.");
+  const current = await readPluginConfig();
+  if (!current.parseOk) {
+    throw new Error("The global OpenCode config is not valid JSON — nothing was written. Fix the file first.");
   }
-  if (managed.entry.form !== "missing")
-    return { entry: managed.entry, added: false };
-  const config = managed.config;
-  if (!Array.isArray(config.plugins))
-    config.plugins = [];
-  config.plugins.push({ package: PLUGIN_PACKAGE, options: {} });
-  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
-  return { entry: findPluginEntry(config), added: true };
+  if (current.entry.form !== "missing")
+    return { entry: current.entry, added: false };
+  const text = addEntryToJsonc(current.raw || `{
+  "plugins": []
+}
+`);
+  await writeTextAtomic(current.file, text);
+  return { entry: findPluginEntry(parseJsonLenient(text)), added: true };
 }
 async function setPluginOption(name, value) {
-  const managed = await readManagedConfig();
-  if (!managed.parseOk)
-    throw new Error("The managed config is not valid JSON.");
-  const entry = managed.entry;
-  if (entry.form === "missing")
-    throw new Error("No modelselect entry in the managed config.");
-  const config = managed.config;
-  const next = shallowCopy(entry.options);
+  const current = await readPluginConfig();
+  if (!current.parseOk)
+    throw new Error("The global OpenCode config is not valid JSON.");
+  if (current.entry.form === "missing")
+    throw new Error("No modelselect entry in the global OpenCode config.");
+  const next = shallowCopy(current.entry.options);
   next[name] = value;
-  if (entry.form === "object")
-    config.plugins[entry.index].options = next;
-  else
-    config.plugins[entry.index] = { package: entry.package, options: next };
-  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
+  const text = replaceOptionsInJsonc(current.raw, current.entry.package, current.entry.form, next);
+  await writeTextAtomic(current.file, text);
   return next;
 }
 async function readExtensionConfig() {
@@ -3086,14 +3289,12 @@ async function lastProject() {
 var { syncRouting } = import_routing3.default;
 var {
   CACHE_REL: CACHE_REL2,
-  SESSION_MAP_FILE: SESSION_MAP_FILE2,
-  GLOBAL_NOTE_PATHS: GLOBAL_NOTE_PATHS2
+  SESSION_MAP_FILE: SESSION_MAP_FILE2
 } = exports_store;
 var SESSION_MAP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 var SESSION_MAP_TOUCH_MS = 60 * 1000;
 var HOST_EVIDENCE_KEY = "openchamber";
 var ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
-var GLOBAL_PROBE_MS = 30 * 1000;
 var MAINTAIN_EVERY_MS = 60 * 1000;
 var BODY_MAX = 16 * 1024;
 var EVENT_BODY_MAX = 256 * 1024;
@@ -3164,23 +3365,6 @@ function reportCardState(state, message) {
     lastCardState = null;
   });
 }
-var probeCache = { at: 0, value: { checked: false, entry: false } };
-async function pluginEntry() {
-  if (Date.now() - probeCache.at < GLOBAL_PROBE_MS)
-    return probeCache.value;
-  const results = await Promise.all(GLOBAL_NOTE_PATHS2.map(async (logical) => {
-    try {
-      const text = await fsp2.readFile(resolveLogicalPath(null, logical), "utf8");
-      return /modelselect/i.test(text);
-    } catch (e) {
-      return null;
-    }
-  }));
-  const readable = results.filter((r) => r !== null);
-  const value = readable.length ? { checked: true, entry: readable.some((r) => r === true) } : { checked: false, entry: false };
-  probeCache = { at: Date.now(), value };
-  return value;
-}
 var syncAt = new Map;
 var seenDirectories = new Set;
 async function maybeSyncRouting(directory, syncEnabled) {
@@ -3234,10 +3418,10 @@ async function maintain() {
     } catch (e) {}
   }
 }
-function tierOf(managed) {
-  if (!managed || !managed.parseOk || managed.entry.form === "missing")
+function tierOf(current) {
+  if (!current || !current.parseOk || current.entry.form === "missing")
     return null;
-  const tier = typeof managed.entry.options.tier === "string" ? managed.entry.options.tier : "auto";
+  const tier = typeof current.entry.options.tier === "string" ? current.entry.options.tier : "auto";
   return TIER_VALUES.includes(tier) ? tier : "auto";
 }
 async function readView(directory) {
@@ -3250,18 +3434,17 @@ async function readView(directory) {
   const cacheDir = cacheDirOf(directory);
   const statuses = await listStatuses(cacheDir);
   const newest = newestStatus(statuses);
-  const [syncOn, freeQuota, usage, config, entry, managed] = await Promise.all([
+  const [syncOn, freeQuota, usage, config, pluginConfig] = await Promise.all([
     readRoutingSync(directory),
     readLatch(directory),
     readUsage(directory),
     readJsonAt(directory, path2.join(CACHE_REL2, "model-config-cache.json")),
-    pluginEntry(),
-    readManagedConfig()
+    readPluginConfig()
   ]);
-  if (!managed.parseOk) {
-    reportCardState("managed-broken", "The OpenChamber managed OpenCode config is not valid JSON, so the settings panel cannot save. Fix " + MANAGED_CONFIG_PATH + " and reopen OpenChamber.");
-  } else if (managed.entry.form === "missing") {
-    reportCardState("plugin-missing", "Add the modelselect plugin to " + MANAGED_CONFIG_PATH + " and reopen OpenChamber — it is the only config OpenChamber's server loads.");
+  if (!pluginConfig.parseOk) {
+    reportCardState("config-broken", "The global OpenCode config is not valid JSON, so the settings panel cannot save. Fix " + pluginConfig.path + " and reload OpenCode.");
+  } else if (pluginConfig.entry.form === "missing") {
+    reportCardState("plugin-missing", "Add the modelselect plugin to " + pluginConfig.path + " — it is loaded by both OpenChamber and standalone OpenCode.");
   } else {
     reportCardState("ok", null);
   }
@@ -3275,8 +3458,8 @@ async function readView(directory) {
     sync: syncOn,
     freeQuota,
     usage,
-    globalEntry: entry,
-    tierOption: tierOf(managed)
+    globalEntry: { checked: true, entry: pluginConfig.entry.form !== "missing" },
+    tierOption: tierOf(pluginConfig)
   });
 }
 function publicOptions(options) {
@@ -3286,35 +3469,26 @@ function publicOptions(options) {
   return out;
 }
 async function readConfig(directory, sessionID) {
-  const [managed, globalPresent, catalog, extConfig, syncOn, sessionStatus] = await Promise.all([
-    readManagedConfig(),
-    Promise.all(GLOBAL_NOTE_PATHS2.map(async (logical) => {
-      try {
-        await fsp2.stat(resolveLogicalPath(null, logical));
-        return logical;
-      } catch (e) {
-        return null;
-      }
-    })),
+  const [pluginConfig, catalog, extConfig, syncOn, sessionStatus] = await Promise.all([
+    readPluginConfig(),
     readCatalog(directory),
     readExtensionConfig(),
     readRoutingSync(directory),
     readSessionStatus(directory, sessionID)
   ]);
   return {
-    managed: {
-      parseOk: managed.parseOk,
-      exists: managed.exists,
-      parseError: managed.parseError || "",
+    pluginConfig: {
+      parseOk: pluginConfig.parseOk,
+      exists: pluginConfig.exists,
+      parseError: pluginConfig.parseError || "",
       entry: {
-        form: managed.entry.form,
-        package: managed.entry.package,
-        options: publicOptions(managed.entry.options)
+        form: pluginConfig.entry.form,
+        package: pluginConfig.entry.package,
+        options: publicOptions(pluginConfig.entry.options)
       }
     },
-    managedPath: MANAGED_CONFIG_PATH,
+    pluginConfigPath: pluginConfig.path,
     extensionPath: MODELSELECT_CONFIG_PATH,
-    globalPaths: globalPresent.filter(Boolean),
     catalog: { types: catalog.types, bounds: catalog.bounds },
     extConfig,
     syncOn,
@@ -3530,7 +3704,7 @@ async function handleConfigSave(directory, body) {
       saved = await savePluginOptions(directory, request.values || {});
     } catch (e) {
       const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
-      return { status, body: { message: messageOf(e, "Could not write the managed config.") } };
+      return { status, body: { message: messageOf(e, "Could not write the global OpenCode config.") } };
     }
     const reload = await reloadOpenCode();
     return {
@@ -3565,7 +3739,7 @@ async function handleConfigSave(directory, body) {
       };
     } catch (e) {
       const status = /not valid JSON|No modelselect entry/.test(messageOf(e)) ? 409 : 500;
-      return { status, body: { message: messageOf(e, "Could not write the managed config.") } };
+      return { status, body: { message: messageOf(e, "Could not write the global OpenCode config.") } };
     }
   }
   if (request.kind === "extension") {

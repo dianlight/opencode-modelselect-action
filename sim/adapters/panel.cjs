@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { MessageChannel } = require('node:worker_threads');
-const { makeFixture, startService, managedPath, extConfigPath } = require('../../openchamber-modelselect/test/helpers/service.cjs');
+const { makeFixture, startService, globalConfigPath, extConfigPath } = require('../../openchamber-modelselect/test/helpers/service.cjs');
 const { FakeElement, findAll, hasClass, textOf, fieldInput, findSwitch, findButton, findTab } = require('../engine/dom.cjs');
 
 const BUNDLE = path.join(__dirname, '..', '..', 'openchamber-modelselect', 'panel', 'main.js');
@@ -162,7 +162,7 @@ async function run(scenario, ctx) {
     fields: scenario.ops ? {} : {},
     fsRoot: fixture.root,
     calls: [],
-    managed: fs.readFileSync(managedPath(fixture), 'utf8'),
+    pluginConfig: fs.readFileSync(globalConfigPath(fixture), 'utf8'),
     extConfig: fs.readFileSync(extConfigPath(fixture), 'utf8'),
   };
 }
@@ -175,7 +175,7 @@ function verify(scenario, result) {
       if (!new RegExp(t).test(result.text)) failures.push(`panel text !~ /${t}/`);
     }
   }
-  if (e.managedContains && !result.managed.includes(e.managedContains)) failures.push(`managed config missing ${JSON.stringify(e.managedContains)}`);
+  if (e.pluginConfigContains && !result.pluginConfig.includes(e.pluginConfigContains)) failures.push(`global config missing ${JSON.stringify(e.pluginConfigContains)}`);
   if (e.extConfigContains && !result.extConfig.includes(e.extConfigContains)) failures.push(`ext config missing ${JSON.stringify(e.extConfigContains)}`);
   return failures;
 }

@@ -6,11 +6,12 @@
  * here runs with the service's own user access, resolved from `?directory=`.
  *
  * Contracts (mirror plugin/src/shared/ — keep in sync):
- * - Managed OpenCode config (`~/.config/openchamber/opencode.managed.json`) is
- *   the only config OpenChamber's server loads. An unparseable file is never
- *   rewritten: every write path returns `{ ok: false }` instead.
- * - Writes are read-modify-write: unknown option keys and unknown top-level
- *   config keys are preserved; only managed keys are set or deleted.
+ * - The user's global OpenCode config (`~/.config/opencode/opencode.json(c)`)
+ *   is the one home for the plugin options: OpenCode loads it for every
+ *   instance (OpenChamber's managed server and standalone TUI alike). An
+ *   unparseable file is never rewritten: every write path refuses instead.
+ * - Writes are surgical edits of the original JSONC text: comments, key order
+ *   and every unrelated setting survive. Unknown plugin option keys are kept.
  * - `token` / `jevToken` are write-only: a blank draft keeps the stored value.
  * - Project cache (`<directory>/.opencode/.modelselect-cache/`) is written by
  *   the plugin: `status-<sessionID>.json`, `model-config-cache.json`,
@@ -26,14 +27,13 @@ const { parseJsonLenient } = routingShared;
 
 export const CACHE_REL = '.opencode/.modelselect-cache';
 export const SESSION_MAP_FILE = 'openchamber-sessions.json';
-export const MANAGED_CONFIG_PATH = '~/.config/openchamber/opencode.managed.json';
 export const MODELSELECT_CONFIG_PATH = '~/.config/openchamber/modelselect.json';
+/** Global OpenCode config candidates. `.jsonc` is preferred when both exist. */
 export const GLOBAL_CONFIG_PATHS = [
-  '~/.config/opencode/opencode.json',
-  '~/.config/opencode/opencode.jsonc'
+  '~/.config/opencode/opencode.jsonc',
+  '~/.config/opencode/opencode.json'
 ];
-/** Paths the plugin tab names as "present but ignored" (read-only, never written). */
-export const GLOBAL_NOTE_PATHS = GLOBAL_CONFIG_PATHS;
+export const PLUGIN_CONFIG_PATH = GLOBAL_CONFIG_PATHS[0];
 export const ROUTING_SYNC_FILE = 'routing-sync.json';
 export const PLUGIN_PACKAGE = '@dianlight/opencode-modelselect-plugin';
 
@@ -99,7 +99,7 @@ function shallowCopy(obj) {
   return out;
 }
 
-// --- managed OpenCode config -------------------------------------------------
+// --- global OpenCode config (JSONC-safe) ------------------------------------
 
 /**
  * Locate the modelselect entry inside a parsed OpenCode config. Supports the
@@ -133,61 +133,235 @@ export function findPluginEntry(config) {
   return { form: 'missing', index: -1, package: PLUGIN_PACKAGE, options: {} };
 }
 
-/**
- * Read the managed config. `parseOk: false` means the file exists but does not
- * parse as a JSON object: the caller must not offer a form and must never write.
- */
-export async function readManagedConfig() {
-  const file = resolveLogicalPath(null, MANAGED_CONFIG_PATH);
-  let raw;
-  try {
-    raw = await fsp.readFile(file, 'utf8');
-  } catch (e) {
-    // Missing file: an empty config is the honest reading (the panel offers Add).
-    if (e && (e.code === 'ENOENT' || e.code === 'ENOTDIR')) {
-      return { parseOk: true, exists: false, config: { plugins: [] }, entry: findPluginEntry({}) };
-    }
-    return {
-      parseOk: false,
-      exists: true,
-      config: null,
-      entry: findPluginEntry({}),
-      parseError: String((e && e.message) || e)
-    };
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    return {
-      parseOk: false,
-      exists: true,
-      config: null,
-      entry: findPluginEntry({}),
-      parseError: 'not valid JSON: ' + String((e && e.message) || e)
-    };
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return {
-      parseOk: false,
-      exists: true,
-      config: null,
-      entry: findPluginEntry({}),
-      parseError: 'the managed config is not a JSON object'
-    };
-  }
-  return { parseOk: true, exists: true, config: parsed, entry: findPluginEntry(parsed) };
+function decodeJsonString(literal) {
+  try { return JSON.parse(literal); } catch (e) { return ''; }
 }
 
-/** The plugin options currently stored in the managed config (empty when absent). */
+/** String/brace/bracket tokens of a JSONC document, with comments skipped. */
+function jsonTokens(raw) {
+  const out = [];
+  let i = 0;
+  while (i < raw.length) {
+    const c = raw[i];
+    if (c === '"') {
+      const start = i;
+      i += 1;
+      while (i < raw.length) {
+        if (raw[i] === '\\') { i += 2; continue; }
+        if (raw[i] === '"') { i += 1; break; }
+        i += 1;
+      }
+      out.push({ type: 'string', start: start, end: i, value: decodeJsonString(raw.slice(start, i)) });
+      continue;
+    }
+    if (c === '/' && raw[i + 1] === '/') {
+      while (i < raw.length && raw[i] !== '\n') i += 1;
+      continue;
+    }
+    if (c === '/' && raw[i + 1] === '*') {
+      i += 2;
+      while (i < raw.length && !(raw[i] === '*' && raw[i + 1] === '/')) i += 1;
+      i += 2;
+      continue;
+    }
+    if (c === '{' || c === '}' || c === '[' || c === ']') out.push({ type: c, start: i, end: i + 1 });
+    i += 1;
+  }
+  return out;
+}
+
+function matchBracket(tokens, openIndex) {
+  const open = tokens[openIndex].type;
+  const close = open === '{' ? '}' : ']';
+  let depth = 0;
+  for (let i = openIndex; i < tokens.length; i += 1) {
+    if (tokens[i].type === open) depth += 1;
+    else if (tokens[i].type === close) {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+function lineIndent(raw, pos) {
+  const lineStart = raw.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
+  const m = /^\s*/.exec(raw.slice(lineStart));
+  return m ? m[0] : '';
+}
+
+function prettyAt(value, indent) {
+  return JSON.stringify(value, null, 2).split('\n').map((line, i) => (i === 0 ? line : indent + line)).join('\n');
+}
+
+/** Locate the plugin entry's `options` object in the raw JSONC text. */
+function findOptionsBlock(raw, packageName) {
+  const tokens = jsonTokens(raw);
+  const pkgIdx = tokens.findIndex((t) => t.type === 'string' && t.value === packageName);
+  if (pkgIdx < 0) return null;
+  let openIdx = -1;
+  let depth = 0;
+  for (let i = pkgIdx - 1; i >= 0; i -= 1) {
+    if (tokens[i].type === '}') depth += 1;
+    else if (tokens[i].type === '{') {
+      if (depth === 0) { openIdx = i; break; }
+      depth -= 1;
+    }
+  }
+  if (openIdx < 0) return null;
+  const entryClose = matchBracket(tokens, openIdx);
+  if (entryClose < 0) return null;
+  for (let i = pkgIdx + 1; i < entryClose; i += 1) {
+    if (tokens[i].type !== 'string' || tokens[i].value !== 'options') continue;
+    let braceIdx = -1;
+    for (let j = i + 1; j < entryClose; j += 1) {
+      if (tokens[j].type === '{') { braceIdx = j; break; }
+      if (tokens[j].type !== ':' && tokens[j].type !== 'string') break;
+    }
+    if (braceIdx < 0) break;
+    const endIdx = matchBracket(tokens, braceIdx);
+    if (endIdx < 0 || endIdx > entryClose) break;
+    return {
+      start: tokens[braceIdx].start,
+      end: tokens[endIdx].end,
+      indent: lineIndent(raw, tokens[braceIdx].start),
+      entryClose: entryClose,
+      entryOpen: openIdx,
+      tokens: tokens
+    };
+  }
+  return { entryClose: entryClose, entryOpen: openIdx, tokens: tokens };
+}
+
+/** The raw text range of a string / tuple plugin entry inside the array. */
+function plainEntryRange(raw, packageName, form) {
+  const tokens = jsonTokens(raw);
+  const pkgIdx = tokens.findIndex((t) => t.type === 'string' && t.value === packageName);
+  if (pkgIdx < 0) return null;
+  if (form === 'string') {
+    return { start: tokens[pkgIdx].start, end: tokens[pkgIdx].end };
+  }
+  let openIdx = -1;
+  for (let i = pkgIdx - 1; i >= 0; i -= 1) {
+    if (tokens[i].type === '[') { openIdx = i; break; }
+    if (tokens[i].type === '}' || tokens[i].type === ']') break;
+  }
+  if (openIdx < 0) return null;
+  const closeIdx = matchBracket(tokens, openIdx);
+  if (closeIdx < 0) return null;
+  return { start: tokens[openIdx].start, end: tokens[closeIdx].end };
+}
+
+/**
+ * Replace only the plugin entry (or just its options object) in the raw JSONC.
+ * Comments, key order and every unrelated setting survive untouched.
+ */
+function replaceOptionsInJsonc(raw, packageName, form, nextOptions) {
+  if (form === 'string' || form === 'tuple') {
+    const range = plainEntryRange(raw, packageName, form);
+    if (!range) throw new Error('No modelselect entry in the global OpenCode config.');
+    const indent = lineIndent(raw, range.start);
+    return raw.slice(0, range.start) +
+      prettyAt({ package: packageName, options: nextOptions }, indent) +
+      raw.slice(range.end);
+  }
+  const block = findOptionsBlock(raw, packageName);
+  if (!block) throw new Error('No modelselect entry in the global OpenCode config.');
+  if (typeof block.start === 'number') {
+    return raw.slice(0, block.start) + prettyAt(nextOptions, block.indent) + raw.slice(block.end);
+  }
+  const tokens = block.tokens;
+  const insertAt = tokens[block.entryClose].start;
+  const indent = lineIndent(raw, insertAt);
+  const emptyEntry = block.entryClose === block.entryOpen + 1;
+  const addition = (emptyEntry ? '' : ',\n') + indent + '  "options": ' + prettyAt(nextOptions, indent + '  ');
+  return raw.slice(0, insertAt) + addition + raw.slice(insertAt);
+}
+
+/** Append a bare plugin entry inside the `plugins` array of a JSONC document. */
+function addEntryToJsonc(raw) {
+  const tokens = jsonTokens(raw);
+  const keyIdx = tokens.findIndex((t) => t.type === 'string' && t.value === 'plugins');
+  if (keyIdx < 0) throw new Error('The global OpenCode config has no plugins array.');
+  let arrayIdx = -1;
+  for (let i = keyIdx + 1; i < tokens.length; i += 1) {
+    if (tokens[i].type === '[') { arrayIdx = i; break; }
+    if (tokens[i].type === '{' || tokens[i].type === 'string') break;
+  }
+  if (arrayIdx < 0) throw new Error('The global OpenCode config has no plugins array.');
+  const closeIdx = matchBracket(tokens, arrayIdx);
+  if (closeIdx < 0) throw new Error('The global OpenCode config plugins array is unbalanced.');
+  const insertAt = tokens[closeIdx].start;
+  const indent = lineIndent(raw, insertAt);
+  const entry = prettyAt({ package: PLUGIN_PACKAGE, options: {} }, indent + '  ');
+  const empty = closeIdx === arrayIdx + 1;
+  const addition = (empty ? '\n' : ',\n') + indent + '  ' + entry + (empty ? '\n' + indent : '');
+  return raw.slice(0, insertAt) + addition + raw.slice(insertAt);
+}
+
+async function writeTextAtomic(file, text) {
+  await fsp.mkdir(path.dirname(file), { recursive: true });
+  const tmp = file + '.' + process.pid + '.tmp';
+  await fsp.writeFile(tmp, text);
+  await fsp.rename(tmp, file);
+}
+
+/**
+ * Read the global config that carries the plugin. Files with a modelselect
+ * entry win; otherwise the first readable existing file is chosen (.jsonc
+ * first). `parseOk: false` means the chosen file must never be written.
+ */
+export async function readPluginConfig() {
+  const rejected = [];
+  for (const logical of GLOBAL_CONFIG_PATHS) {
+    const file = resolveLogicalPath(null, logical);
+    let raw;
+    try {
+      raw = await fsp.readFile(file, 'utf8');
+    } catch (e) {
+      if (e && (e.code === 'ENOENT' || e.code === 'ENOTDIR')) continue;
+      rejected.push({ logical: logical, file: file, raw: '', parseError: String((e && e.message) || e) });
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = parseJsonLenient(raw);
+    } catch (e) {
+      rejected.push({ logical: logical, file: file, raw: raw, parseError: 'not valid JSON: ' + String((e && e.message) || e) });
+      continue;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      rejected.push({ logical: logical, file: file, raw: raw, parseError: 'the config is not a JSON object' });
+      continue;
+    }
+    const entry = findPluginEntry(parsed);
+    if (entry.form !== 'missing' || rejected.length === 0) {
+      return { parseOk: true, exists: true, config: parsed, entry: entry, file: file, path: logical, raw: raw, parseError: '' };
+    }
+    rejected.push({ logical: logical, file: file, raw: raw, parseError: 'no modelselect entry' });
+  }
+  if (rejected.length) {
+    const first = rejected[0];
+    return {
+      parseOk: false, exists: true, config: null, entry: findPluginEntry({}),
+      file: first.file, path: first.logical, raw: first.raw, parseError: first.parseError
+    };
+  }
+  return {
+    parseOk: true, exists: false, config: { plugins: [] }, entry: findPluginEntry({}),
+    file: resolveLogicalPath(null, PLUGIN_CONFIG_PATH), path: PLUGIN_CONFIG_PATH, raw: '', parseError: ''
+  };
+}
+
+/** The plugin options currently stored in the global config (empty when absent). */
 export async function storedPluginOptions() {
-  const managed = await readManagedConfig();
-  return managed.entry.options || {};
+  const current = await readPluginConfig();
+  return current.entry.options || {};
 }
 
 /**
  * Build the next `options` object from the panel's values: start from the
- * existing options (unknown keys preserved) and set/delete only managed keys.
+ * existing options (unknown keys preserved) and set/delete only plugin keys.
  */
 export function buildPluginOptions(base, v) {
   const next = shallowCopy(base);
@@ -219,60 +393,48 @@ export function buildPluginOptions(base, v) {
 }
 
 /**
- * Read-modify-write the managed config with the panel's plugin values.
- * Throws `Error` with a user-facing message when nothing may be written.
+ * Read-modify-write the global config with the panel's plugin values. Only the
+ * plugin entry's options object is replaced; comments and all other settings
+ * in the JSONC file survive untouched.
  */
 export async function savePluginOptions(directory, values) {
-  const managed = await readManagedConfig();
-  if (!managed.parseOk) {
-    throw new Error('The managed config is not valid JSON — nothing was written. Fix the file first.');
+  const current = await readPluginConfig();
+  if (!current.parseOk) {
+    throw new Error('The global OpenCode config is not valid JSON — nothing was written. Fix the file first.');
   }
-  const config = managed.config;
-  if (!Array.isArray(config.plugins)) config.plugins = [];
-  const entry = managed.entry;
-  if (entry.form === 'missing') {
-    throw new Error('No modelselect entry in the managed config.');
+  if (current.entry.form === 'missing') {
+    throw new Error('No modelselect entry in the global OpenCode config.');
   }
-  const nextOptions = buildPluginOptions(entry.options, values);
-  if (entry.form === 'object') {
-    config.plugins[entry.index].options = nextOptions;
-  } else {
-    // string / tuple form: convert in place, preserving position + package.
-    config.plugins[entry.index] = { package: entry.package, options: nextOptions };
-  }
-  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
-  return { entry: findPluginEntry(config), options: nextOptions };
+  const nextOptions = buildPluginOptions(current.entry.options, values);
+  const text = replaceOptionsInJsonc(current.raw, current.entry.package, current.entry.form, nextOptions);
+  await writeTextAtomic(current.file, text);
+  return { entry: findPluginEntry(parseJsonLenient(text)), options: nextOptions };
 }
 
 /**
- * Append a bare `{ package, options: {} }` entry for the plugin. Idempotent:
- * an existing entry (string, tuple or object) is left alone.
+ * Append a bare `{ package, options: {} }` entry to the global config's
+ * `plugins` array. Idempotent: an existing entry is left alone.
  */
 export async function addPluginEntry() {
-  const managed = await readManagedConfig();
-  if (!managed.parseOk) {
-    throw new Error('The managed config is not valid JSON — nothing was written. Fix the file first.');
+  const current = await readPluginConfig();
+  if (!current.parseOk) {
+    throw new Error('The global OpenCode config is not valid JSON — nothing was written. Fix the file first.');
   }
-  if (managed.entry.form !== 'missing') return { entry: managed.entry, added: false };
-  const config = managed.config;
-  if (!Array.isArray(config.plugins)) config.plugins = [];
-  config.plugins.push({ package: PLUGIN_PACKAGE, options: {} });
-  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
-  return { entry: findPluginEntry(config), added: true };
+  if (current.entry.form !== 'missing') return { entry: current.entry, added: false };
+  const text = addEntryToJsonc(current.raw || '{\n  "plugins": []\n}\n');
+  await writeTextAtomic(current.file, text);
+  return { entry: findPluginEntry(parseJsonLenient(text)), added: true };
 }
 
 /** Write one plugin option (`tier`) without touching anything else. */
 export async function setPluginOption(name, value) {
-  const managed = await readManagedConfig();
-  if (!managed.parseOk) throw new Error('The managed config is not valid JSON.');
-  const entry = managed.entry;
-  if (entry.form === 'missing') throw new Error('No modelselect entry in the managed config.');
-  const config = managed.config;
-  const next = shallowCopy(entry.options);
+  const current = await readPluginConfig();
+  if (!current.parseOk) throw new Error('The global OpenCode config is not valid JSON.');
+  if (current.entry.form === 'missing') throw new Error('No modelselect entry in the global OpenCode config.');
+  const next = shallowCopy(current.entry.options);
   next[name] = value;
-  if (entry.form === 'object') config.plugins[entry.index].options = next;
-  else config.plugins[entry.index] = { package: entry.package, options: next };
-  await writeJsonAtomic(resolveLogicalPath(null, MANAGED_CONFIG_PATH), config);
+  const text = replaceOptionsInJsonc(current.raw, current.entry.package, current.entry.form, next);
+  await writeTextAtomic(current.file, text);
   return next;
 }
 

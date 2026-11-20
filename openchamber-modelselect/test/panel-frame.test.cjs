@@ -11,7 +11,7 @@
  * `service-request` to the real service bundle over HTTP with a fixture
  * project — the same path the host takes in the app.
  *
- * Covered: the form renders from the managed config, saves are read-modify-
+ * Covered: the form renders from the global config, saves are read-modify-
  * write with unknown keys preserved, stored secrets never reach the DOM,
  * unparseable configs block writes, the extension tab writes both files, the
  * models tab paints the service's chain, and the panel asks for no file
@@ -30,7 +30,8 @@ const { MessageChannel } = require('node:worker_threads');
 const {
   makeFixture,
   startService,
-  managedPath,
+  globalConfigPath,
+  readConfigFile,
   extConfigPath,
 } = require('./helpers/service.cjs');
 
@@ -307,7 +308,7 @@ describe('panel frame', () => {
     const text = textOf(frame.root);
     assert.match(text, /Save plugin settings/);
     assert.match(text, /Editing: @dianlight\/opencode-modelselect-plugin/);
-    assert.match(text, /Also present|ignored by OpenChamber/i);
+    assert.match(text, /Writes: ~\/\.config\/opencode\/opencode\.jsonc/);
     assert.equal(fieldInput(frame.root, 'historyChars').value, '1200');
     // Stored secrets are never rendered.
     assert.doesNotMatch(text, /SUPERSECRET/);
@@ -333,7 +334,7 @@ describe('panel frame', () => {
     save().click();
     await frame.settle();
 
-    const config = JSON.parse(fs.readFileSync(managedPath(fixture), 'utf8'));
+    const config = readConfigFile(globalConfigPath(fixture));
     const options = config.plugins[1].options;
     assert.equal(options.token, 'NEWSECRET');
     assert.equal(fieldInput(frame.root, 'token').value, ''); // draft cleared
@@ -350,7 +351,7 @@ describe('panel frame', () => {
     findButton(frame.root, 'Save plugin settings').click();
     await frame.settle();
 
-    const config = JSON.parse(fs.readFileSync(managedPath(fixture), 'utf8'));
+    const config = readConfigFile(globalConfigPath(fixture));
     assert.equal(config.theme, 'dark'); // top-level unknown key preserved
     assert.equal(config.plugins[0], 'some-other-plugin');
     const options = config.plugins[1].options;
@@ -360,43 +361,43 @@ describe('panel frame', () => {
     assert.deepEqual(options.futureOption, { keep: true }); // unknown option preserved
     assert.equal('fallbackModel' in options, false); // empty optional models are dropped
     assert.match(textOf(frame.root), /restart required/);
-    assert.match(textOf(frame.root), /reopen OpenChamber/i);
+    assert.match(textOf(frame.root), /restart OpenCode/i);
   });
 
-  it('offers to add the plugin when the managed config has no entry', async () => {
-    const bare = makeFixture({ managed: JSON.stringify({ plugins: [] }) });
+  it('offers to add the plugin when the global config has no entry', async () => {
+    const bare = makeFixture({ pluginConfig: JSON.stringify({ plugins: [] }) });
     const bareService = await startService(bare);
     try {
       const frame = loadFrame({ fixture: bare, service: bareService });
       await frame.ready();
 
-      const add = findButton(frame.root, 'Add to managed config');
+      const add = findButton(frame.root, 'Add to global config');
       add.click();
       await frame.settle();
       await frame.settle();
 
       assert.match(textOf(frame.root), /Save plugin settings/);
-      const saved = JSON.parse(fs.readFileSync(managedPath(bare), 'utf8'));
+      const saved = readConfigFile(globalConfigPath(bare));
       const added = saved.plugins.filter((p) => p && typeof p === 'object' && /modelselect/i.test(p.package || ''));
       assert.equal(added.length, 1);
-      const gone = findAll(frame.root, (n) => hasClass(n, 'oc-sdk-btn') && textOf(n) === 'Add to managed config');
+      const gone = findAll(frame.root, (n) => hasClass(n, 'oc-sdk-btn') && textOf(n) === 'Add to global config');
       assert.equal(gone.length, 0);
     } finally {
       bareService.stop();
     }
   });
 
-  it('blocks writes when the managed config does not parse', async () => {
-    const broken = makeFixture({ managed: '{ not json' });
+  it('blocks writes when the global config does not parse', async () => {
+    const broken = makeFixture({ pluginConfig: '{ not json' });
     const brokenService = await startService(broken);
     try {
       const frame = loadFrame({ fixture: broken, service: brokenService });
       await frame.ready();
 
       const text = textOf(frame.root);
-      assert.match(text, /Managed config is not valid JSON/);
+      assert.match(text, /Global OpenCode config is not valid JSON/);
       assert.doesNotMatch(text, /Save plugin settings/);
-      assert.equal(fs.readFileSync(managedPath(broken), 'utf8'), '{ not json');
+      assert.equal(fs.readFileSync(globalConfigPath(broken), 'utf8'), '{ not json');
     } finally {
       brokenService.stop();
     }

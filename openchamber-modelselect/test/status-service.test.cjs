@@ -18,7 +18,8 @@ const path = require('node:path');
 const {
   makeFixture,
   startService,
-  managedPath,
+  globalConfigPath,
+  readConfigFile,
   extConfigPath,
   TOKEN,
 } = require('./helpers/service.cjs');
@@ -80,16 +81,17 @@ describe('status service', () => {
     const tier = before.body.rows.find((r) => r.id === 'tier');
     assert.equal(tier.actions.length, 1);
     assert.equal(tier.actions[0].kind, 'select');
-    assert.equal(tier.actions[0].value, 'go', 'the managed config stores tier: go');
+    assert.equal(tier.actions[0].value, 'go', 'the global config stores tier: go');
     assert.deepEqual(tier.actions[0].options.map((o) => o.value), ['auto', 'go', 'free']);
 
     const res = await service.post('/status', q(), { id: 'tier', value: 'free' });
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
     assert.equal(typeof res.body.reload.ok, 'boolean');
-    const managed = JSON.parse(fs.readFileSync(managedPath(fixture), 'utf8'));
-    assert.equal(managed.plugins[1].options.tier, 'free');
-    assert.equal(managed.plugins[1].options.futureOption.keep, true, 'unknown keys untouched');
+    const pluginConfig = readConfigFile(globalConfigPath(fixture));
+    assert.equal(pluginConfig.plugins[1].options.tier, 'free');
+    assert.equal(pluginConfig.plugins[1].options.futureOption.keep, true, 'unknown keys untouched');
+    assert.match(fs.readFileSync(globalConfigPath(fixture), 'utf8'), /the user owns this file/, 'JSONC comments survive a write');
 
     const after = await service.get('/status', q());
     assert.equal(after.body.rows.find((r) => r.id === 'tier').actions[0].value, 'free');
@@ -151,11 +153,11 @@ describe('status service', () => {
       const res = await service.get('/config', { directory: fixture.project, session: 'ses_test' });
       assert.equal(res.status, 200);
       const snap = res.body;
-      assert.equal(snap.managed.parseOk, true);
-      assert.equal(snap.managed.entry.form, 'object');
-      assert.equal(snap.managed.entry.package, '@dianlight/opencode-modelselect-plugin');
-      assert.equal(snap.managed.entry.options.historyChars, 1200);
-      assert.equal(snap.managedPath, '~/.config/openchamber/opencode.managed.json');
+      assert.equal(snap.pluginConfig.parseOk, true);
+      assert.equal(snap.pluginConfig.entry.form, 'object');
+      assert.equal(snap.pluginConfig.entry.package, '@dianlight/opencode-modelselect-plugin');
+      assert.equal(snap.pluginConfig.entry.options.historyChars, 1200);
+      assert.equal(snap.pluginConfigPath, '~/.config/opencode/opencode.jsonc');
       assert.deepEqual(snap.catalog.types.sort(), ['bugfix', 'code', 'generic', 'review']);
       assert.equal(snap.catalog.bounds.min, 0);
       assert.equal(snap.catalog.bounds.max, 8);
@@ -163,7 +165,7 @@ describe('status service', () => {
       assert.equal(snap.extConfig.keep, 'me');
       assert.equal(snap.syncOn, true);
       assert.equal(snap.sessionTask, 'bugfix');
-      assert.equal(snap.managed.entry.options.token, undefined, 'secrets are never returned');
+      assert.equal(snap.pluginConfig.entry.options.token, undefined, 'secrets are never returned');
     });
 
     it('saves the plugin options with read-modify-write and keeps the stored secret', async () => {
@@ -198,7 +200,7 @@ describe('status service', () => {
       assert.equal(res.body.ok, true);
       assert.equal(typeof res.body.reload.ok, 'boolean');
 
-      const config = JSON.parse(fs.readFileSync(managedPath(fixture), 'utf8'));
+      const config = readConfigFile(globalConfigPath(fixture));
       assert.equal(config.theme, 'dark', 'top-level unknown key preserved');
       assert.equal(config.plugins[0], 'some-other-plugin');
       const options = config.plugins[1].options;
@@ -212,32 +214,32 @@ describe('status service', () => {
 
     it('stores a typed secret and never echoes it back', async () => {
       const snapshot = await service.get('/config', q());
-      const values = Object.assign({}, snapshot.body.managed.entry.options, {
+      const values = Object.assign({}, snapshot.body.pluginConfig.entry.options, {
         tokenDraft: 'NEWSECRET',
         jevTokenDraft: '',
       });
       const res = await service.post('/config', q(), { kind: 'plugin', values });
       assert.equal(res.status, 200);
-      const config = JSON.parse(fs.readFileSync(managedPath(fixture), 'utf8'));
+      const config = readConfigFile(globalConfigPath(fixture));
       assert.equal(config.plugins[1].options.token, 'NEWSECRET');
       const after = await service.get('/config', q());
-      assert.equal(after.body.managed.entry.options.token, undefined);
+      assert.equal(after.body.pluginConfig.entry.options.token, undefined);
     });
 
     it('converts a string plugin entry in place', async () => {
       const fixture2 = makeFixture({
-        managed: JSON.stringify({ plugins: ['some-other-plugin', '@dianlight/opencode-modelselect-plugin'] }),
+        pluginConfig: JSON.stringify({ plugins: ['some-other-plugin', '@dianlight/opencode-modelselect-plugin'] }),
       });
       const service2 = await startService(fixture2);
       try {
         const snap = await service2.get('/config', { directory: fixture2.project });
-        assert.equal(snap.body.managed.entry.form, 'string');
+        assert.equal(snap.body.pluginConfig.entry.form, 'string');
         const res = await service2.post('/config', { directory: fixture2.project }, {
           kind: 'plugin',
-          values: Object.assign({}, snap.body.managed.entry.options, { historyChars: 2500 }),
+          values: Object.assign({}, snap.body.pluginConfig.entry.options, { historyChars: 2500 }),
         });
         assert.equal(res.status, 200);
-        const plugins = JSON.parse(fs.readFileSync(managedPath(fixture2), 'utf8')).plugins;
+        const plugins = readConfigFile(globalConfigPath(fixture2)).plugins;
         assert.equal(plugins[0], 'some-other-plugin');
         assert.equal(plugins[1].package, '@dianlight/opencode-modelselect-plugin');
         assert.equal(plugins[1].options.historyChars, 2500);
@@ -247,7 +249,7 @@ describe('status service', () => {
     });
 
     it('adds a bare entry only when there is none', async () => {
-      const fixture3 = makeFixture({ managed: JSON.stringify({ plugins: [] }) });
+      const fixture3 = makeFixture({ pluginConfig: JSON.stringify({ plugins: [] }) });
       const service3 = await startService(fixture3);
       try {
         const first = await service3.post('/config', { directory: fixture3.project }, { kind: 'plugin-add' });
@@ -255,27 +257,27 @@ describe('status service', () => {
         assert.equal(first.body.added, true);
         const second = await service3.post('/config', { directory: fixture3.project }, { kind: 'plugin-add' });
         assert.equal(second.body.added, false);
-        const plugins = JSON.parse(fs.readFileSync(managedPath(fixture3), 'utf8')).plugins;
+        const plugins = readConfigFile(globalConfigPath(fixture3)).plugins;
         assert.equal(plugins.filter((p) => p && p.package === '@dianlight/opencode-modelselect-plugin').length, 1);
       } finally {
         service3.stop();
       }
     });
 
-    it('refuses to write an unparseable managed config', async () => {
-      const fixture4 = makeFixture({ managed: '{ not json' });
+    it('refuses to write an unparseable global config', async () => {
+      const fixture4 = makeFixture({ pluginConfig: '{ not json' });
       const service4 = await startService(fixture4);
       try {
         const snap = await service4.get('/config', { directory: fixture4.project });
-        assert.equal(snap.body.managed.parseOk, false);
-        assert.match(snap.body.managed.parseError, /not valid JSON/);
+        assert.equal(snap.body.pluginConfig.parseOk, false);
+        assert.match(snap.body.pluginConfig.parseError, /not valid JSON/);
         const res = await service4.post('/config', { directory: fixture4.project }, {
           kind: 'plugin',
           values: { tier: 'auto' },
         });
         assert.equal(res.status, 409);
         assert.match(res.body.message, /not valid JSON/);
-        assert.equal(fs.readFileSync(managedPath(fixture4), 'utf8'), '{ not json');
+        assert.equal(fs.readFileSync(globalConfigPath(fixture4), 'utf8'), '{ not json');
       } finally {
         service4.stop();
       }

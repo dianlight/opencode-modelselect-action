@@ -1,6 +1,5 @@
 /* openchamber-modelselect — Plugin tab: the modelselect entry's options in
- * the OpenChamber managed OpenCode config (the only OpenCode config
- * OpenChamber's server loads).
+ * the user's global OpenCode config (shared by OpenChamber and TUI).
  *
  * The panel only renders and validates: the service does the
  * read-modify-write (`POST /config {kind: 'plugin'}`) and reloads OpenCode, so
@@ -146,9 +145,9 @@ function collect(fields) {
  * shell (used after adding a missing entry).
  */
 export function mountPluginTab(pane, snapshot, ctx) {
-  const managed = snapshot.managed;
+  const pluginConfig = snapshot.pluginConfig;
   const catalog = snapshot.catalog;
-  const state = { field: null, banner: null, saveHandle: null, snap: null, managed: managed };
+  const state = { field: null, banner: null, saveHandle: null, snap: null, pluginConfig: pluginConfig };
 
   const refreshSave = () => {
     if (!state.fields || !state.saveHandle || !state.snap) return;
@@ -160,24 +159,17 @@ export function mountPluginTab(pane, snapshot, ctx) {
   const props = (p) => Object.assign({}, p, { onEdit: refreshSave });
 
   const note = el('div', 'mp-file');
-  note.textContent = managed.parseOk
-    ? 'Writes: ' + snapshot.managedPath
-    : 'Read-only: managed config could not be parsed';
+  note.textContent = pluginConfig.parseOk
+    ? 'Writes: ' + snapshot.pluginConfigPath
+    : 'Read-only: global OpenCode config could not be parsed';
   pane.append(note);
-
-  if (snapshot.globalPaths && snapshot.globalPaths.length) {
-    const g = el('div', 'mp-note');
-    g.textContent = 'Also present (ignored by OpenChamber\'s server): ' +
-      snapshot.globalPaths.join(', ');
-    pane.append(g);
-  }
 
   state.banner = mountBanner(pane, { tone: 'info', title: '', body: '' });
 
-  if (!managed.parseOk) {
-    setBanner(state.banner, 'error', 'Managed config is not valid JSON',
+  if (!pluginConfig.parseOk) {
+    setBanner(state.banner, 'error', 'Global OpenCode config is not valid JSON',
       'Nothing will be written until the file parses. Error: ' +
-      (managed.parseError || 'parse failed'));
+      (pluginConfig.parseError || 'parse failed'));
     ctx.fitHeight();
     return;
   }
@@ -206,7 +198,7 @@ export function mountPluginTab(pane, snapshot, ctx) {
           (answer.reload.port ? ' Reloaded via OpenCode on port ' + answer.reload.port + '.' : ''));
       } else {
         setBanner(state.banner, 'warning', 'Plugin options saved — restart required',
-          'Quit and reopen OpenChamber so its server reloads the plugin options. ' +
+          'Restart OpenCode (or OpenChamber) so it reloads the plugin options. ' +
           'Reload through the local service failed: ' +
           str((answer.reload && answer.reload.error) || 'no answer') + '.');
       }
@@ -219,12 +211,12 @@ export function mountPluginTab(pane, snapshot, ctx) {
 
   const showForm = () => {
     while (formRoot.firstChild) formRoot.removeChild(formRoot.firstChild);
-    const entry = state.managed.entry;
+    const entry = state.pluginConfig.entry;
     if (entry.form === 'string' || entry.form === 'tuple') {
       setBanner(state.banner, 'info', 'Entry is installed in plain form',
         'Save converts it to { "package": …, "options": {…} } in place, keeping its position.');
     } else if (entry.form === 'missing') {
-      setBanner(state.banner, 'warning', 'No modelselect entry in the managed config',
+      setBanner(state.banner, 'warning', 'No modelselect entry in the global OpenCode config',
         'Add the plugin, then configure and save.');
     } else {
       setBanner(state.banner, 'info', 'Editing: ' + entry.package, '');
@@ -235,15 +227,15 @@ export function mountPluginTab(pane, snapshot, ctx) {
     ctx.fitHeight();
   };
 
-  if (managed.entry.form === 'missing') {
-    setBanner(state.banner, 'warning', 'No modelselect entry in the managed config',
+  if (pluginConfig.entry.form === 'missing') {
+    setBanner(state.banner, 'warning', 'No modelselect entry in the global OpenCode config',
       'Add the plugin below, then configure and save.');
     const addWrap = el('div', 'mp-foot');
     const addButton = mountButton(addWrap, {
-      label: 'Add to managed config',
+      label: 'Add to global config',
       variant: 'default',
       onClick: () => {
-        if (state.managed.entry.form !== 'missing') return; // already added
+        if (state.pluginConfig.entry.form !== 'missing') return; // already added
         addButton.update({ disabled: true });
         ctx.api.addPlugin().then((answer) => {
           // Re-read everything: the service wrote the entry to disk.
@@ -251,12 +243,12 @@ export function mountPluginTab(pane, snapshot, ctx) {
           if (answer && answer.reload && answer.reload.ok) {
             ctx.toast({
               kind: 'success',
-              message: 'modelselect added to the managed config — OpenCode reloaded.'
+              message: 'modelselect added to the global config — OpenCode reloaded.'
             });
           } else {
             ctx.toast({
               kind: 'warning',
-              message: 'modelselect added to the managed config — reopen OpenChamber so its server loads it.'
+              message: 'modelselect added to the global config — restart OpenCode so it loads it.'
             });
           }
         }, (err) => {
@@ -273,7 +265,7 @@ export function mountPluginTab(pane, snapshot, ctx) {
   ctx.fitHeight();
 
   function renderForm(container, tabCtx, withEdit) {
-    const entry = state.managed.entry;
+    const entry = state.pluginConfig.entry;
     const raw = entry.options || {};
     const types = catalog.types;
     const fields = {};

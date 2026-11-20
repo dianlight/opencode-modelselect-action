@@ -23,6 +23,15 @@ for (const [rel, value] of Object.entries(scenario.seed?.files || {})) {
   fs.writeFileSync(p, typeof value === 'string' ? value : JSON.stringify(value, null, 2));
 }
 
+// Match plugin/test/helpers.seedCache: an empty v2 table keeps the seeded v1
+// task table in charge. Without it the plugin fetches the live v2 config and
+// the scenario's expected free pick is replaced by the remote paid pick.
+const v2Cache = path.join(dir, '.opencode', '.modelselect-cache', 'model-config-v2-cache.json');
+if (!fs.existsSync(v2Cache)) {
+  fs.mkdirSync(path.dirname(v2Cache), { recursive: true });
+  fs.writeFileSync(v2Cache, JSON.stringify({ fetchedAt: Date.now(), config: {} }));
+}
+
 const restoreEnv = isolateAuth(dir);
 for (const [k, v] of Object.entries(scenario.seed?.env || {})) process.env[k] = v;
 

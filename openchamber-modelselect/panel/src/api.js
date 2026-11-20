@@ -66,7 +66,7 @@ export function makeApi(host, ctx) {
     config: function () {
       return call('GET', '/config');
     },
-    /** Read-modify-write the managed config (`kind: 'plugin'`) or modelselect.json. */
+    /** Read-modify-write the global OpenCode config (`kind: 'plugin'`) or modelselect.json. */
     save: function (kind, values) {
       return call('POST', '/config', null, { kind: kind, values: values });
     },

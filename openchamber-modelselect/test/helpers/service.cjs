@@ -15,33 +15,37 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { parseJsonLenient } = require('../../../core/routing.js');
 
 const BUNDLE = path.join(__dirname, '..', '..', 'service', 'main.js');
 const CACHE = '.opencode/.modelselect-cache';
 const TOKEN = 'test-service-token';
 
-const MANAGED = '~/.config/openchamber/opencode.managed.json';
+const GLOBAL = '~/.config/opencode/opencode.jsonc';
 const EXTCONF = '~/.config/openchamber/modelselect.json';
 
-const MANAGED_OBJECT = JSON.stringify({
-  theme: 'dark',
-  plugins: [
-    'some-other-plugin',
-    {
-      package: '@dianlight/opencode-modelselect-plugin',
-      options: {
-        tier: 'go',
-        verbose: false,
-        maxCost: 3,
-        historyChars: 1200,
-        agentTaskMap: { build: 'code' },
-        fallbackModel: '',
-        token: 'SUPERSECRET',
-        futureOption: { keep: true },
-      },
-    },
-  ],
-}, null, 2);
+// A JSONC fixture: the comment and 'theme' key must survive a plugin-options
+// write untouched, because this is the user's own config, not ours.
+const GLOBAL_OBJECT = '{\n' +
+  '  // the user owns this file\n' +
+  '  "theme": "dark",\n' +
+  '  "plugins": [\n' +
+  '    "some-other-plugin",\n' +
+  '    {\n' +
+  '      "package": "@dianlight/opencode-modelselect-plugin",\n' +
+  '      "options": {\n' +
+  '        "tier": "go",\n' +
+  '        "verbose": false,\n' +
+  '        "maxCost": 3,\n' +
+  '        "historyChars": 1200,\n' +
+  '        "agentTaskMap": { "build": "code" },\n' +
+  '        "fallbackModel": "",\n' +
+  '        "token": "SUPERSECRET",\n' +
+  '        "futureOption": { "keep": true }\n' +
+  '      }\n' +
+  '    }\n' +
+  '  ]\n' +
+  '}\n';
 
 const CATALOG = {
   fetchedAt: 0,
@@ -109,8 +113,8 @@ function makeFixture(overrides) {
     fs.writeFileSync(file, typeof value === 'string' ? value : JSON.stringify(value, null, 2));
   };
 
-  write(path.join(configDir, 'opencode.managed.json'),
-    overrides.managed === undefined ? MANAGED_OBJECT : overrides.managed);
+  write(path.join(home, '.config', 'opencode', 'opencode.jsonc'),
+    overrides.pluginConfig === undefined ? GLOBAL_OBJECT : overrides.pluginConfig);
   write(path.join(configDir, 'modelselect.json'),
     overrides.extConfig === undefined
       ? { autoSmallModel: true, autoWalkthroughModel: true, smallModelTask: 'small-model', keep: 'me' }
@@ -140,12 +144,17 @@ function makeFixture(overrides) {
   return { root, home, project, cache, configDir, write };
 }
 
-function managedPath(fixture) {
-  return path.join(fixture.configDir, 'opencode.managed.json');
+function globalConfigPath(fixture) {
+  return path.join(fixture.home, '.config', 'opencode', 'opencode.jsonc');
 }
 
 function extConfigPath(fixture) {
   return path.join(fixture.configDir, 'modelselect.json');
+}
+
+/** Read a JSONC fixture (comments allowed) as a plain object. */
+function readConfigFile(file) {
+  return parseJsonLenient(fs.readFileSync(file, 'utf8'));
 }
 
 function waitForPort(child) {
@@ -222,13 +231,14 @@ module.exports = {
   BUNDLE,
   CACHE,
   TOKEN,
-  MANAGED,
+  GLOBAL,
   EXTCONF,
-  MANAGED_OBJECT,
+  GLOBAL_OBJECT,
   CATALOG,
   STATUS,
   makeFixture,
-  managedPath,
+  globalConfigPath,
   extConfigPath,
+  readConfigFile,
   startService,
 };

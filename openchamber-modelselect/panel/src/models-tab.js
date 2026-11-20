@@ -116,7 +116,7 @@ function modelRow(row, ctx) {
 export function mountModelsTab(pane, snapshot, ctx) {
   const types = (snapshot.catalog && snapshot.catalog.types) || [];
   const state = {
-    task: initialTask(types, snapshot.managed.entry.options, snapshot.sessionTask),
+    task: initialTask(types, snapshot.pluginConfig.entry.options, snapshot.sessionTask),
     showExcluded: true,
     view: null,
     error: ''

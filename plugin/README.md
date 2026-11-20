@@ -39,14 +39,16 @@ npm install @dianlight/opencode-modelselect-plugin
 
 ### OpenChamber
 
-OpenChamber runs its own OpenCode server with a managed config
-(`~/.config/openchamber/opencode.managed.json`) that ignores your global
-`~/.config/opencode/opencode.json` — global `plugins` entries never load in
-the OpenChamber panel, and `opencode service restart` does not touch that
-server. Add the plugin entry to the managed file (same object form as
-above) and quit + reopen OpenChamber so its server reloads; the file may be
-regenerated on updates, so re-check the entry if the plugin goes silent.
-Plugin `console.log` output does not land in `opencode.log`, so verify via
+The plugin belongs in your global OpenCode config
+(`~/.config/opencode/opencode.json` / `opencode.jsonc`), in the object form
+shown above. OpenCode merges that file with every config layer it reads, so
+the same entry loads in OpenChamber's managed server and in standalone
+`opencode` TUI — one place to configure both. OpenChamber's own managed
+config (now per-instance under `<dataDir>/run/instances/<pid>/`) is merged
+above the global one; the legacy `~/.config/openchamber/opencode.managed.json`
+is no longer used by this project. `opencode service restart` does not touch
+OpenChamber's server. Plugin `console.log` output does not land in
+`opencode.log`, so verify via
 the chat-visible announce line (`announce: "always"` for testing). The same
 applies to `OPENCODE_API_KEY`: OpenChamber's server does not inherit your shell
 env, so the plugin reads the key from OpenCode's `auth.json` instead — see
@@ -185,11 +187,11 @@ never leaves the machine. The read is memoized, so a `/connect` mid-session is
 picked up on the next OpenCode restart (or after `clearAuthCache()` in tests).
 
 To pin a key explicitly instead — e.g. a Go-only key, or a host whose auth
-store you do not want read — set it in the OpenChamber managed config along
-with the plugin entry:
+store you do not want read — set it in the plugin options in your global
+OpenCode config, alongside the plugin entry:
 
 ```jsonc
-// ~/.config/openchamber/opencode.managed.json
+// ~/.config/opencode/opencode.jsonc
 {
   "plugins": [
     {
@@ -200,7 +202,7 @@ with the plugin entry:
 }
 ```
 
-Then reopen OpenChamber so its server reloads.
+Then reload OpenCode (or reopen OpenChamber) so its server picks the change up.
 
 The remote model config is cached under
 `<project>/.opencode/.modelselect-cache/` (`model-config-cache.json`; the

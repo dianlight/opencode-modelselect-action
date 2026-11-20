@@ -83,9 +83,8 @@ const MODELSELECT_CONFIG_PATH = '~/.config/openchamber/modelselect.json';
 const SETTINGS_PATH = '~/.config/openchamber/settings.json';
 const PREFERENCES_PATH = '~/.config/openchamber/preferences.json';
 const GLOBAL_CONFIG_PATHS = [
-  '~/.config/openchamber/opencode.managed.json',
-  '~/.config/opencode/opencode.json',
-  '~/.config/opencode/opencode.jsonc'
+  '~/.config/opencode/opencode.jsonc',
+  '~/.config/opencode/opencode.json'
 ];
 const MODEL_CACHE_FILE = '.opencode/.modelselect-cache/model-config-cache.json';
 const TASK_TYPES_CACHE_FILE = '.opencode/.modelselect-cache/task-types-cache.json';
