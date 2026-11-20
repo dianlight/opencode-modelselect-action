@@ -2,13 +2,13 @@
 
 ## Why
 
-The canary SDK adds the invariant: quota provider IDs are validated by shape at
+The 2.7.3 SDK adds the invariant: quota provider IDs are validated by shape at
 install because credentials can arrive later; `configured: false` sends the user
 to OpenChamber's Providers page and applies only to missing listed OpenCode
 credentials, while a missing extension-owned key is a configured provider with an
 error naming where to enter it. `quota-provider-credentials` and
 `modeselect-provider-apikey` predate this and never say how a missing key must
-read. Adopting the invariant's wording keeps the quota row truthful on canary
+read. Adopting the invariant's wording keeps the quota row truthful on 2.7.3
 hosts.
 
 ## What Changes
@@ -29,8 +29,7 @@ hosts.
 ## Minimum OpenChamber SDK version
 
 - Canary: `@openchamber/sdk` `2.7.3-canary.20261117.23`.
-- Stable: OpenChamber `>=2.7.3` (the invariant is canary-only; no 2.7.3 stable is
-  released yet).
+- Stable: OpenChamber `>=2.7.3` (released 2026-11-19).
 
 ## Capabilities
 

@@ -24,8 +24,7 @@ the check body alone removes the store and the disagreement.
 ## Minimum OpenChamber SDK version
 
 - Canary: `@openchamber/sdk` `2.7.3-canary.20261117.23`.
-- Stable: OpenChamber `>=2.7.3` (the invariant is canary-only; no 2.7.3 stable is
-  released yet).
+- Stable: OpenChamber `>=2.7.3` (released 2026-11-19).
 
 ## Capabilities
 
