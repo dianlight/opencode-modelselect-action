@@ -121,6 +121,7 @@ var require_free_quota = __commonJS(function(exports, module) {
   var ACCESS_DISABLED_RE = /model\s+access\s+is\s+disabled|access\s+is\s+disabled/i;
   var MODEL_UNAVAILABLE_RE = /model\s+unavailable/i;
   var DEPRECATED_MODEL_RE = /has\s+been\s+deprecated|is\s+deprecated|model\s+has\s+been\s+(removed|retired|discontinued)|no\s+longer\s+(available|supported)/i;
+  var MODEL_MISSING_RE = /modelnotfounderror|model\s+unavailable\s*:\s*[\w.-]+\/[\w.-]+|model\s+not\s+found|no\s+such\s+model|model\s+.*?does\s+not\s+exist/i;
   var PROTOCOL_MISMATCH_RE = /model\s+does\s+not\s+support\s+this\s+protocol|modelprotocolunsupported|provider request failed with http 404|no such model|model .* does not exist/i;
   var BARE_404_RE = /(^|\D)404(\D|$)/;
   var ROUTE_CONTEXT_RE = /model|provider|endpoint|protocol|route|no such/i;
@@ -169,6 +170,13 @@ var require_free_quota = __commonJS(function(exports, module) {
     if (bodyText !== undefined && bodyText !== null)
       parts.push(String(bodyText));
     return parts.join(" ");
+  }
+  function classifyModelMissing(error, bodyText) {
+    try {
+      return MODEL_MISSING_RE.test(mismatchHaystack(error, bodyText));
+    } catch {
+      return false;
+    }
   }
   function isProtocolMismatch(error, bodyText) {
     try {
@@ -332,8 +340,10 @@ var require_free_quota = __commonJS(function(exports, module) {
     ACCESS_DISABLED_RE,
     MODEL_UNAVAILABLE_RE,
     DEPRECATED_MODEL_RE,
+    MODEL_MISSING_RE,
     PROTOCOL_MISMATCH_RE,
     mismatchHaystack,
+    classifyModelMissing,
     isProtocolMismatch,
     classifyFreeExhaustion,
     classifyFreeFailure,
@@ -1130,6 +1140,19 @@ var require_chain = __commonJS(function(exports, module) {
       return list.has(key);
     return Array.isArray(list) && list.includes(key);
   }
+  function modelPresent(availability, row) {
+    const list = availability && availability.models;
+    if (!list)
+      return true;
+    const key = rowKey(row);
+    if (!key)
+      return true;
+    if (typeof list.has === "function")
+      return list.has(key);
+    if (Array.isArray(list))
+      return list.includes(key);
+    return true;
+  }
   function supportsMedia(row, media) {
     if (!Array.isArray(media) || media.length === 0)
       return true;
@@ -1248,6 +1271,8 @@ var require_chain = __commonJS(function(exports, module) {
           continue;
         if (!withinSpend(row, state))
           continue;
+        if (!modelPresent(availability, row))
+          continue;
         if (latched(availability, row))
           continue;
         if (!supportsMedia(row, media))
@@ -1315,6 +1340,7 @@ var require_chain = __commonJS(function(exports, module) {
     isAllowedProvider,
     providerState,
     latched,
+    modelPresent,
     supportsMedia,
     withinContext,
     withinBudget,
@@ -1330,6 +1356,7 @@ var require_registry = __commonJS(function(exports, module) {
     isAllowedProvider,
     providerState,
     latched,
+    modelPresent,
     supportsMedia,
     withinContext,
     withinBudget,
@@ -1508,6 +1535,8 @@ var require_registry = __commonJS(function(exports, module) {
       if (state.unavailable === true || state.available === false)
         continue;
       if (!withinSpend(row, state))
+        continue;
+      if (!modelPresent(availability, row))
         continue;
       if (latched(availability, row))
         continue;
