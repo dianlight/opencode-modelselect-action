@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-18T13:58:58.518250+00:00",
+  "timestamp": "2026-11-20T09:55:07.203023+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -561,6 +561,24 @@
     },
     {
       "provider": "opencode",
+      "id": "bge-m3",
+      "canonical": "bge-m3",
+      "name": "BGE M3",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "big-pickle",
       "canonical": "big-pickle",
       "name": "Big Pickle",
@@ -851,6 +869,60 @@
     },
     {
       "provider": "opencode",
+      "id": "codestral-embed",
+      "canonical": "codestral-embed",
+      "name": "Codestral Embed",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "cohere-embed-v5-fast",
+      "canonical": "cohere-embed-v5-fast",
+      "name": "Embed 5 Fast",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "cohere-embed-v5-pro",
+      "canonical": "cohere-embed-v5-pro",
+      "name": "Embed 5 Pro",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "deepseek-v4.1-flash",
       "canonical": "deepseek-v4-1-flash",
       "name": "DeepSeek V4.1 Flash 1017",
@@ -1073,14 +1145,14 @@
     },
     {
       "provider": "opencode",
-      "id": "glm-5",
-      "canonical": "glm-5",
-      "name": "GLM-5",
+      "id": "gemini-4-neon",
+      "canonical": "gemini-4-neon",
+      "name": "Gemini 4 Neon",
       "class": "zen",
       "free": false,
-      "input_cost": 1.0,
-      "output_cost": 3.2,
-      "blended_cost": 1.55,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": null,
       "media_in": [
         "text"
@@ -1091,14 +1163,14 @@
     },
     {
       "provider": "opencode",
-      "id": "glm-5.1",
-      "canonical": "glm-5-1",
-      "name": "GLM-5.1",
+      "id": "gemini-decision-1",
+      "canonical": "gemini-decision-1",
+      "name": "Gemini Decision 1",
       "class": "zen",
       "free": false,
-      "input_cost": 1.4,
-      "output_cost": 4.4,
-      "blended_cost": 2.15,
+      "input_cost": 0.1,
+      "output_cost": 0.0,
+      "blended_cost": 0.075,
       "context": null,
       "media_in": [
         "text"
@@ -1109,15 +1181,51 @@
     },
     {
       "provider": "opencode",
-      "id": "glm-5.2",
-      "canonical": "glm-5-2",
-      "name": "GLM-5.2",
+      "id": "gemini-embedding-001",
+      "canonical": "gemini-embedding-001",
+      "name": "Gemini Embedding 001",
       "class": "zen",
       "free": false,
-      "input_cost": 1.4,
-      "output_cost": 4.4,
-      "blended_cost": 2.15,
-      "context": 1000000,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "gemini-embedding-2",
+      "canonical": "gemini-embedding-2",
+      "name": "Gemini Embedding 2",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "gemini-nano-banana-2.1",
+      "canonical": "gemini-nano-banana-2-1",
+      "name": "Nano Banana 2.1",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
       "media_in": [
         "text"
       ],
@@ -1620,6 +1728,24 @@
     },
     {
       "provider": "opencode",
+      "id": "gpt-6-luna-decision",
+      "canonical": "gpt-6-luna-decision",
+      "name": "GPT-6 Luna Decision",
+      "class": "zen",
+      "free": false,
+      "input_cost": 0.1,
+      "output_cost": 0.0,
+      "blended_cost": 0.075,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "gpt-6-sol",
       "canonical": "gpt-6-sol",
       "name": "GPT-6 Sol",
@@ -1628,6 +1754,42 @@
       "input_cost": 2.0,
       "output_cost": 10.0,
       "blended_cost": 4.0,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "gpt-image-2.5-sunburst",
+      "canonical": "gpt-image-2-5-sunburst",
+      "name": "GPT Image 2.5 Sunburst",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "gpt-live-1",
+      "canonical": "gpt-live-1",
+      "name": "GPT-Live 1",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
       "context": null,
       "media_in": [
         "text"
@@ -1712,6 +1874,24 @@
     },
     {
       "provider": "opencode",
+      "id": "grok-imagine-image-2.0",
+      "canonical": "grok-imagine-image-2-0",
+      "name": "Grok Imagine Image 2.0",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "hy4-flash-free",
       "canonical": "hy4-flash",
       "name": "Hy4 flash Free",
@@ -1749,33 +1929,14 @@
     },
     {
       "provider": "opencode",
-      "id": "inkling-2-small-free",
-      "canonical": "inkling-2-small",
-      "name": "Inkling 2 Small Free",
-      "class": "free",
-      "free": true,
-      "input_cost": 0.0,
-      "output_cost": 0.0,
-      "blended_cost": 0.0,
-      "context": 1048576,
-      "media_in": [
-        "text",
-        "image"
-      ],
-      "media_out": [
-        "text"
-      ]
-    },
-    {
-      "provider": "opencode",
-      "id": "kimi-k2.5",
-      "canonical": "kimi-k2-5",
-      "name": "Kimi K2.5",
+      "id": "jev-1.13",
+      "canonical": "jev-1-13",
+      "name": "Jev 1.13",
       "class": "zen",
       "free": false,
-      "input_cost": 0.6,
-      "output_cost": 3.0,
-      "blended_cost": 1.2,
+      "input_cost": 0.042,
+      "output_cost": 0.0,
+      "blended_cost": 0.0315,
       "context": null,
       "media_in": [
         "text"
@@ -1786,14 +1947,14 @@
     },
     {
       "provider": "opencode",
-      "id": "kimi-k2.6",
-      "canonical": "kimi-k2-6",
-      "name": "Kimi K2.6",
-      "class": "zen",
-      "free": false,
-      "input_cost": 0.95,
-      "output_cost": 4.0,
-      "blended_cost": 1.7125,
+      "id": "jev-1.13-free",
+      "canonical": "jev-1-13",
+      "name": "Jev 1.13 Free",
+      "class": "free",
+      "free": true,
+      "input_cost": 0.0,
+      "output_cost": 0.0,
+      "blended_cost": 0.0,
       "context": null,
       "media_in": [
         "text"
@@ -1933,6 +2094,24 @@
         "text",
         "image",
         "video"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "mistral-embed",
+      "canonical": "mistral-embed",
+      "name": "Mistral Embed",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
       ],
       "media_out": [
         "text"
@@ -2143,6 +2322,114 @@
       ]
     },
     {
+      "provider": "opencode",
+      "id": "qwen3-embedding-8b",
+      "canonical": "qwen3-embedding-8b",
+      "name": "Qwen3 Embedding 8B",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "text-embedding-3-large",
+      "canonical": "text-embedding-3-large",
+      "name": "text-embedding-3-large",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "text-embedding-3-small",
+      "canonical": "text-embedding-3-small",
+      "name": "text-embedding-3-small",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "tidepool-alpha-free",
+      "canonical": "tidepool-alpha",
+      "name": "Tidepool Alpha Free",
+      "class": "free",
+      "free": true,
+      "input_cost": 0.0,
+      "output_cost": 0.0,
+      "blended_cost": 0.0,
+      "context": 1048576,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "voyage-4",
+      "canonical": "voyage-4",
+      "name": "voyage-4",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "voyage-code-4",
+      "canonical": "voyage-code-4",
+      "name": "voyage-code-4",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
       "provider": "opencode-go",
       "id": "beam-free",
       "canonical": "beam",
@@ -2234,24 +2521,6 @@
         "video",
         "audio",
         "pdf"
-      ],
-      "media_out": [
-        "text"
-      ]
-    },
-    {
-      "provider": "opencode-go",
-      "id": "glm-5.2",
-      "canonical": "glm-5-2",
-      "name": "GLM-5.2",
-      "class": "go",
-      "free": false,
-      "input_cost": 1.4,
-      "output_cost": 4.4,
-      "blended_cost": 2.15,
-      "context": 1000000,
-      "media_in": [
-        "text"
       ],
       "media_out": [
         "text"

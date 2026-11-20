@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-11-18T13:59:00.119572+00:00",
+  "timestamp": "2026-11-20T09:55:09.703094+00:00",
   "livebench_snapshot": "2026-11-06",
   "livebench_source": "https://livebench.ai/data/20261106/table.csv",
   "livebench_v1_snapshot": "2026_06_25",
   "livebench_v1_source": "https://livebench.ai/table_2026_06_25.csv",
-  "livebench_models": 353,
-  "free_models": 11,
-  "go_models": 32,
+  "livebench_models": 354,
+  "free_models": 15,
+  "go_models": 31,
   "cost_blend": {
     "input_weight": 0.75,
     "output_weight": 0.25
@@ -14,12 +14,12 @@
   "pricing_source": "https://opencode.ai/docs/it/zen#pricing",
   "model_config": {
     "updated": true,
-    "timestamp": "2026-11-18T13:59:00.119577+00:00",
+    "timestamp": "2026-11-20T09:55:09.703101+00:00",
     "livebench_snapshot": "2026-11-06"
   },
   "provider_catalog": {
     "updated": true,
-    "rows": 143,
+    "rows": 158,
     "providers": [
       "google",
       "opencode",
@@ -30,6 +30,6 @@
   "model_registry": {
     "updated": true,
     "schema_version": 2,
-    "models": 111
+    "models": 126
   }
 }

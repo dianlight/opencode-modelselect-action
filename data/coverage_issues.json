@@ -1,35 +1,12 @@
 {
-  "stale_fallback": [
-    {
-      "model": "qwen4-max",
-      "livebench_scores": {
-        "long_agentic": 47.5,
-        "reasoning": 92.2,
-        "coding": 69.8,
-        "browser": 80.7,
-        "data_analysis": 83.4,
-        "research": 84.7,
-        "design": 79.1,
-        "overall": 76.8
-      }
-    },
-    {
-      "model": "qwen4-max-free",
-      "livebench_scores": {
-        "long_agentic": 47.5,
-        "reasoning": 92.2,
-        "coding": 69.8,
-        "browser": 80.7,
-        "data_analysis": 83.4,
-        "research": 84.7,
-        "design": 79.1,
-        "overall": 76.8
-      }
-    }
-  ],
+  "stale_fallback": [],
   "missing_scores": [
     {
-      "model": "hy4-flash-free",
+      "model": "gemini-decision-1",
+      "tier": "Free"
+    },
+    {
+      "model": "tidepool-alpha-free",
       "tier": "Free"
     }
   ],
@@ -91,6 +68,23 @@
       "tier": "Go (Paid)"
     }
   ],
-  "missing_capabilities": [],
+  "missing_capabilities": [
+    {
+      "model": "gemini-decision-1",
+      "tier": "Free"
+    },
+    {
+      "model": "gpt-6-luna-decision",
+      "tier": "Free"
+    },
+    {
+      "model": "jev-1.13",
+      "tier": "Free"
+    },
+    {
+      "model": "jev-1.13-free",
+      "tier": "Free"
+    }
+  ],
   "fallback_mismatch": []
 }
