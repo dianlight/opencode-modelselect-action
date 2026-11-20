@@ -104,7 +104,7 @@ jobs:
           git config user.name "opencode-maintenance[bot]"
           git config user.email "opencode-maintenance[bot]@users.noreply.github.com"
 
-          git add README.md data/ 2>/dev/null || true
+          git add README.md data/ docs/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "ℹ No changes to commit"
@@ -117,11 +117,14 @@ jobs:
             # instead of being rejected as non-fast-forward.
             git fetch origin "${GITHUB_REF_NAME}"
             if ! git rebase "origin/${GITHUB_REF_NAME}"; then
-              git rebase --abort
+              # The rebase may have failed before it ever started (e.g. unstaged
+              # changes), in which case --abort has nothing to undo — don't let
+              # that turn a recoverable failure into a hard step failure.
+              git rebase --abort 2>/dev/null || true
               echo "⚠ Rebase onto origin/${GITHUB_REF_NAME} conflicted — regenerating from the new base"
               git reset --hard "origin/${GITHUB_REF_NAME}"
               python scripts/opencode_maintenance.py
-              git add README.md data/ 2>/dev/null || true
+              git add README.md data/ docs/ 2>/dev/null || true
               git commit -m "📝 docs: update model recommendations, audit results and model config"
             fi
             git push origin "HEAD:${GITHUB_REF_NAME}"
