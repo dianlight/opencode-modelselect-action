@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-20T09:55:07.203023+00:00",
+  "timestamp": "2026-11-21T12:34:56.790174+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -1220,6 +1220,24 @@
       "id": "gemini-nano-banana-2.1",
       "canonical": "gemini-nano-banana-2-1",
       "name": "Nano Banana 2.1",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "gemini-omni-1.2-flash",
+      "canonical": "gemini-omni-1-2-flash",
+      "name": "Gemini Omni 1.2 Flash",
       "class": "zen",
       "free": false,
       "input_cost": null,

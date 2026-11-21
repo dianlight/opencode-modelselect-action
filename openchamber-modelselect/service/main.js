@@ -1390,10 +1390,14 @@ var require_registry = __commonJS(function(exports, module) {
     const entry = table[key];
     if (!isObject(entry))
       return null;
-    const model = str(entry.model);
-    if (!model)
+    const modelsRaw = Array.isArray(entry.models) ? entry.models : null;
+    const models = modelsRaw ? modelsRaw.map((m) => str(m && (typeof m === "string" ? m : m.model))).filter(Boolean) : [];
+    const model = str(entry.model) || (models.length ? models[0] : "");
+    if (!model && models.length === 0)
       return null;
-    return { key, entry, model };
+    if (models.length === 0 && model)
+      models.push(model);
+    return { key, entry, model, models };
   }
   function registryModels(registry) {
     if (!isObject(registry))
@@ -1520,14 +1524,26 @@ var require_registry = __commonJS(function(exports, module) {
   } = {}) {
     if (!isObject(taskEntry))
       return [];
-    const model = str(taskEntry.model ?? taskEntry.id);
-    if (!model)
+    const models = Array.isArray(taskEntry.models) && taskEntry.models.length ? taskEntry.models.map((m) => str(m && (typeof m === "string" ? m : m.model))).filter(Boolean) : [str(taskEntry.model ?? taskEntry.id)].filter(Boolean);
+    if (models.length === 0)
       return [];
-    const entry = modelEntry(registry, model);
-    if (!entry)
+    const seenKeys = new Set;
+    const pooled = [];
+    for (const model of models) {
+      const entry = modelEntry(registry, model);
+      if (!entry)
+        continue;
+      for (const row of variantRows(entry)) {
+        if (seenKeys.has(row.key))
+          continue;
+        seenKeys.add(row.key);
+        pooled.push(row);
+      }
+    }
+    if (pooled.length === 0)
       return [];
     const candidates = [];
-    for (const row of variantRows(entry)) {
+    for (const row of pooled) {
       if (!isAllowedProvider(row, providers))
         continue;
       const state = providerState(availability, row);
@@ -2452,7 +2468,19 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
     }
     let all = [];
     try {
-      all = variantRows(modelEntry(registry, v2TaskEntry.model));
+      const modelIds = Array.isArray(v2TaskEntry.entry && v2TaskEntry.entry.models) && v2TaskEntry.entry.models.length ? v2TaskEntry.entry.models : [v2TaskEntry.model];
+      const seen = new Set;
+      for (const mid of modelIds) {
+        const e = modelEntry(registry, typeof mid === "string" ? mid : mid && mid.model);
+        if (!e)
+          continue;
+        for (const row of variantRows(e)) {
+          if (seen.has(row.key))
+            continue;
+          seen.add(row.key);
+          all.push(row);
+        }
+      }
     } catch (e) {
       all = [];
     }

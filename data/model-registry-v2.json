@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-20T09:55:07.356785+00:00",
+  "timestamp": "2026-11-21T12:34:56.904855+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -1153,6 +1153,24 @@
         {
           "provider": "opencode",
           "model": "gemini-nano-banana-2.1",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gemini-omni-1-2-flash": {
+      "id": "gemini-omni-1-2-flash",
+      "name": "Gemini Omni 1.2 Flash",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gemini-omni-1.2-flash",
           "free": false,
           "cost": null,
           "input_cost": null,

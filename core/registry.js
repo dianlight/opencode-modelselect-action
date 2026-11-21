@@ -81,9 +81,16 @@ function taskEntryV2(config, taskType) {
   if (!key) return null;
   const entry = table[key];
   if (!isObject(entry)) return null;
-  const model = str(entry.model);
-  if (!model) return null;
-  return { key, entry, model };
+  // v2 may carry a single `model` (legacy) or a `models` list (top-N).
+  // Normalise to an array so callers can aggregate variants from all of them.
+  const modelsRaw = Array.isArray(entry.models) ? entry.models : null;
+  const models = modelsRaw
+    ? modelsRaw.map((m) => str(m && (typeof m === 'string' ? m : m.model))).filter(Boolean)
+    : [];
+  const model = str(entry.model) || (models.length ? models[0] : '');
+  if (!model && models.length === 0) return null;
+  if (models.length === 0 && model) models.push(model);
+  return { key, entry, model, models };
 }
 
 /** The model map of a registry, accepting the file shape or a bare map. */
@@ -236,12 +243,28 @@ function buildV2Chain({
   providers = null,
 } = {}) {
   if (!isObject(taskEntry)) return [];
-  const model = str(taskEntry.model ?? taskEntry.id);
-  if (!model) return [];
-  const entry = modelEntry(registry, model);
-  if (!entry) return [];
+  // Aggregate variants from every model in the task's top-N list (v2 may
+  // carry `models`; legacy v2 entries only carry `model`). Dedupe by
+  // provider/model key so the same variant served under two canonical ids
+  // is not double-counted.
+  const models = Array.isArray(taskEntry.models) && taskEntry.models.length
+    ? taskEntry.models.map((m) => str(m && (typeof m === 'string' ? m : m.model))).filter(Boolean)
+    : [str(taskEntry.model ?? taskEntry.id)].filter(Boolean);
+  if (models.length === 0) return [];
+  const seenKeys = new Set();
+  const pooled = [];
+  for (const model of models) {
+    const entry = modelEntry(registry, model);
+    if (!entry) continue;
+    for (const row of variantRows(entry)) {
+      if (seenKeys.has(row.key)) continue;
+      seenKeys.add(row.key);
+      pooled.push(row);
+    }
+  }
+  if (pooled.length === 0) return [];
   const candidates = [];
-  for (const row of variantRows(entry)) {
+  for (const row of pooled) {
     if (!isAllowedProvider(row, providers)) continue;
     const state = providerState(availability, row);
     if (state.unavailable === true || state.available === false) continue;

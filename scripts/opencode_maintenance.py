@@ -1850,9 +1850,10 @@ def generate_model_config(
 
     The same run publishes the v2 layer in its own file
     (data/model-config-v2.json): top-level `schema_version` plus
-    `task-types-v2.<task>.model` (ONE model id per task, resolved through
-    data/model-registry-v2.json by `core/registry.js`). The v1 entries above
-    stay untouched during the transition.
+    `task-types-v2.<task>.models` (an ordered top-10 list of canonical model
+    ids per task, resolved through data/model-registry-v2.json by
+    `core/registry.js`). `model` is kept as the first entry for backward
+    compat. The v1 entries above stay untouched during the transition.
 
     Returns True when the written config differs from the previous commit
     (i.e. the models actually changed).
@@ -1918,14 +1919,25 @@ def generate_model_config(
             # the provider catalog and filter by their own availability.
             "ranked": ranked,
         }
-        # v2: task -> ONE model id, resolved through the model registry
-        # (data/model-registry-v2.json) at runtime. Variant/provider choice and
-        # the free-first/go-first preference are runtime concerns, so they
-        # never appear here. v1 entries above stay for the transition.
-        model_v2 = ranked[0]["model"] if ranked else _canonical_catalog_key(best_go or best_free or "")
-        if model_v2:
+        # v2: task -> an ordered list of the top models (canonical ids),
+        # resolved through the model registry (data/model-registry-v2.json) at
+        # runtime. Carrying the top-N (not just the winner) lets the runtime
+        # fail over to the next best model when the first one's variants are
+        # all filtered out (latched, over maxCost, or absent from the runtime
+        # inventory) — mirroring the failover v1 already exposes via
+        # go_ranked/free_ranked/ranked. Variant/provider choice and the
+        # free-first/go-first preference stay runtime concerns. v1 entries
+        # above stay for the transition. `model` is kept as the first entry for
+        # backward compat with older caches/clients.
+        models_v2 = [r["model"] for r in (ranked or [])[:10]]
+        if not models_v2:
+            fallback_v2 = _canonical_catalog_key(best_go or best_free or "")
+            if fallback_v2:
+                models_v2 = [fallback_v2]
+        if models_v2:
             task_map_v2[name] = {
-                "model": model_v2,
+                "models": models_v2,
+                "model": models_v2[0],
                 "score": ranked[0]["score"] if ranked else None,
                 "think": think if think in _THINK_LEVELS else None,
             }

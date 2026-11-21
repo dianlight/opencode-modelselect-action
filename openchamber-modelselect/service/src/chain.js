@@ -250,7 +250,19 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
     }
     let all = [];
     try {
-      all = variantRows(modelEntry(registry, v2TaskEntry.model));
+      const modelIds = Array.isArray(v2TaskEntry.entry && v2TaskEntry.entry.models) && (v2TaskEntry.entry.models).length
+        ? v2TaskEntry.entry.models
+        : [v2TaskEntry.model];
+      const seen = new Set();
+      for (const mid of modelIds) {
+        const e = modelEntry(registry, (typeof mid === 'string' ? mid : (mid && mid.model)));
+        if (!e) continue;
+        for (const row of variantRows(e)) {
+          if (seen.has(row.key)) continue;
+          seen.add(row.key);
+          all.push(row);
+        }
+      }
     } catch (e) {
       all = [];
     }
