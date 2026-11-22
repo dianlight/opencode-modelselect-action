@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-21T12:34:56.904855+00:00",
+  "timestamp": "2026-11-22T03:47:47.656486+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -1037,9 +1037,9 @@
           "provider": "opencode",
           "model": "gemini-4-neon",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 6.0,
+          "input_cost": 3.0,
+          "output_cost": 15.0,
           "context": null,
           "media_in": [
             "text"
@@ -1888,6 +1888,24 @@
         {
           "provider": "opencode",
           "model": "gpt-live-1",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "gpt-live-1-1": {
+      "id": "gpt-live-1-1",
+      "name": "GPT-Live 1.1",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-live-1.1",
           "free": false,
           "cost": null,
           "input_cost": null,

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-21T12:34:56.790174+00:00",
+  "timestamp": "2026-11-22T03:47:47.557095+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -1150,9 +1150,9 @@
       "name": "Gemini 4 Neon",
       "class": "zen",
       "free": false,
-      "input_cost": null,
-      "output_cost": null,
-      "blended_cost": null,
+      "input_cost": 3.0,
+      "output_cost": 15.0,
+      "blended_cost": 6.0,
       "context": null,
       "media_in": [
         "text"
@@ -1803,6 +1803,24 @@
       "id": "gpt-live-1",
       "canonical": "gpt-live-1",
       "name": "GPT-Live 1",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "gpt-live-1.1",
+      "canonical": "gpt-live-1-1",
+      "name": "GPT-Live 1.1",
       "class": "zen",
       "free": false,
       "input_cost": null,

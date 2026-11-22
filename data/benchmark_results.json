@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-11-21T12:34:56.123120+00:00",
+  "timestamp": "2026-11-22T03:47:46.950732+00:00",
   "livebench_snapshot": "2026-11-06",
   "livebench_source": "https://livebench.ai/data/20261106/table.csv",
   "livebench_v1_snapshot": "2026_06_25",
-  "zen_models_count": 104,
+  "zen_models_count": 105,
   "go_models_count": 31,
   "cost_blend": {
     "input_weight": 0.75,
@@ -450,10 +450,10 @@
         "model": "gemini-4-neon",
         "score": 89.6,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.93,
         "rank": 20
       },
       {
@@ -1724,10 +1724,10 @@
         "model": "gemini-4-neon",
         "score": 89.6,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.93,
         "rank": 20
       },
       {
@@ -2306,10 +2306,10 @@
         "model": "gemini-4-neon",
         "score": 81.5,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 13.58,
         "rank": 3
       },
       {
@@ -3068,10 +3068,10 @@
         "model": "gemini-4-neon",
         "score": 89.7,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.95,
         "rank": 4
       },
       {
@@ -3820,10 +3820,10 @@
         "model": "gemini-4-neon",
         "score": 89.7,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.95,
         "rank": 4
       },
       {
@@ -5254,10 +5254,10 @@
         "model": "gemini-4-neon",
         "score": 89.6,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.93,
         "rank": 20
       },
       {
@@ -5846,10 +5846,10 @@
         "model": "gemini-4-neon",
         "score": 89.7,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.95,
         "rank": 4
       },
       {
@@ -6758,10 +6758,10 @@
         "model": "gemini-4-neon",
         "score": 89.6,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.93,
         "rank": 20
       },
       {
@@ -7350,10 +7350,10 @@
         "model": "gemini-4-neon",
         "score": 89.7,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.95,
         "rank": 4
       },
       {
@@ -8262,10 +8262,10 @@
         "model": "gemini-4-neon",
         "score": 89.6,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.93,
         "rank": 20
       },
       {
@@ -9014,10 +9014,10 @@
         "model": "gemini-4-neon",
         "score": 89.6,
         "source": "livebench-v2",
-        "input_cost": null,
-        "output_cost": null,
-        "blended_cost": null,
-        "value": null,
+        "input_cost": 3.0,
+        "output_cost": 15.0,
+        "blended_cost": 6.0,
+        "value": 14.93,
         "rank": 20
       },
       {

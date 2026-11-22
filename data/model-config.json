@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-20T09:55:09.694999+00:00",
+  "timestamp": "2026-11-22T03:47:49.115611+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -7114,6 +7114,7 @@
     "gemini-decision-1": "systemone",
     "gpt-6-luna-decision": "systemone",
     "hy4-flash-free": "chat",
+    "tidepool-alpha-free": "chat",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.3": "chat",
@@ -7142,6 +7143,7 @@
     "opencode/nemotron-3.5-super-vl-free": "/inference/openai/v1",
     "opencode/nemotron-3.5-lightning-free": "/inference/openai/v1",
     "opencode/hy4-flash-free": "/inference/openai/v1",
+    "opencode/tidepool-alpha-free": "/inference/openai/v1",
     "opencode-go/deepseek-v4.1-flash": "/inference/openai/v1",
     "opencode-go/deepseek-v4-pro": "/inference/openai/v1",
     "opencode-go/glm-5.3": "/inference/openai/v1",
