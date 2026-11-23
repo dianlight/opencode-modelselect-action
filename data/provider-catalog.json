@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-22T03:47:47.557095+00:00",
+  "timestamp": "2026-11-23T04:24:56.987444+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -2001,6 +2001,24 @@
     },
     {
       "provider": "opencode",
+      "id": "jev-1.14",
+      "canonical": "jev-1-14",
+      "name": "Jev 1.14",
+      "class": "zen",
+      "free": false,
+      "input_cost": 0.042,
+      "output_cost": 0.0,
+      "blended_cost": 0.0315,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "kimi-k2.7-code",
       "canonical": "kimi-k2-7-code",
       "name": "Kimi K2.7 Code",
@@ -2034,25 +2052,6 @@
         "text",
         "image",
         "video"
-      ],
-      "media_out": [
-        "text"
-      ]
-    },
-    {
-      "provider": "opencode",
-      "id": "longcat-2.5-free",
-      "canonical": "longcat-2-5",
-      "name": "LongCat 2.5 Free",
-      "class": "free",
-      "free": true,
-      "input_cost": 0.0,
-      "output_cost": 0.0,
-      "blended_cost": 0.0,
-      "context": 1000000,
-      "media_in": [
-        "text",
-        "image"
       ],
       "media_out": [
         "text"
@@ -2689,7 +2688,7 @@
       "input_cost": null,
       "output_cost": null,
       "blended_cost": null,
-      "context": 1048576,
+      "context": 1000000,
       "media_in": [
         "text",
         "image"
@@ -2815,32 +2814,14 @@
     },
     {
       "provider": "opencode-go",
-      "id": "longcat-2.0",
-      "canonical": "longcat-2-0",
-      "name": "LongCat-2.0",
+      "id": "longcat-2.5",
+      "canonical": "longcat-2-5",
+      "name": "LongCat-2.5",
       "class": "go",
       "free": false,
       "input_cost": null,
       "output_cost": null,
       "blended_cost": null,
-      "context": 1000000,
-      "media_in": [
-        "text"
-      ],
-      "media_out": [
-        "text"
-      ]
-    },
-    {
-      "provider": "opencode-go",
-      "id": "longcat-2.5-free",
-      "canonical": "longcat-2-5",
-      "name": "LongCat 2.5 Free",
-      "class": "free",
-      "free": true,
-      "input_cost": 0.0,
-      "output_cost": 0.0,
-      "blended_cost": 0.0,
       "context": 1000000,
       "media_in": [
         "text",
@@ -2944,10 +2925,9 @@
       "blended_cost": null,
       "context": 1048576,
       "media_in": [
-        "image",
-        "pdf",
         "text",
-        "video"
+        "image",
+        "pdf"
       ],
       "media_out": [
         "text"
@@ -3046,11 +3026,11 @@
       "input_cost": null,
       "output_cost": null,
       "blended_cost": null,
-      "context": 983616,
+      "context": 1000000,
       "media_in": [
         "text",
         "image",
-        "video"
+        "pdf"
       ],
       "media_out": [
         "text"

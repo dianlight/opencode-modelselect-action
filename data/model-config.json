@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-22T03:47:49.115611+00:00",
+  "timestamp": "2026-11-23T04:24:58.507567+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -103,18 +103,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
           "input_cost": 1.74,
@@ -133,10 +121,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -280,18 +267,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/mimo-v2.6-flash-free",
           "score": 80.0,
           "input_cost": 0.0,
@@ -422,11 +397,6 @@
           "free": false
         },
         {
-          "model": "longcat-2-5",
-          "score": 84.0,
-          "free": true
-        },
-        {
           "model": "deepseek-v4-pro",
           "score": 83.9,
           "free": false
@@ -519,22 +489,10 @@
       ]
     },
     "issue-triage": {
-      "go": "opencode/longcat-2.5-free",
-      "free": "opencode/longcat-2.5-free",
+      "go": "opencode-go/longcat-2.5",
+      "free": "opencode/beam-free",
       "think": "low",
       "go_ranked": [
-        {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 81.6,
@@ -593,10 +551,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -674,18 +631,6 @@
         }
       ],
       "free_ranked": [
-        {
-          "model": "opencode/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode/beam-free",
           "score": 79.6,
@@ -781,11 +726,6 @@
         }
       ],
       "ranked": [
-        {
-          "model": "longcat-2-5",
-          "score": 86.0,
-          "free": true
-        },
         {
           "model": "gpt-5-6-luna",
           "score": 81.6,
@@ -974,18 +914,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
           "input_cost": 1.74,
@@ -1004,10 +932,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -1151,18 +1078,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/mimo-v2.6-flash-free",
           "score": 80.0,
           "input_cost": 0.0,
@@ -1291,11 +1206,6 @@
           "model": "qwen3-8-flash",
           "score": 86.0,
           "free": false
-        },
-        {
-          "model": "longcat-2-5",
-          "score": 84.0,
-          "free": true
         },
         {
           "model": "deepseek-v4-pro",
@@ -1610,10 +1520,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -1627,18 +1536,6 @@
             "text",
             "image",
             "video"
-          ]
-        },
-        {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 40.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
           ]
         },
         {
@@ -1685,18 +1582,6 @@
           "output_cost": 0.0,
           "blended_cost": 0.0,
           "context": 1048576,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
-          "model": "opencode/longcat-2.5-free",
-          "score": 40.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
           "modalities": [
             "text",
             "image"
@@ -1869,11 +1754,6 @@
           "free": false
         },
         {
-          "model": "longcat-2-5",
-          "score": 40.0,
-          "free": true
-        },
-        {
           "model": "mimo-v2-6-flash",
           "score": 38.0,
           "free": true
@@ -2006,18 +1886,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -2076,10 +1944,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -2219,18 +2086,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/nemotron-3.5-super-vl-free",
           "score": 65.5,
           "input_cost": 0.0,
@@ -2337,11 +2192,6 @@
         {
           "model": "big-pickle",
           "score": 67.0,
-          "free": true
-        },
-        {
-          "model": "longcat-2-5",
-          "score": 66.0,
           "free": true
         },
         {
@@ -2522,18 +2372,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -2592,10 +2430,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -2735,18 +2572,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/nemotron-3.5-super-vl-free",
           "score": 65.5,
           "input_cost": 0.0,
@@ -2856,11 +2681,6 @@
           "free": true
         },
         {
-          "model": "longcat-2-5",
-          "score": 66.0,
-          "free": true
-        },
-        {
           "model": "nemotron-3-5-super-vl",
           "score": 65.5,
           "free": true
@@ -2938,22 +2758,10 @@
       ]
     },
     "docs": {
-      "go": "opencode/longcat-2.5-free",
-      "free": "opencode/longcat-2.5-free",
+      "go": "opencode-go/longcat-2.5",
+      "free": "opencode/beam-free",
       "think": "low",
       "go_ranked": [
-        {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 81.6,
@@ -3012,10 +2820,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -3093,18 +2900,6 @@
         }
       ],
       "free_ranked": [
-        {
-          "model": "opencode/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode/beam-free",
           "score": 79.6,
@@ -3200,11 +2995,6 @@
         }
       ],
       "ranked": [
-        {
-          "model": "longcat-2-5",
-          "score": 86.0,
-          "free": true
-        },
         {
           "model": "gpt-5-6-luna",
           "score": 81.6,
@@ -3393,18 +3183,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
           "input_cost": 1.74,
@@ -3423,10 +3201,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -3570,18 +3347,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/mimo-v2.6-flash-free",
           "score": 80.0,
           "input_cost": 0.0,
@@ -3710,11 +3475,6 @@
           "model": "qwen3-8-flash",
           "score": 86.0,
           "free": false
-        },
-        {
-          "model": "longcat-2-5",
-          "score": 84.0,
-          "free": true
         },
         {
           "model": "deepseek-v4-pro",
@@ -3909,18 +3669,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -3979,10 +3727,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -4122,18 +3869,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/nemotron-3.5-super-vl-free",
           "score": 65.5,
           "input_cost": 0.0,
@@ -4240,11 +3975,6 @@
         {
           "model": "big-pickle",
           "score": 67.0,
-          "free": true
-        },
-        {
-          "model": "longcat-2-5",
-          "score": 66.0,
           "free": true
         },
         {
@@ -4425,18 +4155,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
           "input_cost": 1.74,
@@ -4455,10 +4173,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -4602,18 +4319,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/mimo-v2.6-flash-free",
           "score": 80.0,
           "input_cost": 0.0,
@@ -4742,11 +4447,6 @@
           "model": "qwen3-8-flash",
           "score": 86.0,
           "free": false
-        },
-        {
-          "model": "longcat-2-5",
-          "score": 84.0,
-          "free": true
         },
         {
           "model": "deepseek-v4-pro",
@@ -4941,18 +4641,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -5011,10 +4699,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -5154,18 +4841,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 66.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/nemotron-3.5-super-vl-free",
           "score": 65.5,
           "input_cost": 0.0,
@@ -5272,11 +4947,6 @@
         {
           "model": "big-pickle",
           "score": 67.0,
-          "free": true
-        },
-        {
-          "model": "longcat-2-5",
-          "score": 66.0,
           "free": true
         },
         {
@@ -5457,18 +5127,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
           "input_cost": 1.74,
@@ -5487,10 +5145,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -5634,18 +5291,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/mimo-v2.6-flash-free",
           "score": 80.0,
           "input_cost": 0.0,
@@ -5774,11 +5419,6 @@
           "model": "qwen3-8-flash",
           "score": 86.0,
           "free": false
-        },
-        {
-          "model": "longcat-2-5",
-          "score": 84.0,
-          "free": true
         },
         {
           "model": "deepseek-v4-pro",
@@ -5973,18 +5613,6 @@
           ]
         },
         {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
           "input_cost": 1.74,
@@ -6003,10 +5631,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -6150,18 +5777,6 @@
           ]
         },
         {
-          "model": "opencode/longcat-2.5-free",
-          "score": 84.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
-        {
           "model": "opencode/mimo-v2.6-flash-free",
           "score": 80.0,
           "input_cost": 0.0,
@@ -6292,11 +5907,6 @@
           "free": false
         },
         {
-          "model": "longcat-2-5",
-          "score": 84.0,
-          "free": true
-        },
-        {
           "model": "deepseek-v4-pro",
           "score": 83.9,
           "free": false
@@ -6389,22 +5999,10 @@
       ]
     },
     "generic": {
-      "go": "opencode/longcat-2.5-free",
-      "free": "opencode/longcat-2.5-free",
+      "go": "opencode-go/longcat-2.5",
+      "free": "opencode/beam-free",
       "think": "default",
       "go_ranked": [
-        {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 81.6,
@@ -6463,10 +6061,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -6544,18 +6141,6 @@
         }
       ],
       "free_ranked": [
-        {
-          "model": "opencode/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode/beam-free",
           "score": 79.6,
@@ -6651,11 +6236,6 @@
         }
       ],
       "ranked": [
-        {
-          "model": "longcat-2-5",
-          "score": 86.0,
-          "free": true
-        },
         {
           "model": "gpt-5-6-luna",
           "score": 81.6,
@@ -6744,22 +6324,10 @@
       ]
     },
     "small-model": {
-      "go": "opencode/longcat-2.5-free",
-      "free": "opencode/longcat-2.5-free",
+      "go": "opencode-go/longcat-2.5",
+      "free": "opencode/beam-free",
       "think": "minimal",
       "go_ranked": [
-        {
-          "model": "opencode-go/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode-go/gpt-5.6-luna",
           "score": 81.6,
@@ -6818,10 +6386,9 @@
           "blended_cost": null,
           "context": 1048576,
           "modalities": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         },
         {
@@ -6899,18 +6466,6 @@
         }
       ],
       "free_ranked": [
-        {
-          "model": "opencode/longcat-2.5-free",
-          "score": 86.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "blended_cost": 0.0,
-          "context": 1000000,
-          "modalities": [
-            "text",
-            "image"
-          ]
-        },
         {
           "model": "opencode/beam-free",
           "score": 79.6,
@@ -7006,11 +6561,6 @@
         }
       ],
       "ranked": [
-        {
-          "model": "longcat-2-5",
-          "score": 86.0,
-          "free": true
-        },
         {
           "model": "gpt-5-6-luna",
           "score": 81.6,
@@ -7104,7 +6654,6 @@
     "mimo-v2.6-flash-free": "chat",
     "deepseek-v4.1-flash-free": "chat",
     "jev-1.13": "systemone",
-    "longcat-2.5-free": "chat",
     "iceman-free": "chat",
     "beam-free": "chat",
     "flint-40b-free": "chat",
@@ -7115,6 +6664,7 @@
     "gpt-6-luna-decision": "systemone",
     "hy4-flash-free": "chat",
     "tidepool-alpha-free": "chat",
+    "jev-1.14": "systemone",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.3": "chat",
@@ -7136,7 +6686,6 @@
     "opencode/big-pickle": "/inference/openai/v1",
     "opencode/mimo-v2.6-flash-free": "/inference/openai/v1",
     "opencode/deepseek-v4.1-flash-free": "/inference/openai/v1",
-    "opencode/longcat-2.5-free": "/inference/openai/v1",
     "opencode/iceman-free": "/inference/openai/v1",
     "opencode/beam-free": "/inference/openai/v1",
     "opencode/flint-40b-free": "/inference/openai/v1",
@@ -7161,7 +6710,6 @@
     "opencode-go/qwen3.8-max": "/inference/openai/v1",
     "opencode-go/qwen3.8-flash": "/inference/anthropic/v1",
     "opencode-go/gemini-4-argon": "/inference/go/openai/v1",
-    "opencode-go/longcat-2.5-free": "/inference/openai/v1",
     "opencode-go/hy4-flash-free": "/inference/openai/v1"
   }
 }

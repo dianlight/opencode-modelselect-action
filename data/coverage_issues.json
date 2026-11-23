@@ -6,6 +6,10 @@
       "tier": "Free"
     },
     {
+      "model": "jev-1.14",
+      "tier": "Free"
+    },
+    {
       "model": "tidepool-alpha-free",
       "tier": "Free"
     }
@@ -32,7 +36,7 @@
       "tier": "Go (Paid)"
     },
     {
-      "model": "longcat-2.0",
+      "model": "longcat-2.5",
       "tier": "Go (Paid)"
     },
     {
@@ -83,6 +87,10 @@
     },
     {
       "model": "jev-1.13-free",
+      "tier": "Free"
+    },
+    {
+      "model": "jev-1.14",
       "tier": "Free"
     }
   ],

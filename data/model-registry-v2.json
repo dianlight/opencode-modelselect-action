@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-22T03:47:47.656486+00:00",
+  "timestamp": "2026-11-23T04:24:57.087693+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -2053,7 +2053,7 @@
           "cost": null,
           "input_cost": null,
           "output_cost": null,
-          "context": 1048576,
+          "context": 1000000,
           "media_in": [
             "text",
             "image"
@@ -2175,6 +2175,24 @@
         }
       ]
     },
+    "jev-1-14": {
+      "id": "jev-1-14",
+      "name": "Jev 1.14",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "jev-1.14",
+          "free": false,
+          "cost": 0.0315,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
     "kimi-k2-7-code": {
       "id": "kimi-k2-7-code",
       "name": "Kimi K2.7 Code",
@@ -2265,48 +2283,17 @@
       ],
       "score": 69.4
     },
-    "longcat-2-0": {
-      "id": "longcat-2-0",
-      "name": "LongCat-2.0",
+    "longcat-2-5": {
+      "id": "longcat-2-5",
+      "name": "LongCat-2.5",
       "variants": [
         {
           "provider": "opencode-go",
-          "model": "longcat-2.0",
+          "model": "longcat-2.5",
           "free": false,
           "cost": null,
           "input_cost": null,
           "output_cost": null,
-          "context": 1000000,
-          "media_in": [
-            "text"
-          ]
-        }
-      ]
-    },
-    "longcat-2-5": {
-      "id": "longcat-2-5",
-      "name": "LongCat 2.5 Free",
-      "variants": [
-        {
-          "provider": "opencode",
-          "model": "longcat-2.5-free",
-          "free": true,
-          "cost": 0.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "context": 1000000,
-          "media_in": [
-            "text",
-            "image"
-          ]
-        },
-        {
-          "provider": "opencode-go",
-          "model": "longcat-2.5-free",
-          "free": true,
-          "cost": 0.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
           "context": 1000000,
           "media_in": [
             "text",
@@ -2546,10 +2533,9 @@
           "output_cost": null,
           "context": 1048576,
           "media_in": [
-            "image",
-            "pdf",
             "text",
-            "video"
+            "image",
+            "pdf"
           ]
         }
       ]
@@ -2798,11 +2784,11 @@
           "cost": null,
           "input_cost": null,
           "output_cost": null,
-          "context": 983616,
+          "context": 1000000,
           "media_in": [
             "text",
             "image",
-            "video"
+            "pdf"
           ]
         }
       ],
