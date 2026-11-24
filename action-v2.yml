@@ -6,8 +6,9 @@ description: >-
 inputs:
   model:
     description: >-
-      OpenCode model. Empty (default) uses the modelselect virtual anchor
-      chosen from tier/auto-preference, so the plugin owns the live pick.
+      OpenCode model. Empty (default) resolves one with the v1 select-model
+      rules from task-type/tier/fallback-model. An explicit modelselect/auto-*
+      anchor is supported on hosts that register virtual providers early.
     required: false
     default: ""
   agent:

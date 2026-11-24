@@ -18,6 +18,22 @@ function run(inputs, { opencodeExit = 0 } = {}) {
   // The action resolves the bundled plugin two levels above src/.
   fs.mkdirSync(path.join(dir, 'plugin'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'plugin', 'index.js'), 'module.exports = {};\n');
+  fs.mkdirSync(path.join(dir, 'data'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'data', 'model-config.json'),
+    JSON.stringify({
+      'task-types': {
+        review: {
+          go: 'opencode-go/go-model',
+          free: 'opencode/free-model',
+          free_ranked: [{ model: 'opencode/free-model', score: 90, blended_cost: 1 }],
+          go_ranked: [{ model: 'opencode-go/go-model', score: 90, blended_cost: 1 }],
+        },
+        auto: { go: 'opencode-go/go-model', free: 'opencode/free-model' },
+        generic: { go: 'opencode-go/go-model', free: 'opencode/free-model' },
+      },
+    }),
+  );
   const out = path.join(dir, 'github-output.txt');
   const env = {
     ...process.env,
@@ -60,7 +76,7 @@ describe('opencode + modelselect v2 action', () => {
       'INPUT_AGENT-TASK-MAP': '{"reviewer":"review"}',
     });
     assert.equal(r.exit, 0, r.stderr);
-    assert.equal(r.outputs.model, 'modelselect/auto-free-first');
+    assert.equal(r.outputs.model, 'opencode/free-model');
     for (const rel of ['.config/opencode/opencode.json', '.opencode/opencode.json']) {
       const cfg = readConfig(r.dir, rel);
       assert.ok(cfg, `${rel} was written`);
@@ -80,10 +96,10 @@ describe('opencode + modelselect v2 action', () => {
     assert.equal(r.outputs.model, 'opencode/gpt-5.6-luna');
   });
 
-  it('picks the go anchor for tier auto with go-first', () => {
-    const r = run({ 'INPUT_TIER': 'auto', 'INPUT_AUTO-PREFERENCE': 'go-first' });
+  it('preselects the go model when tier is go', () => {
+    const r = run({ 'INPUT_TIER': 'go', 'INPUT_TASK-TYPE': 'review' });
     assert.equal(r.exit, 0, r.stderr);
-    assert.equal(r.outputs.model, 'modelselect/auto-go-first');
+    assert.equal(r.outputs.model, 'opencode-go/go-model');
   });
 
   it('fails on an invalid tier', () => {
@@ -95,7 +111,7 @@ describe('opencode + modelselect v2 action', () => {
   it('propagates a failing opencode run but still writes outputs', () => {
     const r = run({ 'INPUT_TIER': 'free' }, { opencodeExit: 7 });
     assert.equal(r.exit, 7);
-    assert.equal(r.outputs.model, 'modelselect/auto-free-first');
+    assert.equal(r.outputs.model, 'opencode/free-model');
   });
 
   it('does not persist tokens into the plugin config', () => {

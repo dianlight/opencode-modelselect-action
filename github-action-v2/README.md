@@ -8,12 +8,14 @@ inside OpenCode:
    with the options passed to this action,
 3. runs `opencode github run` with the OpenCode action's environment.
 
-The session runs on the `modelselect/auto-*` virtual anchor unless `model` is
-set. The plugin resolves the real model per turn from the task type, tier,
-budget and live availability, and when the chosen model is disabled,
-unavailable, exhausted or errors for any other reason it moves to the next
-chain candidate (different provider first) and retries. No workflow-level
-wrapper or chain replay is needed.
+When `model` is empty the action first runs the v1 select-model rules
+(`task-type`, `tier`, `fallback-model`, budget, provider allowlist) and passes
+that resolved model to `opencode github run`; this is required because the
+CLI validates MODEL before plugins register their virtual provider. The
+plugin still receives every routing option and owns runtime failover: when
+the chosen model is disabled, unavailable, exhausted or errors for any other
+reason it moves to the next chain candidate (different provider first) and
+retries. No workflow-level wrapper or chain replay is needed.
 
 ## Usage
 
@@ -39,7 +41,7 @@ OpenCode action inputs:
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `model` | `""` | Model passed to `opencode github run`. Empty selects the virtual anchor derived from `tier`/`auto-preference`, so the plugin owns the live pick. |
+| `model` | `""` | Model passed to `opencode github run`. Empty resolves one with the v1 select-model rules. An explicit `modelselect/auto-*` anchor works on hosts that register virtual providers early. |
 | `agent` | `""` | Primary agent. |
 | `share` | `""` | Share the OpenCode session. |
 | `prompt` | `""` | Prompt forwarded to OpenCode. |

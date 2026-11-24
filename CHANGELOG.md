@@ -8,9 +8,10 @@
 - New `github-action-v2` (root shim `action-v2.yml`): the union of the
   select-model action and `anomalyco/opencode/github`. It accepts both sets of
   inputs, installs OpenCode, writes the bundled modelselect plugin into
-  `opencode.json` with those options, and runs `opencode github run`. Model
-  selection and runtime failover stay inside the plugin, so a rejected model
-  is replaced by the next chain candidate instead of failing the job. The
+  `opencode.json` with those options, and runs `opencode github run`. With an
+  empty `model` it resolves the model first with the v1 select-model rules
+  (the CLI validates MODEL before plugins load); the plugin then owns runtime
+  failover and replaces a rejected model with the next chain candidate. The
   maintenance workflow now uses this action.
 
 ### Changed

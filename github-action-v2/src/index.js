@@ -21,10 +21,6 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
-const VIRTUAL_PROVIDER = 'modelselect';
-const VIRTUAL_FREE = 'auto-free-first';
-const VIRTUAL_GO = 'auto-go-first';
-
 function getInput(name, { fallback = '' } = {}) {
   const key = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
   return String(process.env[key] ?? fallback).trim();
@@ -118,18 +114,59 @@ function pluginOptions() {
   return options;
 }
 
-/** Virtual anchor when the caller leaves `model` empty. */
-function anchorModel() {
+/**
+ * `opencode github run` validates MODEL before plugins register their virtual
+ * provider, so the virtual anchor cannot be passed as MODEL in CI. When the
+ * caller leaves `model` empty, run the v1 select-model action with the same
+ * inputs and use its resolved model as the explicit MODEL. The plugin still
+ * receives every routing option and owns runtime failover. A caller may pass
+ * a `modelselect/auto-*` anchor explicitly on hosts where it is resolvable.
+ */
+function preselectModel() {
+  const selector = path.resolve(__dirname, '..', '..', 'github-action', 'src', 'index.js');
+  if (!fs.existsSync(selector)) fail(`select-model action not found at ${selector}.`);
+
+  const outPath = path.join(os.tmpdir(), `modelselect-v2-${process.pid}-${Date.now()}.out`);
+  const env = { ...process.env, GITHUB_OUTPUT: outPath };
+  const forwarded = {
+    'task-type': 'TASK-TYPE',
+    tier: 'TIER',
+    'auto-preference': 'AUTO-PREFERENCE',
+    'fallback-model': 'FALLBACK-MODEL',
+    'max-cost': 'MAX-COST',
+    'available-providers': 'AVAILABLE-PROVIDERS',
+    'config-url': 'CONFIG-URL',
+    'config-v2-url': 'CONFIG-V2-URL',
+    'registry-url': 'REGISTRY-URL',
+    'catalog-url': 'CATALOG-URL',
+    'usage-url': 'USAGE-URL',
+    'opencode-token': 'OPENCODE-TOKEN',
+  };
+  env['INPUT_TASK-TYPE'] = getInput('task-type') || 'auto';
+  env['INPUT_TIER'] = getInput('tier') || 'auto';
+  for (const [input, key] of Object.entries(forwarded)) {
+    const value = getInput(input);
+    if (value) env[`INPUT_${key}`] = value;
+  }
+  try {
+    execFileSync(process.execPath, [selector], { env, stdio: 'inherit' });
+  } catch (err) {
+    fail(`select-model preselection failed: ${err?.message ?? err}`);
+  }
+  let model = '';
+  if (fs.existsSync(outPath)) {
+    for (const line of fs.readFileSync(outPath, 'utf8').split('\n')) {
+      if (line.startsWith('model=')) model = line.slice('model='.length).trim();
+    }
+  }
+  if (!model) fail('select-model preselection returned no model.');
+  return model;
+}
+
+function resolvedModel() {
   const explicit = getInput('model');
   if (explicit) return explicit;
-  const tier = (getInput('tier', { fallback: 'auto' }) || 'auto').toLowerCase();
-  const preference = (getInput('auto-preference', { fallback: 'free-first' }) || 'free-first').toLowerCase();
-  if (!['go', 'free', 'auto'].includes(tier)) fail(`Input 'tier' must be go, free or auto, got '${tier}'.`);
-  if (!['free-first', 'go-first'].includes(preference)) {
-    fail(`Input 'auto-preference' must be free-first or go-first, got '${preference}'.`);
-  }
-  const go = tier === 'go' || (tier === 'auto' && preference === 'go-first');
-  return `${VIRTUAL_PROVIDER}/${go ? VIRTUAL_GO : VIRTUAL_FREE}`;
+  return preselectModel();
 }
 
 /**
@@ -181,7 +218,7 @@ function installOpenCode() {
 }
 
 function main() {
-  const model = anchorModel();
+  const model = resolvedModel();
   const options = pluginOptions();
   const pluginPackage = getInput('plugin-package');
   const bundled = path.resolve(__dirname, '..', '..', 'plugin');
