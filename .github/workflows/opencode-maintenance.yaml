@@ -372,6 +372,7 @@ jobs:
           tier: auto
           auto-preference: free-first
           fallback-model: opencode/beam-free
+          probe-model-access: true
           verbose: true
           announce: "off"
           use_github_token: true

@@ -160,6 +160,12 @@ inputs:
       never written to the plugin config.
     required: false
     default: ""
+  probe-model-access:
+    description: >-
+      Probe each preselected chain candidate against Zen and skip models whose
+      access is disabled or unavailable before starting OpenCode.
+    required: false
+    default: "false"
 outputs:
   model:
     description: Model passed to `opencode github run` (virtual anchor by default).

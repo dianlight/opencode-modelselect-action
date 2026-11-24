@@ -153,20 +153,64 @@ function preselectModel() {
   } catch (err) {
     fail(`select-model preselection failed: ${err?.message ?? err}`);
   }
-  let model = '';
+  const outputs = {};
   if (fs.existsSync(outPath)) {
     for (const line of fs.readFileSync(outPath, 'utf8').split('\n')) {
-      if (line.startsWith('model=')) model = line.slice('model='.length).trim();
+      const at = line.indexOf('=');
+      if (at > 0) outputs[line.slice(0, at)] = line.slice(at + 1);
     }
   }
-  if (!model) fail('select-model preselection returned no model.');
-  return model;
+  if (!outputs.model) fail('select-model preselection returned no model.');
+  let chain = [];
+  try {
+    chain = JSON.parse(outputs['model-chain'] || '[]');
+  } catch {
+    chain = [];
+  }
+  if (!Array.isArray(chain) || chain.length === 0) chain = [outputs.model];
+  if (!chain.includes(outputs.model)) chain.unshift(outputs.model);
+  return { model: outputs.model, chain };
 }
 
-function resolvedModel() {
+/** Cheap access check against Zen; a 403 here is the "Model access is disabled" case. */
+async function modelReachable(model, token) {
+  if (!token) return true;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch('https://opencode.ai/zen/v1/chat/completions', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: String(model).split('/').pop(),
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+        stream: false,
+      }),
+    });
+    if (res.ok) return true;
+    if (res.status === 400) return true; // session-gated free routes still dispatch from OpenCode
+    if (res.status === 403 || res.status === 404 || res.status === 401 || res.status === 402 || res.status === 429) return false;
+    return true; // unknown status: fail open, the plugin still gets a chance at failover
+  } catch {
+    return true; // unreachable probe is not evidence of a disabled model
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function resolvedModel() {
   const explicit = getInput('model');
   if (explicit) return explicit;
-  return preselectModel();
+  const picked = preselectModel();
+  if (!boolInput('probe-model-access')) return picked.model;
+  const token = getInput('opencode-token') || process.env.OPENCODE_API_KEY || '';
+  for (const candidate of picked.chain) {
+    if (await modelReachable(candidate, token)) return candidate;
+    warn(`Model '${candidate}' is not accessible with this token; trying the next chain candidate.`);
+  }
+  return picked.model; // no reachable candidate: keep the original so the error surfaces
 }
 
 /**
@@ -217,8 +261,8 @@ function installOpenCode() {
   return bin;
 }
 
-function main() {
-  const model = resolvedModel();
+async function main() {
+  const model = await resolvedModel();
   const options = pluginOptions();
   const pluginPackage = getInput('plugin-package');
   const bundled = path.resolve(__dirname, '..', '..', 'plugin');
@@ -268,4 +312,4 @@ function main() {
   process.exitCode = exitCode;
 }
 
-main();
+main().catch((err) => fail(`Unexpected error: ${err?.message ?? err}`));

@@ -83,6 +83,7 @@ Modelselect/plugin inputs (all forwarded as plugin options):
 | `small-model-task` | `small-model` | Task type written as the small model. |
 | `plugin-package` | `""` | Plugin package/path; empty uses the bundled `plugin/`. |
 | `opencode-token` | `""` | OpenCode token. Prefer the exchanged `OPENCODE_API_KEY` env var; never written to config. |
+| `probe-model-access` | `false` | Probe preselected chain candidates against Zen and skip disabled/unavailable models before starting OpenCode. |
 
 Secrets are never written to `opencode.json`: `opencode-token` is passed only
 to the `opencode github run` child process as `OPENCODE_API_KEY`, and
