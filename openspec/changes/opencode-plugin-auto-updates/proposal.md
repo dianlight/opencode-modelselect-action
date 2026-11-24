@@ -19,7 +19,7 @@ plugin and gives better automatic rollout.
 
 ## Out of Scope
 
-- Auto-updating a bare npm version spec (`name@1.2.3` or `name`).
+- Auto-updating a bare npm spec (`name`) or an already pinned version.
 - Auto-updating git branches or commit hashes.
 - Changing how the modelselect plugin version is chosen.
 
@@ -27,6 +27,7 @@ plugin and gives better automatic rollout.
 
 - Canary: `@openchamber/sdk` `2.8.1-canary.20261124.30`.
 - Stable: OpenChamber `>=2.8.0`.
+- Note: the package itself currently ships `@openchamber/sdk` `2.7.3` with `engines.openchamber` `>=2.7.1`; confirm the 2.8.0 floor is intentional.
 
 ## Capabilities
 
