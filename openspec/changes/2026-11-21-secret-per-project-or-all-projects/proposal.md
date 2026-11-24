@@ -1,16 +1,15 @@
 # Proposal
 
 ## Why
-The canary adds capability to control secret scope (project vs all projects), removing the workaround of persisting secrets in managed config.
+The host adds capability to control secret scope (project vs all projects), removing the workaround of persisting secrets in managed config.
 
 ## What Changes
 - SDK exposes secret scope control (project vs all projects)
-- Updates SDK floor requirements in existing specs to use canary version
+- Updates SDK floor requirements in existing specs to the released stable version
 - Enables better secret management for extension integrations
 
-## Minimum OpenChamber SDK version
-- Canary: `@openchamber/sdk` `2.7.4-canary.20261121.27`
-- Stable: OpenChamber `>=2.7.3` (not yet in stable; canary-only)
+## Minimum OpenChamber version
+- Stable: OpenChamber `>=2.8.0`
 
 ## Capabilities
 ### New Capabilities

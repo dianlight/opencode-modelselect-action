@@ -1,16 +1,15 @@
 # Proposal
 
 ## Why
-The canary adds capability to limit extensions to chosen folders, enabling better extension scoping and security.
+The host adds capability to limit extensions to chosen folders, enabling better extension scoping and security.
 
 ## What Changes
 - SDK exposes extension folder limits capability
-- Updates SDK floor requirements in existing specs to use canary version
+- Updates SDK floor requirements in existing specs to the released stable version
 - Enables extension to be limited to specific project folders
 
-## Minimum OpenChamber SDK version
-- Canary: `@openchamber/sdk` `2.7.4-canary.20261121.27`
-- Stable: OpenChamber `>=2.7.3` (not yet in stable; canary-only)
+## Minimum OpenChamber version
+- Stable: OpenChamber `>=2.8.0`
 
 ## Capabilities
 ### New Capabilities

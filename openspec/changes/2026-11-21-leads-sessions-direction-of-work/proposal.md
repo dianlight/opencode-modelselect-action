@@ -1,16 +1,15 @@
 # Proposal
 
 ## Why
-The canary adds "leads" - sessions that run a direction of work with summit and pennant marking, able to ask with answers, suggest work and take over sessions. This extends the worker session model for better session hierarchy.
+The host adds "leads" - sessions that run a direction of work with summit and pennant marking, able to ask with answers, suggest work and take over sessions. This extends the worker session model for better session hierarchy.
 
 ## What Changes
 - SDK exposes leads session type and capabilities
-- Updates SDK floor requirements in existing specs to use canary version
+- Updates SDK floor requirements in existing specs to the released stable version
 - Enables hierarchical session management and better session hierarchy
 
-## Minimum OpenChamber SDK version
-- Canary: `@openchamber/sdk` `2.7.4-canary.20261121.27`
-- Stable: OpenChamber `>=2.7.3` (not yet in stable; canary-only)
+## Minimum OpenChamber version
+- Stable: OpenChamber `>=2.8.0`
 
 ## Capabilities
 ### New Capabilities

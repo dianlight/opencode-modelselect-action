@@ -1,16 +1,15 @@
 # Proposal
 
 ## Why
-The canary adds SDK capability to expose session context and token usage to extensions, enabling better integration with the host OpenChamber.
+The host adds SDK capability to expose session context and token usage to extensions, enabling better integration with the host OpenChamber.
 
 ## What Changes
 - SDK exposes session context and token usage to extensions via new API surface
-- Updates SDK floor requirements in existing specs to use canary version
+- Updates SDK floor requirements in existing specs to the released stable version
 - Enables extensions to better integrate with session state
 
-## Minimum OpenChamber SDK version
-- Canary: `@openchamber/sdk` `2.7.4-canary.20261121.27`
-- Stable: OpenChamber `>=2.7.3` (not yet in stable; canary-only)
+## Minimum OpenChamber version
+- Stable: OpenChamber `>=2.8.0`
 
 ## Capabilities
 ### New Capabilities

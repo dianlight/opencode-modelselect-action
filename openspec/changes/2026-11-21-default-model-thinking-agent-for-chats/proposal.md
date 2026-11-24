@@ -1,16 +1,15 @@
 # Proposal
 
 ## Why
-The canary adds capability for default model, thinking level, and agent for chats, directly supporting the modelselect extension's core functionality of routing models.
+The host adds capability for default model, thinking level, and agent for chats, directly supporting the modelselect extension's core functionality of routing models.
 
 ## What Changes
 - SDK exposes default model, thinking level, and agent for chats
-- Updates SDK floor requirements in existing specs to use canary version
+- Updates SDK floor requirements in existing specs to the released stable version
 - Enables model selection extension to set session-level defaults
 
-## Minimum OpenChamber SDK version
-- Canary: `@openchamber/sdk` `2.7.4-canary.20261121.27`
-- Stable: OpenChamber `>=2.7.3` (not yet in stable; canary-only)
+## Minimum OpenChamber version
+- Stable: OpenChamber `>=2.8.0`
 
 ## Capabilities
 ### New Capabilities

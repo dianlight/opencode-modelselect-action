@@ -1,16 +1,15 @@
 # Proposal
 
 ## Why
-The canary adds capability to run reply commands in the project terminal, enabling command execution from chat replies.
+The host adds capability to run reply commands in the project terminal, enabling command execution from chat replies.
 
 ## What Changes
 - SDK exposes reply command execution in project terminal
-- Updates SDK floor requirements in existing specs to use canary version
+- Updates SDK floor requirements in existing specs to the released stable version
 - Enables agent to run shell commands directly from chat replies
 
-## Minimum OpenChamber SDK version
-- Canary: `@openchamber/sdk` `2.7.4-canary.20261121.27`
-- Stable: OpenChamber `>=2.7.3` (not yet in stable; canary-only)
+## Minimum OpenChamber version
+- Stable: OpenChamber `>=2.8.0`
 
 ## Capabilities
 ### New Capabilities
