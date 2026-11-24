@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-24T07:21:14.060653+00:00",
+  "timestamp": "2026-11-24T11:45:58.766765+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -2099,6 +2099,26 @@
     },
     {
       "provider": "opencode",
+      "id": "kimi-k3.1-pro",
+      "canonical": "kimi-k3-1-pro",
+      "name": "Kimi K3.1 Pro",
+      "class": "zen",
+      "free": false,
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0,
+      "context": 1048576,
+      "media_in": [
+        "text",
+        "image",
+        "video"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "mimo-v2.6-flash-free",
       "canonical": "mimo-v2-6-flash",
       "name": "MiMo-V2.6-Flash Free",
@@ -2935,9 +2955,9 @@
       "name": "Kimi K3.1 Pro",
       "class": "go",
       "free": false,
-      "input_cost": null,
-      "output_cost": null,
-      "blended_cost": null,
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0,
       "context": 1048576,
       "media_in": [
         "text",

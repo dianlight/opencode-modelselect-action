@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-23T04:24:58.507567+00:00",
+  "timestamp": "2026-11-24T11:46:00.831606+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -33,6 +33,19 @@
             "text",
             "image",
             "pdf"
+          ]
+        },
+        {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 91.1,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -369,6 +382,11 @@
         {
           "model": "gpt-5-6-luna",
           "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
           "free": false
         },
         {
@@ -847,6 +865,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 91.1,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/kimi-k3",
           "score": 90.7,
           "input_cost": 3.0,
@@ -1183,6 +1214,11 @@
           "free": false
         },
         {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
+          "free": false
+        },
+        {
           "model": "kimi-k3",
           "score": 90.7,
           "free": false
@@ -1386,6 +1422,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 73.7,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/kimi-k3",
           "score": 72.5,
           "input_cost": 3.0,
@@ -1689,6 +1738,11 @@
           "free": false
         },
         {
+          "model": "kimi-k3-1-pro",
+          "score": 73.7,
+          "free": false
+        },
+        {
           "model": "kimi-k3",
           "score": 72.5,
           "free": false
@@ -1886,6 +1940,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 67.8,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -2187,6 +2254,11 @@
         {
           "model": "gpt-6-luna",
           "score": 70.8,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
           "free": false
         },
         {
@@ -2372,6 +2444,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 67.8,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -2673,6 +2758,11 @@
         {
           "model": "gpt-6-luna",
           "score": 70.8,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
           "free": false
         },
         {
@@ -3116,6 +3206,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 91.1,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/kimi-k3",
           "score": 90.7,
           "input_cost": 3.0,
@@ -3449,6 +3552,11 @@
         {
           "model": "gpt-5-6-luna",
           "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
           "free": false
         },
         {
@@ -3669,6 +3777,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 67.8,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -3973,6 +4094,11 @@
           "free": false
         },
         {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
+          "free": false
+        },
+        {
           "model": "big-pickle",
           "score": 67.0,
           "free": true
@@ -4085,6 +4211,19 @@
             "text",
             "image",
             "pdf"
+          ]
+        },
+        {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 91.1,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -4421,6 +4560,11 @@
         {
           "model": "gpt-5-6-luna",
           "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
           "free": false
         },
         {
@@ -4641,6 +4785,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 67.8,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/glm-5.3",
           "score": 62.5,
           "input_cost": 1.4,
@@ -4945,6 +5102,11 @@
           "free": false
         },
         {
+          "model": "kimi-k3-1-pro",
+          "score": 67.8,
+          "free": false
+        },
+        {
           "model": "big-pickle",
           "score": 67.0,
           "free": true
@@ -5057,6 +5219,19 @@
             "text",
             "image",
             "pdf"
+          ]
+        },
+        {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 91.1,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
           ]
         },
         {
@@ -5393,6 +5568,11 @@
         {
           "model": "gpt-5-6-luna",
           "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
           "free": false
         },
         {
@@ -5546,6 +5726,19 @@
           ]
         },
         {
+          "model": "opencode-go/kimi-k3.1-pro",
+          "score": 91.1,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
+          "context": 1048576,
+          "modalities": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "model": "opencode-go/kimi-k3",
           "score": 90.7,
           "input_cost": 3.0,
@@ -5879,6 +6072,11 @@
         {
           "model": "gpt-5-6-luna",
           "score": 93.0,
+          "free": false
+        },
+        {
+          "model": "kimi-k3-1-pro",
+          "score": 91.1,
           "free": false
         },
         {
@@ -6680,6 +6878,7 @@
     "minimax-m3": "chat",
     "qwen3.8-max": "chat",
     "qwen3.8-flash": "messages",
+    "kimi-k3.1-pro": "chat",
     "gemini-4-argon": "chat"
   },
   "endpoint_paths": {
@@ -6709,6 +6908,7 @@
     "opencode-go/beam-free": "/inference/openai/v1",
     "opencode-go/qwen3.8-max": "/inference/openai/v1",
     "opencode-go/qwen3.8-flash": "/inference/anthropic/v1",
+    "opencode-go/kimi-k3.1-pro": "/inference/openai/v1",
     "opencode-go/gemini-4-argon": "/inference/go/openai/v1",
     "opencode-go/hy4-flash-free": "/inference/openai/v1"
   }

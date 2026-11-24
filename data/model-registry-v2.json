@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-24T07:21:14.152369+00:00",
+  "timestamp": "2026-11-24T11:45:58.892320+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -2379,12 +2379,26 @@
       "name": "Kimi K3.1 Pro",
       "variants": [
         {
+          "provider": "opencode",
+          "model": "kimi-k3.1-pro",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        },
+        {
           "provider": "opencode-go",
           "model": "kimi-k3.1-pro",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
           "context": 1048576,
           "media_in": [
             "text",

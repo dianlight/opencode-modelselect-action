@@ -7,5 +7,5 @@
 | Provider | Class | Models | Free variants | Cheapest paid $/1M |
 |----------|-------|--------|---------------|--------------------|
 | `google` | external | 24 | 2 | $0.175 |
-| `opencode` | zen | 107 | 11 | $0.0315 |
+| `opencode` | zen | 108 | 11 | $0.0315 |
 | `opencode-go` | go | 37 | 2 | $0.0315 |

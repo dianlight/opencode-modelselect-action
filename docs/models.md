@@ -6,7 +6,7 @@
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-11-24 07:21 UTC**.
+> Last updated: **2026-11-24 11:45 UTC**.
 > LiveBench data: **356 models scored** (41 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-11-06**.
 > v2 Source: https://livebench.ai/data/20261106/table.csv
@@ -72,7 +72,7 @@
 | `jev-1.14` | Free | ❌ Missing | — | — | — | — | — | — | $0.042 | $0 | $0.0315 | — |
 | `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |
 | `kimi-k3` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 69.4 | 53.1 | 90.7 | 72.5 | — | $3 | $15 | $6 | 11.6 |
-| `kimi-k3.1-pro` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 72.6 | 67.8 | 91.1 | 73.7 | — | — | — | — | — |
+| `kimi-k3.1-pro` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 72.6 | 67.8 | 91.1 | 73.7 | — | $2 | $10 | $4 | 18.1 |
 | `longcat-2.5` | Go (Paid) | 📋 Fallback | Triage, Docs | 55.0 | 66.0 | 84.0 | 40.0 | 86.0 | — | — | — | — |
 | `mimo-v2.6-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 64.0 | 75.0 | 84.0 | 40.0 | 76.0 | — | — | — | — |
 | `mimo-v2.6-flash-free` | Free | 📋 Fallback | Plan, Review | 60.0 | 71.0 | 80.0 | 38.0 | 72.0 | Free | Free | Free | — |
