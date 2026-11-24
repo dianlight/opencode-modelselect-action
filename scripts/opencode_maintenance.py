@@ -693,11 +693,14 @@ def build_capability_map(
     model_ids: list[str],
     models_dev: dict[str, Any] | None,
     curated: dict[str, dict[str, Any]],
+    local_models: list[dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Map bare model id -> {"context", "modalities", "source"}.
+    """Map bare model id -> {"context", "output", "monthly_usage", ...}.
 
     `model_ids` are bare Zen/Go ids (no provider prefix). `source` is
-    "curated", "models.dev:<provider>/<api>" or "unknown".
+    "curated", "models.dev:<provider>/<api>" or "unknown". The local Zen/Go
+    catalogs (`local_models`) are the only source for the Go-specific
+    per-plan dollar allowance and fill in a missing per-request output cap.
     """
     # Normalized api-name index across every models.dev provider.
     index: dict[str, list[tuple[str, str, Any, Any]]] = {}
@@ -724,6 +727,11 @@ def build_capability_map(
                 )
     resolved: dict[str, dict[str, Any]] = {}
     curated_bare = {k.split("/")[-1]: v for k, v in curated.items()}
+    local = {
+        str(m.get("id", "")).strip().lower(): _model_limit_fields(m)
+        for m in (local_models or ())
+        if m.get("id")
+    }
     for mid in model_ids:
         bare = mid.split("/", 1)[-1]
         prefixed = mid if "/" in mid else None
@@ -747,9 +755,12 @@ def build_capability_map(
                 provider, _api, context, modalities = pool[0]
                 hit = {"context": context, "modalities": modalities}
                 source = f"models.dev:{provider}/{_api}"
+        local_hit = local.get(mid.strip().lower()) or local.get(bare.strip().lower()) or {}
         resolved[mid] = {
             "context": (hit or {}).get("context"),
             "modalities": (hit or {}).get("modalities"),
+            "output": (hit or {}).get("output") or local_hit.get("output"),
+            "monthly_usage": local_hit.get("monthly_usage"),
             "source": source if hit else "unknown",
         }
     return resolved
@@ -975,10 +986,12 @@ def _row(
     media_in: list[str] | None,
     media_out: list[str] | None = None,
     name: str | None = None,
+    output: int | None = None,
+    monthly_usage: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     blended = cost.get("blended")
     free = blended is not None and blended == 0
-    return {
+    row: dict[str, Any] = {
         "provider": provider,
         "id": model_id,
         "canonical": _canonical_catalog_key(model_id),
@@ -992,6 +1005,11 @@ def _row(
         "media_in": media_in or ["text"],
         "media_out": media_out or ["text"],
     }
+    if output is not None:
+        row["output"] = output
+    if monthly_usage:
+        row["monthly_usage"] = monthly_usage
+    return row
 
 
 def build_provider_catalog(
@@ -1047,6 +1065,8 @@ def build_provider_catalog(
                     caps.get("context"),
                     caps.get("modalities"),
                     name=model.get("name"),
+                    output=caps.get("output"),
+                    monthly_usage=caps.get("monthly_usage"),
                 )
             )
 
@@ -1213,18 +1233,21 @@ def build_model_registry(
         name = str(row.get("name") or "")
         if name and entry["name"] == canonical:
             entry["name"] = name
-        entry["variants"].append(
-            {
-                "provider": provider,
-                "model": model_id,
-                "free": bool(free),
-                "cost": cost if isinstance(cost, (int, float)) else None,
-                "input_cost": row.get("input_cost"),
-                "output_cost": row.get("output_cost"),
-                "context": row.get("context"),
-                "media_in": row.get("media_in") or ["text"],
-            }
-        )
+        variant = {
+            "provider": provider,
+            "model": model_id,
+            "free": bool(free),
+            "cost": cost if isinstance(cost, (int, float)) else None,
+            "input_cost": row.get("input_cost"),
+            "output_cost": row.get("output_cost"),
+            "context": row.get("context"),
+            "media_in": row.get("media_in") or ["text"],
+        }
+        if row.get("output") is not None:
+            variant["output"] = row["output"]
+        if row.get("monthly_usage"):
+            variant["monthly_usage"] = row["monthly_usage"]
+        entry["variants"].append(variant)
 
     for entry in models.values():
         if isinstance(livebench, dict) and livebench:
@@ -1776,9 +1799,10 @@ def _rank_models_for_config(
     When `tt` (task-type dict) is given, per-model priorities are used
     (v2 models get `priority_v2`); otherwise the single `priority` string
     applies to all models. When `capabilities` (bare id ->
-    {"context", "modalities"}) is given, each entry also carries `context`
-    (tokens) and `modalities` (input list), None when unknown; when omitted
-    the keys are left out (legacy shape). When `routable` (a set of bare
+    {"context", "output", "monthly_usage", "modalities"}) is given, each
+    entry also carries the per-request `context`/`output` token caps and the
+    Go per-plan dollar `monthly_usage`, None when unknown; when omitted the
+    keys are left out (legacy shape). When `routable` (a set of bare
     ids) is given, models outside it are skipped: only dispatchable wire
     protocols belong in a routing chain — `systemone` refinement models
     and endpoint-less ids would fail at dispatch (the plugin's refine
@@ -1809,6 +1833,8 @@ def _rank_models_for_config(
             caps = capabilities.get(mid, {})
             row["context"] = caps.get("context")
             row["modalities"] = caps.get("modalities")
+            row["output"] = caps.get("output")
+            row["monthly_usage"] = caps.get("monthly_usage")
         ranked.append(row)
     ranked.sort(
         key=lambda e: (
@@ -2344,6 +2370,51 @@ def _parse_price_value(cell: Any) -> float | None:
         return None
 
 
+def _native_cost_prices(model: dict[str, Any]) -> dict[str, float | None]:
+    """Read `$/1M` legs from a catalog model's native `cost` object.
+
+    Every Zen/Go catalog row carries `cost.text.{input,output}.price`, but
+    only some ids have a row on the docs pricing page. The native price is
+    the base (undiscounted) rate; `cost.multipliers` describe temporary
+    discounts and are deliberately ignored, as is the second (discounted)
+    price in a docs cell such as "$0.30 $0.12".
+    """
+    cost = model.get("cost")
+    text = cost.get("text") if isinstance(cost, dict) else None
+    if not isinstance(text, dict):
+        return {"input": None, "output": None}
+    out: dict[str, float | None] = {}
+    for side in ("input", "output"):
+        leg = text.get(side)
+        out[side] = _to_float(leg.get("price")) if isinstance(leg, dict) else None
+    return out
+
+
+def _model_limit_fields(model: dict[str, Any]) -> dict[str, Any]:
+    """Per-request output cap and per-plan Go dollar allowance of one model.
+
+    Neither is a token budget: `limit.output` is the per-request output
+    window, and `go.monthly_usage` says how much of a plan's *dollar*
+    allowance this model would use if it were the only one used all month.
+    Go's actual quota is shared across models and published only as a
+    percentage by the usage endpoint.
+    """
+    limit = model.get("limit") if isinstance(model.get("limit"), dict) else {}
+    output = limit.get("output")
+    info: dict[str, Any] = {
+        "output": output if isinstance(output, int) and output > 0 else None,
+    }
+    go = model.get("go") if isinstance(model.get("go"), dict) else {}
+    usage = go.get("monthly_usage") if isinstance(go.get("monthly_usage"), dict) else {}
+    allowance = {
+        key: value
+        for key in ("go", "go-plus", "go-teams")
+        if isinstance((value := usage.get(key)), (int, float)) and value > 0
+    }
+    info["monthly_usage"] = allowance or None
+    return info
+
+
 def _build_price_lookup(
     zen_models: list[dict[str, Any]],
     free_ids: set[str] | None = None,
@@ -2354,10 +2425,11 @@ def _build_price_lookup(
     Keys are lowercased exact ids; `_lookup_price` also falls back to the
     normalised (prefix/suffix-stripped) and canonical-base forms so Go,
     `-free`, `-contributor`, `-unlimited` and `-<N>x` variants match.
-    Go models carrying their own `pricing` (from the Go docs page) are merged
-    in — Zen wins on conflicts. Free-tier models without published pricing
+    A docs pricing cell wins; when it has no readable prices the native
+    catalog `cost.text.*.price` is used as a fallback (Go-only models are
+    often absent from the docs table). Free-tier models without any price
     (e.g. `*-free` ids missing from the pricing page) are treated as Free
-    (0.0/0.0); paid models without pricing stay unknown (None/None).
+    (0.0/0.0); paid models with no price at all stay unknown (None/None).
     """
     lookup: dict[str, dict[str, Any]] = {}
     for m in zen_models:
@@ -2365,10 +2437,13 @@ def _build_price_lookup(
         if not mid:
             continue
         pricing = m.get("pricing") or {}
-        lookup[mid.strip().lower()] = {
+        parsed = {
             "input": _parse_price_value(pricing.get("input")),
             "output": _parse_price_value(pricing.get("output")),
         }
+        if parsed["input"] is None and parsed["output"] is None:
+            parsed = _native_cost_prices(m)
+        lookup[mid.strip().lower()] = parsed
     for m in go_models or ():
         mid = str(m.get("id", ""))
         if not mid:
@@ -2379,6 +2454,8 @@ def _build_price_lookup(
             "input": _parse_price_value(pricing.get("input")),
             "output": _parse_price_value(pricing.get("output")),
         }
+        if parsed["input"] is None and parsed["output"] is None:
+            parsed = _native_cost_prices(m)
         if key not in lookup or (
             lookup[key].get("input") is None
             and lookup[key].get("output") is None
@@ -3582,6 +3659,7 @@ def main() -> None:
     ))
     capability_map = build_capability_map(
         capability_ids, models_dev, curated_caps,
+        [*free_models, *go_models],
     )
     known = sum(1 for v in capability_map.values() if v["source"] != "unknown")
     print(f"  v capabilities: {known}/{len(capability_map)} known "

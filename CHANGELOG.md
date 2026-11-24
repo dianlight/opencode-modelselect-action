@@ -13,6 +13,10 @@
   (the CLI validates MODEL before plugins load); the plugin then owns runtime
   failover and replaces a rejected model with the next chain candidate. The
   maintenance workflow now uses this action.
+- Models preview rows and the Work Status Model tooltip now show each model's
+  per-request context/output token caps and, for Go models, the per-plan
+  monthly dollar allowance. Go's quota is a shared dollar allowance reported
+  as a percentage, not a token budget; the UI says so explicitly.
 
 ### Changed
 - The extension's settings panel and Work Status service now read and write
@@ -23,6 +27,15 @@
   edits, so comments and unrelated settings in your config survive.
 - The shared routing core no longer reads the legacy managed config for
   `autoPreference`; it reads the global config only.
+
+### Fixed
+- Maintenance now falls back to the catalog's native `cost.text.*.price` when
+  a model has no row on the docs pricing page. Go-only models such as `hy4`,
+  `hy3` and `qwen4-max` now carry real `$/1M` costs instead of being reported
+  as unknown and excluded by `max-cost`.
+- The Model select OpenChamber quota provider no longer sends `null` in
+  `error`, `windows` or `models`; the host previously rejected the whole
+  provider with "usage.read does not match its schema".
 
 ## [1.1.0] - 2026-11-18
 ### Added

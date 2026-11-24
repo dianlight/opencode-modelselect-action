@@ -25,9 +25,10 @@ const {
 } = require('./helpers/service.cjs');
 
 let guestStatusViewSchema;
+let quotaProviderSchemasV1;
 
 before(async () => {
-  ({ guestStatusViewSchema } = await import('@openchamber/sdk/schemas'));
+  ({ guestStatusViewSchema, quotaProviderSchemasV1 } = await import('@openchamber/sdk/schemas'));
 });
 
 describe('status service', () => {
@@ -358,7 +359,11 @@ describe('status service', () => {
       assert.equal(data.ok, true);
       assert.equal(data.configured, true);
       assert.equal(data.usage.windows.monthly.usedPercent, 42);
-      assert.equal(data.usage.models, null, 'the fixture has no Console budgets');
+      assert.deepEqual(data.usage.models, {}, 'the fixture has no Console budgets');
+      // OpenChamber rejects the whole provider when nulls or an `error: null`
+      // leak onto the wire — keep this payload aligned with the host schema.
+      const parsed = quotaProviderSchemasV1.usage.safeParse(data);
+      assert.equal(parsed.success, true, JSON.stringify(parsed.error?.issues));
     });
 
     it('refuses an unknown quota request without throwing', async () => {

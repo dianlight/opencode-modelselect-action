@@ -1472,6 +1472,8 @@ var require_registry = __commonJS(function(exports, module) {
         input_cost: knownCost(variant.input_cost),
         output_cost: knownCost(variant.output_cost),
         context: knownCost(variant.context),
+        output: knownCost(variant.output),
+        monthly_usage: isObject(variant.monthly_usage) ? { ...variant.monthly_usage } : null,
         media_in: Array.isArray(variant.media_in) ? variant.media_in.slice() : null,
         score,
         key,
@@ -1970,6 +1972,35 @@ function thinkLabel(status) {
   const suffix = status.variant !== status.think ? ", task " + capitalize(status.think) : "";
   return capitalize(status.variant) + " (manual" + suffix + ")";
 }
+var ALLOWANCE_PLANS = { go: "Go", "go-plus": "Plus", "go-teams": "Teams" };
+function compactTokens(v) {
+  if (typeof v !== "number" || !Number.isFinite(v))
+    return "—";
+  if (v >= 1e6)
+    return Math.round(v / 1e4) / 100 + "M";
+  if (v >= 1000)
+    return Math.round(v / 1000) + "k";
+  return String(v);
+}
+function capsToolTip(caps) {
+  if (!caps || typeof caps !== "object")
+    return "";
+  const parts = [];
+  if (typeof caps.output === "number" && caps.output > 0) {
+    parts.push("output cap " + compactTokens(caps.output) + " tokens/request");
+  }
+  const mu = caps.monthlyUsage;
+  if (mu && typeof mu === "object") {
+    Object.keys(ALLOWANCE_PLANS).forEach((key) => {
+      if (typeof mu[key] === "number" && mu[key] > 0) {
+        parts.push(ALLOWANCE_PLANS[key] + " allowance $" + mu[key] + "/mo");
+      }
+    });
+  }
+  if (!parts.length)
+    return "";
+  return " · " + parts.join("; ") + " — Go allowance is shared dollars, not a token budget";
+}
 function isStale(status, now) {
   return Boolean(status && typeof status.updatedAt === "number" && now - status.updatedAt > STALE_MS);
 }
@@ -2137,7 +2168,7 @@ function statusRows(snap, rows) {
     label: "Model",
     value: status.model || "—",
     ...status.suggestOnly ? { badge: { label: "suggest only", tone: "info" } } : {},
-    tooltip: (status.suggestOnly ? "Suggest-only trial mode — the pick is logged but never applied. " : "") + str(status.model)
+    tooltip: (status.suggestOnly ? "Suggest-only trial mode — the pick is logged but never applied. " : "") + str(status.model) + capsToolTip(snap.pickedCaps)
   }));
   rows.push(line({
     id: "think",
@@ -2502,6 +2533,8 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
         score: typeof variant.score === "number" ? variant.score : null,
         cost: typeof variant.cost === "number" ? variant.cost : null,
         context: typeof variant.context === "number" && variant.context > 0 ? variant.context : null,
+        output: typeof variant.output === "number" && variant.output > 0 ? variant.output : null,
+        monthlyUsage: variant.monthly_usage && typeof variant.monthly_usage === "object" ? variant.monthly_usage : null,
         modalities: Array.isArray(variant.media_in) ? variant.media_in.filter(function(m) {
           return typeof m === "string" && m;
         }) : null,
@@ -2577,6 +2610,8 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
       score,
       cost,
       context: typeof row.context === "number" && row.context > 0 ? row.context : null,
+      output: typeof row.output === "number" && row.output > 0 ? row.output : null,
+      monthlyUsage: row.monthly_usage && typeof row.monthly_usage === "object" ? row.monthly_usage : null,
       modalities: Array.isArray(row.modalities) ? row.modalities.filter(function(m) {
         return typeof m === "string" && m;
       }) : null,
@@ -3452,6 +3487,28 @@ function tierOf(current) {
   const tier = typeof current.entry.options.tier === "string" ? current.entry.options.tier : "auto";
   return TIER_VALUES.includes(tier) ? tier : "auto";
 }
+function pickedCaps(config, model) {
+  if (!config || !model)
+    return null;
+  const types = config["task-types"] || config.taskTypes || {};
+  const bare = String(model).split("/").pop();
+  for (const entry of Object.values(types)) {
+    if (!entry || typeof entry !== "object")
+      continue;
+    for (const key of ["go_ranked", "free_ranked"]) {
+      const rows = Array.isArray(entry[key]) ? entry[key] : [];
+      const row = rows.find((r) => r && typeof r.model === "string" && (r.model === model || r.model === bare));
+      if (!row)
+        continue;
+      const caps = {
+        output: typeof row.output === "number" && row.output > 0 ? row.output : null,
+        monthlyUsage: row.monthly_usage && typeof row.monthly_usage === "object" ? row.monthly_usage : null
+      };
+      return caps.output || caps.monthlyUsage ? caps : null;
+    }
+  }
+  return null;
+}
 async function readView(directory) {
   const now = Date.now();
   if (!directory) {
@@ -3483,6 +3540,7 @@ async function readView(directory) {
     status: newest ? newest.data : null,
     sessionID: newest ? newest.sessionID : "",
     knownTypes: knownTaskTypes(config),
+    pickedCaps: pickedCaps(config, newest && newest.data && newest.data.model),
     sync: syncOn,
     freeQuota,
     usage,
@@ -3847,19 +3905,15 @@ async function handleQuota(bodyText) {
       anyWindow = true;
     });
   });
-  return {
+  const data = {
     ok: true,
-    data: {
-      ok: true,
-      configured: anyWindow,
-      error: anyWindow ? null : "Usage snapshot has no readable windows yet.",
-      planLabel: "OpenCode Go / Console",
-      usage: {
-        windows: Object.keys(windows).length ? windows : null,
-        models: Object.keys(models).length ? models : null
-      }
-    }
+    configured: anyWindow,
+    planLabel: "OpenCode Go / Console",
+    usage: { windows, models }
   };
+  if (!anyWindow)
+    data.error = "Usage snapshot has no readable windows yet.";
+  return { ok: true, data };
 }
 async function handle(req, res) {
   if (!authorized(req)) {

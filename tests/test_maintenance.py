@@ -184,6 +184,68 @@ class PriceLookupTest(unittest.TestCase):
     def test_skips_empty_ids(self):
         self.assertEqual(m._build_price_lookup([{"id": ""}, {}], free_ids={" "}), {})
 
+    def test_native_cost_fallback(self):
+        go = [{"id": "hy4", "cost": {"text": {
+            "input": {"price": 0.834}, "output": {"price": 2.501},
+        }}}]
+        lookup = m._build_price_lookup([], go_models=go)
+        self.assertEqual(lookup["hy4"], {"input": 0.834, "output": 2.501})
+        self.assertEqual(m._lookup_price("opencode-go/hy4", lookup), (0.834, 2.501))
+
+    def test_docs_pricing_wins_over_native_cost(self):
+        go = [{
+            "id": "go-pro",
+            "pricing": {"input": "$0.30 $0.12", "output": "$1.20 $0.48"},
+            "cost": {"text": {"input": {"price": 1.0}, "output": {"price": 4.0}}},
+        }]
+        lookup = m._build_price_lookup([], go_models=go)
+        self.assertEqual(m._lookup_price("go-pro", lookup), (0.30, 1.20))
+
+    def test_native_cost_zero_is_free_not_unknown(self):
+        go = [{"id": "hungerg-free", "cost": {"text": {
+            "input": {"price": 0}, "output": {"price": 0},
+        }}}]
+        lookup = m._build_price_lookup([], go_models=go)
+        self.assertEqual(lookup["hungerg-free"], {"input": 0.0, "output": 0.0})
+
+
+class ModelLimitTest(unittest.TestCase):
+    def test_native_limits_and_go_allowance(self):
+        info = m._model_limit_fields({
+            "limit": {"context": 1000000, "output": 384000},
+            "go": {"monthly_usage": {"go": 60, "go-plus": 240, "go-teams": 65}},
+        })
+        self.assertEqual(info, {
+            "output": 384000,
+            "monthly_usage": {"go": 60, "go-plus": 240, "go-teams": 65},
+        })
+
+    def test_missing_limits_are_none(self):
+        self.assertEqual(m._model_limit_fields({}), {"output": None, "monthly_usage": None})
+        self.assertEqual(
+            m._model_limit_fields({"limit": {"output": 0}, "go": {"monthly_usage": None}}),
+            {"output": None, "monthly_usage": None},
+        )
+
+    def test_capability_map_uses_local_catalog(self):
+        caps = m.build_capability_map(
+            ["hy4"], None, {},
+            [{"id": "hy4", "limit": {"output": 256000},
+              "go": {"monthly_usage": {"go": 60}}}],
+        )
+        self.assertEqual(caps["hy4"]["output"], 256000)
+        self.assertEqual(caps["hy4"]["monthly_usage"], {"go": 60})
+
+    def test_registry_carries_caps(self):
+        catalog = {"models": [{
+            "provider": "opencode-go", "id": "hy4", "canonical": "hy4",
+            "blended_cost": 1.0, "context": 1000000, "output": 256000,
+            "monthly_usage": {"go": 60}, "media_in": ["text"],
+        }]}
+        variant = m.build_model_registry(catalog)["models"]["hy4"]["variants"][0]
+        self.assertEqual(variant["output"], 256000)
+        self.assertEqual(variant["monthly_usage"], {"go": 60})
+
 
 class CostBlendTest(unittest.TestCase):
     def test_defaults_and_overrides(self):

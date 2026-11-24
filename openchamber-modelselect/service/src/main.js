@@ -223,6 +223,33 @@ function tierOf(current) {
   return TIER_VALUES.includes(tier) ? tier : 'auto';
 }
 
+/**
+ * Per-request caps and Go dollar allowance of the model in the newest pick.
+ * Read from the v1 config cache (the section already reads it for task types)
+ * so the host-rendered status needs no extra file or network call.
+ */
+function pickedCaps(config, model) {
+  if (!config || !model) return null;
+  const types = config['task-types'] || config.taskTypes || {};
+  const bare = String(model).split('/').pop();
+  for (const entry of Object.values(types)) {
+    if (!entry || typeof entry !== 'object') continue;
+    for (const key of ['go_ranked', 'free_ranked']) {
+      const rows = Array.isArray(entry[key]) ? entry[key] : [];
+      const row = rows.find((r) => r && typeof r.model === 'string' &&
+        (r.model === model || r.model === bare));
+      if (!row) continue;
+      const caps = {
+        output: typeof row.output === 'number' && row.output > 0 ? row.output : null,
+        monthlyUsage: row.monthly_usage && typeof row.monthly_usage === 'object'
+          ? row.monthly_usage : null,
+      };
+      return caps.output || caps.monthlyUsage ? caps : null;
+    }
+  }
+  return null;
+}
+
 async function readView(directory) {
   const now = Date.now();
   if (!directory) {
@@ -262,6 +289,7 @@ async function readView(directory) {
     status: newest ? newest.data : null,
     sessionID: newest ? newest.sessionID : '',
     knownTypes: store.knownTaskTypes(config),
+    pickedCaps: pickedCaps(config, newest && newest.data && newest.data.model),
     sync: syncOn,
     freeQuota: freeQuota,
     usage: usage,
@@ -635,6 +663,9 @@ async function handleQuota(bodyText) {
       }
     };
   }
+  // The host validates data with quotaProviderSchemasV1.usage: `error` is an
+  // optional string (null is invalid), and windows/models are records, not
+  // null. Sending null used to make OpenChamber reject the whole provider.
   const windows = {};
   const go = usage.go && typeof usage.go === 'object' ? usage.go : null;
   if (go) {
@@ -669,19 +700,14 @@ async function handleQuota(bodyText) {
   let anyWindow = false;
   Object.values(windows).forEach(function (w) { if (w) anyWindow = true; });
   Object.values(models).forEach(function (mw) { Object.values(mw.windows || {}).forEach(function () { anyWindow = true; }); });
-  return {
+  const data = {
     ok: true,
-    data: {
-      ok: true,
-      configured: anyWindow,
-      error: anyWindow ? null : 'Usage snapshot has no readable windows yet.',
-      planLabel: 'OpenCode Go / Console',
-      usage: {
-        windows: Object.keys(windows).length ? windows : null,
-        models: Object.keys(models).length ? models : null
-      }
-    }
+    configured: anyWindow,
+    planLabel: 'OpenCode Go / Console',
+    usage: { windows: windows, models: models }
   };
+  if (!anyWindow) data.error = 'Usage snapshot has no readable windows yet.';
+  return { ok: true, data: data };
 }
 
 async function handle(req, res) {

@@ -287,6 +287,16 @@ describe('status view', () => {
     assert.match(off.tooltip, /paused/);
   });
 
+  it('adds per-request caps and Go dollar allowance to the Model tooltip', () => {
+    const view = validate(buildView(snapshot({
+      pickedCaps: { output: 256000, monthlyUsage: { go: 60, 'go-plus': 240 } }
+    })));
+    const tooltip = rowsById(view).model.tooltip;
+    assert.match(tooltip, /output cap 256k tokens\/request/);
+    assert.match(tooltip, /Go allowance \$60\/mo/);
+    assert.match(tooltip, /shared dollars, not a token budget/);
+  });
+
   it('clamps long model refs so the host schema still accepts them', () => {
     const long = 'opencode/' + 'x'.repeat(200);
     const view = validate(buildView(snapshot({ status: status({ model: long, jev: 'y'.repeat(200) }) })));

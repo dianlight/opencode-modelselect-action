@@ -93,6 +93,34 @@ function thinkLabel(status) {
   return capitalize(status.variant) + ' (manual' + suffix + ')';
 }
 
+const ALLOWANCE_PLANS = { go: 'Go', 'go-plus': 'Plus', 'go-teams': 'Teams' };
+
+function compactTokens(v) {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+  if (v >= 1000000) return (Math.round(v / 10000) / 100) + 'M';
+  if (v >= 1000) return Math.round(v / 1000) + 'k';
+  return String(v);
+}
+
+/** Caps/allowance note for the Model row's tooltip. Dollars, not tokens. */
+function capsToolTip(caps) {
+  if (!caps || typeof caps !== 'object') return '';
+  const parts = [];
+  if (typeof caps.output === 'number' && caps.output > 0) {
+    parts.push('output cap ' + compactTokens(caps.output) + ' tokens/request');
+  }
+  const mu = caps.monthlyUsage;
+  if (mu && typeof mu === 'object') {
+    Object.keys(ALLOWANCE_PLANS).forEach((key) => {
+      if (typeof mu[key] === 'number' && mu[key] > 0) {
+        parts.push(ALLOWANCE_PLANS[key] + ' allowance $' + mu[key] + '/mo');
+      }
+    });
+  }
+  if (!parts.length) return '';
+  return ' · ' + parts.join('; ') + ' — Go allowance is shared dollars, not a token budget';
+}
+
 function isStale(status, now) {
   return Boolean(status && typeof status.updatedAt === 'number' &&
     now - status.updatedAt > STALE_MS);
@@ -271,7 +299,8 @@ function statusRows(snap, rows) {
         : ''), TEXT_MAX) }));
   rows.push(line({ id: 'model', label: 'Model', value: status.model || '—',
     ...(status.suggestOnly ? { badge: { label: 'suggest only', tone: 'info' } } : {}),
-    tooltip: (status.suggestOnly ? 'Suggest-only trial mode — the pick is logged but never applied. ' : '') + str(status.model) }));
+    tooltip: (status.suggestOnly ? 'Suggest-only trial mode — the pick is logged but never applied. ' : '') +
+      str(status.model) + capsToolTip(snap.pickedCaps) }));
   rows.push(line({ id: 'think', label: 'Think', value: thinkLabel(status),
     tooltip: 'Effective effort' + (status.variant ? ' (manual override)' : ' (task default)') }));
   rows.push(line({ id: 'jev', label: 'Jev', value: status.jev || '—' }));
@@ -325,6 +354,7 @@ export function pickSummary(status, now) {
  * - `directory` the Work Status project, or null
  * - `status` the newest parsed status file (or null), `sessionID`, `found`
  * - `knownTypes` task-type names from `model-config-cache.json`
+ * - `pickedCaps` `{ output, monthlyUsage }` of the picked model (or null)
  * - `sync` router-sync switch (default true)
  * - `freeQuota`, `usage` parsed files (or null)
  * - `globalEntry` `{ checked, entry }` plugin-presence probe

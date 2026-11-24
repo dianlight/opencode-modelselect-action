@@ -167,6 +167,8 @@ function variantRows(entry) {
       input_cost: knownCost(variant.input_cost),
       output_cost: knownCost(variant.output_cost),
       context: knownCost(variant.context),
+      output: knownCost(variant.output),
+      monthly_usage: isObject(variant.monthly_usage) ? { ...variant.monthly_usage } : null,
       media_in: Array.isArray(variant.media_in) ? variant.media_in.slice() : null,
       score,
       key,

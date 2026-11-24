@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-24T12:34:39.252616+00:00",
+  "timestamp": "2026-11-24T14:59:32.765731+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -16,7 +16,8 @@
           "context": 1048576,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 131072
         },
         {
           "provider": "opencode-go",
@@ -28,7 +29,8 @@
           "context": 1048576,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 131072
         }
       ],
       "score": 56.5
@@ -41,9 +43,9 @@
           "provider": "opencode",
           "model": "bge-m3",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.0075,
+          "input_cost": 0.01,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -65,7 +67,8 @@
           "context": 200000,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 32000
         }
       ],
       "score": 61.5
@@ -160,7 +163,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -174,7 +183,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 75.6
@@ -375,9 +390,9 @@
           "provider": "opencode",
           "model": "codestral-embed",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.1125,
+          "input_cost": 0.15,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -393,9 +408,9 @@
           "provider": "opencode",
           "model": "cohere-embed-v5-fast",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.06,
+          "input_cost": 0.08,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -411,9 +426,9 @@
           "provider": "opencode",
           "model": "cohere-embed-v5-pro",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.09,
+          "input_cost": 0.12,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -480,7 +495,8 @@
           "media_in": [
             "text",
             "image"
-          ]
+          ],
+          "output": 32000
         },
         {
           "provider": "opencode",
@@ -493,7 +509,13 @@
           "media_in": [
             "text",
             "image"
-          ]
+          ],
+          "output": 384000,
+          "monthly_usage": {
+            "go": 100,
+            "go-plus": 200,
+            "go-teams": 105
+          }
         },
         {
           "provider": "opencode-go",
@@ -506,7 +528,13 @@
           "media_in": [
             "text",
             "image"
-          ]
+          ],
+          "output": 384000,
+          "monthly_usage": {
+            "go": 100,
+            "go-plus": 200,
+            "go-teams": 105
+          }
         }
       ]
     },
@@ -524,7 +552,13 @@
           "context": 1000000,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 384000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -536,7 +570,13 @@
           "context": 1000000,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 384000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 72.6
@@ -555,7 +595,8 @@
           "context": 262144,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 65536
         }
       ],
       "score": 63.0
@@ -938,7 +979,13 @@
             "video",
             "audio",
             "pdf"
-          ]
+          ],
+          "output": 65536,
+          "monthly_usage": {
+            "go": 30,
+            "go-plus": 120,
+            "go-teams": 35
+          }
         },
         {
           "provider": "opencode-go",
@@ -954,7 +1001,13 @@
             "video",
             "audio",
             "pdf"
-          ]
+          ],
+          "output": 65536,
+          "monthly_usage": {
+            "go": 30,
+            "go-plus": 120,
+            "go-teams": 35
+          }
         }
       ],
       "score": 80.5
@@ -1062,7 +1115,12 @@
           "context": null,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         },
         {
           "provider": "opencode-go",
@@ -1074,7 +1132,12 @@
           "context": null,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         }
       ]
     },
@@ -1086,9 +1149,9 @@
           "provider": "opencode",
           "model": "gemini-embedding-001",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.1125,
+          "input_cost": 0.15,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -1104,9 +1167,9 @@
           "provider": "opencode",
           "model": "gemini-embedding-2",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.15,
+          "input_cost": 0.2,
+          "output_cost": 0.0,
           "context": 8192,
           "media_in": [
             "text",
@@ -1114,15 +1177,21 @@
             "audio",
             "video",
             "pdf"
-          ]
+          ],
+          "output": 3072,
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         },
         {
           "provider": "opencode-go",
           "model": "gemini-embedding-2",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.15,
+          "input_cost": 0.2,
+          "output_cost": 0.0,
           "context": 8192,
           "media_in": [
             "text",
@@ -1130,7 +1199,13 @@
             "audio",
             "video",
             "pdf"
-          ]
+          ],
+          "output": 3072,
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         }
       ]
     },
@@ -1186,9 +1261,9 @@
           "provider": "opencode",
           "model": "gemini-nano-banana-2.1",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 3.0,
+          "input_cost": 1.5,
+          "output_cost": 7.5,
           "context": null,
           "media_in": [
             "text"
@@ -1204,9 +1279,9 @@
           "provider": "opencode",
           "model": "gemini-omni-1.2-flash",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 3.375,
+          "input_cost": 1.5,
+          "output_cost": 9.0,
           "context": null,
           "media_in": [
             "text"
@@ -1307,7 +1382,13 @@
           "context": 1000000,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 200,
+            "go-plus": 400,
+            "go-teams": 205
+          }
         },
         {
           "provider": "opencode-go",
@@ -1319,7 +1400,13 @@
           "context": 1000000,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 200,
+            "go-plus": 400,
+            "go-teams": 205
+          }
         }
       ],
       "score": 68.7
@@ -1341,7 +1428,13 @@
             "image",
             "video",
             "pdf"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 180,
+            "go-teams": 65
+          }
         },
         {
           "provider": "opencode-go",
@@ -1356,7 +1449,13 @@
             "image",
             "video",
             "pdf"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 180,
+            "go-teams": 65
+          }
         }
       ],
       "score": 68.7
@@ -1655,7 +1754,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -1669,7 +1774,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 78.8
@@ -1839,7 +1950,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -1853,7 +1970,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 63.7
@@ -1872,7 +1995,13 @@
           "context": null,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         },
         {
           "provider": "opencode-go",
@@ -1884,7 +2013,13 @@
           "context": null,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         }
       ],
       "score": 63.7
@@ -1915,9 +2050,9 @@
           "provider": "opencode",
           "model": "gpt-image-2.5-sunburst",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 13.5,
+          "input_cost": 8.0,
+          "output_cost": 30.0,
           "context": null,
           "media_in": [
             "text"
@@ -2013,7 +2148,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 500000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -2027,7 +2168,13 @@
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 500000,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ]
     },
@@ -2110,16 +2257,17 @@
         {
           "provider": "opencode-go",
           "model": "hungerg-free",
-          "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
           "context": 1000000,
           "media_in": [
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 65536
         }
       ]
     },
@@ -2131,13 +2279,19 @@
           "provider": "opencode-go",
           "model": "hy3",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.25,
+          "input_cost": 0.14,
+          "output_cost": 0.58,
           "context": 256000,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 128000,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 240,
+            "go-teams": 65
+          }
         }
       ],
       "score": 54.0
@@ -2150,14 +2304,20 @@
           "provider": "opencode-go",
           "model": "hy4",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 1.2508,
+          "input_cost": 0.834,
+          "output_cost": 2.501,
           "context": 1000000,
           "media_in": [
             "text",
             "image"
-          ]
+          ],
+          "output": 65536,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 240,
+            "go-teams": 65
+          }
         }
       ],
       "score": 79.2
@@ -2177,7 +2337,8 @@
           "media_in": [
             "text",
             "image"
-          ]
+          ],
+          "output": 65536
         },
         {
           "provider": "opencode-go",
@@ -2190,7 +2351,8 @@
           "media_in": [
             "text",
             "image"
-          ]
+          ],
+          "output": 65536
         }
       ],
       "score": 52.0
@@ -2203,13 +2365,19 @@
           "provider": "opencode-go",
           "model": "hy4-preview",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 1.2508,
+          "input_cost": 0.834,
+          "output_cost": 2.501,
           "context": 1024000,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 64000,
+          "monthly_usage": {
+            "go": 30,
+            "go-plus": 120,
+            "go-teams": 35
+          }
         }
       ],
       "score": 79.2
@@ -2228,19 +2396,21 @@
           "context": 262144,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 131072
         },
         {
           "provider": "opencode-go",
           "model": "iceman-contributor-free",
-          "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
           "context": 262144,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 131072
         }
       ],
       "score": 19.0
@@ -2289,7 +2459,12 @@
           "context": null,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         },
         {
           "provider": "opencode-go",
@@ -2301,7 +2476,12 @@
           "context": null,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         }
       ]
     },
@@ -2321,7 +2501,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 262144,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 180,
+            "go-teams": 65
+          }
         },
         {
           "provider": "opencode-go",
@@ -2335,7 +2521,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 262144,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 180,
+            "go-teams": 65
+          }
         }
       ]
     },
@@ -2355,7 +2547,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 1048576,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -2369,7 +2567,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 1048576,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 69.4
@@ -2390,7 +2594,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 1048576,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -2404,7 +2614,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 1048576,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 69.4
@@ -2417,15 +2633,21 @@
           "provider": "opencode-go",
           "model": "longcat-2.5",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.525,
+          "input_cost": 0.3,
+          "output_cost": 1.2,
           "context": 1048576,
           "media_in": [
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 262144,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 240,
+            "go-teams": 65
+          }
         }
       ]
     },
@@ -2446,22 +2668,29 @@
             "image",
             "audio",
             "video"
-          ]
+          ],
+          "output": 32000
         },
         {
           "provider": "opencode-go",
           "model": "mimo-v2.6-flash",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.175,
+          "input_cost": 0.14,
+          "output_cost": 0.28,
           "context": 1048576,
           "media_in": [
             "text",
             "image",
             "audio",
             "video"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
+          }
         }
       ]
     },
@@ -2473,16 +2702,22 @@
           "provider": "opencode-go",
           "model": "mimo-v2.6-pro",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.5437,
+          "input_cost": 0.435,
+          "output_cost": 0.87,
           "context": 1048576,
           "media_in": [
             "text",
             "image",
             "audio",
             "video"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ]
     },
@@ -2540,7 +2775,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 180,
+            "go-teams": 65
+          }
         },
         {
           "provider": "opencode-go",
@@ -2554,7 +2795,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 180,
+            "go-teams": 65
+          }
         }
       ],
       "score": 67.5
@@ -2567,15 +2814,21 @@
           "provider": "opencode-go",
           "model": "minimax-m3.1-flash",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.2625,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
           "context": 1000000,
           "media_in": [
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 512000,
+          "monthly_usage": {
+            "go": 20,
+            "go-plus": 80,
+            "go-teams": 25
+          }
         }
       ],
       "score": 67.5
@@ -2588,9 +2841,9 @@
           "provider": "opencode",
           "model": "mistral-embed",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.075,
+          "input_cost": 0.1,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -2640,6 +2893,26 @@
       "name": "Muse Spark 1.2",
       "variants": [
         {
+          "provider": "opencode-go",
+          "model": "muse-spark-1.2-contributor",
+          "free": false,
+          "cost": 0.125,
+          "input_cost": 0.1,
+          "output_cost": 0.2,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "pdf"
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
+          }
+        },
+        {
           "provider": "opencode",
           "model": "muse-spark-1.2",
           "free": false,
@@ -2650,20 +2923,6 @@
           "media_in": [
             "text"
           ]
-        },
-        {
-          "provider": "opencode-go",
-          "model": "muse-spark-1.2-contributor",
-          "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
-          "context": 1048576,
-          "media_in": [
-            "text",
-            "image",
-            "pdf"
-          ]
         }
       ]
     },
@@ -2671,6 +2930,28 @@
       "id": "muse-spark-1-3",
       "name": "Muse Spark 1.3",
       "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "muse-spark-1.3-contributor",
+          "free": false,
+          "cost": 0.125,
+          "input_cost": 0.1,
+          "output_cost": 0.2,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "pdf",
+            "audio"
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
+          }
+        },
         {
           "provider": "opencode",
           "model": "muse-spark-1.3",
@@ -2681,22 +2962,6 @@
           "context": null,
           "media_in": [
             "text"
-          ]
-        },
-        {
-          "provider": "opencode-go",
-          "model": "muse-spark-1.3-contributor",
-          "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
-          "context": 1048576,
-          "media_in": [
-            "text",
-            "image",
-            "video",
-            "pdf",
-            "audio"
           ]
         }
       ]
@@ -2733,7 +2998,8 @@
           "context": 262144,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 262144
         }
       ]
     },
@@ -2752,7 +3018,8 @@
           "media_in": [
             "text",
             "image"
-          ]
+          ],
+          "output": 131072
         }
       ]
     },
@@ -2800,15 +3067,21 @@
           "provider": "opencode-go",
           "model": "qwen3.7-plus",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.7,
+          "input_cost": 0.4,
+          "output_cost": 1.6,
           "context": 1000000,
           "media_in": [
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 65536,
+          "monthly_usage": {
+            "go": 60,
+            "go-plus": 180,
+            "go-teams": 65
+          }
         }
       ]
     },
@@ -2829,7 +3102,13 @@
             "image",
             "video",
             "pdf"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         },
         {
           "provider": "opencode-go",
@@ -2844,7 +3123,13 @@
             "image",
             "video",
             "pdf"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ]
     },
@@ -2864,7 +3149,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 30,
+            "go-plus": 90,
+            "go-teams": 35
+          }
         },
         {
           "provider": "opencode-go",
@@ -2878,7 +3169,13 @@
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 131072,
+          "monthly_usage": {
+            "go": 30,
+            "go-plus": 90,
+            "go-teams": 35
+          }
         }
       ]
     },
@@ -2890,25 +3187,35 @@
           "provider": "opencode",
           "model": "qwen3-embedding-8b",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.0075,
+          "input_cost": 0.01,
+          "output_cost": 0.0,
           "context": 32768,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         },
         {
           "provider": "opencode-go",
           "model": "qwen3-embedding-8b",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.0075,
+          "input_cost": 0.01,
+          "output_cost": 0.0,
           "context": 32768,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         }
       ]
     },
@@ -2920,15 +3227,21 @@
           "provider": "opencode-go",
           "model": "qwen4-max",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 2.25,
+          "input_cost": 1.5,
+          "output_cost": 4.5,
           "context": 1000000,
           "media_in": [
             "text",
             "image",
             "pdf"
-          ]
+          ],
+          "output": 262144,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 76.6
@@ -2941,15 +3254,21 @@
           "provider": "opencode-go",
           "model": "step-5-preview",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 1.425,
+          "input_cost": 1.0,
+          "output_cost": 2.7,
           "context": 1000000,
           "media_in": [
             "text",
             "image",
             "video"
-          ]
+          ],
+          "output": 65536,
+          "monthly_usage": {
+            "go": 15,
+            "go-plus": 60,
+            "go-teams": 20
+          }
         }
       ],
       "score": 57.9
@@ -2962,9 +3281,9 @@
           "provider": "opencode",
           "model": "text-embedding-3-large",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.0975,
+          "input_cost": 0.13,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -2980,25 +3299,35 @@
           "provider": "opencode",
           "model": "text-embedding-3-small",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.015,
+          "input_cost": 0.02,
+          "output_cost": 0.0,
           "context": 8192,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         },
         {
           "provider": "opencode-go",
           "model": "text-embedding-3-small",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.015,
+          "input_cost": 0.02,
+          "output_cost": 0.0,
           "context": 8192,
           "media_in": [
             "text"
-          ]
+          ],
+          "monthly_usage": {
+            "go": 10,
+            "go-plus": 40,
+            "go-teams": 15
+          }
         }
       ]
     },
@@ -3016,7 +3345,8 @@
           "context": 1048576,
           "media_in": [
             "text"
-          ]
+          ],
+          "output": 131072
         }
       ]
     },
@@ -3028,9 +3358,9 @@
           "provider": "opencode",
           "model": "voyage-4",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.045,
+          "input_cost": 0.06,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"
@@ -3046,9 +3376,9 @@
           "provider": "opencode",
           "model": "voyage-code-4",
           "free": false,
-          "cost": null,
-          "input_cost": null,
-          "output_cost": null,
+          "cost": 0.09,
+          "input_cost": 0.12,
+          "output_cost": 0.0,
           "context": null,
           "media_in": [
             "text"

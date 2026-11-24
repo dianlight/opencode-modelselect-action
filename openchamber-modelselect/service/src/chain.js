@@ -287,6 +287,9 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
           score: typeof variant.score === 'number' ? variant.score : null,
           cost: typeof variant.cost === 'number' ? variant.cost : null,
           context: typeof variant.context === 'number' && variant.context > 0 ? variant.context : null,
+          output: typeof variant.output === 'number' && variant.output > 0 ? variant.output : null,
+          monthlyUsage: variant.monthly_usage && typeof variant.monthly_usage === 'object'
+            ? variant.monthly_usage : null,
           modalities: Array.isArray(variant.media_in)
             ? variant.media_in.filter(function (m) { return typeof m === 'string' && m; })
             : null,
@@ -354,6 +357,9 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
     const score = typeof row.score === 'number' ? row.score : null;
     const view = { model: name, provider: parts.provider, id: parts.id, score, cost,
       context: typeof row.context === 'number' && row.context > 0 ? row.context : null,
+      output: typeof row.output === 'number' && row.output > 0 ? row.output : null,
+      monthlyUsage: row.monthly_usage && typeof row.monthly_usage === 'object'
+        ? row.monthly_usage : null,
       modalities: Array.isArray(row.modalities)
         ? row.modalities.filter(function (m) { return typeof m === 'string' && m; })
         : null,

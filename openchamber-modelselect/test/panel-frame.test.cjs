@@ -449,6 +449,7 @@ describe('panel frame', () => {
       assert.match(txt, /Pick: opencode-go\/gpt-5\.6-luna/);
       assert.match(txt, /tier=go/);
       assert.match(txt, /cap \$3\/1M/);
+      assert.match(txt, /per-request token caps; Go allowances are shared monthly dollars/);
 
       const rowFor = (name) => findAll(frame.root, (n) =>
         hasClass(n, 'mp-mo') && textOf(n).includes(name))[0];
@@ -473,6 +474,9 @@ describe('panel frame', () => {
       const lunaIcons = findAll(rowFor('gpt-5.6-luna'), (n) =>
         n.attrs && typeof n.attrs['data-icon'] === 'string').map((n) => n.attrs['data-icon']);
       assert.ok(lunaIcons.length >= 3, 'media icons painted');
+      // Caps are per-request tokens; the Go allowance is monthly dollars.
+      assert.match(textOf(rowFor('gpt-5.6-luna')), /1\.05M ctx · 256k out/);
+      assert.match(textOf(rowFor('gpt-5.6-luna')), /allow Go \$60 \/ Plus \$240 \/ Teams \$65/);
     } finally {
       modelsService.stop();
     }

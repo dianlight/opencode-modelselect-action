@@ -56,7 +56,11 @@ const CATALOG = {
         free: 'opencode/deepseek-v4.1-flash-free',
         go_ranked: [
           { model: 'opencode-go/gemini-4-argon', score: 95.1, input_cost: 4, output_cost: 20, blended_cost: 8, context: 1048576, modalities: ['text', 'image'] },
-          { model: 'opencode-go/gpt-5.6-luna', score: 93, input_cost: 0.2, output_cost: 1.2, blended_cost: 0.5, context: 1050000, modalities: ['text', 'image', 'pdf'] },
+          {
+            model: 'opencode-go/gpt-5.6-luna', score: 93, input_cost: 0.2, output_cost: 1.2,
+            blended_cost: 0.5, context: 1050000, modalities: ['text', 'image', 'pdf'],
+            output: 256000, monthly_usage: { go: 60, 'go-plus': 240, 'go-teams': 65 },
+          },
         ],
         free_ranked: [
           { model: 'opencode/deepseek-v4.1-flash-free', score: 90, input_cost: 0, output_cost: 0, blended_cost: 0, context: 128000, modalities: ['text'] },

@@ -28,6 +28,17 @@ function formatCtx(v) {
   return String(v);
 }
 
+const ALLOWANCE_PLANS = { go: 'Go', 'go-plus': 'Plus', 'go-teams': 'Teams' };
+
+/** Go's per-model monthly limits, in dollars — not a token budget. */
+function formatAllowance(mu) {
+  if (!mu || typeof mu !== 'object') return '';
+  const parts = Object.keys(ALLOWANCE_PLANS)
+    .filter((k) => typeof mu[k] === 'number' && mu[k] > 0)
+    .map((k) => ALLOWANCE_PLANS[k] + ' $' + mu[k]);
+  return parts.length ? 'allow ' + parts.join(' / ') : '';
+}
+
 function initialTask(types, options, sessionTask) {
   const preferredSession = str(sessionTask);
   if (preferredSession && types.indexOf(preferredSession) >= 0) return preferredSession;
@@ -78,6 +89,7 @@ function modelRow(row, ctx) {
 
   const bits = [row.provider];
   if (row.context !== null) bits.push(formatCtx(row.context) + ' ctx');
+  if (row.output !== null && row.output !== undefined) bits.push(formatCtx(row.output) + ' out');
   bits.push('score ' + (row.score === null ? '—' : row.score));
   if (row.cost !== null) {
     let costBit = formatCost(row.cost) + '/1M';
@@ -88,8 +100,17 @@ function modelRow(row, ctx) {
   } else {
     bits.push('cost unknown');
   }
+  const allowance = formatAllowance(row.monthlyUsage);
+  if (allowance) bits.push(allowance);
   const meta = el('div', 'mp-mo-meta');
   meta.textContent = bits.join(' · ');
+  if (allowance) {
+    try {
+      meta.setAttribute('title', 'Go monthly allowance if this is the only model used (' +
+        allowance + '). This is a shared dollar allowance, not a token budget; ' +
+        'the bar shows the live quota percentage.');
+    } catch (e) { /* title is best-effort */ }
+  }
   wrap.append(meta);
 
   const barState = row.bar || { pct: 45, tone: 'muted', label: '' };
@@ -126,7 +147,9 @@ export function mountModelsTab(pane, snapshot, ctx) {
   note.textContent = 'Read-only preview from the saved options + catalog cache. ' +
     'The live Go quota probe can still adjust the auto pick; the bars show ' +
     'the plugin usage snapshot (local /api/experimental/usage/limits, Zen ' +
-    'fallback), refreshed each turn — cost stays as text.';
+    'fallback), refreshed each turn — cost stays as text. ctx/out are ' +
+    'per-request token caps; Go allowances are shared monthly dollars, ' +
+    'not token budgets.';
   pane.append(note);
 
   const toolsRow = el('div', 'mp-mo-tools');

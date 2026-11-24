@@ -31,7 +31,11 @@ function catalogConfig(extra) {
         free: 'opencode/deepseek-free',
         go_ranked: [
           { model: 'opencode-go/gemini-4-argon', score: 95.1, input_cost: 4, output_cost: 20, blended_cost: 8, context: 1048576, modalities: ['text', 'image'] },
-          { model: 'opencode-go/gpt-5.6-luna', score: 93, input_cost: 0.2, output_cost: 1.2, blended_cost: 0.5, context: 1050000, modalities: ['text', 'image', 'pdf'] },
+          {
+            model: 'opencode-go/gpt-5.6-luna', score: 93, input_cost: 0.2, output_cost: 1.2,
+            blended_cost: 0.5, context: 1050000, modalities: ['text', 'image', 'pdf'],
+            output: 256000, monthly_usage: { go: 60, 'go-plus': 240, 'go-teams': 65 },
+          },
         ],
         free_ranked: [
           { model: 'opencode/deepseek-free', score: 90, input_cost: 0, output_cost: 0, blended_cost: 0, context: 128000, modalities: ['text'] },
@@ -62,6 +66,9 @@ describe('models chain', () => {
     assert.equal(view.chain.filter((r) => r.status === 'pick').length, 1);
     assert.equal(view.chain[0].status, 'pick');
     assert.equal(view.chain[0].bar.label, 'PICK · free');
+    const goRow = view.chain.find((r) => r.model === 'opencode-go/gpt-5.6-luna');
+    assert.equal(goRow.output, 256000);
+    assert.deepEqual(goRow.monthlyUsage, { go: 60, 'go-plus': 240, 'go-teams': 65 });
   });
 
   it('fails over to the other side when the free model is latched', () => {
@@ -149,7 +156,11 @@ describe('models chain — provider-model v2', () => {
         score: 93,
         variants: [
           { provider: 'google', model: 'gpt-5.6-luna', free: false, cost: 0.5, media_in: ['text'] },
-          { provider: 'opencode-go', model: 'gpt-5.6-luna', free: false, cost: 0.5, media_in: ['text'] },
+          {
+            provider: 'opencode-go', model: 'gpt-5.6-luna', free: false, cost: 0.5,
+            media_in: ['text'], output: 256000,
+            monthly_usage: { go: 60, 'go-plus': 240, 'go-teams': 65 },
+          },
           { provider: 'opencode', model: 'gpt-5.6-luna-free', free: true, cost: 0, media_in: ['text'] },
         ],
       },
@@ -188,6 +199,9 @@ describe('models chain — provider-model v2', () => {
     });
     assert.equal(view.side, 'go');
     assert.equal(view.pick, 'opencode-go/gpt-5.6-luna');
+    const row = view.chain.find((r) => r.model === 'opencode-go/gpt-5.6-luna');
+    assert.equal(row.output, 256000);
+    assert.deepEqual(row.monthlyUsage, { go: 60, 'go-plus': 240, 'go-teams': 65 });
   });
 
   it('falls back to the v1 preview without a registry', () => {
