@@ -356,7 +356,7 @@ jobs:
         if: steps.coverage.outputs.tasks != ''
         id: opencode
         continue-on-error: true
-        timeout-minutes: 25
+        timeout-minutes: 60
         # v2 = select-model + opencode/github in one action: it installs
         # OpenCode, configures the modelselect plugin from the inputs below,
         # then runs `opencode github run`. The plugin owns model selection and
