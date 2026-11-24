@@ -15,6 +15,7 @@ const { check } = require('./engine/expect.cjs');
 const { Report } = require('./engine/report.cjs');
 const adapters = {
   action: require('./adapters/action.cjs'),
+  'action-v2': require('./adapters/action-v2.cjs'),
   plugin: require('./adapters/plugin.cjs'),
   service: require('./adapters/service.cjs'),
   panel: require('./adapters/panel.cjs'),

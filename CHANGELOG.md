@@ -1,4 +1,18 @@
 ## [Unreleased]
+### Added
+- Runtime model failover for explicit-model sessions: when a pinned model is
+  rejected (disabled access, unavailable, exhausted, no credit, or any retry
+  error), the plugin now switches the session to the next chain candidate,
+  preferring a different provider, and forces a retry. Virtual/auto sessions
+  keep routing through the proxy as before.
+- New `github-action-v2` (root shim `action-v2.yml`): the union of the
+  select-model action and `anomalyco/opencode/github`. It accepts both sets of
+  inputs, installs OpenCode, writes the bundled modelselect plugin into
+  `opencode.json` with those options, and runs `opencode github run`. Model
+  selection and runtime failover stay inside the plugin, so a rejected model
+  is replaced by the next chain candidate instead of failing the job. The
+  maintenance workflow now uses this action.
+
 ### Changed
 - The extension's settings panel and Work Status service now read and write
   plugin options in the user's **global** OpenCode config

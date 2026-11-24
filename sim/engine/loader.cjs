@@ -9,7 +9,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const COMPONENTS = ['action', 'plugin', 'service', 'panel', 'pipeline', 'fuzz'];
+const COMPONENTS = ['action', 'action-v2', 'plugin', 'service', 'panel', 'pipeline', 'fuzz'];
 
 function loadScenarios({ component, idFilter } = {}) {
   const base = path.join(__dirname, '..', 'scenarios');

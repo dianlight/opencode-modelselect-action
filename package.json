@@ -8,8 +8,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test github-action/test/",
-    "coverage": "node --test --experimental-test-coverage github-action/test/",
+    "test": "node --test github-action/test/ github-action-v2/test/",
+    "coverage": "node --test --experimental-test-coverage github-action/test/ github-action-v2/test/",
     "sim": "node sim/run.js --all"
   }
 }

@@ -328,22 +328,9 @@ jobs:
           git fetch origin main
           git checkout -B main origin/main
 
-      - name: Select model
-        id: resolve
-        if: steps.coverage.outputs.tasks != ''
-        uses: dianlight/opencode-modelselect-action@v1
-        with:
-          task-type: generic
-          tier: auto
-          # Escape hatch: when both tiers are unavailable (e.g. the token has no
-          # active Go subscription and the free probe 403s) the step would
-          # otherwise hard-stop the run before the fix PR can be opened.
-          fallback-model: opencode/beam-free
-
       # The exchanged token is short-lived: refresh it right before the long
-      # agent run so it cannot expire mid-task. Select model above already got
-      # one, so no input is passed there — the action reads env
-      # OPENCODE_API_KEY.
+      # agent run so it cannot expire mid-task. The v2 action reads it from
+      # env OPENCODE_API_KEY; no token is written to the plugin config.
       - name: Refresh OpenCode token
         if: steps.coverage.outputs.tasks != ''
         env:
@@ -370,14 +357,23 @@ jobs:
         id: opencode
         continue-on-error: true
         timeout-minutes: 25
-        uses: anomalyco/opencode/github@77fc88c8ade8e5a620ebbe1197f3a572d29ae91a
+        # v2 = select-model + opencode/github in one action: it installs
+        # OpenCode, configures the modelselect plugin from the inputs below,
+        # then runs `opencode github run`. The plugin owns model selection and
+        # runtime failover, so a disabled/exhausted model cannot fail the run.
+        uses: ./github-action-v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TASKS: ${{ steps.coverage.outputs.tasks }}
           ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
           ASSIGNEE: ${{ github.repository_owner }}
         with:
-          model: ${{ steps.resolve.outputs.model }}
+          task-type: generic
+          tier: auto
+          auto-preference: free-first
+          fallback-model: opencode/beam-free
+          verbose: true
+          announce: "off"
           use_github_token: true
           prompt: |
             You are triggered automatically by the maintenance audit: model

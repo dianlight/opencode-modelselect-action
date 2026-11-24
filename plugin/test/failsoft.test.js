@@ -4,13 +4,12 @@
  * Free-tier fail-soft (v2): the `http.response`/`retry` hooks classify a
  * real failure (free exhaustion, paid quota, rate limit), register the 12h
  * latch (`.opencode/.modelselect-cache/free-quota.json`) for free models and
- * — for virtual sessions only — arm a forced retry without moving the
- * session. Each failure re-arms so the cascade walks the whole provider
- * chain (another provider first, then free), skipping every ref already
- * tried, and stops when no candidate is left. Non-virtual sessions just
- * latch + resync: they are the user's hands-off choice and are never
- * flipped. Also pins the resolveModel latch honoring (auto + pinned free)
- * and the never-extend invariant.
+ * arm a forced retry. Virtual sessions keep their anchor and re-route through
+ * the proxy; explicit-model sessions are moved with `switchModel`. Each
+ * failure re-arms so the cascade walks the whole provider chain (another
+ * provider first, then free), skipping every ref already tried, and stops
+ * when no candidate is left. Also pins the resolveModel latch honoring
+ * (auto + pinned free) and the never-extend invariant.
  *
  * `isolateAuth` isolates HOME so the routing sync that runs inside the
  * hooks can never touch the real `~/.config/openchamber/routing.json`.
@@ -135,21 +134,26 @@ function headersOf(event) {
 }
 
 describe('v2 free-tier fail-soft', () => {
-  it('free 429 on a non-virtual session: latch + sync, no flip, no arm', async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-novirt-'));
+  it('free 429 on an explicit-model session latches and switches to the next candidate', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-explicit-'));
     const restore = isolateAuth(dir);
     try {
-      const seen = await setupSession(dir);
-      // Fire the exhaustion directly on a free model: the hook classifies it
-      // regardless of any prior routing.
-      await seen['http.response'](freeResponse('s1'));
+      const seen = await setupRoutedSession(dir, { taskType: 'review' });
+      // No context hook: this session uses an explicitly pinned real model.
+      await seen['http.response']({
+        kind: 'primary',
+        sessionID: 's-explicit',
+        model: { providerID: 'opencode', id: 'free-a' },
+        response: new Response('rate limited', { status: 429 }),
+      });
       assert.ok(fs.existsSync(LATCH(dir)), 'soft error registered in the latch');
-      assert.equal(isFreeQuotaFresh(CACHE(dir)), true);
-      assert.deepEqual(seen.switches, [], 'non-virtual sessions are never flipped');
-      // No arm either: the retry hook leaves the decision untouched.
-      const r = retryEvent('s1', { providerID: 'f', id: 'b' });
+      assert.equal(isFreeQuotaFresh(CACHE(dir), undefined, 'opencode/free-a'), true);
+      const r = retryEvent('s-explicit', { providerID: 'opencode', id: 'free-a' });
       await seen.retry(r);
-      assert.deepEqual(r.decision, { retry: false }, 'no forced retry for non-virtual sessions');
+      assert.deepEqual(r.decision, { retry: true, delay: 0 }, 'explicit sessions force a retry too');
+      assert.deepEqual(seen.switches, [
+        { sessionID: 's-explicit', model: { providerID: 'opencode-go', id: 'paid-a' } },
+      ], 'a different provider is preferred over another model on the same provider');
     } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });

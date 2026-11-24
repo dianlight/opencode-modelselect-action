@@ -1,0 +1,14 @@
+{
+  "name": "opencode-modelselect-action-v2",
+  "version": "2.0.0",
+  "private": true,
+  "description": "OpenCode GitHub action with the modelselect plugin configured for live model routing and runtime failover",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/",
+    "coverage": "node --test --experimental-test-coverage test/"
+  }
+}

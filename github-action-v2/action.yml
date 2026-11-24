@@ -1,0 +1,171 @@
+name: OpenCode + modelselect (v2)
+description: >-
+  Run the OpenCode GitHub action with the modelselect plugin configured from
+  the same inputs as the select-model action. The plugin resolves and fails
+  over models at runtime instead of the workflow pinning a single model.
+inputs:
+  model:
+    description: >-
+      OpenCode model. Empty (default) uses the modelselect virtual anchor
+      chosen from tier/auto-preference, so the plugin owns the live pick.
+    required: false
+    default: ""
+  agent:
+    description: Primary agent (OpenCode action input).
+    required: false
+    default: ""
+  share:
+    description: Share the OpenCode session (OpenCode action input).
+    required: false
+    default: ""
+  prompt:
+    description: Prompt forwarded to `opencode github run`.
+    required: false
+    default: ""
+  use_github_token:
+    description: Use GITHUB_TOKEN directly instead of the OpenCode App exchange.
+    required: false
+    default: "false"
+  mentions:
+    description: Comma-separated trigger phrases.
+    required: false
+    default: ""
+  variant:
+    description: Model reasoning-effort variant.
+    required: false
+    default: ""
+  oidc_base_url:
+    description: Base URL for the OIDC token exchange API.
+    required: false
+    default: ""
+
+  task-type:
+    description: Task type pinned for the plugin, or `auto` for heuristics.
+    required: false
+    default: auto
+  default-task-type:
+    description: Task type used when heuristics find no signal.
+    required: false
+    default: generic
+  agent-task-map:
+    description: JSON object mapping agent names to task types.
+    required: false
+    default: ""
+  tier:
+    description: go, free or auto (plugin selection).
+    required: false
+    default: auto
+  auto-preference:
+    description: free-first or go-first for tier auto.
+    required: false
+    default: free-first
+  fallback-model:
+    description: Escape hatch used when the plugin resolves no model.
+    required: false
+    default: ""
+  max-cost:
+    description: Blended $/1M budget cap; empty disables.
+    required: false
+    default: ""
+  available-providers:
+    description: Comma-separated provider slugs the token can reach.
+    required: false
+    default: opencode,opencode-go
+  config-url:
+    description: Remote model config URL for the plugin.
+    required: false
+    default: ""
+  config-v2-url:
+    description: Remote v2 task table URL for the plugin.
+    required: false
+    default: ""
+  registry-url:
+    description: Remote v2 provider-model registry URL.
+    required: false
+    default: ""
+  catalog-url:
+    description: Remote provider catalog URL.
+    required: false
+    default: ""
+  task-types-url:
+    description: Remote task-type definitions used by Jev.
+    required: false
+    default: ""
+  usage-url:
+    description: Go usage endpoint used for quota checks.
+    required: false
+    default: ""
+  config-refresh-minutes:
+    description: Cache lifetime for fetched config files.
+    required: false
+    default: "1440"
+  verbose:
+    description: Emit plugin selection/failover diagnostics.
+    required: false
+    default: "false"
+  suggest-only:
+    description: Trial mode: resolve and log, never switch models.
+    required: false
+    default: "false"
+  announce:
+    description: switch, always or off (chat-visible pick line).
+    required: false
+    default: switch
+  jev-model:
+    description: Optional Jev model for task refinement.
+    required: false
+    default: ""
+  jev-threshold:
+    description: Minimum Jev confidence to override the heuristic.
+    required: false
+    default: "0.6"
+  jev-endpoint:
+    description: Jev systemone endpoint.
+    required: false
+    default: ""
+  jev-token:
+    description: Jev auth token; falls back to OPENCODE_API_KEY.
+    required: false
+    default: ""
+  continuation:
+    description: Let zero-signal turns inherit the previous task.
+    required: false
+    default: "true"
+  history-chars:
+    description: Characters of previous prompt kept for continuation.
+    required: false
+    default: "2000"
+  openchamber:
+    description: Host detection force: auto, on or off.
+    required: false
+    default: auto
+  auto-small-model:
+    description: Sync the resolved small-model task into OpenChamber settings.
+    required: false
+    default: "false"
+  small-model-task:
+    description: Task type written as the small model when auto-small-model is on.
+    required: false
+    default: small-model
+  plugin-package:
+    description: >-
+      Plugin package/path written to opencode.json. Empty uses the plugin
+      bundled with this action checkout.
+    required: false
+    default: ""
+  opencode-token:
+    description: >-
+      Optional OpenCode token. Prefer the exchanged OPENCODE_API_KEY env var;
+      never written to the plugin config.
+    required: false
+    default: ""
+outputs:
+  model:
+    description: Model passed to `opencode github run` (virtual anchor by default).
+  plugin-config:
+    description: Path of the opencode.json the plugin was written to.
+  plugin-source:
+    description: Plugin package/path used in the generated config.
+runs:
+  using: node24
+  main: src/index.js

@@ -1,31 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="sim" tests="29" failures="0" time="10.122">
-    <testcase classname="action" name="action/auto-both-exhausted-fails" time="2.287"></testcase>
-    <testcase classname="action" name="action/auto-falls-back-to-go" time="0.318"></testcase>
-    <testcase classname="action" name="action/auto-prefers-free" time="0.323"></testcase>
-    <testcase classname="action" name="action/auto-waits-for-quota" time="1.302"></testcase>
-    <testcase classname="action" name="action/config-url-unreachable" time="0.206"></testcase>
-    <testcase classname="action" name="action/fallback-model-used" time="0.273"></testcase>
-    <testcase classname="action" name="action/free-tier-case-insensitive" time="0.282"></testcase>
-    <testcase classname="action" name="action/go-tier" time="0.275"></testcase>
-    <testcase classname="action" name="action/invalid-tier-rejected" time="0.201"></testcase>
-    <testcase classname="action" name="action/max-cost-walks-ranked" time="0.277"></testcase>
-    <testcase classname="action" name="action/missing-task-type-fails-closed" time="0.272"></testcase>
-    <testcase classname="plugin" name="plugin/announce-off-stays-quiet" time="0.538"></testcase>
-    <testcase classname="plugin" name="plugin/fixed-task-type-pin" time="0.334"></testcase>
-    <testcase classname="plugin" name="plugin/http-request-stamps-pick" time="0.320"></testcase>
-    <testcase classname="plugin" name="plugin/routes-review-announce" time="0.319"></testcase>
-    <testcase classname="plugin" name="plugin/virtual-anchor-kept" time="0.334"></testcase>
-    <testcase classname="plugin" name="plugin/virtual-provider-registered" time="0.297"></testcase>
-    <testcase classname="service" name="service/health-requires-token" time="0.150"></testcase>
-    <testcase classname="service" name="service/read-never-writes-routing" time="0.132"></testcase>
-    <testcase classname="service" name="service/status-ok" time="0.135"></testcase>
-    <testcase classname="service" name="service/tier-control-writes-managed" time="0.135"></testcase>
-    <testcase classname="panel" name="panel/render-from-managed" time="0.190"></testcase>
-    <testcase classname="panel" name="panel/save-history-chars" time="0.251"></testcase>
-    <testcase classname="pipeline" name="pipeline/benchmark-dry-run" time="0.691"></testcase>
+<testsuite name="sim" tests="34" failures="0" time="9.952">
+    <testcase classname="action" name="action/auto-both-exhausted-fails" time="2.250"></testcase>
+    <testcase classname="action" name="action/auto-falls-back-to-go" time="0.290"></testcase>
+    <testcase classname="action" name="action/auto-prefers-free" time="0.263"></testcase>
+    <testcase classname="action" name="action/auto-waits-for-quota" time="1.245"></testcase>
+    <testcase classname="action" name="action/config-url-unreachable" time="0.164"></testcase>
+    <testcase classname="action" name="action/fallback-model-used" time="0.223"></testcase>
+    <testcase classname="action" name="action/free-tier-case-insensitive" time="0.219"></testcase>
+    <testcase classname="action" name="action/go-tier" time="0.219"></testcase>
+    <testcase classname="action" name="action/invalid-tier-rejected" time="0.139"></testcase>
+    <testcase classname="action" name="action/max-cost-walks-ranked" time="0.225"></testcase>
+    <testcase classname="action" name="action/missing-task-type-fails-closed" time="0.212"></testcase>
+    <testcase classname="action-v2" name="action-v2/failure-propagates" time="0.190"></testcase>
+    <testcase classname="action-v2" name="action-v2/virtual-anchor-config" time="0.193"></testcase>
+    <testcase classname="plugin" name="plugin/announce-off-stays-quiet" time="0.246"></testcase>
+    <testcase classname="plugin" name="plugin/catalog-miss-retry" time="0.227"></testcase>
+    <testcase classname="plugin" name="plugin/explicit-model-failover" time="0.226"></testcase>
+    <testcase classname="plugin" name="plugin/fixed-task-type-pin" time="0.233"></testcase>
+    <testcase classname="plugin" name="plugin/http-request-stamps-pick" time="0.235"></testcase>
+    <testcase classname="plugin" name="plugin/routes-review-announce" time="0.233"></testcase>
+    <testcase classname="plugin" name="plugin/runtime-inventory-gate" time="0.246"></testcase>
+    <testcase classname="plugin" name="plugin/virtual-anchor-kept" time="0.226"></testcase>
+    <testcase classname="plugin" name="plugin/virtual-provider-registered" time="0.229"></testcase>
+    <testcase classname="service" name="service/health-requires-token" time="0.149"></testcase>
+    <testcase classname="service" name="service/read-never-writes-routing" time="0.131"></testcase>
+    <testcase classname="service" name="service/status-ok" time="0.133"></testcase>
+    <testcase classname="service" name="service/tier-control-writes-managed" time="0.139"></testcase>
+    <testcase classname="panel" name="panel/render-from-managed" time="0.187"></testcase>
+    <testcase classname="panel" name="panel/save-history-chars" time="0.310"></testcase>
+    <testcase classname="pipeline" name="pipeline/benchmark-dry-run" time="0.701"></testcase>
     <testcase classname="pipeline" name="pipeline/benchmark-no-key" time="0.084"></testcase>
-    <testcase classname="pipeline" name="pipeline/maintenance-coverage-issues" time="0.070"></testcase>
+    <testcase classname="pipeline" name="pipeline/maintenance-coverage-issues" time="0.059"></testcase>
     <testcase classname="pipeline" name="pipeline/maintenance-online-catalog" time="0.057"></testcase>
     <testcase classname="pipeline" name="pipeline/maintenance-zen-down" time="0.057"></testcase>
     <testcase classname="fuzz" name="fuzz/routing-invariants" time="0.012"></testcase>

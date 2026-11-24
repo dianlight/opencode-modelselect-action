@@ -1303,15 +1303,18 @@ async function setup(ctx) {
     };
   }
 
-  // A classified failure on a virtual session: remember the ref (so the
-  // cascade never re-picks it) and arm a forced retry. Free failures latch
-  // the model before reaching here. Non-virtual sessions are the user's
-  // manual choice: they latch + resync but never failover. Zen publishes no
-  // free-quota endpoint (anomalyco/opencode#18648), so the failed real
-  // request IS the check.
+  // A classified failure: remember the ref (so the cascade never re-picks
+  // it) and arm a forced retry. Applies to virtual anchors and explicit
+  // models alike — a pinned model that is disabled, unavailable or out of
+  // credit must move on too. Zen publishes no free-quota endpoint
+  // (anomalyco/opencode#18648), so the failed real request IS the check.
   function armFailover(sessionID, ref, cause) {
     if (!sessionID || opts.suggestOnly) return;
-    if (!virtualSessions.has(sessionID) && !isVirtualRef(ref)) return;
+    // Virtual anchors and explicit models both fail over now: a real model
+    // that is disabled, unavailable, exhausted or errors at runtime is
+    // remembered here so the retry hook can move the session to the next
+    // chain candidate. The old virtual-only guard left explicitly pinned
+    // sessions (CI, `model:` input, manual picker) stuck on a dead model.
     const rid = ref && (ref.id ?? ref.modelID);
     const failingRef = ref && typeof ref === 'object' && rid
       ? `${String(ref.providerID ?? '').toLowerCase()}/${String(rid)}`
@@ -1336,7 +1339,7 @@ async function setup(ctx) {
     const isVirtual = Boolean(
       sessionID && (virtualSessions.has(sessionID) || isVirtualRef(event.model)),
     );
-    if (!isVirtual || opts.suggestOnly) {
+    if (!sessionID || opts.suggestOnly) {
       event.decision = { retry: true, delay: 0 };
       return;
     }
@@ -1410,8 +1413,44 @@ async function setup(ctx) {
         think: picked.think ?? null,
         media: picked.media ?? lastMedia.get(sessionID) ?? [],
       };
-      lastVirtualPick.set(sessionID, pick);
-      if (virtualId) await syncVirtualApiFor(pick, virtualId);
+      if (isVirtual) {
+        lastVirtualPick.set(sessionID, pick);
+        if (virtualId) await syncVirtualApiFor(pick, virtualId);
+      } else {
+        // Explicit-model session: the runner dispatches natively, so persist
+        // the next candidate as the session model before forcing the retry.
+        // Without switchModel there is no way to move this session off the
+        // rejected model, so leave the decision untouched and let the error
+        // surface instead of looping on the same dead ref.
+        let landed = false;
+        try {
+          await ctx.session.switchModel({
+            sessionID,
+            model: { providerID: pick.providerID, id: pick.id },
+          });
+          landed = true;
+        } catch (switchErr) {
+          if (opts.verbose) console.log(`[modelselect] failover switch skipped: ${switchErr?.message ?? switchErr}`);
+        }
+        if (!landed) return;
+        const prev = where && where.prev ? where.prev : {};
+        writeStatus(cacheDir, sessionID, {
+          taskType,
+          tier: picked.tier,
+          model: picked.model,
+          jev: typeof prev.jev === 'string' ? prev.jev : null,
+          goOk: typeof prev.goOk === 'boolean' ? prev.goOk : (picked.goOk ?? null),
+          think: prev.think ?? picked.think ?? null,
+          variant: null,
+          freeExhausted: prev.freeExhausted ?? picked.freeExhausted ?? null,
+          goPercent: picked.usage && typeof picked.usage.percent === 'number' ? picked.usage.percent : (typeof prev.goPercent === 'number' ? prev.goPercent : null),
+          goLimited: picked.usage && typeof picked.usage.limited === 'boolean' ? picked.usage.limited : (typeof prev.goLimited === 'boolean' ? prev.goLimited : null),
+          budgetLimited: picked.usage && typeof picked.usage.budgetLimited === 'boolean' ? picked.usage.budgetLimited : (typeof prev.budgetLimited === 'boolean' ? prev.budgetLimited : null),
+          source: `${picked.source}+failover`,
+          suggestOnly: opts.suggestOnly,
+          media: picked.media ?? media ?? [],
+        });
+      }
       failoverAttempts.set(sessionID, attempts + 1);
       event.decision = { retry: true, delay: 0 };
       if (opts.verbose) {
@@ -1427,8 +1466,7 @@ async function setup(ctx) {
 
   // Register a free-side exhaustion: latch the observation PER MODEL
   // (quota 12h / rate limit 1h) and refresh routing.json immediately, then
-  // arm the virtual session's failover. Non-virtual sessions latch + sync
-  // only and are never flipped.
+  // arm the session's failover (virtual or explicit).
   async function noteFreeExhaustion(sessionID, ref, detail, kind = 'exhaustion') {
     const rid = ref && (ref.id ?? ref.modelID);
     markFreeQuota(cacheDir, {
@@ -1453,13 +1491,15 @@ async function setup(ctx) {
       // miss this (the prompt hook runs before the context hook marks
       // the session); the announce then lands on the next turn instead.
       await syncRoutingNow();
+      // A new user prompt starts a fresh failover episode for virtual AND
+      // explicit-model sessions: clear the tried history and attempt count
+      // so a later turn can retry every candidate again from scratch.
+      if (event.sessionID) {
+        clearTried(event.sessionID);
+        failoverAttempts.delete(event.sessionID);
+        failoverArmed.delete(event.sessionID);
+      }
       if (!virtualSessions.has(event.sessionID)) return;
-      // A new user prompt starts a fresh failover episode: clear the tried
-      // history and attempt count so a later turn can retry every candidate
-      // again from scratch.
-      clearTried(event.sessionID);
-      failoverAttempts.delete(event.sessionID);
-      failoverArmed.delete(event.sessionID);
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
       // delivery }. `event.agent` does not exist here — the agent tag comes
       // from prompt mentions (best-effort; undefined when absent).

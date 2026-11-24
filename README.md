@@ -16,6 +16,7 @@ propagate with no sync and no edits.
 | Component | Path | Deep docs |
 |-----------|------|-----------|
 | Select Model Action | `github-action/` | [github-action/README.md](./github-action/README.md) |
+| OpenCode + modelselect Action (v2) | `github-action-v2/` | [github-action-v2/README.md](./github-action-v2/README.md) |
 | Modelselect Plugin | `plugin/` | [plugin/README.md](./plugin/README.md) |
 | OpenChamber Extension | `openchamber-modelselect/` | [openchamber-modelselect/README.md](./openchamber-modelselect/README.md) |
 
@@ -44,6 +45,20 @@ propagate with no sync and no edits.
 
 ## Quick start
 
+One step with the v2 action (recommended): it configures the plugin and runs
+OpenCode, so the model is resolved and fails over at runtime.
+
+```yaml
+- uses: dianlight/opencode-modelselect-action/github-action-v2@main
+  with:
+    task-type: review
+    tier: auto
+    prompt: Implement the change described in the issue.
+    use_github_token: true
+```
+
+Or keep the two-step v1 flow (preselect, then run OpenCode with a pinned model):
+
 ```yaml
 - name: Select model
   id: resolve
@@ -58,7 +73,9 @@ propagate with no sync and no edits.
 ```
 
 There are no default models: if the config is unreachable or the entry is
-missing, the step fails hard unless an explicit `fallback-model` is given.
+missing, the v1 step fails hard unless an explicit `fallback-model` is given.
+The v2 action delegates that decision to the plugin, which also retries with
+another candidate if the chosen model is rejected at runtime.
 
 ## Central config and maintenance
 

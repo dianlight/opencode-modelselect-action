@@ -458,23 +458,26 @@ exceeded. Please try again later.”), the plugin:
    are unaffected and keep routing free. Spent quota uses a 12h window;
    transient rate limiting uses a 1h window. A legacy model-less entry
    still reads as a global latch over every free model;
-2. on a virtual `modelselect/auto-*` session, arms a forced retry. Every
-   retry re-resolves the whole provider chain, skipping all refs that
-   session already failed on, preferring another provider and then free
-   models, so the cascade walks every available candidate until one works
-   or none is left. A paid-side or external-provider limit arms the same
-   cascade. The session never leaves its virtual anchor — each retried
-   attempt is re-pointed through the proxy's routing headers. A single
-   episode is bounded to 12 retries, and a new user prompt resets the
-   history. When no candidate survives, no retry is forced and the error
-   surfaces.
+2. arms a forced retry. Every retry re-resolves the whole provider chain,
+   skipping all refs that session already failed on, preferring another
+   provider and then free models, so the cascade walks every available
+   candidate until one works or none is left. A paid-side or
+   external-provider limit arms the same cascade. On a virtual
+   `modelselect/auto-*` session the session never leaves its anchor — each
+   retried attempt is re-pointed through the proxy's routing headers. On a
+   session with an explicitly selected model, the plugin persists the next
+   candidate with `switchModel` before forcing the retry. A single episode
+   is bounded to 12 retries, and a new user prompt resets the history. When
+   no candidate survives, no retry is forced and the error surfaces.
 
 Each window runs from its first detection and never extends; after it
 expires, the next real failure may register again (the "new check").
-`suggestOnly` still latches + resyncs routing but never switches the
-session; non-virtual sessions latch + resync too but never arm the retry.
-The Work Status view shows a `free exhausted` badge while the latch is
-fresh and one countdown row per freshly latched model.
+Any retry-hook error arms the same cascade — disabled model access, an
+unavailable or removed model, auth rejection, no credits, rate limits and
+quota exhaustion alike. `suggestOnly` still latches + resyncs routing but
+never switches the session. The Work Status view shows a `free exhausted`
+badge while the latch is fresh and one countdown row per freshly latched
+model.
 
 ## Trial run without side effects
 
