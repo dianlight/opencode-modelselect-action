@@ -2058,8 +2058,25 @@ async function setup(ctx) {
       const errStatus =
         err?.status ?? err?.error?.status ?? err?.cause?.status ?? err?.response?.status ?? null;
       const outcome = classifyFreeFailure(errStatus, mismatchHaystack(err, ''));
-      if (!outcome.exhausted) return;
       const ref = refForFailure(event.sessionID, event.model, virtualSessions, lastVirtualPick);
+      // Runtime failover on ANY retry-hook error (disabled access, unavailable
+      // or removed model, auth rejection, no credits, rate limit, …): the
+      // failed ref is remembered and the cascade picks the next candidate,
+      // preferring a different provider. `armFailover` is a no-op when the
+      // session is not virtual or the ref is unknown.
+      if (ref) armFailover(event.sessionID, ref, `error:${err?.type ?? 'error'}`);
+      const forceRetryFromArm = async () => {
+        const armedAny = failoverArmed.get(event.sessionID);
+        if (armedAny === undefined) return;
+        failoverArmed.delete(event.sessionID);
+        if (Date.now() - armedAny.armedAt <= FREE_RETRY_TTL_MS) {
+          await forceFailoverRetry(event, armedAny);
+        }
+      };
+      if (!outcome.exhausted) {
+        await forceRetryFromArm();
+        return;
+      }
       if (isFreeModelRef(ref, readModelTable(cacheDir))) {
         await noteFreeExhaustion(
           event.sessionID,
@@ -2070,13 +2087,7 @@ async function setup(ctx) {
       } else {
         armFailover(event.sessionID, ref, 'paid-limit');
       }
-      const armedAfterError = failoverArmed.get(event.sessionID);
-      if (armedAfterError !== undefined) {
-        failoverArmed.delete(event.sessionID);
-        if (Date.now() - armedAfterError.armedAt <= FREE_RETRY_TTL_MS) {
-          await forceFailoverRetry(event, armedAfterError);
-        }
-      }
+      await forceRetryFromArm();
     } catch {
       // never break the session
     }
