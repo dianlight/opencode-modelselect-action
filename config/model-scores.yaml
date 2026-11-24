@@ -23,6 +23,18 @@ model_scores:
     overall: 67.8             # TypeSafe 4-workflow eval 67.8% (matches GPT-5.6 Terra)
     reasoning: 67.8           # TypeSafe structured decision accuracy (system-one reasoning)
     vision: 5.0               # text-only, no vision encoder; structured JSON input only
+  jev-1.14:
+    coding: 30.0              # decision-only model (no text/code generation); decision output only, no coding benchmarks
+    instruction_following: 50.0  # schema-guaranteed typed decision output; no IFEval/IFBench rows
+    overall: 66.2             # AA Decision Index v2.1 66.2 (page shows 66); systemonemodels.org + modelscale.dev + OpenRouter read 66.2
+    reasoning: 66.2           # same index; EvalSafe-O*NET-AA accuracy 87.7 best of field (AA via systemonemodels.org); community Jev Decision Index 60.24 not comparable
+    vision: 40.0              # multimodal text+image input (AA page "supports text and image" + TypeSafe docs "Text, images" + zen catalog); HF repo gated (401)
+  gemini-decision-1:
+    coding: 30.0              # decision-only model (no text/code generation); Google launch reports no coding benchmarks
+    instruction_following: 50.0  # typed decision output only; no IFEval/IFBench rows
+    overall: 66.0             # AA Decision Index v2.1 65.98 (AA page 66; VentureBeat 65.98 + FrontierDot 66 agree); Google launch rows (JevBench 92.2 etc.) shown-only per BenchLM
+    reasoning: 66.0           # same index; AA knowledge/reasoning components ranked #1 of 18 (Omniscience 66.3, HLE-MultiChoice 48.7); When2Call 80.5 (AA) ≈ Google-reported 79.9
+    vision: 40.0              # multimodal: text+image per AA page; audio/video/PDF per Google docs (OpenCode zen catalog); no vision benchmark, multimodal baseline
   hy3-preview:
     coding: 55.0
     instruction_following: 58.0
