@@ -6,8 +6,24 @@
       "tier": "Free"
     },
     {
+      "model": "gemini-embedding-2",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "hungerg-free",
+      "tier": "Go (Paid)"
+    },
+    {
       "model": "jev-1.14",
       "tier": "Free"
+    },
+    {
+      "model": "qwen3-embedding-8b",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "text-embedding-3-small",
+      "tier": "Go (Paid)"
     },
     {
       "model": "tidepool-alpha-free",
@@ -15,6 +31,14 @@
     }
   ],
   "missing_prices": [
+    {
+      "model": "gemini-embedding-2",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "hungerg-free",
+      "tier": "Go (Paid)"
+    },
     {
       "model": "hy3",
       "tier": "Go (Paid)"
@@ -60,6 +84,10 @@
       "tier": "Go (Paid)"
     },
     {
+      "model": "qwen3-embedding-8b",
+      "tier": "Go (Paid)"
+    },
+    {
       "model": "qwen3.7-plus",
       "tier": "Go (Paid)"
     },
@@ -69,6 +97,10 @@
     },
     {
       "model": "step-5-preview",
+      "tier": "Go (Paid)"
+    },
+    {
+      "model": "text-embedding-3-small",
       "tier": "Go (Paid)"
     }
   ],

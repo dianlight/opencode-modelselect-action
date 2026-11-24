@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-23T04:24:57.087693+00:00",
+  "timestamp": "2026-11-24T07:21:14.152369+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -1063,6 +1063,18 @@
           "media_in": [
             "text"
           ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "gemini-decision-1",
+          "free": false,
+          "cost": 0.075,
+          "input_cost": 0.1,
+          "output_cost": 0.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
         }
       ]
     },
@@ -1095,9 +1107,29 @@
           "cost": null,
           "input_cost": null,
           "output_cost": null,
-          "context": null,
+          "context": 8192,
           "media_in": [
-            "text"
+            "text",
+            "image",
+            "audio",
+            "video",
+            "pdf"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "gemini-embedding-2",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 8192,
+          "media_in": [
+            "text",
+            "image",
+            "audio",
+            "video",
+            "pdf"
           ]
         }
       ]
@@ -1841,6 +1873,18 @@
           "media_in": [
             "text"
           ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "gpt-6-luna-decision",
+          "free": false,
+          "cost": 0.075,
+          "input_cost": 0.1,
+          "output_cost": 0.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
         }
       ],
       "score": 63.7
@@ -2023,6 +2067,62 @@
         }
       ]
     },
+    "grok-imagine-video-1-5": {
+      "id": "grok-imagine-video-1-5",
+      "name": "Grok Imagine Video 1.5",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "grok-imagine-video-1.5",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "grok-imagine-video-1-5-lite": {
+      "id": "grok-imagine-video-1-5-lite",
+      "name": "Grok Imagine Video 1.5 Lite",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "grok-imagine-video-1.5-lite",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "hungerg": {
+      "id": "hungerg",
+      "name": "HungerG Free",
+      "variants": [
+        {
+          "provider": "opencode-go",
+          "model": "hungerg-free",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 1000000,
+          "media_in": [
+            "text",
+            "image",
+            "video"
+          ]
+        }
+      ]
+    },
     "hy3": {
       "id": "hy3",
       "name": "Hy3",
@@ -2190,6 +2290,18 @@
           "media_in": [
             "text"
           ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "jev-1.14",
+          "free": false,
+          "cost": 0.0315,
+          "input_cost": 0.042,
+          "output_cost": 0.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
         }
       ]
     },
@@ -2294,10 +2406,11 @@
           "cost": null,
           "input_cost": null,
           "output_cost": null,
-          "context": 1000000,
+          "context": 1048576,
           "media_in": [
             "text",
-            "image"
+            "image",
+            "video"
           ]
         }
       ]
@@ -2766,7 +2879,19 @@
           "cost": null,
           "input_cost": null,
           "output_cost": null,
-          "context": null,
+          "context": 32768,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "qwen3-embedding-8b",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 32768,
           "media_in": [
             "text"
           ]
@@ -2844,7 +2969,19 @@
           "cost": null,
           "input_cost": null,
           "output_cost": null,
-          "context": null,
+          "context": 8192,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
+          "provider": "opencode-go",
+          "model": "text-embedding-3-small",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": 8192,
           "media_in": [
             "text"
           ]
