@@ -77,10 +77,10 @@
         "deepseek-v4-1-flash",
         "grok-4-7",
         "flint-40b",
+        "kimi-k2-7-code",
         "mimo-v2-6-flash",
         "glm-5-3-flash",
-        "gpt-6-luna",
-        "kimi-k3-1-pro"
+        "gpt-6-luna"
       ],
       "model": "claude-haiku-5-5",
       "score": 91.4,
@@ -94,10 +94,10 @@
         "deepseek-v4-1-flash",
         "grok-4-7",
         "flint-40b",
+        "kimi-k2-7-code",
         "mimo-v2-6-flash",
         "glm-5-3-flash",
-        "gpt-6-luna",
-        "kimi-k3-1-pro"
+        "gpt-6-luna"
       ],
       "model": "claude-haiku-5-5",
       "score": 91.4,
@@ -145,10 +145,10 @@
         "deepseek-v4-1-flash",
         "grok-4-7",
         "flint-40b",
+        "kimi-k2-7-code",
         "mimo-v2-6-flash",
         "glm-5-3-flash",
-        "gpt-6-luna",
-        "kimi-k3-1-pro"
+        "gpt-6-luna"
       ],
       "model": "claude-haiku-5-5",
       "score": 91.4,
@@ -179,10 +179,10 @@
         "deepseek-v4-1-flash",
         "grok-4-7",
         "flint-40b",
+        "kimi-k2-7-code",
         "mimo-v2-6-flash",
         "glm-5-3-flash",
-        "gpt-6-luna",
-        "kimi-k3-1-pro"
+        "gpt-6-luna"
       ],
       "model": "claude-haiku-5-5",
       "score": 91.4,
