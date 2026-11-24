@@ -104,7 +104,7 @@ inputs:
     required: false
     default: "false"
   suggest-only:
-    description: Trial mode: resolve and log, never switch models.
+    description: "Trial mode: resolve and log, never switch models."
     required: false
     default: "false"
   announce:
@@ -136,7 +136,7 @@ inputs:
     required: false
     default: "2000"
   openchamber:
-    description: Host detection force: auto, on or off.
+    description: "Host detection force: auto, on or off."
     required: false
     default: auto
   auto-small-model:
