@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-25T05:52:49.626549+00:00",
+  "timestamp": "2026-11-25T10:12:51.112551+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -10,9 +10,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 95.1,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -109,9 +109,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 89.1,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -166,9 +166,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -752,9 +752,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 70.3,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -1043,9 +1043,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 95.1,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -1142,9 +1142,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 89.1,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -1199,9 +1199,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -1677,9 +1677,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 79.8,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -1832,9 +1832,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 69.2,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -1960,9 +1960,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 56.4,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -2330,9 +2330,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 85.7,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -2372,9 +2372,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 80.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -2612,9 +2612,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -2964,9 +2964,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 85.7,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -3006,9 +3006,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 80.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -3246,9 +3246,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -3687,9 +3687,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 70.3,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -3978,9 +3978,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 95.1,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -4077,9 +4077,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 89.1,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -4134,9 +4134,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -4631,9 +4631,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 85.7,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -4673,9 +4673,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 80.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -4913,9 +4913,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -5246,9 +5246,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 95.1,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -5345,9 +5345,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 89.1,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -5402,9 +5402,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -5899,9 +5899,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 85.7,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -5941,9 +5941,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 80.4,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -6181,9 +6181,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 53.6,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -6514,9 +6514,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 95.1,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -6613,9 +6613,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 89.1,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -6670,9 +6670,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -7148,9 +7148,9 @@
         {
           "model": "opencode-go/gemini-4-argon",
           "score": 95.1,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "blended_cost": 8.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "blended_cost": 4.0,
           "context": 1048576,
           "modalities": [
             "text",
@@ -7247,9 +7247,9 @@
         {
           "model": "opencode-go/deepseek-v4.1-flash",
           "score": 89.1,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
-          "blended_cost": 0.525,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
+          "blended_cost": 0.2625,
           "context": 1000000,
           "modalities": [
             "text",
@@ -7304,9 +7304,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 83.9,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -7890,9 +7890,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 70.3,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -8289,9 +8289,9 @@
         {
           "model": "opencode-go/deepseek-v4-pro",
           "score": 70.3,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
-          "blended_cost": 2.175,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
+          "blended_cost": 0.99,
           "context": 1000000,
           "modalities": [
             "text"
@@ -8577,18 +8577,14 @@
     "big-pickle": "chat",
     "mimo-v2.6-flash-free": "chat",
     "deepseek-v4.1-flash-free": "chat",
-    "jev-1.13": "systemone",
     "iceman-free": "chat",
     "beam-free": "chat",
     "flint-40b-free": "chat",
     "nemotron-3.5-super-vl-free": "chat",
     "jev-1.13-free": "systemone",
     "nemotron-3.5-lightning-free": "chat",
-    "gemini-decision-1": "systemone",
-    "gpt-6-luna-decision": "systemone",
     "hy4-flash-free": "chat",
     "tidepool-alpha-free": "chat",
-    "jev-1.14": "systemone",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.3": "chat",
@@ -8605,7 +8601,10 @@
     "qwen3.8-max": "chat",
     "qwen3.8-flash": "messages",
     "kimi-k3.1-pro": "chat",
-    "gemini-4-argon": "chat"
+    "gemini-4-argon": "chat",
+    "jev-1.14": "systemone",
+    "gemini-decision-1": "systemone",
+    "gpt-6-luna-decision": "systemone"
   },
   "endpoint_paths": {
     "opencode/big-pickle": "/inference/openai/v1",

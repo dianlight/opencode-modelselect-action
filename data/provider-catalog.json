@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-25T05:52:47.572657+00:00",
+  "timestamp": "2026-11-25T10:12:49.367316+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -936,9 +936,9 @@
       "name": "DeepSeek V4.1 Flash 1017",
       "class": "zen",
       "free": false,
-      "input_cost": 0.3,
-      "output_cost": 1.2,
-      "blended_cost": 0.525,
+      "input_cost": 0.15,
+      "output_cost": 0.6,
+      "blended_cost": 0.2625,
       "context": 1000000,
       "media_in": [
         "text",
@@ -981,9 +981,9 @@
       "name": "DeepSeek V4 Pro",
       "class": "zen",
       "free": false,
-      "input_cost": 1.74,
-      "output_cost": 3.48,
-      "blended_cost": 2.175,
+      "input_cost": 0.66,
+      "output_cost": 1.98,
+      "blended_cost": 0.99,
       "context": 1000000,
       "media_in": [
         "text"
@@ -1060,9 +1060,9 @@
       "name": "Gemini 3.6 Flash",
       "class": "zen",
       "free": false,
-      "input_cost": 1.5,
-      "output_cost": 7.5,
-      "blended_cost": 3.0,
+      "input_cost": 0.75,
+      "output_cost": 3.75,
+      "blended_cost": 1.5,
       "context": null,
       "media_in": [
         "text"
@@ -1078,9 +1078,9 @@
       "name": "Gemini 3.7 Flash",
       "class": "zen",
       "free": false,
-      "input_cost": 1.5,
-      "output_cost": 7.5,
-      "blended_cost": 3.0,
+      "input_cost": 0.75,
+      "output_cost": 3.75,
+      "blended_cost": 1.5,
       "context": null,
       "media_in": [
         "text"
@@ -1096,9 +1096,9 @@
       "name": "Gemini 3.8 Flash",
       "class": "zen",
       "free": false,
-      "input_cost": 1.5,
-      "output_cost": 7.5,
-      "blended_cost": 3.0,
+      "input_cost": 0.75,
+      "output_cost": 3.75,
+      "blended_cost": 1.5,
       "context": null,
       "media_in": [
         "text"
@@ -1114,9 +1114,9 @@
       "name": "Gemini 4 Argon",
       "class": "zen",
       "free": false,
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0,
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0,
       "context": 1048576,
       "media_in": [
         "text",
@@ -1142,9 +1142,9 @@
       "name": "Gemini 4 Carbon",
       "class": "zen",
       "free": false,
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0,
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0,
       "context": null,
       "media_in": [
         "text"
@@ -2326,9 +2326,9 @@
       "name": "Mistral Large 4",
       "class": "zen",
       "free": false,
-      "input_cost": 1.36,
-      "output_cost": 4.18,
-      "blended_cost": 2.065,
+      "input_cost": 0.68,
+      "output_cost": 2.09,
+      "blended_cost": 1.0325,
       "context": null,
       "media_in": [
         "text"
@@ -2708,9 +2708,9 @@
       "name": "DeepSeek V4.1 Flash 1017",
       "class": "go",
       "free": false,
-      "input_cost": 0.3,
-      "output_cost": 1.2,
-      "blended_cost": 0.525,
+      "input_cost": 0.15,
+      "output_cost": 0.6,
+      "blended_cost": 0.2625,
       "context": 1000000,
       "media_in": [
         "text",
@@ -2733,9 +2733,9 @@
       "name": "DeepSeek V4 Pro",
       "class": "go",
       "free": false,
-      "input_cost": 1.74,
-      "output_cost": 3.48,
-      "blended_cost": 2.175,
+      "input_cost": 0.66,
+      "output_cost": 1.98,
+      "blended_cost": 0.99,
       "context": 1000000,
       "media_in": [
         "text"
@@ -2757,9 +2757,9 @@
       "name": "Gemini 4 Argon",
       "class": "go",
       "free": false,
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0,
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0,
       "context": 1048576,
       "media_in": [
         "text",

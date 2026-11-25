@@ -29,6 +29,14 @@
   `autoPreference`; it reads the global config only.
 
 ### Fixed
+- Maintenance now uses the model-list APIs' native `cost.text.*.price` as the
+  authoritative price source instead of the docs pricing HTML. A docs cell
+  such as "$4.00 $2.00" shows the old and the discounted price together and
+  could win over the API's current rate (e.g. `gemini-4-argon` was recorded at
+  $4/$20 instead of $2/$10, `deepseek-v4.1-flash` at $0.30/$1.20 instead of
+  $0.15/$0.60). All Go models now carry a price in `data/go_models.json`, and
+  the per-plan `go.monthly_usage` dollar allowance stays in the registry. The
+  docs pages are still read for the endpoint table and as a gap-filler.
 - Maintenance now falls back to the catalog's native `cost.text.*.price` when
   a model has no row on the docs pricing page. Go-only models such as `hy4`,
   `hy3` and `qwen4-max` now carry real `$/1M` costs instead of being reported

@@ -1,40 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="sim" tests="37" failures="0" time="10.442">
-    <testcase classname="action" name="action/auto-both-exhausted-fails" time="2.587"></testcase>
-    <testcase classname="action" name="action/auto-falls-back-to-go" time="0.245"></testcase>
-    <testcase classname="action" name="action/auto-prefers-free" time="0.241"></testcase>
-    <testcase classname="action" name="action/auto-waits-for-quota" time="1.227"></testcase>
-    <testcase classname="action" name="action/config-url-unreachable" time="0.142"></testcase>
-    <testcase classname="action" name="action/fallback-model-used" time="0.224"></testcase>
-    <testcase classname="action" name="action/free-tier-case-insensitive" time="0.222"></testcase>
-    <testcase classname="action" name="action/go-tier" time="0.221"></testcase>
-    <testcase classname="action" name="action/invalid-tier-rejected" time="0.140"></testcase>
-    <testcase classname="action" name="action/max-cost-walks-ranked" time="0.224"></testcase>
-    <testcase classname="action" name="action/missing-task-type-fails-closed" time="0.218"></testcase>
-    <testcase classname="action-v2" name="action-v2/failure-propagates" time="0.189"></testcase>
-    <testcase classname="action-v2" name="action-v2/preselect-and-config" time="0.420"></testcase>
-    <testcase classname="plugin" name="plugin/announce-off-stays-quiet" time="0.238"></testcase>
-    <testcase classname="plugin" name="plugin/catalog-miss-retry" time="0.226"></testcase>
-    <testcase classname="plugin" name="plugin/explicit-model-failover" time="0.220"></testcase>
-    <testcase classname="plugin" name="plugin/fixed-task-type-pin" time="0.234"></testcase>
-    <testcase classname="plugin" name="plugin/http-request-stamps-pick" time="0.231"></testcase>
-    <testcase classname="plugin" name="plugin/routes-review-announce" time="0.231"></testcase>
-    <testcase classname="plugin" name="plugin/runtime-inventory-gate" time="0.219"></testcase>
-    <testcase classname="plugin" name="plugin/virtual-anchor-kept" time="0.234"></testcase>
-    <testcase classname="plugin" name="plugin/virtual-provider-registered" time="0.228"></testcase>
-    <testcase classname="service" name="service/chain-live-availability" time="0.155"></testcase>
-    <testcase classname="service" name="service/health-requires-token" time="0.133"></testcase>
-    <testcase classname="service" name="service/read-never-writes-routing" time="0.139"></testcase>
-    <testcase classname="service" name="service/status-ok" time="0.135"></testcase>
-    <testcase classname="service" name="service/tier-control-writes-managed" time="0.142"></testcase>
-    <testcase classname="panel" name="panel/render-from-managed" time="0.177"></testcase>
-    <testcase classname="panel" name="panel/save-history-chars" time="0.254"></testcase>
-    <testcase classname="pipeline" name="pipeline/benchmark-dry-run" time="0.569"></testcase>
-    <testcase classname="pipeline" name="pipeline/benchmark-no-key" time="0.064"></testcase>
-    <testcase classname="pipeline" name="pipeline/maintenance-coverage-issues" time="0.060"></testcase>
+<testsuite name="sim" tests="2" failures="0" time="0.117">
     <testcase classname="pipeline" name="pipeline/maintenance-go-native-cost" time="0.059"></testcase>
-    <testcase classname="pipeline" name="pipeline/maintenance-online-catalog" time="0.058"></testcase>
-    <testcase classname="pipeline" name="pipeline/maintenance-v2-full-ranking" time="0.064"></testcase>
-    <testcase classname="pipeline" name="pipeline/maintenance-zen-down" time="0.058"></testcase>
-    <testcase classname="fuzz" name="fuzz/routing-invariants" time="0.014"></testcase>
+    <testcase classname="pipeline" name="pipeline/maintenance-go-native-price-wins" time="0.058"></testcase>
 </testsuite>

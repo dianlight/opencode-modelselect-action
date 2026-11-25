@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-25T05:52:47.697239+00:00",
+  "timestamp": "2026-11-25T10:12:49.517825+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -502,9 +502,9 @@
           "provider": "opencode",
           "model": "deepseek-v4.1-flash",
           "free": false,
-          "cost": 0.525,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
+          "cost": 0.2625,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
           "context": 1000000,
           "media_in": [
             "text",
@@ -521,9 +521,9 @@
           "provider": "opencode-go",
           "model": "deepseek-v4.1-flash",
           "free": false,
-          "cost": 0.525,
-          "input_cost": 0.3,
-          "output_cost": 1.2,
+          "cost": 0.2625,
+          "input_cost": 0.15,
+          "output_cost": 0.6,
           "context": 1000000,
           "media_in": [
             "text",
@@ -546,9 +546,9 @@
           "provider": "opencode",
           "model": "deepseek-v4-pro",
           "free": false,
-          "cost": 2.175,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
+          "cost": 0.99,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
           "context": 1000000,
           "media_in": [
             "text"
@@ -564,9 +564,9 @@
           "provider": "opencode-go",
           "model": "deepseek-v4-pro",
           "free": false,
-          "cost": 2.175,
-          "input_cost": 1.74,
-          "output_cost": 3.48,
+          "cost": 0.99,
+          "input_cost": 0.66,
+          "output_cost": 1.98,
           "context": 1000000,
           "media_in": [
             "text"
@@ -825,6 +825,18 @@
       "name": "Gemini 3.6 Flash",
       "variants": [
         {
+          "provider": "opencode",
+          "model": "gemini-3.6-flash",
+          "free": false,
+          "cost": 1.5,
+          "input_cost": 0.75,
+          "output_cost": 3.75,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
           "provider": "google",
           "model": "gemini-3.6-flash",
           "free": false,
@@ -838,18 +850,6 @@
             "video",
             "audio",
             "pdf"
-          ]
-        },
-        {
-          "provider": "opencode",
-          "model": "gemini-3.6-flash",
-          "free": false,
-          "cost": 3.0,
-          "input_cost": 1.5,
-          "output_cost": 7.5,
-          "context": null,
-          "media_in": [
-            "text"
           ]
         }
       ]
@@ -859,6 +859,18 @@
       "name": "Gemini 3.7 Flash",
       "variants": [
         {
+          "provider": "opencode",
+          "model": "gemini-3.7-flash",
+          "free": false,
+          "cost": 1.5,
+          "input_cost": 0.75,
+          "output_cost": 3.75,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
           "provider": "google",
           "model": "gemini-3.7-flash",
           "free": false,
@@ -872,18 +884,6 @@
             "video",
             "audio",
             "pdf"
-          ]
-        },
-        {
-          "provider": "opencode",
-          "model": "gemini-3.7-flash",
-          "free": false,
-          "cost": 3.0,
-          "input_cost": 1.5,
-          "output_cost": 7.5,
-          "context": null,
-          "media_in": [
-            "text"
           ]
         }
       ]
@@ -893,6 +893,18 @@
       "name": "Gemini 3.8 Flash",
       "variants": [
         {
+          "provider": "opencode",
+          "model": "gemini-3.8-flash",
+          "free": false,
+          "cost": 1.5,
+          "input_cost": 0.75,
+          "output_cost": 3.75,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
+        {
           "provider": "google",
           "model": "gemini-3.8-flash",
           "free": false,
@@ -906,18 +918,6 @@
             "video",
             "audio",
             "pdf"
-          ]
-        },
-        {
-          "provider": "opencode",
-          "model": "gemini-3.8-flash",
-          "free": false,
-          "cost": 3.0,
-          "input_cost": 1.5,
-          "output_cost": 7.5,
-          "context": null,
-          "media_in": [
-            "text"
           ]
         }
       ]
@@ -950,28 +950,12 @@
       "name": "Gemini 4 Argon",
       "variants": [
         {
-          "provider": "google",
+          "provider": "opencode",
           "model": "gemini-4-argon",
           "free": false,
           "cost": 4.0,
           "input_cost": 2.0,
           "output_cost": 10.0,
-          "context": 1048576,
-          "media_in": [
-            "text",
-            "image",
-            "video",
-            "audio",
-            "pdf"
-          ]
-        },
-        {
-          "provider": "opencode",
-          "model": "gemini-4-argon",
-          "free": false,
-          "cost": 8.0,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
           "context": 1048576,
           "media_in": [
             "text",
@@ -991,9 +975,9 @@
           "provider": "opencode-go",
           "model": "gemini-4-argon",
           "free": false,
-          "cost": 8.0,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
           "context": 1048576,
           "media_in": [
             "text",
@@ -1008,6 +992,22 @@
             "go-plus": 120,
             "go-teams": 35
           }
+        },
+        {
+          "provider": "google",
+          "model": "gemini-4-argon",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": 1048576,
+          "media_in": [
+            "text",
+            "image",
+            "video",
+            "audio",
+            "pdf"
+          ]
         }
       ],
       "score": 80.5
@@ -1016,6 +1016,18 @@
       "id": "gemini-4-carbon",
       "name": "Gemini 4 Carbon",
       "variants": [
+        {
+          "provider": "opencode",
+          "model": "gemini-4-carbon",
+          "free": false,
+          "cost": 4.0,
+          "input_cost": 2.0,
+          "output_cost": 10.0,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        },
         {
           "provider": "google",
           "model": "gemini-4-carbon",
@@ -1030,18 +1042,6 @@
             "video",
             "audio",
             "pdf"
-          ]
-        },
-        {
-          "provider": "opencode",
-          "model": "gemini-4-carbon",
-          "free": false,
-          "cost": 8.0,
-          "input_cost": 4.0,
-          "output_cost": 20.0,
-          "context": null,
-          "media_in": [
-            "text"
           ]
         }
       ],
@@ -2860,9 +2860,9 @@
           "provider": "opencode",
           "model": "mistral-large-4",
           "free": false,
-          "cost": 2.065,
-          "input_cost": 1.36,
-          "output_cost": 4.18,
+          "cost": 1.0325,
+          "input_cost": 0.68,
+          "output_cost": 2.09,
           "context": null,
           "media_in": [
             "text"

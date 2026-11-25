@@ -26,15 +26,11 @@
   "missing_capabilities": [
     {
       "model": "gemini-decision-1",
-      "tier": "Free"
+      "tier": "Go (Paid)"
     },
     {
       "model": "gpt-6-luna-decision",
-      "tier": "Free"
-    },
-    {
-      "model": "jev-1.13",
-      "tier": "Free"
+      "tier": "Go (Paid)"
     },
     {
       "model": "jev-1.13-free",
@@ -42,7 +38,7 @@
     },
     {
       "model": "jev-1.14",
-      "tier": "Free"
+      "tier": "Go (Paid)"
     }
   ],
   "fallback_mismatch": []

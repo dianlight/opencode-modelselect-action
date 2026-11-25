@@ -209,6 +209,42 @@ class PriceLookupTest(unittest.TestCase):
         self.assertEqual(lookup["hungerg-free"], {"input": 0.0, "output": 0.0})
 
 
+class NativePricingTest(unittest.TestCase):
+    def test_native_pricing_from_catalog_cost(self):
+        row = m._native_pricing({"cost": {"text": {
+            "input": {"price": 2.0, "cache": {"read": 0.1}},
+            "output": {"price": 10.0},
+        }}})
+        self.assertEqual(row["input"], "$2.0")
+        self.assertEqual(row["output"], "$10.0")
+        self.assertEqual(row["cached_read"], "$0.1")
+        self.assertFalse(row["free"])
+        self.assertEqual(row["source"], "native-cost")
+
+    def test_native_pricing_zero_cost_is_free(self):
+        row = m._native_pricing({"cost": {"text": {
+            "input": {"price": 0}, "output": {"price": 0},
+        }}})
+        self.assertTrue(row["free"])
+        self.assertEqual(row["input"], "Free")
+        self.assertEqual(row["output"], "Free")
+        self.assertEqual(m._parse_price_value(row["input"]), 0.0)
+
+    def test_native_pricing_missing_cost_is_none(self):
+        self.assertIsNone(m._native_pricing({}))
+        self.assertIsNone(m._native_pricing({"cost": {}}))
+
+    def test_native_pricing_ignores_future_multipliers(self):
+        # The API publishes the current rate; a later multiplier doubles it.
+        # The docs cell shows both "$4.00 $2.00" — the native value must win.
+        row = m._native_pricing({"cost": {
+            "text": {"input": {"price": 2}, "output": {"price": 10}},
+            "multipliers": [{"when": {"date": {"gte": "2026-12-01"}}, "factor": 2}],
+        }})
+        self.assertEqual(m._parse_price_value(row["input"]), 2.0)
+        self.assertEqual(m._parse_price_value(row["output"]), 10.0)
+
+
 class ModelLimitTest(unittest.TestCase):
     def test_native_limits_and_go_allowance(self):
         info = m._model_limit_fields({

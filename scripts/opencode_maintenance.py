@@ -86,15 +86,20 @@ _THINK_LEVELS = ("default", "minimal", "low", "medium", "high", "xhigh")
 # --- Constants ---
 ZEN_URL = "https://opencode.ai/zen/v1/models"
 GO_URL = "https://opencode.ai/zen/go/v1/models"
-# Zen docs pricing page: the #pricing anchor is client-side, so the page itself
-# is fetched and its pricing table parsed for per-model prices. The docs also
-# list models published as "Free" that do NOT carry the `-free` suffix
-# (e.g. `big-pickle`); those must be treated as usable free models.
+# Zen docs pricing page: the #pricing anchor is client-side, so the page is
+# fetched for its endpoint table and as a price gap-filler (native API cost
+# wins). The docs also list models published as "Free" that do NOT carry the
+# `-free` suffix (e.g. `big-pickle`); those must be treated as usable free
+# models.
 ZEN_PRICING_URL = "https://opencode.ai/docs/it/zen#pricing"
-# Go docs page carries the paid Go-tier prices (e.g. `muse-spark-1.3-contributor`
-# at $0.10/$0.20) that have no row on the Zen pricing page. Same table shape
-# plus an extra trailing "Usage" column.
+# Go docs page: same table shape plus a trailing "Usage" column. Still read
+# for endpoints and as a gap-filler, but the Go model-list API is the price
+# and monthly-limit source of truth.
 GO_PRICING_URL = "https://opencode.ai/docs/go"
+# The model-list JSON APIs are the authoritative price + limit source. The
+# docs pages are still read for the endpoint table (wire protocol) and as a
+# gap-filler when a native price is missing.
+PRICING_SOURCE = f"{ZEN_URL} + {GO_URL} (native cost.text); {ZEN_PRICING_URL} / {GO_PRICING_URL} (gap-fill)"
 # models.dev registry: per-model context window (`limit.context`) and input
 # modalities (`modalities.input`). Fills capability gaps the curated table
 # does not cover; fail-soft (curated-only) when unreachable.
@@ -1323,36 +1328,51 @@ def _task_ranked(
 def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Fetch Zen (free) and Go (paid) model catalogs.
 
-    Prices are fetched from the Zen docs pricing page and the Go docs pricing
-    page (which covers Go-only ids like `muse-spark-1.3-contributor`) and
-    attached to each model. The usable free list is the union of
-    `-free`-suffixed models and any model either pricing page publishes as
-    "Free" (e.g. `big-pickle`, which has no `-free` suffix).
+    Prices come from the model-list JSON APIs' native
+    `cost.text.{input,output}.price` — the authoritative, current rate for
+    both Zen and Go. The Go API also carries `go.monthly_usage` per plan,
+    read by `_model_limit_fields`. The docs pricing HTML is used only for the
+    endpoint table (wire protocol) and to fill a price the API omits; a docs
+    cell like "$4.00 $2.00" shows old and discounted prices together and is
+    no longer allowed to override the API's current value.
+
+    The usable free list is the union of `-free`-suffixed ids and any model
+    published as "Free" by the native cost or the docs pricing page (e.g.
+    `big-pickle`, which has no `-free` suffix).
     """
     print("-> Fetching OpenCode model catalogs...")
 
-    # Fetch Zen models (all)
     zen_data = fetch_json(ZEN_URL)
     if not zen_data:
         print("  x Failed to fetch Zen models")
         return [], []
-
     all_zen = zen_data.get("data", [])
 
-    # Fetch prices + endpoints from the Zen + Go docs pricing pages and
-    # attach them. Go-only ids (e.g. `muse-spark-1.3-contributor`) have no
-    # Zen row.
-    zen_fetched = fetch_zen_pricing()
+    go_data = fetch_json(GO_URL)
+    go_models = go_data.get("data", []) if go_data else []
+    if not go_data:
+        print("  x Failed to fetch Go models")
+
+    # Native API prices are authoritative: every catalog row carries
+    # cost.text.*.price, including Go-only ids that have no docs table row
+    # (e.g. `muse-spark-1.2-contributor`).
     pricing: dict[str, dict[str, Any]] = {}
-    go_pricing: dict[str, dict[str, Any]] = {}
+    for m in all_zen + go_models:
+        native = _native_pricing(m)
+        if native:
+            pricing[m["id"]] = native
+
+    # Docs pages: endpoint table (wire protocol) + gap-filler prices. When a
+    # page is unreachable, reuse the last run's values so the saved catalog
+    # stays populated.
+    zen_fetched = fetch_zen_pricing()
     endpoints: dict[str, str] = {}
+    doc_pricing: dict[str, dict[str, Any]] = {}
+    go_doc_pricing: dict[str, dict[str, Any]] = {}
     go_endpoints: dict[str, str] = {}
     if zen_fetched is None:
-        # Reuse prices/endpoints from the last successful run so
-        # zen_models.json stays populated even while the docs page is
-        # unreachable.
         prev = load_json(ZEN_MODELS_PATH) if ZEN_MODELS_PATH.exists() else {}
-        pricing = {
+        doc_pricing = {
             m["id"]: m["pricing"]
             for m in prev.get("all", [])
             if m.get("pricing")
@@ -1362,13 +1382,13 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
             for m in prev.get("all", [])
             if m.get("endpoint")
         }
-        print("  w Zen pricing: reusing previously fetched prices")
+        print("  w Zen pricing: reusing previously fetched prices/endpoints")
     else:
-        pricing, endpoints = zen_fetched
+        doc_pricing, endpoints = zen_fetched
         fetched_go = fetch_go_pricing()
         if fetched_go is None:
             prev_go = load_json(GO_MODELS_PATH) if GO_MODELS_PATH.exists() else {}
-            go_pricing = {
+            go_doc_pricing = {
                 m["id"]: m["pricing"]
                 for m in prev_go.get("data", [])
                 if m.get("pricing")
@@ -1378,19 +1398,21 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
                 for m in prev_go.get("data", [])
                 if m.get("endpoint")
             }
-            if go_pricing:
+            if go_doc_pricing:
                 print("  w Go pricing: reusing previously fetched prices")
         else:
-            go_pricing, go_endpoints = fetched_go
-        # Zen wins on conflicts; Go fills Go-only ids. The shared dict
-        # stays Zen-first for the Zen loop below; the Go loop prefers
-        # go_endpoints explicitly (same bare id may be published on a
-        # different path per provider, e.g. Gemini is `/inference/google`
-        # on Zen but `/inference/go/google` on Go).
-        for gid, ginfo in go_pricing.items():
-            pricing.setdefault(gid, ginfo)
-        for gid, gurl in go_endpoints.items():
-            endpoints.setdefault(gid, gurl)
+            go_doc_pricing, go_endpoints = fetched_go
+
+    # Native wins; the docs only fill ids the API did not price. The Go
+    # endpoint table takes precedence for shared bare ids (e.g. Gemini is
+    # `/inference/google` on Zen but `/inference/go/google` on Go).
+    for mid, info in doc_pricing.items():
+        pricing.setdefault(mid, info)
+    for mid, info in go_doc_pricing.items():
+        pricing.setdefault(mid, info)
+    for mid, url in go_endpoints.items():
+        endpoints.setdefault(mid, url)
+
     free_by_pricing: set[str] = set()
     for m in all_zen:
         info = pricing.get(m["id"])
@@ -1408,32 +1430,25 @@ def fetch_opencode_models() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]
     ]
     save_json(
         ZEN_MODELS_PATH,
-        {"all": all_zen, "free": free_models, "pricing_source": ZEN_PRICING_URL},
+        {"all": all_zen, "free": free_models, "pricing_source": PRICING_SOURCE},
     )
     print(
         f"  v Zen: {len(all_zen)} total, {len(free_models)} free "
-        + f"({len(free_by_pricing)} via pricing page)"
+        + f"({len(free_by_pricing)} via pricing)"
     )
 
-    # Fetch Go models (paid)
-    go_data = fetch_json(GO_URL)
-    if not go_data:
-        print("  x Failed to fetch Go models")
-        go_models = []
-    else:
-        go_models = go_data.get("data", [])
-        for m in go_models:
-            info = pricing.get(m["id"]) or go_pricing.get(m["id"])
-            if info:
-                m["pricing"] = info
-            endpoint = _endpoint_url_for(go_endpoints, m["id"]) or _endpoint_url_for(endpoints, m["id"])
-            if endpoint:
-                m["endpoint"] = endpoint
-        save_json(
-            GO_MODELS_PATH,
-            {"data": go_models, "pricing_source": GO_PRICING_URL},
-        )
-        print(f"  v Go: {len(go_models)} paid models")
+    for m in go_models:
+        info = pricing.get(m["id"])
+        if info:
+            m["pricing"] = info
+        endpoint = _endpoint_url_for(go_endpoints, m["id"]) or _endpoint_url_for(endpoints, m["id"])
+        if endpoint:
+            m["endpoint"] = endpoint
+    save_json(
+        GO_MODELS_PATH,
+        {"data": go_models, "pricing_source": PRICING_SOURCE},
+    )
+    print(f"  v Go: {len(go_models)} models")
 
     return free_models, go_models
 
@@ -2372,11 +2387,11 @@ def _parse_price_value(cell: Any) -> float | None:
 def _native_cost_prices(model: dict[str, Any]) -> dict[str, float | None]:
     """Read `$/1M` legs from a catalog model's native `cost` object.
 
-    Every Zen/Go catalog row carries `cost.text.{input,output}.price`, but
-    only some ids have a row on the docs pricing page. The native price is
-    the base (undiscounted) rate; `cost.multipliers` describe temporary
-    discounts and are deliberately ignored, as is the second (discounted)
-    price in a docs cell such as "$0.30 $0.12".
+    Every Zen/Go catalog row carries `cost.text.{input,output}.price` — the
+    current rate published by the API, which is now the primary price source.
+    `cost.multipliers` describe future/conditional changes and are
+    deliberately ignored, as is the second price in a docs cell such as
+    "$4.00 $2.00".
     """
     cost = model.get("cost")
     text = cost.get("text") if isinstance(cost, dict) else None
@@ -2387,6 +2402,45 @@ def _native_cost_prices(model: dict[str, Any]) -> dict[str, float | None]:
         leg = text.get(side)
         out[side] = _to_float(leg.get("price")) if isinstance(leg, dict) else None
     return out
+
+
+def _native_pricing(model: dict[str, Any]) -> dict[str, Any] | None:
+    """Build a pricing row from a catalog model's native `cost` object.
+
+    Both model-list APIs (`/zen/v1/models` and `/zen/go/v1/models`) publish
+    `cost.text.{input,output}.price` in $/1M for every model, including Go
+    ids with no row on the docs pricing page (e.g.
+    `muse-spark-1.2-contributor`). This is the current, authoritative rate:
+    a docs cell like "$4.00 $2.00" shows the old and the discounted price
+    together, and reading its first value produced stale costs (e.g.
+    gemini-4-argon at $4/$20 instead of the API's $2/$10). `cost.multipliers`
+    describe future/conditional changes and stay out of the base rate, as in
+    `_native_cost_prices`. Returns None when neither leg is published.
+    """
+    prices = _native_cost_prices(model)
+    if prices["input"] is None and prices["output"] is None:
+        return None
+
+    def money(value: float | None) -> str | None:
+        if value is None:
+            return None
+        return "Free" if value == 0.0 else f"${value}"
+
+    cached_read = None
+    cost = model.get("cost")
+    text = cost.get("text") if isinstance(cost, dict) else None
+    if isinstance(text, dict) and isinstance(text.get("input"), dict):
+        cache = text["input"].get("cache")
+        if isinstance(cache, dict):
+            cached_read = money(_to_float(cache.get("read")))
+    return {
+        "input": money(prices["input"]),
+        "output": money(prices["output"]),
+        "cached_read": cached_read,
+        "cached_write": None,
+        "free": prices["input"] == 0.0 and prices["output"] == 0.0,
+        "source": "native-cost",
+    }
 
 
 def _model_limit_fields(model: dict[str, Any]) -> dict[str, Any]:
@@ -2482,8 +2536,11 @@ def _lookup_price(
 ) -> tuple[float | None, float | None]:
     """Return (input $/1M, output $/1M) for a model id, or (None, None).
 
-    Fallback chain: exact id -> normalised (prefix/`-free` stripped) ->
-    canonical base (`-contributor`/`-unlimited`/effort/`-<N>x`/date stripped).
+    The `pricing` dict is populated from the native API `cost.text.*.price`
+    by `fetch_opencode_models`, so the "docs pricing wins" parse below only
+    applies to a gap-filled row. Fallback chain: exact id -> normalised
+    (prefix/`-free` stripped) -> canonical base
+    (`-contributor`/`-unlimited`/effort/`-<N>x`/date stripped).
     A `-<N>x` scale variant with no own row inherits the base price scaled by
     N (e.g. `foo-2x` costs 2x `foo`).
     """

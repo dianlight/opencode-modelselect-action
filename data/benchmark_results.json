@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-25T05:52:47.240888+00:00",
+  "timestamp": "2026-11-25T10:14:58.737847+00:00",
   "livebench_snapshot": "2026-11-06",
   "livebench_source": "https://livebench.ai/data/20261106/table.csv",
   "livebench_v1_snapshot": "2026_06_25",
@@ -137,9 +137,9 @@
       "model": "gemini-4-argon",
       "score": 95.1,
       "subscore": "reasoning",
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0
     },
     "issue-triage": {
       "model": "gpt-5.6-luna",
@@ -153,17 +153,17 @@
       "model": "gemini-4-argon",
       "score": 95.1,
       "subscore": "reasoning",
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0
     },
     "ui-design": {
       "model": "deepseek-v4.1-flash",
       "score": 79.8,
       "subscore": "vision",
-      "input_cost": 0.3,
-      "output_cost": 1.2,
-      "blended_cost": 0.525
+      "input_cost": 0.15,
+      "output_cost": 0.6,
+      "blended_cost": 0.2625
     },
     "ui-testing": {
       "model": "claude-haiku-5-5",
@@ -193,9 +193,9 @@
       "model": "gemini-4-argon",
       "score": 95.1,
       "subscore": "reasoning",
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0
     },
     "refactor": {
       "model": "claude-haiku-5-5",
@@ -209,9 +209,9 @@
       "model": "gemini-4-argon",
       "score": 95.1,
       "subscore": "reasoning",
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0
     },
     "code": {
       "model": "claude-haiku-5-5",
@@ -225,17 +225,17 @@
       "model": "gemini-4-argon",
       "score": 95.1,
       "subscore": "reasoning",
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0
     },
     "web-search": {
       "model": "gemini-4-argon",
       "score": 95.1,
       "subscore": "reasoning",
-      "input_cost": 4.0,
-      "output_cost": 20.0,
-      "blended_cost": 8.0
+      "input_cost": 2.0,
+      "output_cost": 10.0,
+      "blended_cost": 4.0
     },
     "generic": {
       "model": "gpt-5.6-luna",
@@ -270,10 +270,10 @@
         "model": "gemini-4-argon",
         "score": 95.1,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.89,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 23.77,
         "rank": 2
       },
       {
@@ -420,10 +420,10 @@
         "model": "gemini-4-carbon",
         "score": 90.6,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.32,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.65,
         "rank": 17
       },
       {
@@ -470,10 +470,10 @@
         "model": "gemini-3.8-flash",
         "score": 89.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 29.77,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 59.53,
         "rank": 22
       },
       {
@@ -490,10 +490,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 89.1,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 169.71,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 339.43,
         "rank": 24
       },
       {
@@ -590,20 +590,20 @@
         "model": "deepseek-v4-pro",
         "score": 83.9,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 38.57,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 84.75,
         "rank": 34
       },
       {
         "model": "mistral-large-4",
         "score": 83.9,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 40.63,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 81.26,
         "rank": 35
       },
       {
@@ -1232,10 +1232,10 @@
         "model": "deepseek-v4-pro",
         "score": 70.3,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 32.32,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 71.01,
         "rank": 21
       },
       {
@@ -1574,10 +1574,10 @@
         "model": "gemini-4-argon",
         "score": 95.1,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.89,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 23.77,
         "rank": 2
       },
       {
@@ -1724,10 +1724,10 @@
         "model": "gemini-4-carbon",
         "score": 90.6,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.32,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.65,
         "rank": 17
       },
       {
@@ -1774,10 +1774,10 @@
         "model": "gemini-3.8-flash",
         "score": 89.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 29.77,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 59.53,
         "rank": 22
       },
       {
@@ -1794,10 +1794,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 89.1,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 169.71,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 339.43,
         "rank": 24
       },
       {
@@ -1894,20 +1894,20 @@
         "model": "deepseek-v4-pro",
         "score": 83.9,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 38.57,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 84.75,
         "rank": 34
       },
       {
         "model": "mistral-large-4",
         "score": 83.9,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 40.63,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 81.26,
         "rank": 35
       },
       {
@@ -2366,10 +2366,10 @@
         "model": "gemini-4-carbon",
         "score": 80.2,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 10.03,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 20.05,
         "rank": 4
       },
       {
@@ -2406,10 +2406,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 79.8,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 152.0,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 304.0,
         "rank": 8
       },
       {
@@ -2576,20 +2576,20 @@
         "model": "gemini-3.8-flash",
         "score": 69.7,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 23.23,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 46.47,
         "rank": 25
       },
       {
         "model": "gemini-4-argon",
         "score": 69.2,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 8.65,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 17.3,
         "rank": 26
       },
       {
@@ -2666,10 +2666,10 @@
         "model": "mistral-large-4",
         "score": 60.7,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 29.39,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 58.79,
         "rank": 34
       },
       {
@@ -2816,10 +2816,10 @@
         "model": "deepseek-v4-pro",
         "score": 56.4,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 25.93,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 56.97,
         "rank": 49
       },
       {
@@ -3128,10 +3128,10 @@
         "model": "gemini-4-carbon",
         "score": 91.0,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.38,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.75,
         "rank": 3
       },
       {
@@ -3168,10 +3168,10 @@
         "model": "gemini-4-argon",
         "score": 85.7,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 10.71,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 21.43,
         "rank": 7
       },
       {
@@ -3228,10 +3228,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 80.4,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 153.14,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 306.29,
         "rank": 13
       },
       {
@@ -3268,10 +3268,10 @@
         "model": "gemini-3.8-flash",
         "score": 73.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 24.43,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 48.87,
         "rank": 17
       },
       {
@@ -3688,10 +3688,10 @@
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 24.64,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 54.14,
         "rank": 59
       },
       {
@@ -3778,10 +3778,10 @@
         "model": "mistral-large-4",
         "score": 44.4,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 21.5,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 43.0,
         "rank": 68
       },
       {
@@ -3900,10 +3900,10 @@
         "model": "gemini-4-carbon",
         "score": 91.0,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.38,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.75,
         "rank": 3
       },
       {
@@ -3940,10 +3940,10 @@
         "model": "gemini-4-argon",
         "score": 85.7,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 10.71,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 21.43,
         "rank": 7
       },
       {
@@ -4000,10 +4000,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 80.4,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 153.14,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 306.29,
         "rank": 13
       },
       {
@@ -4040,10 +4040,10 @@
         "model": "gemini-3.8-flash",
         "score": 73.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 24.43,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 48.87,
         "rank": 17
       },
       {
@@ -4460,10 +4460,10 @@
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 24.64,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 54.14,
         "rank": 59
       },
       {
@@ -4550,10 +4550,10 @@
         "model": "mistral-large-4",
         "score": 44.4,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 21.5,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 43.0,
         "rank": 68
       },
       {
@@ -4852,10 +4852,10 @@
         "model": "deepseek-v4-pro",
         "score": 70.3,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 32.32,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 71.01,
         "rank": 21
       },
       {
@@ -5194,10 +5194,10 @@
         "model": "gemini-4-argon",
         "score": 95.1,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.89,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 23.77,
         "rank": 2
       },
       {
@@ -5344,10 +5344,10 @@
         "model": "gemini-4-carbon",
         "score": 90.6,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.32,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.65,
         "rank": 17
       },
       {
@@ -5394,10 +5394,10 @@
         "model": "gemini-3.8-flash",
         "score": 89.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 29.77,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 59.53,
         "rank": 22
       },
       {
@@ -5414,10 +5414,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 89.1,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 169.71,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 339.43,
         "rank": 24
       },
       {
@@ -5514,20 +5514,20 @@
         "model": "deepseek-v4-pro",
         "score": 83.9,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 38.57,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 84.75,
         "rank": 34
       },
       {
         "model": "mistral-large-4",
         "score": 83.9,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 40.63,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 81.26,
         "rank": 35
       },
       {
@@ -5976,10 +5976,10 @@
         "model": "gemini-4-carbon",
         "score": 91.0,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.38,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.75,
         "rank": 3
       },
       {
@@ -6016,10 +6016,10 @@
         "model": "gemini-4-argon",
         "score": 85.7,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 10.71,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 21.43,
         "rank": 7
       },
       {
@@ -6076,10 +6076,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 80.4,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 153.14,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 306.29,
         "rank": 13
       },
       {
@@ -6116,10 +6116,10 @@
         "model": "gemini-3.8-flash",
         "score": 73.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 24.43,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 48.87,
         "rank": 17
       },
       {
@@ -6536,10 +6536,10 @@
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 24.64,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 54.14,
         "rank": 59
       },
       {
@@ -6626,10 +6626,10 @@
         "model": "mistral-large-4",
         "score": 44.4,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 21.5,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 43.0,
         "rank": 68
       },
       {
@@ -6738,10 +6738,10 @@
         "model": "gemini-4-argon",
         "score": 95.1,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.89,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 23.77,
         "rank": 2
       },
       {
@@ -6888,10 +6888,10 @@
         "model": "gemini-4-carbon",
         "score": 90.6,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.32,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.65,
         "rank": 17
       },
       {
@@ -6938,10 +6938,10 @@
         "model": "gemini-3.8-flash",
         "score": 89.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 29.77,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 59.53,
         "rank": 22
       },
       {
@@ -6958,10 +6958,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 89.1,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 169.71,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 339.43,
         "rank": 24
       },
       {
@@ -7058,20 +7058,20 @@
         "model": "deepseek-v4-pro",
         "score": 83.9,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 38.57,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 84.75,
         "rank": 34
       },
       {
         "model": "mistral-large-4",
         "score": 83.9,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 40.63,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 81.26,
         "rank": 35
       },
       {
@@ -7520,10 +7520,10 @@
         "model": "gemini-4-carbon",
         "score": 91.0,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.38,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.75,
         "rank": 3
       },
       {
@@ -7560,10 +7560,10 @@
         "model": "gemini-4-argon",
         "score": 85.7,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 10.71,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 21.43,
         "rank": 7
       },
       {
@@ -7620,10 +7620,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 80.4,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 153.14,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 306.29,
         "rank": 13
       },
       {
@@ -7660,10 +7660,10 @@
         "model": "gemini-3.8-flash",
         "score": 73.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 24.43,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 48.87,
         "rank": 17
       },
       {
@@ -8080,10 +8080,10 @@
         "model": "deepseek-v4-pro",
         "score": 53.6,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 24.64,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 54.14,
         "rank": 59
       },
       {
@@ -8170,10 +8170,10 @@
         "model": "mistral-large-4",
         "score": 44.4,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 21.5,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 43.0,
         "rank": 68
       },
       {
@@ -8282,10 +8282,10 @@
         "model": "gemini-4-argon",
         "score": 95.1,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.89,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 23.77,
         "rank": 2
       },
       {
@@ -8432,10 +8432,10 @@
         "model": "gemini-4-carbon",
         "score": 90.6,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.32,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.65,
         "rank": 17
       },
       {
@@ -8482,10 +8482,10 @@
         "model": "gemini-3.8-flash",
         "score": 89.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 29.77,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 59.53,
         "rank": 22
       },
       {
@@ -8502,10 +8502,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 89.1,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 169.71,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 339.43,
         "rank": 24
       },
       {
@@ -8602,20 +8602,20 @@
         "model": "deepseek-v4-pro",
         "score": 83.9,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 38.57,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 84.75,
         "rank": 34
       },
       {
         "model": "mistral-large-4",
         "score": 83.9,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 40.63,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 81.26,
         "rank": 35
       },
       {
@@ -9054,10 +9054,10 @@
         "model": "gemini-4-argon",
         "score": 95.1,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.89,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 23.77,
         "rank": 2
       },
       {
@@ -9204,10 +9204,10 @@
         "model": "gemini-4-carbon",
         "score": 90.6,
         "source": "livebench-v2",
-        "input_cost": 4.0,
-        "output_cost": 20.0,
-        "blended_cost": 8.0,
-        "value": 11.32,
+        "input_cost": 2.0,
+        "output_cost": 10.0,
+        "blended_cost": 4.0,
+        "value": 22.65,
         "rank": 17
       },
       {
@@ -9254,10 +9254,10 @@
         "model": "gemini-3.8-flash",
         "score": 89.3,
         "source": "livebench-v2",
-        "input_cost": 1.5,
-        "output_cost": 7.5,
-        "blended_cost": 3.0,
-        "value": 29.77,
+        "input_cost": 0.75,
+        "output_cost": 3.75,
+        "blended_cost": 1.5,
+        "value": 59.53,
         "rank": 22
       },
       {
@@ -9274,10 +9274,10 @@
         "model": "deepseek-v4.1-flash",
         "score": 89.1,
         "source": "livebench-v2",
-        "input_cost": 0.3,
-        "output_cost": 1.2,
-        "blended_cost": 0.525,
-        "value": 169.71,
+        "input_cost": 0.15,
+        "output_cost": 0.6,
+        "blended_cost": 0.2625,
+        "value": 339.43,
         "rank": 24
       },
       {
@@ -9374,20 +9374,20 @@
         "model": "deepseek-v4-pro",
         "score": 83.9,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 38.57,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 84.75,
         "rank": 34
       },
       {
         "model": "mistral-large-4",
         "score": 83.9,
         "source": "livebench-v2",
-        "input_cost": 1.36,
-        "output_cost": 4.18,
-        "blended_cost": 2.065,
-        "value": 40.63,
+        "input_cost": 0.68,
+        "output_cost": 2.09,
+        "blended_cost": 1.0325,
+        "value": 81.26,
         "rank": 35
       },
       {
@@ -10016,10 +10016,10 @@
         "model": "deepseek-v4-pro",
         "score": 70.3,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 32.32,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 71.01,
         "rank": 21
       },
       {
@@ -10548,10 +10548,10 @@
         "model": "deepseek-v4-pro",
         "score": 70.3,
         "source": "livebench",
-        "input_cost": 1.74,
-        "output_cost": 3.48,
-        "blended_cost": 2.175,
-        "value": 32.32,
+        "input_cost": 0.66,
+        "output_cost": 1.98,
+        "blended_cost": 0.99,
+        "value": 71.01,
         "rank": 21
       },
       {
