@@ -2,28 +2,32 @@
 
 ## Why
 
-OpenCode 2.4.0 introduces a formal Automations system: agents can schedule prompts,
-scripts or shell commands on a timer, cron schedule or when an MCP server sends an
-event. The modelselect extension currently implements its own polling loop
-(`modelselect-automation-schedule`) and timer-based waits
-(`modelselect-quota-wait`, `2026-11-24-script-waits-for-modelselect`), which cost
-model turns and lag behind events. The host now drives these checks natively.
+OpenCode 2.4.0 introduces a formal Automations system, and the
+`modelselect-automation-schedule` change has now moved routing refresh and the
+quota probe off the extension's own clock: the service accepts host-driven
+`POST /schedule` wakes, and the `setInterval` loop and `keepRunning` are gone.
+What is missing is a recorded verdict that the extension still behaves the same
+on this host-driven path.
 
 ## What Changes
 
-- Adopt OpenCode 2.4.0 Automations for the scheduled routing sync and quota probe,
-  replacing the extension's `setInterval` and `keepRunning` polling.
-- Set `"automations": false` in opencode.json to disable the host automations when
-  the user prefers the extension's own timers.
-- Update the extension to stop its `setInterval`-based maintain loop when the host
-  provides automations.
-- Verify behavior parity between the extension's polling and host automations.
+- Verify the host-driven `routing-refresh` and `quota-probe` wakes against the
+  SDK schedule contract on the OpenCode 2.4.0 / OpenChamber `>=2.8.0` profile.
+- Verify parity with the retired polling behavior: the 30 s per-project
+  throttle, the immediate refresh on a router-switch toggle, and a wake with no
+  open project.
+- Document that host automations are now the only scheduler: setting
+  `"automations": false` in `opencode.json` disables scheduled refresh and
+  leaves no extension-side timer to fall back to.
+- Record the compatibility verdict in the extension README.
 
 ## Out of Scope
 
-- Migrating existing automation files from the extension's polling system.
-- Changes to routing or quota logic themselves.
-- Adding new automation sources beyond OpenCode's built-in three (timer, cron, MCP event).
+- Reintroducing the `setInterval` loop, `keepRunning`, or any extension-side
+  fallback timer.
+- Migrating existing automation files or adding automation sources beyond the
+  host's three built-ins (timer, cron, MCP event).
+- Changing routing or quota computation.
 
 ## Minimum OpenChamber SDK version
 
@@ -34,17 +38,20 @@ model turns and lag behind events. The host now drives these checks natively.
 
 ### New Capabilities
 
-- `opencode-automations-compat`: adopts the host Automations system instead of extension polling.
+- `opencode-automations-compat`: records that host automations replace extension polling.
 
 ### Modified Capabilities
 
-- `modelselect-automation-schedule`: routing sync and quota probe move to host automations.
+- `modelselect-automation-schedule`: verified against OpenCode 2.4.0; no polling fallback remains.
 
 ## Impact
 
-- `openchamber-modelselect/service/src/main.js` — remove the `setInterval` maintain loop.
-- Tests under `openchamber-modelselect/test/`.
+- `openchamber-modelselect/README.md` — document the host-automations-only scheduler.
+- Tests and sim scenarios under `openchamber-modelselect/test/` and
+  `sim/scenarios/service/`.
 
 ## Safe to Revert
 
-Set `"automations": false` in opencode.json to fall back to the extension's timers.
+There is no extension-side rollback switch. Disabling host automations stops
+scheduled refresh entirely; restoring polling means reverting
+`modelselect-automation-schedule`.

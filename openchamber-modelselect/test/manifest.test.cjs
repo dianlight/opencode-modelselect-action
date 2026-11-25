@@ -43,7 +43,11 @@ describe('extension manifest', () => {
     assert.equal(contributes.statusSection.requiresProject, true);
     assert.equal(contributes.service.entry, 'service/main.js');
     assert.equal(contributes.service.runtime, 'host');
-    assert.equal(contributes.service.keepRunning, true, 'the router sync and session map run on a timer');
+    assert.equal(contributes.service.keepRunning, undefined, 'host wakes replace the refresh timer');
+    assert.deepEqual(contributes.service.schedule, [
+      { id: 'routing-refresh', cron: '*/1 * * * *' },
+      { id: 'quota-probe', cron: '*/5 * * * *' },
+    ], 'host wakes replace the refresh timer');
     assert.deepEqual(contributes.service.provides, ['quota'], 'quota provider role');
     assert.deepEqual(contributes.quota, { providers: [] });
     assert.equal(contributes.capabilities, undefined, 'no file grants: the service owns I/O');
@@ -92,5 +96,24 @@ describe('extension manifest', () => {
     const contributes = pkg.openchamber.contributes;
     assert.equal(contributes.capabilities, undefined);
     assert.equal(contributes.filesystem, undefined);
+  });
+
+  it('starts no always-on refresh timer', () => {
+    for (const rel of ['service/src/main.js', 'service/main.js']) {
+      const source = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+      assert.ok(!/setInterval\s*\(/.test(source), rel + ' still starts a refresh interval');
+    }
+  });
+
+  it('documents the declared schedule entries', () => {
+    const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+    const pkg = JSON.parse(fs.readFileSync(PACKAGE, 'utf8'));
+    for (const entry of pkg.openchamber.contributes.service.schedule) {
+      assert.ok(readme.includes(entry.id), 'README is missing schedule id ' + entry.id);
+    }
+    assert.ok(readme.includes('POST /schedule'), 'README names the wake route');
+    assert.ok(readme.includes('"automations": false'), 'README documents the host-automations opt-out');
+    assert.ok(/scheduled routing refresh stops entirely/.test(readme), 'README states the opt-out consequence');
+    assert.ok(!readme.includes('keepRunning'), 'README still promises an always-on service');
   });
 });

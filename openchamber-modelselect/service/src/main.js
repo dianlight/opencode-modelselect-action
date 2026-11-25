@@ -39,7 +39,13 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import routingShared from '../../../core/routing.js';
-import { createServiceHost, readSessionEventRequest, SESSION_EVENTS_PATH } from '@openchamber/sdk';
+import {
+  createServiceHost,
+  readSessionEventRequest,
+  SESSION_EVENTS_PATH,
+  SERVICE_SCHEDULE_PATH,
+  readServiceScheduleRequest
+} from '@openchamber/sdk';
 import { buildView, pickSummary, TIER_OPTIONS } from './view.js';
 import { computeModelsView } from './chain.js';
 import { computeFormValues, formMessage, knownValues, PAGE_MESSAGE, PERMISSION_MESSAGE } from './answers.js';
@@ -60,7 +66,10 @@ const SESSION_MAP_TOUCH_MS = 60 * 1000;
 const HOST_EVIDENCE_KEY = 'openchamber';
 
 const ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
-const MAINTAIN_EVERY_MS = 60 * 1000;
+// The two ids declared in the manifest's `contributes.service.schedule`.
+const SCHEDULE_ROUTING_REFRESH = 'routing-refresh';
+const SCHEDULE_QUOTA_PROBE = 'quota-probe';
+const SCHEDULE_IDS = new Set([SCHEDULE_ROUTING_REFRESH, SCHEDULE_QUOTA_PROBE]);
 const BODY_MAX = 16 * 1024;
 // A session event carries the form the agent shows, so it needs more room
 // than a control event.
@@ -712,6 +721,21 @@ async function handleQuota(bodyText) {
   return { ok: true, data: data };
 }
 
+/** A host automation wake; the SDK parser also performs the wire version check. */
+async function handleSchedule(bodyText) {
+  const run = readServiceScheduleRequest(bodyText);
+  if (!run) return { status: 400, body: { message: 'Invalid schedule run.' } };
+  if (!SCHEDULE_IDS.has(run.id)) {
+    return { status: 200, body: { ok: true, id: run.id, handled: false } };
+  }
+  // A wake can start the service cold, with no /status request to seed the
+  // project set; the plugin's last-project scratch file is the only memory.
+  const last = await store.lastProject();
+  if (last) seenDirectories.add(last);
+  await maintain();
+  return { status: 200, body: { ok: true, id: run.id, handled: true } };
+}
+
 async function handle(req, res) {
   if (!authorized(req)) {
     send(res, 401, { message: 'Unauthorized.' });
@@ -722,6 +746,11 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && url.pathname === '/health') {
     send(res, 200, { ok: true });
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === SERVICE_SCHEDULE_PATH) {
+    const answer = await handleSchedule(await readBody(req));
+    send(res, answer.status, answer.body);
     return;
   }
   if (url.pathname === '/status' && req.method === 'GET') {
@@ -817,11 +846,7 @@ const server = http.createServer((req, res) => {
 server.on('error', (err) => fail('cannot start: ' + String((err && err.message) || err)));
 
 server.listen(PORT, '127.0.0.1', () => {
-  // keepRunning: the host starts this process with OpenChamber. The project
-  // list is empty until something asks about one, so a cold start costs
-  // nothing until the first read.
-  const timer = setInterval(() => { void maintain(); }, MAINTAIN_EVERY_MS);
-  if (typeof timer.unref === 'function') timer.unref();
+  // Refreshes are host-driven through /schedule; no timer runs while idle.
   process.stdout.write('[modelselect] listening on 127.0.0.1:' + server.address().port + '\n');
 });
 
