@@ -257,6 +257,22 @@ A request that settled meanwhile — you answered it in the app, or on another
 device — comes back as a 404. The service logs that and moves on: it never
 repeats an answer for a request that no longer exists.
 
+## Waits (stateless checks)
+
+`POST /waits/start` and `POST /waits/check` implement the OpenChamber wait
+surface (SDK `>=2.7.3`). The host owns each wait and stores the JSON `state`
+that `/waits/start` returns; it posts that state back with every due wait in a
+`/waits/check` envelope. The service keeps **no wait state at all** — not in
+the data folder, not in memory — so it can restart between checks (or have the
+data folder wiped) and still answer.
+
+Every check re-reads `.opencode/.modelselect-cache/free-quota.json` and
+`routing-sync.json` for the wait's project (the `directory` arg, or the last
+project the extension saw). When that live read differs from the posted state
+the wait fires with a summary of the current state; otherwise the answer
+carries the fresh state for the host to store. A wait left out of the envelope
+simply keeps waiting.
+
 ## Session action
 
 `contributes.actions` adds **Model select pick** to a session's menu. It runs

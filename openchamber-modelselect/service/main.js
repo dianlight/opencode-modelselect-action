@@ -1641,6 +1641,7 @@ __export(exports_store, {
 // service/src/main.js
 import http from "node:http";
 var import_routing3 = __toESM(require_routing(), 1);
+var import_free_quota2 = __toESM(require_free_quota(), 1);
 import path2 from "node:path";
 import crypto from "node:crypto";
 // node_modules/@openchamber/sdk/dist/scrollbar-style.js
@@ -1868,6 +1869,76 @@ var createServiceHost = ({ env }) => {
     needsConfiguration: (message) => call("status.set", { needsConfiguration: message }),
     setMark: (target, mark) => call("marks.set", { target, mark })
   };
+};
+// node_modules/@openchamber/sdk/dist/waits.js
+var WAITS_START_PATH = "/waits/start";
+var WAITS_CHECK_PATH = "/waits/check";
+var WAITS_WIRE_VERSION = 1;
+var WAIT_SUMMARY_MAX = 2000;
+var parseBody = (body) => {
+  try {
+    const parsed = JSON.parse(body);
+    return Object(parsed) === parsed && parsed !== null && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+var argsOf = (wire) => {
+  if (Object(wire) !== wire || wire === undefined || Array.isArray(wire))
+    return null;
+  const args = {};
+  for (const [name, entry] of Object.entries(wire)) {
+    if (String(entry) !== entry && !Number.isFinite(entry) && entry !== true && entry !== false)
+      return null;
+    args[name] = entry;
+  }
+  return args;
+};
+var readWaitStartRequest = (body) => {
+  const wire = parseBody(body);
+  if (!wire || wire.v !== WAITS_WIRE_VERSION)
+    return null;
+  const { requestId, wait } = wire;
+  if (String(requestId) !== requestId || requestId.length === 0)
+    return null;
+  if (Object(wait) !== wait || wait === undefined)
+    return null;
+  const { id, type, session } = wait;
+  if (String(id) !== id || id.length === 0 || String(type) !== type || type.length === 0)
+    return null;
+  const args = argsOf(wait.args);
+  if (!args)
+    return null;
+  if (Object(session) !== session || session === undefined)
+    return null;
+  const sessionId = session.id;
+  if (String(sessionId) !== sessionId || sessionId.length === 0)
+    return null;
+  const directory = session.directory;
+  if (directory !== null && (String(directory) !== directory || directory.length === 0))
+    return null;
+  return { v: WAITS_WIRE_VERSION, requestId, wait: { id, type, args, session: { id: sessionId, directory } } };
+};
+var readWaitCheckRequest = (body) => {
+  const wire = parseBody(body);
+  if (!wire || wire.v !== WAITS_WIRE_VERSION)
+    return null;
+  const { requestId } = wire;
+  if (String(requestId) !== requestId || requestId.length === 0 || !Array.isArray(wire.waits))
+    return null;
+  const waits = [];
+  for (const entry of wire.waits) {
+    if (Object(entry) !== entry || entry.state === undefined)
+      return null;
+    const { id, type, state } = entry;
+    if (String(id) !== id || id.length === 0 || String(type) !== type || type.length === 0)
+      return null;
+    const args = argsOf(entry.args);
+    if (!args)
+      return null;
+    waits.push({ id, type, args, state });
+  }
+  return { v: WAITS_WIRE_VERSION, requestId, waits };
 };
 // node_modules/@openchamber/sdk/dist/file-editor.js
 var patternExpressions = new Map;
@@ -3519,6 +3590,7 @@ async function lastProject() {
 
 // service/src/main.js
 var { syncRouting } = import_routing3.default;
+var { latchEntries: latchEntries3, freeQuotaFresh: freeQuotaFresh3 } = import_free_quota2.default;
 var {
   CACHE_REL: CACHE_REL2,
   SESSION_MAP_FILE: SESSION_MAP_FILE2
@@ -4101,6 +4173,66 @@ async function handleSchedule(bodyText) {
   await maintain();
   return { status: 200, body: { ok: true, id: run.id, handled: true } };
 }
+async function readWaitLiveState(wait) {
+  const args = wait && wait.args && typeof wait.args === "object" ? wait.args : {};
+  const argDir = [args.directory, args.projectDirectory, args.project].map((v) => typeof v === "string" && path2.isAbsolute(v) ? v : null).find(Boolean);
+  const directory = argDir || await lastProject();
+  const [latchData, syncOn] = await Promise.all([
+    directory ? readLatch(directory) : Promise.resolve(null),
+    directory ? readRoutingSync(directory) : Promise.resolve(false)
+  ]);
+  const now = Date.now();
+  const latched = latchEntries3(latchData).filter((entry) => freeQuotaFresh3(entry, now)).map((entry) => ({
+    model: entry.model || "*",
+    kind: entry.kind === "rate-limit" ? "rate-limit" : "exhaustion",
+    until: Number(entry.until),
+    retryInMs: Math.max(0, Number(entry.until) - now)
+  }));
+  return { version: 1, at: now, directory, sync: Boolean(syncOn), latched };
+}
+function waitChange(seen, live) {
+  if (!seen || typeof seen !== "object" || Array.isArray(seen))
+    return null;
+  const before = Array.isArray(seen.latched) ? seen.latched : [];
+  const after = live.latched;
+  const quota = before.length !== after.length || after.some((entry, i) => {
+    const old = before[i];
+    return !old || old.model !== entry.model || old.until !== entry.until || old.kind !== entry.kind;
+  });
+  const sync = Boolean(seen.sync) !== live.sync;
+  return quota || sync ? { quota, sync } : null;
+}
+function waitSummary(live, change) {
+  const parts = [];
+  if (change.quota) {
+    parts.push(live.latched.length ? "Free quota changed — " + live.latched.length + " latch(es), next retry in " + Math.ceil(live.latched[0].retryInMs / 1000) + "s" : "Free quota reset — no active latches");
+  }
+  if (change.sync)
+    parts.push("Routing sync is " + (live.sync ? "on" : "off"));
+  return (parts.join("; ") || "Wait state is current.").slice(0, WAIT_SUMMARY_MAX);
+}
+async function handleWaitStart(bodyText) {
+  const request = readWaitStartRequest(bodyText);
+  if (!request)
+    return { status: 400, body: { message: "Unsupported wait start request." } };
+  return { status: 200, body: { ok: true, state: await readWaitLiveState(request.wait) } };
+}
+async function handleWaitCheck(bodyText) {
+  const request = readWaitCheckRequest(bodyText);
+  if (!request)
+    return { status: 400, body: { message: "Unsupported wait check request." } };
+  const results = [];
+  for (const wait of request.waits) {
+    const live = await readWaitLiveState(wait);
+    const change = waitChange(wait.state, live);
+    if (!change) {
+      results.push({ id: wait.id, fired: false, state: live });
+    } else {
+      results.push({ id: wait.id, fired: true, summary: waitSummary(live, change) });
+    }
+  }
+  return { status: 200, body: { results } };
+}
 async function handle(req, res) {
   if (!authorized(req)) {
     send(res, 401, { message: "Unauthorized." });
@@ -4178,6 +4310,16 @@ async function handle(req, res) {
   }
   if (url.pathname === "/quota" && req.method === "POST") {
     send(res, 200, await handleQuota(await readBody(req)));
+    return;
+  }
+  if (req.method === "POST" && url.pathname === WAITS_START_PATH) {
+    const answer = await handleWaitStart(await readBody(req));
+    send(res, answer.status, answer.body);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === WAITS_CHECK_PATH) {
+    const answer = await handleWaitCheck(await readBody(req));
+    send(res, answer.status, answer.body);
     return;
   }
   if (url.pathname === SESSION_EVENTS_PATH && req.method === "POST") {
