@@ -18,7 +18,7 @@ function run(scenario, ctx) {
   const binDir = path.join(home, '.opencode', 'bin');
   fs.mkdirSync(binDir, { recursive: true });
   const bin = path.join(binDir, 'opencode');
-  fs.writeFileSync(bin, `#!/bin/sh\nexit ${scenario.opencodeExit ?? 0}\n`, { mode: 0o755 });
+  fs.writeFileSync(bin, `#!/bin/sh\nif [ "$1" = "--version" ]; then echo 'opencode 2.3.0'; exit 0; fi\nexit ${scenario.opencodeExit ?? 0}\n`, { mode: 0o755 });
 
   const outPath = path.join(root, 'github-output.txt');
   const env = { ...ctx.world.env, HOME: home };

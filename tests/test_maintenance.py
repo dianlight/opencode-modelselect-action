@@ -604,6 +604,35 @@ class DetectCoverageTest(unittest.TestCase):
         reported = [i["model"] for i in issues["missing_scores"]]
         self.assertEqual(reported.count("dup-free"), 1)
 
+    def test_ignores_non_agentic_and_unscorable_models(self):
+        issues = m.detect_coverage_issues(
+            [
+                {"id": "gemini-embedding-2", "type": "embedding"},
+                {"id": "gpt-image-2.5", "type": "image"},
+                {"id": "hungerg-free", "type": "chat"},
+            ],
+            [
+                {"id": "qwen3-embedding-8b", "type": "embedding"},
+                {"id": "tidepool-alpha-free", "type": "chat"},
+                {"id": "unscored-chat", "type": "chat"},
+            ],
+            {"models": {}},
+            None,
+        )
+        reported = [i["model"] for i in issues["missing_scores"]]
+        self.assertEqual(reported, ["unscored-chat"])
+
+    def test_decision_models_are_still_checked_for_scores(self):
+        # Decision models use v1 fallback scores from their own index; they
+        # must stay auditable even though they are not chat models.
+        issues = m.detect_coverage_issues(
+            [], [{"id": "decision-unscored", "type": "decision"}], {"models": {}}, None
+        )
+        self.assertIn(
+            {"model": "decision-unscored", "tier": "Go (Paid)"},
+            issues["missing_scores"],
+        )
+
 
 class CanonicalBaseTest(unittest.TestCase):
     def test_tier_variants(self):

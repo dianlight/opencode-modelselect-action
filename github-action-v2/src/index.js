@@ -68,6 +68,28 @@ function numberInput(name, fallback) {
   return n;
 }
 
+/**
+ * Optional OpenCode 2 permission rules, supplied as the JSON array the V2
+ * config expects. `opencode github run` is non-interactive: any rule that
+ * resolves to `ask` blocks until the step timeout instead of showing a prompt.
+ */
+function permissionRules() {
+  const raw = getInput('permissions');
+  if (!raw) return [];
+  let rules;
+  try {
+    rules = JSON.parse(raw);
+  } catch (err) {
+    fail(`Input 'permissions' is not valid JSON: ${err.message}`);
+  }
+  if (!Array.isArray(rules) || rules.some((r) => !r || typeof r !== 'object'
+    || typeof r.action !== 'string' || typeof r.resource !== 'string'
+    || !['allow', 'deny', 'ask'].includes(r.effect))) {
+    fail("Input 'permissions' must be an array of { action, resource, effect } rules.");
+  }
+  return rules;
+}
+
 /** Plugin option object from this action's modelselect/plugin inputs. */
 function pluginOptions() {
   const options = {};
@@ -218,7 +240,7 @@ async function resolvedModel() {
  * other settings. Existing plugin entries for the same package are replaced.
  * A file that is not valid JSON (e.g. JSONC with comments) is left untouched.
  */
-function mergeConfig(file, pluginSource, options) {
+function mergeConfig(file, pluginSource, options, permissions) {
   let config = {};
   if (fs.existsSync(file)) {
     try {
@@ -235,23 +257,46 @@ function mergeConfig(file, pluginSource, options) {
   );
   kept.push({ package: pluginSource, options });
   config.plugins = kept;
+  // V2 uses the last matching rule, so caller rules are appended after
+  // existing ones: a narrow allow overrides a pre-existing broad "ask".
+  if (permissions.length) {
+    config.permissions = [...(Array.isArray(config.permissions) ? config.permissions : []), ...permissions];
+  }
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
   return true;
 }
 
+function opencodeMajorVersion(bin) {
+  let raw = '';
+  try {
+    raw = execFileSync(bin, ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (err) {
+    raw = `${err?.stdout ?? ''}${err?.stderr ?? ''}`;
+  }
+  const match = String(raw).match(/\bv?(\d+)\./);
+  return match ? Number(match[1]) : null;
+}
+
 function installOpenCode() {
   const bin = path.join(os.homedir(), '.opencode', 'bin', 'opencode');
-  if (fs.existsSync(bin)) {
-    notice(`OpenCode already installed at ${bin}`);
+  const major = fs.existsSync(bin) ? opencodeMajorVersion(bin) : null;
+  if (major === 2) {
+    notice(`OpenCode 2 already installed at ${bin}`);
   } else {
-    notice('Installing OpenCode…');
+    notice(major ? `OpenCode ${major} found; installing OpenCode 2 at ${bin}` : 'Installing OpenCode 2…');
     try {
-      execFileSync('bash', ['-c', 'curl -fsSL https://opencode.ai/install | bash'], {
-        stdio: 'inherit',
-      });
+      // V1's installer (opencode.ai/install) would silently downgrade this
+      // binary; only the /v2/ installer ships the V2 CLI and plugin API.
+      execFileSync('bash', [
+        '-c',
+        'curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path',
+      ], { stdio: 'inherit' });
     } catch (err) {
-      fail(`Could not install OpenCode: ${err?.message ?? err}`);
+      fail(`Could not install OpenCode 2: ${err?.message ?? err}`);
+    }
+    if (!fs.existsSync(bin) || opencodeMajorVersion(bin) !== 2) {
+      fail('OpenCode 2 installer did not leave a v2 binary at ~/.opencode/bin/opencode.');
     }
   }
   const pathFile = process.env.GITHUB_PATH;
@@ -264,6 +309,7 @@ function installOpenCode() {
 async function main() {
   const model = await resolvedModel();
   const options = pluginOptions();
+  const permissions = permissionRules();
   const pluginPackage = getInput('plugin-package');
   const bundled = path.resolve(__dirname, '..', '..', 'plugin');
   const pluginSource = pluginPackage || bundled;
@@ -275,8 +321,8 @@ async function main() {
   const globalConfig = path.join(os.homedir(), '.config', 'opencode', 'opencode.json');
   const projectConfig = path.join(workspace, '.opencode', 'opencode.json');
   const written = [
-    mergeConfig(globalConfig, pluginSource, options),
-    mergeConfig(projectConfig, pluginSource, options),
+    mergeConfig(globalConfig, pluginSource, options, permissions),
+    mergeConfig(projectConfig, pluginSource, options, permissions),
   ];
   if (!written.some(Boolean)) fail(`Could not write a plugin config (tried ${globalConfig} and ${projectConfig}).`);
 

@@ -356,7 +356,9 @@ jobs:
         if: steps.coverage.outputs.tasks != ''
         id: opencode
         continue-on-error: true
-        timeout-minutes: 60
+        # A pending permission request blocks `opencode github run` until the
+        # step timeout — fail fast instead of burning an hour on a silent ask.
+        timeout-minutes: 15
         # v2 = select-model + opencode/github in one action: it installs
         # OpenCode, configures the modelselect plugin from the inputs below,
         # then runs `opencode github run`. The plugin owns model selection and
@@ -376,6 +378,13 @@ jobs:
           verbose: true
           announce: "off"
           use_github_token: true
+          # This run is non-interactive: an `external_directory` ask for a
+          # scratch file under /tmp would hang until the step timeout.
+          permissions: |
+            [
+              { "action": "external_directory", "resource": "/tmp/*", "effect": "allow" },
+              { "action": "read", "resource": "/tmp/*", "effect": "allow" }
+            ]
           prompt: |
             You are triggered automatically by the maintenance audit: model
             coverage issues were detected in this run. No human clicked anything.
@@ -389,6 +398,10 @@ jobs:
             The "Model Coverage Issues" section (Stale Fallback Entries,
             Models Missing Score Data, Fallback Vision Mismatches) is the
             source of truth for which models to fix.
+
+            Unattended-run rule: never write scratch files outside the
+            repository. Use a scratch directory inside the workspace (e.g.
+            `.tmp/`) and delete it before opening the PR. Do not use `/tmp`.
 
             Secondary Source Protocol (use whenever researching scores for a
             model missing from `data/livebench.json`):

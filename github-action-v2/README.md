@@ -3,7 +3,8 @@
 One GitHub Action that does what the v1 pair does, but keeps model selection
 inside OpenCode:
 
-1. installs OpenCode (same install script as `anomalyco/opencode/github`),
+1. installs OpenCode 2 from `https://opencode.ai/v2/install` (and replaces a
+   cached 1.x binary), because the bundled plugin uses the V2 plugin API,
 2. writes the bundled `plugin/` into the global and project `opencode.json`
    with the options passed to this action,
 3. runs `opencode github run` with the OpenCode action's environment.
@@ -46,6 +47,7 @@ OpenCode action inputs:
 | `share` | `""` | Share the OpenCode session. |
 | `prompt` | `""` | Prompt forwarded to OpenCode. |
 | `use_github_token` | `false` | Use `GITHUB_TOKEN` instead of OpenCode App token exchange. |
+| `permissions` | `""` | JSON array of OpenCode 2 permission rules (`{ action, resource, effect }`) appended to both generated configs. Pre-approve narrow resources; an `ask` blocks `opencode github run` until the step timeout. |
 | `mentions` | `""` | Comma-separated trigger phrases. |
 | `variant` | `""` | Reasoning-effort variant. |
 | `oidc_base_url` | `""` | Custom OIDC exchange base URL. |
