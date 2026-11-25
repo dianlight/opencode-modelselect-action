@@ -42,6 +42,9 @@ In both branches, never create the root as a side effect: do not run `openspec i
    > "What change do you want to work on? Describe what you want to build or fix."
 
    From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
+   If the name contains "canary", use it only as the trailing `-canary` suffix
+   (e.g. `foo-canary`) — never mid-name or as `*canary*`. Archived changes are
+   grandfathered. Required by the project rule in `openspec/config.yaml`.
 
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 

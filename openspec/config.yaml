@@ -4,6 +4,10 @@ context: |
   Language: en
   All artifacts must be written in en.
   Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+  Change naming: a change name containing the word "canary" MUST end with the
+  literal "-canary" suffix (e.g. "foo-canary"). Never embed "canary" in the
+  middle of a name or use glob characters such as "*canary*". This applies to
+  active changes under openspec/changes/; archived changes are grandfathered.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
