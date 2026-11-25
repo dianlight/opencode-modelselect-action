@@ -26,9 +26,10 @@ is presentation only (`panel/src/main.js` shell, `plugin-tab.js`,
 `ext-tab.js`, `models-tab.js`, `fields.js`, `api.js`, `dom.js`). Never edit the
 bundles by hand.
 
-Requires OpenChamber >= 2.7.1 (web/desktop; the `sessionControl.answers` grant
-and the session events the service subscribes to land in 2.7.1). The source
-contract sends only `?directory=` and `?locale=` — no session id — so
+Requires OpenChamber >= 2.7.2 (web/desktop; 2.7.1 brought the
+`sessionControl.answers` grant and the session events the service subscribes
+to, and 2.7.2 added the row icons and header status controls this section
+uses). The source contract sends only `?directory=` and `?locale=` — no session id — so
 the section is project-scoped: it shows the newest `status-*.json` in the open
 project. The session action is the session-scoped view.
 
@@ -99,7 +100,10 @@ Folder/ZIP/URL source.
 The host asks the service for an answer and draws it itself; colours are theme
 tones, never CSS, and the answer must match `guestStatusViewSchema` or the
 whole section is refused. `requiresProject` hides the section when nothing is
-open. Rows, in order:
+open. Every fixed row carries a Remixicon `icon` name (`task-line`,
+`stack-line`, `cpu-line`, `brain-line`, `lightbulb-line`, `git-branch-line`,
+`time-line`, `pie-chart-2-line`) so it is recognizable at a glance; budget and
+latch rows stay icon-free. Rows, in order:
 
 - `Task` — status-file task type, `unlisted task` warning badge when it is
   absent from `model-config-cache.json`;
@@ -123,8 +127,9 @@ open. Rows, in order:
 - one `note` per fresh free-tier latch (`Free tier exhausted — <model> —
   retry in 2h 15m · <detail>`, `Rate limited` for the 1h window), the
   countdown recomputed on every poll;
-- `Auto-update router` — a segmented On / Off control, always the last row so
-  it survives the 16-row cap.
+- The router switch is **not a row**: `Auto-update router` is a header
+  `controls` select (On / Off, id `routing-sync`), so it never spends one of the
+  16 rows — the freed slot goes to a budget or latch row.
 
 States: `plugin-missing` (no readable modelselect entry in the global OpenCode
 config — one short row; the full fix is on the extension card, see below),
@@ -153,7 +158,7 @@ stored-deviations shape) are kept fresh from two places, both best-effort:
   project, immediately when the switch is turned back on, and right after the
   panel saves plugin options. A read of `/status` never writes it.
 
-The switch row (`Auto-update router`, On / Off) writes
+The header control (`Auto-update router`, On / Off, id `routing-sync`) writes
 `.opencode/.modelselect-cache/routing-sync.json`
 `{"sync": true|false}`; a missing/unreadable/non-boolean file means ON.
 The settings panel's Extension tab toggles the same file through the service.

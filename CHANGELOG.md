@@ -4,6 +4,10 @@
   configured in the OpenCode console (e.g. FreeModel, OpenRouter) by default:
   the `availableProviders` option defaults to an empty allowlist ("any
   provider the catalog knows about") instead of `opencode,opencode-go`.
+- The Work Status section's fixed rows now carry Remixicon icons, and
+  `Auto-update router` moved out of the 16-row budget into a header `controls`
+  select (same `routing-sync` id and `on`/`off` values). Budget and latch rows
+  get the freed slot; the extension now requires OpenChamber >= 2.7.2.
 
 ### Added
 - Runtime model failover for explicit-model sessions: when a pinned model is

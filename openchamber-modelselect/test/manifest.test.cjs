@@ -60,7 +60,9 @@ describe('extension manifest', () => {
       where: 'session',
       mode: 'background'
     });
-    assert.equal(pkg.openchamber.engines.openchamber, '>=2.7.1');
+    // Row icons and header status controls land in 2.7.2; older hosts would
+    // drop the router control along with the unknown fields.
+    assert.equal(pkg.openchamber.engines.openchamber, '>=2.7.2');
   });
 
   it('asks for the session answers line in the approval dialog', async () => {

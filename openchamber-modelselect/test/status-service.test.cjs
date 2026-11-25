@@ -70,7 +70,15 @@ describe('status service', () => {
     assert.equal(rows.model.value, 'opencode/zen-free');
     assert.equal(rows.usage.content.kind, 'bar');
     assert.equal(rows.usage.value, '42%');
-    assert.equal(rows.router.content.value, 'on');
+    assert.equal(rows.task.icon, 'task-line');
+    assert.equal(rows.router, undefined, 'the router switch is not a row');
+    assert.deepEqual(res.body.controls, [{
+      kind: 'select',
+      id: 'routing-sync',
+      label: 'Auto-update router',
+      value: 'on',
+      options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]
+    }]);
     const latch = res.body.rows.find((row) => row.kind === 'note');
     // The countdown truncates the seconds, so the window reads "3h 5m" in
     // its first second and "3h 4m" for the minute after that.
@@ -124,10 +132,13 @@ describe('status service', () => {
     assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { sync: false });
 
     const res = await service.get('/status', q());
-    assert.equal(res.body.rows.find((row) => row.id === 'router').content.value, 'off');
+    const control = res.body.controls.find((c) => c.id === 'routing-sync');
+    assert.equal(control.value, 'off', 'the header control reports the file');
 
     await service.post('/status', q(), { id: 'routing-sync', value: 'on' });
     assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), { sync: true });
+    const back = await service.get('/status', q());
+    assert.equal(back.body.controls.find((c) => c.id === 'routing-sync').value, 'on');
   });
 
   it('answers a bad control with a message the host can toast', async () => {

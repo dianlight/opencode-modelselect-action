@@ -15,7 +15,7 @@
   "openchamber": {
     "apiVersion": 1,
     "engines": {
-      "openchamber": ">=2.7.1"
+      "openchamber": ">=2.7.2"
     },
     "id": "model-select",
     "name": "Model select",

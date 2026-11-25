@@ -28,7 +28,8 @@
  *
  * Every string is clamped to the schema's limits (ids match
  * `^[a-z][a-z0-9-]{0,39}$`), colours are theme tones only, and the router
- * row is always kept — the section is useless without its switch.
+ * switch lives in the header `controls` (not in a row) so it never spends any
+ * of the 16-row budget.
  */
 import routingShared from '../../../core/routing.js';
 
@@ -42,6 +43,21 @@ const LABEL_MAX = 60;
 const VALUE_MAX = 80;
 const TEXT_MAX = 200;
 const NOTE_MAX = 300;
+
+/** Static Remixicon names for the fixed rows (all match GUEST_STATUS_VIEW_ICON). */
+const ICON = {
+  task: 'task-line',
+  tier: 'stack-line',
+  model: 'cpu-line',
+  think: 'brain-line',
+  jev: 'lightbulb-line',
+  source: 'git-branch-line',
+  updated: 'time-line',
+  usage: 'pie-chart-2-line'
+};
+
+/** The router switch is a header control, keeping the service's control id. */
+const ROUTING_OPTIONS = [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }];
 
 /** The plugin's tier option: `auto` follows autoPreference. */
 export const TIER_OPTIONS = [
@@ -197,7 +213,7 @@ function budgetRows(usage, rows, now) {
     for (const b of budgets) {
       if (!b || typeof b !== 'object' || !Array.isArray(b.models)) continue;
       for (const m of b.models) {
-        if (rows.length >= ROWS_MAX - 1) return;
+        if (rows.length >= ROWS_MAX) return;
         rows.push(line(budgetRow(b, m, now)));
       }
     }
@@ -254,6 +270,7 @@ function line(row) {
     kind: 'line',
     id: row.id,
     label: label(row.label),
+    ...(row.icon ? { icon: row.icon } : {}),
     ...(row.dot ? { dot: row.dot } : {}),
     ...(row.content ? { content: row.content } : {}),
     ...(row.value != null ? { value: value(row.value) } : {}),
@@ -275,14 +292,14 @@ function statusRows(snap, rows) {
   const known = Array.isArray(snap.knownTypes) ? snap.knownTypes : [];
   const unlisted = Boolean(known.length && status.taskType && known.indexOf(status.taskType) === -1);
 
-  rows.push(line({ id: 'task', label: 'Task', value: status.taskType || '—',
+  rows.push(line({ id: 'task', label: 'Task', icon: ICON.task, value: status.taskType || '—',
     ...(unlisted ? { badge: { label: 'unlisted task', tone: 'warning' } } : {}),
     ...(unlisted ? { tooltip: 'This task type is not in the plugin model config.' } : {}) }));
   // The tier is the one option worth changing without the panel: the
   // service writes it to the global config and reloads OpenCode. The row's
   // value is the tier the last turn used; the control shows the stored
   // option, so the tooltip names both.
-  rows.push(line({ id: 'tier', label: 'Tier', value: status.tier || '—',
+  rows.push(line({ id: 'tier', label: 'Tier', icon: ICON.tier, value: status.tier || '—',
     dot: status.goOk === true ? 'success' : status.goOk === false ? 'error' : 'muted',
     ...(snap.tierOption ? {
       actions: [{
@@ -297,17 +314,18 @@ function statusRows(snap, rows) {
       (snap.tierOption
         ? ' · the control sets the plugin tier option (' + snap.tierOption + '; auto = autoPreference)'
         : ''), TEXT_MAX) }));
-  rows.push(line({ id: 'model', label: 'Model', value: status.model || '—',
+  rows.push(line({ id: 'model', label: 'Model', icon: ICON.model, value: status.model || '—',
     ...(status.suggestOnly ? { badge: { label: 'suggest only', tone: 'info' } } : {}),
     tooltip: (status.suggestOnly ? 'Suggest-only trial mode — the pick is logged but never applied. ' : '') +
       str(status.model) + capsToolTip(snap.pickedCaps) }));
-  rows.push(line({ id: 'think', label: 'Think', value: thinkLabel(status),
+  rows.push(line({ id: 'think', label: 'Think', icon: ICON.think, value: thinkLabel(status),
     tooltip: 'Effective effort' + (status.variant ? ' (manual override)' : ' (task default)') }));
-  rows.push(line({ id: 'jev', label: 'Jev', value: status.jev || '—' }));
-  rows.push(line({ id: 'source', label: 'Source', value: status.source || '—' }));
+  rows.push(line({ id: 'jev', label: 'Jev', icon: ICON.jev, value: status.jev || '—' }));
+  rows.push(line({ id: 'source', label: 'Source', icon: ICON.source, value: status.source || '—' }));
   rows.push(line({
     id: 'updated',
     label: 'Updated',
+    icon: ICON.updated,
     value: formatAge(now, status.updatedAt),
     ...(stale ? { badge: { label: 'last known', tone: 'warning' } } : {}),
     tooltip: 'Session ' + (snap.sessionID || 'unknown') + ' · ' +
@@ -385,6 +403,7 @@ export function buildView(snap) {
     rows.push(line({
       id: 'usage',
       label: 'Go monthly',
+      icon: ICON.usage,
       content: { kind: 'bar', value: u.percent, tone: usageTone(u.percent, u.limited) },
       value: Math.round(u.percent) + '%',
       valueTone: u.limited ? 'error' : undefined,
@@ -399,7 +418,7 @@ export function buildView(snap) {
   // countdown recomputed on every poll (the service is the clock now).
   const fresh = latchEntries(snap.freeQuota).filter((entry) => freeQuotaFresh(entry, now));
   fresh.forEach((entry, index) => {
-    if (rows.length >= ROWS_MAX - 1) return;
+    if (rows.length >= ROWS_MAX) return;
     const rateLimited = entry.kind === 'rate-limit';
     const head = (rateLimited ? 'Rate limited' : 'Free tier exhausted') +
       (entry.model ? ' — ' + entry.model : '');
@@ -409,21 +428,19 @@ export function buildView(snap) {
     rows.push(note(idOf('free-' + (entry.model || 'all') + '-' + index), text, 'warning'));
   });
 
-  // The switch always makes the cut: this row is the section's only control.
-  rows.push(line({
-    id: 'router',
-    label: 'Auto-update router',
-    content: {
-      kind: 'segmented',
+  // The router switch is a header control, not a row: it keeps the
+  // `routing-sync` id and on/off values the service already handles, so it
+  // spends none of the 16-row budget.
+  return {
+    rows: rows.slice(0, ROWS_MAX),
+    controls: [{
+      kind: 'select',
       id: 'routing-sync',
-      label: snap.sync ? 'On' : 'Off',
+      label: 'Auto-update router',
       value: snap.sync ? 'on' : 'off',
-      options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]
-    },
-    tooltip: snap.sync ? 'routing.json refreshes every turn' : 'router update paused'
-  }));
-
-  return { rows: rows.slice(0, ROWS_MAX) };
+      options: ROUTING_OPTIONS
+    }]
+  };
 }
 
 export { MISSING_NOTE, STALE_MS, ROWS_MAX, budgetRows };

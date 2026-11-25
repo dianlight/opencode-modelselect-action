@@ -21,6 +21,8 @@ let formatAge;
 let formatCountdown;
 let pickSummary;
 let guestStatusViewSchema;
+let GUEST_STATUS_VIEW_ICON;
+let GUEST_STATUS_VIEW_ROWS_MAX;
 
 const NOW = Date.UTC(2026, 10, 5, 12, 0, 0);
 
@@ -31,6 +33,7 @@ before(async () => {
   formatCountdown = view.formatCountdown;
   pickSummary = view.pickSummary;
   ({ guestStatusViewSchema } = await import('@openchamber/sdk/schemas'));
+  ({ GUEST_STATUS_VIEW_ICON, GUEST_STATUS_VIEW_ROWS_MAX } = await import('@openchamber/sdk'));
 });
 
 function validate(view) {
@@ -46,6 +49,12 @@ function rowsById(view) {
   const map = {};
   for (const row of view.rows) map[row.id] = row;
   return map;
+}
+
+function routerControl(view) {
+  const found = (view.controls || []).filter((c) => c.id === 'routing-sync');
+  assert.equal(found.length, 1, 'exactly one routing-sync header control');
+  return found[0];
 }
 
 function status(extra) {
@@ -94,7 +103,7 @@ describe('status view', () => {
     assert.equal(row.kind, 'note');
     assert.equal(row.tone, 'error');
     assert.match(row.text, /opencode\.json/);
-    assert.equal(rowsById(view).router.kind, 'line');
+    assert.equal(routerControl(view).kind, 'select');
   });
 
   it('says no pick yet when the plugin is installed but never routed', () => {
@@ -106,7 +115,7 @@ describe('status view', () => {
   it('maps the pick onto lines with stable ids', () => {
     const view = validate(buildView(snapshot()));
     const rows = rowsById(view);
-    assert.deepEqual(Object.keys(rows), ['task', 'tier', 'model', 'think', 'jev', 'source', 'updated', 'router']);
+    assert.deepEqual(Object.keys(rows), ['task', 'tier', 'model', 'think', 'jev', 'source', 'updated']);
     assert.equal(rows.task.value, 'bugfix');
     assert.equal(rows.tier.value, 'free');
     assert.equal(rows.tier.dot, 'error', 'goOk=false is an exhausted Go tier');
@@ -117,6 +126,19 @@ describe('status view', () => {
     assert.equal(rows.source.value, 'auto');
     assert.equal(rows.updated.value, '5m ago');
     assert.equal(rows.updated.badge, undefined);
+  });
+
+  it('gives every fixed row a schema-valid Remixicon name', () => {
+    const view = validate(buildView(snapshot({
+      usage: { go: { monthly: { percent: 42, limited: false } } }
+    })));
+    const rows = rowsById(view);
+    const fixed = ['task', 'tier', 'model', 'think', 'jev', 'source', 'updated', 'usage'];
+    for (const id of fixed) {
+      assert.equal(typeof rows[id].icon, 'string', id + ' has an icon');
+      assert.match(rows[id].icon, GUEST_STATUS_VIEW_ICON, id + ' icon matches the SDK icon pattern');
+    }
+    assert.equal(new Set(fixed.map((id) => rows[id].icon)).size, fixed.length, 'each row has its own icon');
   });
 
   it('prefers the manual think variant and flags stale/unlisted picks', () => {
@@ -207,20 +229,24 @@ describe('status view', () => {
     assert.match(gpt.tooltip, /resets in 2h 0m/);
   });
 
-  it('budget rows never push out the router switch or exceed 16 rows', () => {
-    const models = {};
-    for (let i = 0; i < 30; i++) {
-      models['model-' + i] = { name: 'model-' + i, spent: i, limit: 100, percent: i * 3, resetsAt: NOW + 3600 * 1000 };
+  it('caps many budget windows at the SDK maximum while the header control survives', () => {
+    const budgets = [];
+    for (let w = 0; w < 8; w++) {
+      const models = [];
+      for (let m = 0; m < 8; m++) {
+        models.push({ name: 'model-' + w + '-' + m, spent: m, limit: 100, percent: m * 3, resetsAt: NOW + 3600 * 1000 });
+      }
+      budgets.push({ id: 'window-' + w, models });
     }
     const view = validate(buildView(snapshot({
-      usage: { go: { monthly: { percent: 10, limited: false } }, budgets: [{ id: 'b', models }] },
+      usage: { go: { monthly: { percent: 10, limited: false } }, budgets },
       freeQuota: null
     })));
-    const rows = view.rows;
-    assert.ok(rows.length <= 16);
-    assert.ok(rows.some((r) => r.id === 'router'), 'router always last');
-    const router = rows[rows.length - 1];
-    assert.equal(router.id, 'router');
+    assert.ok(view.rows.length <= GUEST_STATUS_VIEW_ROWS_MAX, 'rows stay within the SDK cap');
+    assert.equal(view.rows.length, GUEST_STATUS_VIEW_ROWS_MAX, 'the freed row is spent on budget data');
+    assert.equal(routerControl(view).value, 'on', 'header control survives the cap');
+    assert.equal(view.rows.some((r) => r.id === 'router'), false, 'no router row spends the budget');
+    assert.equal(new Set(view.rows.map((r) => r.id)).size, view.rows.length, 'row ids stay unique');
   });
 
   it('lists fresh free-tier latches with a live countdown and drops expired ones', () => {
@@ -266,25 +292,39 @@ describe('status view', () => {
     assert.match(stale.text, /last known$/);
   });
 
-  it('keeps the router switch even with many latches, and never exceeds 16 rows', () => {
+  it('moves the router out of the rows into a unique header control', () => {
+    const view = validate(buildView(snapshot({ tierOption: 'go' })));
+    assert.equal(rowsById(view).router, undefined, 'no router row spends the cap');
+    const control = routerControl(view);
+    assert.equal(control.kind, 'select');
+    assert.deepEqual(control.options.map((o) => o.value), ['on', 'off']);
+    assert.equal(view.controls.length, 1);
+    const ids = view.controls.map((c) => c.id);
+    for (const row of view.rows) {
+      if (row.kind !== 'line') continue;
+      for (const action of row.actions || []) ids.push(action.id);
+      if (row.content && row.content.kind === 'segmented') ids.push(row.content.id);
+    }
+    assert.equal(new Set(ids).size, ids.length, 'header and row control ids are unique');
+  });
+
+  it('keeps the header control even with many latches, and never exceeds 16 rows', () => {
     const models = {};
     for (let i = 0; i < 20; i++) {
       models['opencode/model-' + i] = { at: NOW - 60000, until: NOW + 3600000, kind: 'exhaustion' };
     }
     const view = validate(buildView(snapshot({ freeQuota: { version: 2, models } })));
-    assert.equal(view.rows.length, 16);
-    const router = rowsById(view).router;
-    assert.equal(router.content.kind, 'segmented');
-    assert.equal(router.content.value, 'on');
+    assert.equal(view.rows.length, GUEST_STATUS_VIEW_ROWS_MAX);
+    assert.equal(routerControl(view).value, 'on');
   });
 
-  it('turns the router row into a real control pair', () => {
-    const on = rowsById(validate(buildView(snapshot({ sync: true })))).router;
-    assert.deepEqual(on.content.options.map((o) => o.value), ['on', 'off']);
-    assert.equal(on.content.value, 'on');
-    const off = rowsById(validate(buildView(snapshot({ sync: false })))).router;
-    assert.equal(off.content.value, 'off');
-    assert.match(off.tooltip, /paused/);
+  it('exposes the router as a header select with on/off values', () => {
+    const on = routerControl(validate(buildView(snapshot({ sync: true }))));
+    assert.equal(on.kind, 'select');
+    assert.deepEqual(on.options.map((o) => o.value), ['on', 'off']);
+    assert.equal(on.value, 'on');
+    const off = routerControl(validate(buildView(snapshot({ sync: false }))));
+    assert.equal(off.value, 'off');
   });
 
   it('adds per-request caps and Go dollar allowance to the Model tooltip', () => {

@@ -1,15 +1,311 @@
 {
-  "runId": "2026-11-25T10-16-16-889Z",
-  "startedAt": "2026-11-25T10:16:16.889Z",
-  "total": 2,
-  "passed": 2,
+  "runId": "2026-11-25T11-46-42-909Z",
+  "startedAt": "2026-11-25T11:46:42.909Z",
+  "total": 43,
+  "passed": 43,
   "failed": 0,
   "rows": [
+    {
+      "id": "action/auto-both-exhausted-fails",
+      "component": "action",
+      "ok": true,
+      "durationMs": 2240,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/auto-falls-back-to-go",
+      "component": "action",
+      "ok": true,
+      "durationMs": 272,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/auto-prefers-free",
+      "component": "action",
+      "ok": true,
+      "durationMs": 247,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/auto-waits-for-quota",
+      "component": "action",
+      "ok": true,
+      "durationMs": 1226,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/config-url-unreachable",
+      "component": "action",
+      "ok": true,
+      "durationMs": 155,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/fallback-model-used",
+      "component": "action",
+      "ok": true,
+      "durationMs": 217,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/free-tier-case-insensitive",
+      "component": "action",
+      "ok": true,
+      "durationMs": 221,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/go-tier",
+      "component": "action",
+      "ok": true,
+      "durationMs": 214,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/invalid-tier-rejected",
+      "component": "action",
+      "ok": true,
+      "durationMs": 137,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/max-cost-walks-ranked",
+      "component": "action",
+      "ok": true,
+      "durationMs": 215,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action/missing-task-type-fails-closed",
+      "component": "action",
+      "ok": true,
+      "durationMs": 223,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action-v2/failure-propagates",
+      "component": "action-v2",
+      "ok": true,
+      "durationMs": 283,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action-v2/permissions-preapproved",
+      "component": "action-v2",
+      "ok": true,
+      "durationMs": 384,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action-v2/preselect-and-config",
+      "component": "action-v2",
+      "ok": true,
+      "durationMs": 380,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/announce-off-stays-quiet",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 230,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/catalog-miss-retry",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 235,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/chain-picks-external-provider",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 222,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/explicit-model-failover",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 223,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/fixed-task-type-pin",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 233,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/http-request-stamps-pick",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 237,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/routes-review-announce",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 233,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/runtime-inventory-gate",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 230,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/virtual-anchor-kept",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 244,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/virtual-provider-registered",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 232,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/chain-includes-external-providers",
+      "component": "service",
+      "ok": true,
+      "durationMs": 153,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/chain-live-availability",
+      "component": "service",
+      "ok": true,
+      "durationMs": 137,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/health-requires-token",
+      "component": "service",
+      "ok": true,
+      "durationMs": 131,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/read-never-writes-routing",
+      "component": "service",
+      "ok": true,
+      "durationMs": 131,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/status-header-control-and-icons",
+      "component": "service",
+      "ok": true,
+      "durationMs": 141,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/status-ok",
+      "component": "service",
+      "ok": true,
+      "durationMs": 144,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "service/tier-control-writes-managed",
+      "component": "service",
+      "ok": true,
+      "durationMs": 142,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "panel/render-from-managed",
+      "component": "panel",
+      "ok": true,
+      "durationMs": 176,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "panel/save-history-chars",
+      "component": "panel",
+      "ok": true,
+      "durationMs": 257,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/benchmark-dry-run",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 628,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/benchmark-no-key",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 85,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-coverage-issues",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 70,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-coverage-unscorable",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 69,
+      "failures": [],
+      "error": null
+    },
     {
       "id": "pipeline/maintenance-go-native-cost",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 59,
+      "durationMs": 131,
       "failures": [],
       "error": null
     },
@@ -17,7 +313,39 @@
       "id": "pipeline/maintenance-go-native-price-wins",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 58,
+      "durationMs": 95,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-online-catalog",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 87,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-v2-full-ranking",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 73,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "pipeline/maintenance-zen-down",
+      "component": "pipeline",
+      "ok": true,
+      "durationMs": 64,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "fuzz/routing-invariants",
+      "component": "fuzz",
+      "ok": true,
+      "durationMs": 13,
       "failures": [],
       "error": null
     }
