@@ -125,14 +125,22 @@ function makeFixture(overrides) {
       : overrides.extConfig);
   write(path.join(cache, 'model-config-cache.json'),
     overrides.catalog === undefined ? Object.assign({ fetchedAt: now }, CATALOG) : overrides.catalog);
+  if (overrides.configV2 !== undefined) {
+    write(path.join(cache, 'model-config-v2-cache.json'),
+      Object.assign({ fetchedAt: now }, overrides.configV2));
+  }
+  if (overrides.registry !== undefined) {
+    write(path.join(cache, 'model-registry-v2-cache.json'),
+      Object.assign({ fetchedAt: now }, overrides.registry));
+  }
   write(path.join(cache, 'status-ses_test.json'),
     Object.assign({}, STATUS, { updatedAt: now - 60 * 1000 }, overrides.status || {}));
-  write(path.join(cache, 'usage-limits.json'), {
+  write(path.join(cache, 'usage-limits.json'), overrides.usage === undefined ? {
     fetchedAt: now,
     source: 'limits',
     go: { monthly: { percent: 42, limited: false, resetsAt: now + 3600 * 1000 } },
-  });
-  write(path.join(cache, 'free-quota.json'), {
+  } : overrides.usage);
+  write(path.join(cache, 'free-quota.json'), overrides.latch === undefined ? {
     version: 2,
     models: {
       'opencode/deepseek-v4.1-flash-free': {
@@ -143,7 +151,10 @@ function makeFixture(overrides) {
         updatedAt: now,
       },
     },
-  });
+  } : overrides.latch);
+  if (overrides.runtimeInventory !== undefined) {
+    write(path.join(cache, 'runtime-inventory.json'), overrides.runtimeInventory);
+  }
 
   return { root, home, project, cache, configDir, write };
 }

@@ -337,13 +337,14 @@ async function readConfig(directory, sessionID) {
 }
 
 async function readChain(directory, taskType) {
-  const [catalog, configV2, registry, options, latch, usage] = await Promise.all([
+  const [catalog, configV2, registry, options, latch, usage, inventory] = await Promise.all([
     store.readCatalog(directory),
     store.readConfigV2(directory),
     store.readRegistry(directory),
     store.storedPluginOptions(),
     store.readLatch(directory),
-    store.readUsage(directory)
+    store.readUsage(directory),
+    store.readRuntimeInventory(directory)
   ]);
   return computeModelsView({
     taskType: taskType,
@@ -353,6 +354,7 @@ async function readChain(directory, taskType) {
     latchData: latch,
     usage: usage,
     registry: registry,
+    runtimeInventory: inventory,
     now: Date.now()
   });
 }

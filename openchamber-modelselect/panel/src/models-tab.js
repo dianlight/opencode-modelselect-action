@@ -79,6 +79,10 @@ function modelRow(row, ctx) {
     const pick = el('span', 'mp-mo-pick');
     pick.textContent = 'PICK';
     right.append(pick);
+  } else if (row.status === 'standby') {
+    const standby = el('span', 'oc-sdk-field-note');
+    standby.textContent = row.reason || 'failover';
+    right.append(standby);
   } else if (row.status === 'excluded' && row.reason) {
     const why = el('span', 'mp-mo-why');
     why.textContent = row.reason;

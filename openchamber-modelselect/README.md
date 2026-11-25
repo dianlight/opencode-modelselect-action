@@ -345,10 +345,13 @@ writes through the service, so it needs no file grants of its own:
   quota window from the plugin's `usage-limits.json` snapshot — width =
   percent, tone by limited/thresholds; free rows: availability — full unless
   latched; excluded rows: the blocking reason at full width); cost stays as
-  text in the meta line, never in the bar. Excluded rows
+  text in the meta line, never in the bar. Unused chain candidates are
+  shown as `failover #N` standbys, not exclusions. Excluded rows
   are grayed with the reason (`quota latched · retry in …`,
-  `over maxCost $…`, `off-side · …`, `no cost data`). The pick gets a
-  PICK badge. The task combo sits inline with a themed eye / eye-off button
+  `go quota spent · resets …`, `over maxCost $…`,
+  `not in runtime inventory`, `provider not allowed`, `no cost data`).
+  The pick gets a PICK badge; when every variant is blocked the preview
+  shows the configured fallback instead and names the blockers. The task combo sits inline with a themed eye / eye-off button
   that hides/shows the excluded rows. The chain mirrors
   `plugin/src/shared/select.js` without the live network probe, reusing the
   shared core (`lookup`, `model-ref`, `budget`, `free-quota`) via

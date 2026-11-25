@@ -216,4 +216,79 @@ describe('models chain — provider-model v2', () => {
     assert.equal(view.registry, undefined);
     assert.equal(view.pick, 'opencode/deepseek-free');
   });
+
+  it('shows unused chain variants as failover standbys, not off-side exclusions', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'free-first' },
+      latchData: null,
+      registry: REGISTRY,
+      now: NOW,
+    });
+    const paid = view.chain.find((r) => r.model === 'opencode-go/gpt-5.6-luna');
+    assert.equal(paid.status, 'standby');
+    assert.match(paid.reason, /failover/);
+    assert.equal(paid.bar.tone, 'muted');
+    assert.equal(view.chain.some((r) => /off-side/.test(r.reason)), false);
+  });
+
+  it('marks Go variants over quota and keeps the free pick', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'free-first' },
+      latchData: null,
+      registry: REGISTRY,
+      usage: { go: { monthly: { percent: 100, limited: true, resetsAt: NOW + 3600 * 1000 } } },
+      now: NOW,
+    });
+    assert.equal(view.pick, 'opencode/gpt-5.6-luna-free');
+    const paid = view.chain.find((r) => r.model === 'opencode-go/gpt-5.6-luna');
+    assert.equal(paid.status, 'excluded');
+    assert.match(paid.reason, /go quota spent · resets 1h 0m/);
+    assert.equal(paid.bar.tone, 'err');
+  });
+
+  it('reports the fallback when both sides are blocked', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'free-first', fallbackModel: 'modelselect/free-router' },
+      latchData: latch('opencode/gpt-5.6-luna-free', NOW + 3 * 3600 * 1000),
+      registry: REGISTRY,
+      usage: { go: { monthly: { percent: 100, limited: true } } },
+      now: NOW,
+    });
+    assert.equal(view.pick, 'modelselect/free-router');
+    assert.equal(view.pickSource, 'fallback');
+    assert.match(view.pickNote, /All variants blocked.*Go quota spent.*free tier latched/);
+    assert.equal(view.chain.some((r) => r.status === 'pick'), false);
+  });
+
+  it('applies the runtime inventory to the preview', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'free-first' },
+      latchData: null,
+      registry: REGISTRY,
+      runtimeInventory: {
+        fetchedAt: NOW,
+        models: [
+          { providerID: 'opencode-go', id: 'gpt-5.6-luna', enabled: true },
+          { providerID: 'opencode', id: 'gpt-5.6-luna-free', enabled: false },
+        ],
+      },
+      now: NOW,
+    });
+    assert.equal(view.pick, 'opencode-go/gpt-5.6-luna');
+    const free = view.chain.find((r) => r.model === 'opencode/gpt-5.6-luna-free');
+    assert.equal(free.status, 'excluded');
+    assert.match(free.reason, /not in runtime inventory/);
+  });
 });

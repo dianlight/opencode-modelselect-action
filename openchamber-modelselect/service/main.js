@@ -1622,6 +1622,7 @@ __export(exports_store, {
   readPluginConfig: () => readPluginConfig,
   readRegistry: () => readRegistry,
   readRoutingSync: () => readRoutingSync,
+  readRuntimeInventory: () => readRuntimeInventory,
   readSessionStatus: () => readSessionStatus,
   readUsage: () => readUsage,
   rememberProject: () => rememberProject,
@@ -2302,6 +2303,58 @@ function rowCost(row) {
   const c = row.blended_cost;
   return typeof c === "number" && Number.isFinite(c) && c >= 0 ? c : null;
 }
+function previewGoVeto(usage, token) {
+  try {
+    const go = usage && usage.go && typeof usage.go === "object" ? usage.go : null;
+    let hard = false;
+    let percent = null;
+    let resetsAt = null;
+    if (go) {
+      ["rolling", "weekly", "monthly"].forEach((k) => {
+        const w = go[k];
+        if (!w || typeof w !== "object")
+          return;
+        const p = Number(w.percent);
+        if (Number.isFinite(p) && (percent === null || p > percent))
+          percent = p;
+        if (w.limited === true || Number.isFinite(p) && p >= 100)
+          hard = true;
+        if (w.limited === true && typeof w.resetsAt === "number" && w.resetsAt > 0)
+          resetsAt = w.resetsAt;
+      });
+    }
+    let budget = false;
+    const budgets = usage && Array.isArray(usage.budgets) ? usage.budgets : [];
+    for (const b of budgets) {
+      if (!b || typeof b !== "object")
+        continue;
+      const p = Number(b.percent);
+      if (b.limited === true || Number.isFinite(p) && p >= 100)
+        budget = true;
+    }
+    return { veto: hard || budget, hard, budget, percent, resetsAt, token: Boolean(token) };
+  } catch (e) {
+    return { veto: false, hard: false, budget: false, percent: null, resetsAt: null, token: Boolean(token) };
+  }
+}
+function inventoryKeys(snapshot, now) {
+  try {
+    if (!snapshot || typeof snapshot.fetchedAt !== "number" || Number(now) - snapshot.fetchedAt > 60 * 1000 || !Array.isArray(snapshot.models))
+      return null;
+    const keys = new Set;
+    for (const m of snapshot.models) {
+      if (!m || m.enabled === false)
+        continue;
+      const provider = str2(m.providerID).trim().toLowerCase();
+      const id = str2(m.id).trim();
+      if (provider && id)
+        keys.add(provider + "/" + id);
+    }
+    return keys.size ? keys : null;
+  } catch (e) {
+    return null;
+  }
+}
 function sortRanked(rows) {
   return (Array.isArray(rows) ? rows : []).filter((r) => r && typeof r.model === "string" && r.model).slice().sort((a, b) => {
     const sa = typeof a.score === "number" ? a.score : -Infinity;
@@ -2340,13 +2393,12 @@ function usageBar(row, usage, at) {
   if (row.status === "excluded") {
     const reason = row.reason || "excluded";
     let tone = "muted";
-    if (/quota latched/.test(reason))
-      tone = "err";
-    else if (/rate-limited/.test(reason))
-      tone = "warn";
-    else if (/over maxCost|no cost data/.test(reason))
+    if (/quota latched|rate-limited|over maxCost|no cost data|quota spent|not in runtime inventory/.test(reason))
       tone = "err";
     return { pct: 100, tone, label: reason };
+  }
+  if (row.status === "standby") {
+    return { pct: 45, tone: "muted", label: row.reason || "failover" };
   }
   const u = usageMonthly(usage);
   if (row.side === "go" && u && u.percent !== null) {
@@ -2368,7 +2420,7 @@ function usageBar(row, usage, at) {
   }
   return { pct: 45, tone: "muted", label: row.side === "free" ? "free · no quota cap" : "standby" };
 }
-function computeModelsView({ taskType, catalogConfig, configV2, options, latchData, usage, registry, now }) {
+function computeModelsView({ taskType, catalogConfig, configV2, options, latchData, usage, registry, runtimeInventory, now }) {
   const at = typeof now === "number" ? now : Date.now();
   const table = catalogConfig && (catalogConfig["task-types"] || catalogConfig.task_types) || {};
   let key = null;
@@ -2387,6 +2439,9 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
   const order = preference === "go-first" ? ["go", "free"] : ["free", "go"];
   const maxCost = numOrNull(optOf(options, "maxCost", null, null));
   const fallback = str2(optOf(options, "fallbackModel", "fallback-model", "")).trim();
+  const providersRaw = optOf(options, "availableProviders", "available-providers", "opencode,opencode-go");
+  const allowedProviders = (Array.isArray(providersRaw) ? providersRaw : str2(providersRaw).split(",")).map((p) => str2(p).trim().toLowerCase()).filter(Boolean);
+  const providerAllowed = (provider) => allowedProviders.length === 0 || allowedProviders.indexOf(str2(provider).toLowerCase()) !== -1;
   const refOf = (side) => str2(side === "go" ? entry.go : entry.free).trim();
   let fresh = [];
   try {
@@ -2403,6 +2458,14 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
     return null;
   };
   const latched = (model) => Boolean(model && latchHitFor(model));
+  const goVeto = previewGoVeto(usage, options && options.token);
+  const availability = {
+    providers: goVeto.veto ? { "opencode-go": { budget_remaining: 0 } } : {},
+    models: inventoryKeys(runtimeInventory, at)
+  };
+  const chainProviders = allowedProviders.length ? allowedProviders : null;
+  const goBlocked = (provider) => goVeto.veto && str2(provider).toLowerCase() === "opencode-go";
+  const goReason = "go quota spent" + (goVeto.resetsAt ? " · resets " + formatCountdown2(goVeto.resetsAt - at) : "");
   const v2Task = registry ? taskEntryV2(configV2 || {}, taskType) : null;
   if (v2Task) {
     const v2 = previewV2(v2Task);
@@ -2490,9 +2553,11 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
       ordered = buildV2Chain({
         taskEntry: v2TaskEntry.entry,
         registry,
+        availability,
         preference,
         tier: tier === "go" || tier === "free" ? tier : null,
-        maxCost
+        maxCost,
+        providers: chainProviders
       });
     } catch (e) {
       return null;
@@ -2556,22 +2621,52 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
         view.latchText = view.reason;
         return view;
       }
+      if (!providerAllowed(variant.provider)) {
+        view.status = "excluded";
+        view.reason = "provider not allowed";
+        return view;
+      }
+      if (goBlocked(variant.provider)) {
+        view.status = "excluded";
+        view.reason = goReason;
+        return view;
+      }
       if (maxCost !== null && (view.cost === null || view.cost > maxCost)) {
         view.status = "excluded";
         view.reason = view.cost === null ? "no cost data (cap set)" : "over maxCost $" + maxCost;
         return view;
       }
-      if (rowSide !== side) {
+      if (availability.models && !availability.models.has(variant.ref)) {
         view.status = "excluded";
-        view.reason = "off-side · v2 " + preference;
+        view.reason = "not in runtime inventory";
         return view;
       }
+      if (rank.has(variant.ref)) {
+        view.status = "standby";
+        view.reason = "failover #" + (rank.get(variant.ref) + 1);
+        return view;
+      }
+      view.status = "excluded";
+      view.reason = "unavailable in this runtime";
       return view;
     });
     rows.forEach((r) => {
       r.bar = usageBar(r, usage, at);
     });
     const fallbackPick = !pickName && fallback ? fallback : null;
+    let blocked = "";
+    if (!pickName) {
+      const why = [];
+      if (goVeto.veto)
+        why.push("Go quota spent");
+      if (fresh.length)
+        why.push("free tier latched");
+      if (maxCost !== null)
+        why.push("maxCost $" + maxCost);
+      if (availability.models)
+        why.push("runtime inventory");
+      blocked = why.length ? why.join(" + ") : "no usable variant";
+    }
     return {
       found: true,
       key,
@@ -2581,11 +2676,30 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
       fallback,
       pick: pickName || fallbackPick,
       pickSource: pickName ? "chain" : fallbackPick ? "fallback" : null,
-      pickNote: pickName ? "" : fallbackPick ? "No usable v2 variant — fallback" : "No usable v2 variant",
+      pickNote: pickName ? "" : fallbackPick ? "All variants blocked (" + blocked + ") — fallback" : "All variants blocked (" + blocked + ")",
       chain: rows,
       registry: true
     };
   }
+  const chainKeys = [];
+  [side, otherSide].forEach((s) => {
+    sortRanked(entry[s + "_ranked"]).forEach((row) => {
+      const key = str2(row.model);
+      if (!key || chainKeys.indexOf(key) !== -1)
+        return;
+      if (latchHitFor(key))
+        return;
+      if (!providerAllowed(splitName(key).provider))
+        return;
+      if (goBlocked(splitName(key).provider))
+        return;
+      if (maxCost !== null && (rowCost(row) === null || rowCost(row) > maxCost))
+        return;
+      if (availability.models && !availability.models.has(key))
+        return;
+      chainKeys.push(key);
+    });
+  });
   function buildChain() {
     const rows = [];
     [side, otherSide].forEach((s) => {
@@ -2645,11 +2759,29 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
       view.reason = cost === null ? "no cost data (cap set)" : "over maxCost $" + maxCost;
       return view;
     }
-    if (s !== side) {
+    if (!providerAllowed(parts.provider)) {
       view.status = "excluded";
-      view.reason = "off-side · " + sideNote;
+      view.reason = "provider not allowed";
       return view;
     }
+    if (goBlocked(parts.provider)) {
+      view.status = "excluded";
+      view.reason = goReason;
+      return view;
+    }
+    if (availability.models && !availability.models.has(name)) {
+      view.status = "excluded";
+      view.reason = "not in runtime inventory";
+      return view;
+    }
+    const rank = chainKeys.indexOf(name);
+    if (rank !== -1) {
+      view.status = "standby";
+      view.reason = "failover #" + (rank + 1);
+      return view;
+    }
+    view.status = "excluded";
+    view.reason = s !== side ? "off-side · " + sideNote : "unavailable in this runtime";
     return view;
   }
   return {
@@ -3334,6 +3466,9 @@ function readLatch(directory) {
 function readUsage(directory) {
   return readJsonAt(directory, path.join(CACHE_REL, "usage-limits.json"));
 }
+function readRuntimeInventory(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, "runtime-inventory.json"));
+}
 var LAST_PROJECT_FILE = process.env.MODELSELECT_STATE_FILE || path.join(os.tmpdir(), "openchamber-modelselect", "last-project.json");
 async function rememberProject(directory) {
   if (!directory)
@@ -3582,13 +3717,14 @@ async function readConfig(directory, sessionID) {
   };
 }
 async function readChain(directory, taskType) {
-  const [catalog, configV2, registry, options, latch, usage] = await Promise.all([
+  const [catalog, configV2, registry, options, latch, usage, inventory] = await Promise.all([
     readCatalog(directory),
     readConfigV2(directory),
     readRegistry(directory),
     storedPluginOptions(),
     readLatch(directory),
-    readUsage(directory)
+    readUsage(directory),
+    readRuntimeInventory(directory)
   ]);
   return computeModelsView({
     taskType,
@@ -3598,6 +3734,7 @@ async function readChain(directory, taskType) {
     latchData: latch,
     usage,
     registry,
+    runtimeInventory: inventory,
     now: Date.now()
   });
 }

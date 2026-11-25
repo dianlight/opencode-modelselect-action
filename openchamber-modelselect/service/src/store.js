@@ -595,6 +595,14 @@ export function readUsage(directory) {
   return readJsonAt(directory, path.join(CACHE_REL, 'usage-limits.json'));
 }
 
+/**
+ * Plugin's fresh runtime `/api/model` snapshot (`runtime-inventory.json`),
+ * used by the chain preview to mark variants the local server cannot serve.
+ */
+export function readRuntimeInventory(directory) {
+  return readJsonAt(directory, path.join(CACHE_REL, 'runtime-inventory.json'));
+}
+
 // --- last project (quota provider has no directory) --------------------------
 
 // Scratch, not config: the quota call carries no project, so the last one this
