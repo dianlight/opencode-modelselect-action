@@ -17,6 +17,9 @@
   per-request context/output token caps and, for Go models, the per-plan
   monthly dollar allowance. Go's quota is a shared dollar allowance reported
   as a percentage, not a token budget; the UI says so explicitly.
+- The `github-action-v2` action accepts a `permissions` input: a JSON array of
+  OpenCode 2 permission rules appended to both generated `opencode.json`
+  files, so unattended runs can pre-approve narrow resources.
 
 ### Changed
 - The extension's settings panel and Work Status service now read and write
@@ -44,6 +47,16 @@
 - The Model select OpenChamber quota provider no longer sends `null` in
   `error`, `windows` or `models`; the host previously rejected the whole
   provider with "usage.read does not match its schema".
+- The `github-action-v2` action now installs OpenCode 2 from
+  `https://opencode.ai/v2/install` and replaces a cached 1.x binary; V1's
+  installer silently downgraded it, which broke the V2 plugin API and config.
+- The maintenance OpenCode task no longer hangs for an hour on a permission
+  prompt when research writes scratch files under `/tmp`: the workflow
+  pre-approves `/tmp/*`, instructs the agent to keep scratch files inside the
+  workspace, and fails fast with a 15-minute step timeout.
+- The coverage audit no longer reports embedding/image/video/realtime models or
+  stealth models without public benchmark data as "missing scores". Decision
+  models keep their fallback-score audit.
 
 ## [1.1.0] - 2026-11-18
 ### Added

@@ -8,6 +8,7 @@
  */
 
 const { execFile } = require('node:child_process');
+const { deepContains } = require('../engine/expect.cjs');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -56,6 +57,16 @@ function verify(scenario, result) {
       const spec = e.files[rel];
       if (spec.contains && !content.includes(spec.contains)) failures.push(`${rel} missing ${JSON.stringify(spec.contains)}`);
       if (spec.notContains && content.includes(spec.notContains)) failures.push(`${rel} contains ${JSON.stringify(spec.notContains)}`);
+      if (spec.jsonContains || spec.jsonNotContains) {
+        let parsed;
+        try { parsed = JSON.parse(content); } catch { failures.push(`${rel} is not JSON`); continue; }
+        if (spec.jsonContains && !deepContains(parsed, spec.jsonContains)) {
+          failures.push(`${rel} JSON does not contain ${JSON.stringify(spec.jsonContains)}`);
+        }
+        if (spec.jsonNotContains && deepContains(parsed, spec.jsonNotContains)) {
+          failures.push(`${rel} JSON contains ${JSON.stringify(spec.jsonNotContains)}`);
+        }
+      }
     }
   }
   return failures;

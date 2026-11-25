@@ -27,6 +27,13 @@ inputs:
     description: Use GITHUB_TOKEN directly instead of the OpenCode App exchange.
     required: false
     default: "false"
+  permissions:
+    description: >-
+      JSON array of OpenCode 2 permission rules ({ action, resource, effect })
+      appended to both generated opencode.json files. Use this to pre-approve
+      narrow resources that would otherwise block `opencode github run`.
+    required: false
+    default: ""
   mentions:
     description: Comma-separated trigger phrases.
     required: false

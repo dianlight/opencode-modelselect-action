@@ -2960,6 +2960,19 @@ def apply_free_first_rule(
 
 
 # --- Coverage Checks ---
+# Non-agentic catalog types have no LiveBench coding/reasoning/IF/vision row,
+# so a missing score is expected rather than an audit finding. Decision models
+# are deliberately excluded: they get v1 fallback scores from their own
+# decision index (see config/model-scores.yaml).
+NON_AGENTIC_TYPES = frozenset({"embedding", "image", "video", "realtime"})
+
+# Stealth/limited-time models with no vendor scores and no pair of independent
+# secondary sources. The maintenance prompt skips models without >=2 agreeing
+# sources, so flagging them here only produces an unfixable audit task. Remove
+# an id once a real score exists — get_model_source() then hides it anyway.
+NO_BENCHMARK_MODELS = frozenset({"hungerg-free", "tidepool-alpha-free"})
+
+
 def detect_coverage_issues(
     free_models: list[dict[str, Any]],
     go_models: list[dict[str, Any]],
@@ -2968,6 +2981,9 @@ def detect_coverage_issues(
     capability_map: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Detect stale fallback entries and models missing scores entirely.
+
+    Non-agentic catalog types and models in NO_BENCHMARK_MODELS are excluded
+    from `missing_scores`: no LiveBench-style score can exist for them.
 
     Returns: {
         "stale_fallback": [{"model": str, "livebench_scores": {...}}],
@@ -3024,7 +3040,12 @@ def detect_coverage_issues(
     # entry would make the backup benchmark run twice for the same model.
     free_ids = {m["id"] for m in free_models}
     all_ids = {m["id"] for m in free_models} | {m["id"] for m in go_models}
+    catalog = {m["id"]: m for m in [*free_models, *go_models]}
     for model_id in sorted(all_ids):
+        if model_id in NO_BENCHMARK_MODELS:
+            continue
+        if catalog.get(model_id, {}).get("type") in NON_AGENTIC_TYPES:
+            continue
         source = get_model_source(model_id, livebench)
         if source == "missing":
             tier = "Free" if model_id in free_ids else "Go (Paid)"
