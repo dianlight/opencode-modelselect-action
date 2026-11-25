@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-24T14:59:32.765731+00:00",
+  "timestamp": "2026-11-25T05:52:47.697239+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -1139,7 +1139,8 @@
             "go-teams": 15
           }
         }
-      ]
+      ],
+      "score": 66.0
     },
     "gemini-embedding-001": {
       "id": "gemini-embedding-001",
@@ -2368,11 +2369,11 @@
           "cost": 1.2508,
           "input_cost": 0.834,
           "output_cost": 2.501,
-          "context": 1024000,
+          "context": 1048576,
           "media_in": [
             "text"
           ],
-          "output": 64000,
+          "output": 65536,
           "monthly_usage": {
             "go": 30,
             "go-plus": 120,
@@ -2597,9 +2598,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -2617,9 +2618,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         }
       ],
@@ -3234,6 +3235,7 @@
           "media_in": [
             "text",
             "image",
+            "video",
             "pdf"
           ],
           "output": 262144,

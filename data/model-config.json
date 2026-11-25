@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-24T14:59:34.447452+00:00",
+  "timestamp": "2026-11-25T05:52:49.626549+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -61,9 +61,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -1094,9 +1094,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -1805,9 +1805,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -2459,9 +2459,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -3093,9 +3093,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -4029,9 +4029,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -4760,9 +4760,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -5297,9 +5297,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -6028,9 +6028,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -6565,9 +6565,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {
@@ -7199,9 +7199,9 @@
           ],
           "output": 1048576,
           "monthly_usage": {
-            "go": 15,
-            "go-plus": 60,
-            "go-teams": 20
+            "go": 60,
+            "go-plus": 120,
+            "go-teams": 65
           }
         },
         {

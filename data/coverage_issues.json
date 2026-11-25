@@ -2,20 +2,12 @@
   "stale_fallback": [],
   "missing_scores": [
     {
-      "model": "gemini-decision-1",
-      "tier": "Free"
-    },
-    {
       "model": "gemini-embedding-2",
       "tier": "Go (Paid)"
     },
     {
       "model": "hungerg-free",
       "tier": "Go (Paid)"
-    },
-    {
-      "model": "jev-1.14",
-      "tier": "Free"
     },
     {
       "model": "qwen3-embedding-8b",

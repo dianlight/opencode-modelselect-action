@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-24T14:59:32.625551+00:00",
+  "timestamp": "2026-11-25T05:52:47.572657+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -2212,9 +2212,9 @@
       ],
       "output": 1048576,
       "monthly_usage": {
-        "go": 15,
-        "go-plus": 60,
-        "go-teams": 20
+        "go": 60,
+        "go-plus": 120,
+        "go-teams": 65
       }
     },
     {
@@ -3082,14 +3082,14 @@
       "input_cost": 0.834,
       "output_cost": 2.501,
       "blended_cost": 1.2508,
-      "context": 1024000,
+      "context": 1048576,
       "media_in": [
         "text"
       ],
       "media_out": [
         "text"
       ],
-      "output": 64000,
+      "output": 65536,
       "monthly_usage": {
         "go": 30,
         "go-plus": 120,
@@ -3211,9 +3211,9 @@
       ],
       "output": 1048576,
       "monthly_usage": {
-        "go": 15,
-        "go-plus": 60,
-        "go-teams": 20
+        "go": 60,
+        "go-plus": 120,
+        "go-teams": 65
       }
     },
     {
@@ -3518,6 +3518,7 @@
       "media_in": [
         "text",
         "image",
+        "video",
         "pdf"
       ],
       "media_out": [

@@ -6,7 +6,7 @@
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-11-24 14:59 UTC**.
+> Last updated: **2026-11-25 05:52 UTC**.
 > LiveBench data: **356 models scored** (41 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-11-06**.
 > v2 Source: https://livebench.ai/data/20261106/table.csv
@@ -52,7 +52,7 @@
 | `deepseek-v4.1-flash-free` | Free | ✅ LiveBench v2 | Plan, Review | 73.3 | 80.4 | 89.1 | 79.8 | — | Free | Free | Free | — |
 | `flint-40b-free` | Free | 📋 Fallback | UITest, APITest | 63.0 | 72.0 | 70.0 | 5.0 | 65.0 | Free | Free | Free | — |
 | `gemini-4-argon` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 80.5 | 85.7 | 95.1 | 69.2 | — | $4 | $20 | $8 | 10.1 |
-| `gemini-decision-1` | Free | ❌ Missing | — | — | — | — | — | — | $0.1 | $0 | $0.075 | — |
+| `gemini-decision-1` | Free | 📋 Fallback | Plan, Review | 66.0 | 30.0 | 66.0 | 40.0 | 50.0 | $0.1 | $0 | $0.075 | 880.0 |
 | `gemini-embedding-2` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.2 | $0 | $0.15 | — |
 | `glm-5.3` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.7 | 62.5 | 74.0 | 63.6 | 65.0 | $1.4 | $4.4 | $2.15 | 32.0 |
 | `glm-5.3-flash` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 64.7 | 70.9 | 77.6 | 73.7 | — | $0.15 | $0.5 | $0.2375 | 272.4 |
@@ -69,7 +69,7 @@
 | `iceman-free` | Free | 📋 Fallback | Triage, Docs | 19.0 | 30.0 | 25.0 | 5.0 | 35.0 | Free | Free | Free | — |
 | `jev-1.13` | Free | 📋 Fallback | Plan, Review | 67.8 | 30.0 | 67.8 | 5.0 | 50.0 | $0.042 | $0 | $0.0315 | 2152.4 |
 | `jev-1.13-free` | Free | 📋 Fallback | Plan, Review | 67.8 | 30.0 | 67.8 | 5.0 | 50.0 | Free | Free | Free | — |
-| `jev-1.14` | Free | ❌ Missing | — | — | — | — | — | — | $0.042 | $0 | $0.0315 | — |
+| `jev-1.14` | Free | 📋 Fallback | Plan, Review | 66.2 | 30.0 | 66.2 | 40.0 | 50.0 | $0.042 | $0 | $0.0315 | 2101.6 |
 | `kimi-k2.7-code` | Go (Paid) | ✅ LiveBench | Plan, Review | 68.8 | 57.0 | 76.9 | 55.7 | 65.9 | $0.95 | $4 | $1.7125 | 40.2 |
 | `kimi-k3` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 69.4 | 53.1 | 90.7 | 72.5 | — | $3 | $15 | $6 | 11.6 |
 | `kimi-k3.1-pro` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 72.6 | 67.8 | 91.1 | 73.7 | — | $2 | $10 | $4 | 18.1 |
