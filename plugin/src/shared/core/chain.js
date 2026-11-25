@@ -119,6 +119,29 @@ function withinSpend(row, state) {
   return remaining > 0;
 }
 
+/**
+ * Why a candidate row was rejected, in the same order buildChain gates it.
+ * Null when the row is usable. Shared with the v2 registry path and the
+ * fallback-explanation summary so the printed reason is exactly the gate
+ * that excluded the model.
+ */
+function exclusionReason(row, { availability, providers, maxCost, media, contextNeed } = {}) {
+  if (!isAllowedProvider(row, providers)) return 'provider not allowed';
+  const state = providerState(availability, row);
+  if (state.unavailable === true || state.available === false) return 'provider unavailable';
+  if (!withinSpend(row, state)) return 'no budget remaining';
+  if (!modelPresent(availability, row)) return 'not in runtime inventory';
+  if (latched(availability, row)) return 'free quota latched';
+  if (!supportsMedia(row, media)) return 'media unsupported';
+  if (!withinContext(row, contextNeed)) return 'context too small';
+  if (!withinBudget(row, maxCost)) {
+    return row.blended_cost === null || row.blended_cost === undefined
+      ? 'no cost data (maxCost set)'
+      : `over maxCost $${maxCost}`;
+  }
+  return null;
+}
+
 /** Ranked models of a task entry, as `{ model, score }` in rank order. */
 function rankedModels(entry, tier) {
   if (!entry || typeof entry !== 'object') return [];
@@ -209,15 +232,7 @@ function buildChain({
     for (const row of rows) {
       if (!row.key || seen.has(row.key)) continue;
       seen.add(row.key);
-      if (!isAllowedProvider(row, providers)) continue;
-      const state = providerState(availability, row);
-      if (state.unavailable === true || state.available === false) continue;
-      if (!withinSpend(row, state)) continue;
-      if (!modelPresent(availability, row)) continue;
-      if (latched(availability, row)) continue;
-      if (!supportsMedia(row, media)) continue;
-      if (!withinContext(row, contextNeed)) continue;
-      if (!withinBudget(row, maxCost)) continue;
+      if (exclusionReason(row, { availability, providers, maxCost, media, contextNeed })) continue;
       candidates.push({
         provider: row.provider,
         model: row.id,
@@ -295,5 +310,6 @@ module.exports = {
   withinContext,
   withinBudget,
   withinSpend,
+  exclusionReason,
   sortRows,
 };

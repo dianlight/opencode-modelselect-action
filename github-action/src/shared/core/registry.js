@@ -36,16 +36,7 @@
  */
 
 const { classOf, canonicalModel, providerSlug } = require('./catalog');
-const {
-  isAllowedProvider,
-  providerState,
-  latched,
-  modelPresent,
-  supportsMedia,
-  withinContext,
-  withinBudget,
-  withinSpend,
-} = require('./chain');
+const { exclusionReason } = require('./chain');
 
 const V2_SCHEMA_VERSION = 2;
 const ENGINE_PROVIDERS = new Set(['opencode', 'opencode-go']);
@@ -220,6 +211,44 @@ function rankVariants(rows, { preference = 'free-first', tier = null } = {}) {
 }
 
 /**
+ * Variants of every model the task names, deduped by provider/model.
+ * Shared by the chain builder and the fallback explanation so both look
+ * at exactly the same pool of candidates.
+ */
+function poolVariants(taskEntry, registry) {
+  if (!isObject(taskEntry)) return [];
+  const models = Array.isArray(taskEntry.models) && taskEntry.models.length
+    ? taskEntry.models.map((m) => str(m && (typeof m === 'string' ? m : m.model))).filter(Boolean)
+    : [str(taskEntry.model ?? taskEntry.id)].filter(Boolean);
+  const seenKeys = new Set();
+  const pooled = [];
+  for (const model of models) {
+    const entry = modelEntry(registry, model);
+    if (!entry) continue;
+    for (const row of variantRows(entry)) {
+      if (seenKeys.has(row.key)) continue;
+      seenKeys.add(row.key);
+      pooled.push(row);
+    }
+  }
+  return pooled;
+}
+
+function candidateFrom(row) {
+  return {
+    provider: row.provider,
+    model: row.model,
+    ref: row.ref,
+    canonical: row.canonical,
+    class: row.class,
+    cost: row.cost,
+    context: row.context,
+    media_in: row.media_in,
+    score: row.score,
+  };
+}
+
+/**
  * Build the ordered v2 candidate chain for a task entry + registry.
  *
  * @param {object} input
@@ -245,51 +274,43 @@ function buildV2Chain({
   maxCost = null,
   providers = null,
 } = {}) {
-  if (!isObject(taskEntry)) return [];
-  // Aggregate variants from every model in the task's top-N list (v2 may
-  // carry `models`; legacy v2 entries only carry `model`). Dedupe by
-  // provider/model key so the same variant served under two canonical ids
-  // is not double-counted.
-  const models = Array.isArray(taskEntry.models) && taskEntry.models.length
-    ? taskEntry.models.map((m) => str(m && (typeof m === 'string' ? m : m.model))).filter(Boolean)
-    : [str(taskEntry.model ?? taskEntry.id)].filter(Boolean);
-  if (models.length === 0) return [];
-  const seenKeys = new Set();
-  const pooled = [];
-  for (const model of models) {
-    const entry = modelEntry(registry, model);
-    if (!entry) continue;
-    for (const row of variantRows(entry)) {
-      if (seenKeys.has(row.key)) continue;
-      seenKeys.add(row.key);
-      pooled.push(row);
-    }
-  }
+  const pooled = poolVariants(taskEntry, registry);
   if (pooled.length === 0) return [];
   const candidates = [];
   for (const row of pooled) {
-    if (!isAllowedProvider(row, providers)) continue;
-    const state = providerState(availability, row);
-    if (state.unavailable === true || state.available === false) continue;
-    if (!withinSpend(row, state)) continue;
-    if (!modelPresent(availability, row)) continue;
-    if (latched(availability, row)) continue;
-    if (!supportsMedia(row, media)) continue;
-    if (!withinContext(row, contextNeed)) continue;
-    if (!withinBudget(row, maxCost)) continue;
-    candidates.push({
-      provider: row.provider,
-      model: row.model,
-      ref: row.ref,
-      canonical: row.canonical,
-      class: row.class,
-      cost: row.cost,
-      context: row.context,
-      media_in: row.media_in,
-      score: row.score,
-    });
+    if (exclusionReason(row, { availability, providers, maxCost, media, contextNeed })) continue;
+    candidates.push(candidateFrom(row));
   }
   return rankVariants(candidates, { preference, tier });
+}
+
+/**
+ * Rejected variants with the gate that excluded each one. Used only when
+ * the chain is empty, to explain to the user why no model could be picked.
+ * The reasons come from the same `exclusionReason` the chain builder uses.
+ */
+function excludedVariants({
+  taskEntry,
+  registry,
+  availability,
+  preference = 'free-first',
+  tier = null,
+  media,
+  contextNeed = 0,
+  maxCost = null,
+  providers = null,
+} = {}) {
+  const pooled = poolVariants(taskEntry, registry);
+  if (pooled.length === 0) return [];
+  const ranked = rankVariants(pooled.map(candidateFrom), { preference, tier });
+  const byRef = new Map(pooled.map((row) => [row.ref, row]));
+  const out = [];
+  for (const candidate of ranked) {
+    const row = byRef.get(candidate.ref);
+    const reason = row && exclusionReason(row, { availability, providers, maxCost, media, contextNeed });
+    if (reason) out.push({ ref: candidate.ref, reason });
+  }
+  return out;
 }
 
 module.exports = {
@@ -302,4 +323,5 @@ module.exports = {
   compareVariants,
   rankVariants,
   buildV2Chain,
+  excludedVariants,
 };

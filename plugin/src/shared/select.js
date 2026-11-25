@@ -28,8 +28,9 @@ const {
 const { isFreeModelString, firstPaidModel, splitModelRefStrict } = require('./core/model-ref');
 const { selectWithinBudget } = require('./core/budget');
 const { entryFor, normalizeThink } = require('./core/lookup');
-const { buildChain } = require('./core/chain');
-const { buildV2Chain, taskEntryV2 } = require('./core/registry');
+const { buildChain, rankedModels, exclusionReason } = require('./core/chain');
+const { indexCatalog, rowsForModel } = require('./core/catalog');
+const { buildV2Chain, taskEntryV2, excludedVariants } = require('./core/registry');
 
 const DEFAULT_CONFIG_URL =
   'https://raw.githubusercontent.com/dianlight/opencode-modelselect-action/main/data/model-config.json';
@@ -159,6 +160,24 @@ function formatAnnounce({ taskType, tier, model, suggestOnly, jev, usage }) {
   const tail = jev ? ` jev=${jev}` : '';
   const note = usageNote(usage);
   return `[modelselect: task=${taskType} tier=${tier} ${verb} ${model}${tail}${note ? ` (${note})` : ''}]`;
+}
+
+/**
+ * Chat-visible explanation for a pick that found no usable model. One line
+ * per checked candidate with the gate that excluded it (capped so a long
+ * ranked list cannot flood the chat), plus the model that will be used
+ * instead. Emitted even when `announce=off`: it is a failure report, not a
+ * routing announcement.
+ */
+function formatFallbackSummary(excluded, fallbackModel, limit = 6) {
+  const list = Array.isArray(excluded) ? excluded.filter((e) => e && e.ref) : [];
+  if (list.length === 0) return '';
+  const shown = list.slice(0, Math.max(1, limit));
+  const parts = shown.map((e) => `${e.ref} (${e.reason || 'unavailable'})`);
+  const extra = list.length - shown.length;
+  if (extra > 0) parts.push(`+${extra} more`);
+  const tail = fallbackModel ? `; using ${fallbackModel}` : '';
+  return `[modelselect] no usable model — checked ${list.length}: ${parts.join(', ')}${tail}`;
 }
 
 /**
@@ -727,6 +746,39 @@ function refinePickForRoute(entry, tier, model, { config, cacheDir, media, capab
   return model;
 }
 
+/** Rejected v1 catalog rows, in rank order, with the gate that excluded each. */
+function excludedV1Candidates({ entry, catalog, tier, availability, media, contextNeed = 0, maxCost = null, providers = null }) {
+  if (!entry || !catalog) return [];
+  // Legacy entries without rankings have nothing that was "checked" — the
+  // tier go/free string is a hint, not a chain candidate.
+  const lists = [entry.ranked, entry.go_ranked, entry.free_ranked];
+  if (!lists.some((l) => Array.isArray(l) && l.length > 0)) return [];
+  const index = indexCatalog(catalog);
+  const mode = tier === 'free' ? 'free' : tier === 'go' ? 'go' : 'abs';
+  const seen = new Set();
+  const out = [];
+  for (const ranked of rankedModels(entry, mode)) {
+    for (const row of rowsForModel(index, ranked.model)) {
+      if (!row.key || seen.has(row.key)) continue;
+      seen.add(row.key);
+      const reason = exclusionReason(row, { availability, providers, maxCost, media, contextNeed });
+      if (reason) out.push({ ref: row.key, reason });
+    }
+  }
+  return out;
+}
+
+function mergeExclusions(primary, secondary) {
+  const seen = new Set();
+  const out = [];
+  for (const e of primary.concat(secondary)) {
+    if (!e || !e.ref || seen.has(e.ref)) continue;
+    seen.add(e.ref);
+    out.push(e);
+  }
+  return out;
+}
+
 /** Resolve the final model string for a task-type + tier. Never throws without fallback. */
 async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, catalog, registry: registryIn, availability, tried }) {
   const { config, source: source0, stale } = await loadConfig(opts, cacheDir);
@@ -838,6 +890,9 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
   // untouched — readers prefer v2 and fall back to v1.
   let chain = null;
   let sourceV2 = false;
+  // Kept for the terminal fallback report: every candidate the chain
+  // rejected, with the exact gate that rejected it.
+  let exclusions = [];
   const v2Task = taskEntryV2(configV2, taskType);
   if (v2Task) {
     let registry = registryIn || null;
@@ -850,7 +905,7 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
     }
     if (registry) {
       try {
-        chain = buildV2Chain({
+        const v2Args = {
           taskEntry: v2Task.entry,
           registry,
           availability: availability || null,
@@ -860,7 +915,8 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
           contextNeed: 0,
           maxCost: opts.maxCost,
           providers: Array.isArray(opts.availableProviders) && opts.availableProviders.length > 0 ? opts.availableProviders : null,
-        });
+        };
+        chain = buildV2Chain(v2Args);
         if (Array.isArray(tried) && tried.length > 0) {
           const done = new Set(tried.map((t) => String(t ?? '').trim()).filter(Boolean));
           chain = (Array.isArray(chain) ? chain : []).filter(
@@ -878,6 +934,7 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
           tier = first.class === 'free' ? 'free' : 'go';
           source = `${source}+v2`;
         } else {
+          exclusions = excludedVariants(v2Args);
           chain = null;
         }
       } catch (err) {
@@ -988,12 +1045,27 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
   const chainAllRefs = (Array.isArray(chain) ? chain : [])
     .map((c) => (c ? String(c.ref ?? `${c.provider}/${c.model}`).trim() : ''))
     .filter(Boolean);
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia, chain: chainRefs, chainAll: chainAllRefs };
+  if (chainAllRefs.length === 0 && !sourceV2) {
+    exclusions = mergeExclusions(
+      exclusions,
+      excludedV1Candidates({
+        entry,
+        catalog,
+        tier,
+        availability: availability || null,
+        media: requestedMedia,
+        maxCost: opts.maxCost,
+        providers: Array.isArray(opts.availableProviders) && opts.availableProviders.length > 0 ? opts.availableProviders : null,
+      }),
+    );
+  }
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia, chain: chainRefs, chainAll: chainAllRefs, excluded: chainAllRefs.length === 0 ? exclusions : [] };
 }
 
 module.exports = {
   normalizeOptions,
   formatAnnounce,
+  formatFallbackSummary,
   usageNote,
   shouldAnnounce,
   loadConfig,

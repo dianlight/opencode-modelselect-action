@@ -102,7 +102,7 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, loadRegistryFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, formatFallbackSummary, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, loadRegistryFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
 const { nextCandidate } = require('./shared/core/chain');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
@@ -472,6 +472,7 @@ async function setup(ctx) {
   const lastMedia = new Map(); // sessionID -> last detected requested media (for aux/retry re-resolve)
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
+  const fallbackExplained = new Map(); // sessionID -> last fallback summary line
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
   const failoverArmed = new Map(); // sessionID -> { armedAt, ref }: pending forced retry after a classified failure
   const failoverAttempts = new Map(); // sessionID -> forced retries used in this episode
@@ -1178,8 +1179,9 @@ async function setup(ctx) {
     // Returns the resolved pick (`{ picked, virtualId }`) when the turn
     // resolved one — even when deduped to silence — so the prompt-hook
     // pre-sync can reuse it instead of resolving (and Jev-refining) twice.
-    // Null/undefined when nothing resolved (announce off, empty text, failure).
-    if (opts.announce === 'off' || !text.trim() || !event.sessionID) return null;
+    // Null/undefined when nothing resolved (empty text or a resolution failure);
+    // with announce=off it still returns the pick so the prompt hook can pre-sync.
+    if (!text.trim() || !event.sessionID) return null;
     try {
       const mediaReq = Array.isArray(media) ? media : collectMedia({ files });
       const { taskType, jev } = await resolveTask({ sessionID: event.sessionID, text, files, agent });
@@ -1191,6 +1193,17 @@ async function setup(ctx) {
       const picked = await resolveModel({ taskType, opts: effectiveOpts, cacheDir, media: mediaReq, capabilitiesFor: liveCapabilitiesFor, catalog, registry, availability: await currentAvailability(), tried: triedFor(event.sessionID) });
       const key = picked.model;
       const resolved = { picked, virtualId };
+      // Terminal "nothing usable" report. This is a failure explanation,
+      // not a routing announcement, so it also fires with announce=off.
+      // Deduped by line: only re-report when the checked set changes.
+      if (Array.isArray(picked.excluded) && picked.excluded.length > 0) {
+        const line = formatFallbackSummary(picked.excluded, key);
+        if (line && fallbackExplained.get(event.sessionID) !== line) {
+          if (appendPromptLine(event, line)) fallbackExplained.set(event.sessionID, line);
+          else console.error(`[modelselect] fallback report skipped: could not edit prompt for session ${event.sessionID}`);
+        }
+      }
+      if (opts.announce === 'off') return resolved;
       if (!shouldAnnounce(opts.announce, key, applied.get(event.sessionID), announced.get(event.sessionID))) return resolved;
       const line = formatAnnounce({
         taskType: picked.taskType,
