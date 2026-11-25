@@ -156,9 +156,6 @@ function usageBar(row, usage, at) {
     if (/quota latched|rate-limited|over maxCost|no cost data|quota spent|not in runtime inventory/.test(reason)) tone = 'err';
     return { pct: 100, tone: tone, label: reason };
   }
-  if (row.status === 'standby') {
-    return { pct: 45, tone: 'muted', label: row.reason || 'failover' };
-  }
   const u = usageMonthly(usage);
   if (row.side === 'go' && u && u.percent !== null) {
     const pct = Math.max(3, Math.min(100, Math.round(u.percent)));
