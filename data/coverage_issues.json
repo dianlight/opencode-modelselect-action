@@ -1,27 +1,6 @@
 {
   "stale_fallback": [],
-  "missing_scores": [
-    {
-      "model": "gemini-embedding-2",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "hungerg-free",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "qwen3-embedding-8b",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "text-embedding-3-small",
-      "tier": "Go (Paid)"
-    },
-    {
-      "model": "tidepool-alpha-free",
-      "tier": "Free"
-    }
-  ],
+  "missing_scores": [],
   "missing_prices": [],
   "missing_capabilities": [
     {
