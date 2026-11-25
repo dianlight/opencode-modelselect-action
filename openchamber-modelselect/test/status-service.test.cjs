@@ -105,10 +105,17 @@ describe('status service', () => {
         assert.equal(first.status, 200);
         const file = routingFile(fx);
         await waitForFile(file);
-        const mtime = fs.statSync(file).mtimeMs;
+        assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).categories.generic.description,
+          'criteria generic');
+        // Give an unthrottled refresh something to write: syncRouting is
+        // diff-only, so unchanged inputs would leave the file alone either way.
+        fx.write(path.join(fx.cache, 'task-types-cache.json'),
+          { generic: { label: 'Generic', jev_criteria: 'criteria changed' } });
         const second = await svc.post('/schedule', {}, run('quota-probe'));
         assert.equal(second.status, 200);
-        assert.equal(fs.statSync(file).mtimeMs, mtime, 'the wake inside the window performed no extra refresh');
+        const after = JSON.parse(fs.readFileSync(file, 'utf8'));
+        assert.equal(after.categories.generic.description, 'criteria generic',
+          'the wake inside the window performed no extra refresh');
       } finally {
         svc.stop();
       }

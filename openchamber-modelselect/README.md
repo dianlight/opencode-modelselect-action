@@ -155,11 +155,12 @@ stored-deviations shape) are kept fresh from two places, both best-effort:
   the router sync is ON — the plugin routes the pick itself (only virtual
   `modelselect/auto-*` sessions) and never hands off to OpenChamber's routing.
 - This service, on host-scheduled wakes: at most once every 30 s per project,
-  immediately when the switch is turned back on, and right after the panel
-  saves plugin options. A read of `/status` never writes it. The manifest
-  declares two cron entries, `routing-refresh` (every minute) and `quota-probe`
-  (every five minutes); both post to `POST /schedule`, which the service
-  accepts with the SDK's wire contract. A wake with no open project succeeds
+  and immediately when the switch is turned back on. Saving plugin options
+  only reloads OpenCode; routing refreshes on the next plugin sync or wake.
+  A read of `/status` never writes it. The manifest declares two cron entries,
+  `routing-refresh` (every minute) and `quota-probe` (every five minutes); both
+  post to `POST /schedule`, which the service accepts with the SDK's wire
+  contract. A wake with no remembered or previously seen project succeeds
   without refreshing anything, and the service starts no timer of its own.
 
 Host automations are the only scheduler — there is no extension-side timer to
