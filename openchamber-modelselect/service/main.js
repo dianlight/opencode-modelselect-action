@@ -1934,6 +1934,17 @@ var LABEL_MAX = 60;
 var VALUE_MAX = 80;
 var TEXT_MAX = 200;
 var NOTE_MAX = 300;
+var ICON = {
+  task: "task-line",
+  tier: "stack-line",
+  model: "cpu-line",
+  think: "brain-line",
+  jev: "lightbulb-line",
+  source: "git-branch-line",
+  updated: "time-line",
+  usage: "pie-chart-2-line"
+};
+var ROUTING_OPTIONS = [{ value: "on", label: "On" }, { value: "off", label: "Off" }];
 var TIER_OPTIONS = [
   { value: "auto", label: "auto" },
   { value: "go", label: "go" },
@@ -2071,7 +2082,7 @@ function budgetRows(usage, rows, now) {
       if (!b || typeof b !== "object" || !Array.isArray(b.models))
         continue;
       for (const m of b.models) {
-        if (rows.length >= ROWS_MAX - 1)
+        if (rows.length >= ROWS_MAX)
           return;
         rows.push(line(budgetRow(b, m, now)));
       }
@@ -2123,6 +2134,7 @@ function line(row) {
     kind: "line",
     id: row.id,
     label: label(row.label),
+    ...row.icon ? { icon: row.icon } : {},
     ...row.dot ? { dot: row.dot } : {},
     ...row.content ? { content: row.content } : {},
     ...row.value != null ? { value: value(row.value) } : {},
@@ -2144,6 +2156,7 @@ function statusRows(snap, rows) {
   rows.push(line({
     id: "task",
     label: "Task",
+    icon: ICON.task,
     value: status.taskType || "—",
     ...unlisted ? { badge: { label: "unlisted task", tone: "warning" } } : {},
     ...unlisted ? { tooltip: "This task type is not in the plugin model config." } : {}
@@ -2151,6 +2164,7 @@ function statusRows(snap, rows) {
   rows.push(line({
     id: "tier",
     label: "Tier",
+    icon: ICON.tier,
     value: status.tier || "—",
     dot: status.goOk === true ? "success" : status.goOk === false ? "error" : "muted",
     ...snap.tierOption ? {
@@ -2167,6 +2181,7 @@ function statusRows(snap, rows) {
   rows.push(line({
     id: "model",
     label: "Model",
+    icon: ICON.model,
     value: status.model || "—",
     ...status.suggestOnly ? { badge: { label: "suggest only", tone: "info" } } : {},
     tooltip: (status.suggestOnly ? "Suggest-only trial mode — the pick is logged but never applied. " : "") + str(status.model) + capsToolTip(snap.pickedCaps)
@@ -2174,14 +2189,16 @@ function statusRows(snap, rows) {
   rows.push(line({
     id: "think",
     label: "Think",
+    icon: ICON.think,
     value: thinkLabel(status),
     tooltip: "Effective effort" + (status.variant ? " (manual override)" : " (task default)")
   }));
-  rows.push(line({ id: "jev", label: "Jev", value: status.jev || "—" }));
-  rows.push(line({ id: "source", label: "Source", value: status.source || "—" }));
+  rows.push(line({ id: "jev", label: "Jev", icon: ICON.jev, value: status.jev || "—" }));
+  rows.push(line({ id: "source", label: "Source", icon: ICON.source, value: status.source || "—" }));
   rows.push(line({
     id: "updated",
     label: "Updated",
+    icon: ICON.updated,
     value: formatAge(now, status.updatedAt),
     ...stale ? { badge: { label: "last known", tone: "warning" } } : {},
     tooltip: "Session " + (snap.sessionID || "unknown") + " · " + (typeof status.updatedAt === "number" ? new Date(status.updatedAt).toISOString() : "no timestamp") + (stale ? " — the pick has not been rewritten for a while (stale by design outside routed turns)." : "")
@@ -2236,6 +2253,7 @@ function buildView(snap) {
     rows.push(line({
       id: "usage",
       label: "Go monthly",
+      icon: ICON.usage,
       content: { kind: "bar", value: u.percent, tone: usageTone(u.percent, u.limited) },
       value: Math.round(u.percent) + "%",
       valueTone: u.limited ? "error" : undefined,
@@ -2245,7 +2263,7 @@ function buildView(snap) {
   budgetRows(snap.usage, rows, now);
   const fresh = latchEntries(snap.freeQuota).filter((entry) => freeQuotaFresh(entry, now));
   fresh.forEach((entry, index) => {
-    if (rows.length >= ROWS_MAX - 1)
+    if (rows.length >= ROWS_MAX)
       return;
     const rateLimited = entry.kind === "rate-limit";
     const head = (rateLimited ? "Rate limited" : "Free tier exhausted") + (entry.model ? " — " + entry.model : "");
@@ -2253,19 +2271,16 @@ function buildView(snap) {
     const text = head + " — retry in " + formatCountdown(Number(entry.until) - now) + (detail ? " · " + detail : "");
     rows.push(note(idOf("free-" + (entry.model || "all") + "-" + index), text, "warning"));
   });
-  rows.push(line({
-    id: "router",
-    label: "Auto-update router",
-    content: {
-      kind: "segmented",
+  return {
+    rows: rows.slice(0, ROWS_MAX),
+    controls: [{
+      kind: "select",
       id: "routing-sync",
-      label: snap.sync ? "On" : "Off",
+      label: "Auto-update router",
       value: snap.sync ? "on" : "off",
-      options: [{ value: "on", label: "On" }, { value: "off", label: "Off" }]
-    },
-    tooltip: snap.sync ? "routing.json refreshes every turn" : "router update paused"
-  }));
-  return { rows: rows.slice(0, ROWS_MAX) };
+      options: ROUTING_OPTIONS
+    }]
+  };
 }
 
 // service/src/chain.js
@@ -2436,7 +2451,7 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
   const order = preference === "go-first" ? ["go", "free"] : ["free", "go"];
   const maxCost = numOrNull(optOf(options, "maxCost", null, null));
   const fallback = str2(optOf(options, "fallbackModel", "fallback-model", "")).trim();
-  const providersRaw = optOf(options, "availableProviders", "available-providers", "opencode,opencode-go");
+  const providersRaw = optOf(options, "availableProviders", "available-providers", "");
   const allowedProviders = (Array.isArray(providersRaw) ? providersRaw : str2(providersRaw).split(",")).map((p) => str2(p).trim().toLowerCase()).filter(Boolean);
   const providerAllowed = (provider) => allowedProviders.length === 0 || allowedProviders.indexOf(str2(provider).toLowerCase()) !== -1;
   const refOf = (side) => str2(side === "go" ? entry.go : entry.free).trim();

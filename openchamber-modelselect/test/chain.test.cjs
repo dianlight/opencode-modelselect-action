@@ -257,7 +257,8 @@ describe('models chain — provider-model v2', () => {
       taskType: 'generic',
       catalogConfig: catalogConfig(),
       configV2: V2_CONFIG,
-      options: { autoPreference: 'free-first', fallbackModel: 'modelselect/free-router' },
+      // The old engine-only default; the new default includes external providers.
+      options: { autoPreference: 'free-first', fallbackModel: 'modelselect/free-router', availableProviders: ['opencode', 'opencode-go'] },
       latchData: latch('opencode/gpt-5.6-luna-free', NOW + 3 * 3600 * 1000),
       registry: REGISTRY,
       usage: { go: { monthly: { percent: 100, limited: true } } },
@@ -267,6 +268,26 @@ describe('models chain — provider-model v2', () => {
     assert.equal(view.pickSource, 'fallback');
     assert.match(view.pickNote, /All variants blocked.*Go quota spent.*free tier latched/);
     assert.equal(view.chain.some((r) => r.status === 'pick'), false);
+  });
+
+  it('includes external console providers by default', () => {
+    const view = computeModelsView({
+      taskType: 'generic',
+      catalogConfig: catalogConfig(),
+      configV2: V2_CONFIG,
+      options: { autoPreference: 'free-first' },
+      latchData: latch('opencode/gpt-5.6-luna-free', NOW + 3 * 3600 * 1000),
+      registry: REGISTRY,
+      usage: { go: { monthly: { percent: 100, limited: true } } },
+      now: NOW,
+    });
+    // No allowlist set: the google variant (an external provider configured
+    // in the console) is usable instead of being excluded as off-allowlist.
+    const google = view.chain.find((r) => r.model === 'google/gpt-5.6-luna');
+    assert.ok(google);
+    assert.notEqual(google.status, 'excluded');
+    assert.equal(view.pick, google.model);
+    assert.equal(view.pickSource, 'chain');
   });
 
   it('applies the runtime inventory to the preview', () => {

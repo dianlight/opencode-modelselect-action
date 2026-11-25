@@ -1295,7 +1295,9 @@ describe('route refinement (unroutable endpoints + media)', () => {
     const iso = withIsolation(undefined);
     try {
       seedCache(iso.dir, RANKED);
-      const seen = await setupV2(iso.dir, { tier: 'auto', token: 'probe-google-1', usageUrl: 'http://127.0.0.1:1/' });
+      // Engine-only allowlist: this case checks endpoint refinement on
+      // engine picks; the default now includes external console providers.
+      const seen = await setupV2(iso.dir, { tier: 'auto', token: 'probe-google-1', usageUrl: 'http://127.0.0.1:1/', availableProviders: ['opencode', 'opencode-go'] });
       // Production-shaped upstream base so the Google root is derivable.
       seen.catalog.get('opencode-go').provider.settings.baseURL = 'https://opencode.ai/inference/go/openai/v1';
       const e1 = {

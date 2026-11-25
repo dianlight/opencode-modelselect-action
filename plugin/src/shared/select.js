@@ -77,12 +77,14 @@ function normalizeOptions(raw = {}, env = process.env) {
   }
   // Provider allowlist (same semantics as the action's `available-providers`
   // input): the slugs of providers the caller can actually reach. Empty →
-  // any provider the catalog knows about. Key-agnostic: slugs are the
-  // catalog provider ids (opencode / opencode-go / console vendor slugs).
+  // any provider the catalog knows about, so external providers configured
+  // in the OpenCode console (e.g. FreeModel, OpenRouter) are included.
+  // Key-agnostic: slugs are the catalog provider ids (opencode /
+  // opencode-go / console vendor slugs).
   const availableProvidersRaw = raw.availableProviders ?? raw['available-providers'];
   const availableProviders = Array.isArray(availableProvidersRaw)
     ? availableProvidersRaw.map((p) => String(p ?? '').trim().toLowerCase()).filter(Boolean)
-    : String(availableProvidersRaw ?? 'opencode,opencode-go')
+    : String(availableProvidersRaw ?? '')
         .split(',')
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean);

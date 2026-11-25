@@ -1,4 +1,10 @@
 ## [Unreleased]
+### Changed
+- The plugin and the Work Status chain preview now include external providers
+  configured in the OpenCode console (e.g. FreeModel, OpenRouter) by default:
+  the `availableProviders` option defaults to an empty allowlist ("any
+  provider the catalog knows about") instead of `opencode,opencode-go`.
+
 ### Added
 - Runtime model failover for explicit-model sessions: when a pinned model is
   rejected (disabled access, unavailable, exhausted, no credit, or any retry

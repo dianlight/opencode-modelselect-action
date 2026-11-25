@@ -199,7 +199,7 @@ function computeModelsView({ taskType, catalogConfig, configV2, options, latchDa
   const maxCost = numOrNull(optOf(options, 'maxCost', null, null));
   const fallback = str(optOf(options, 'fallbackModel', 'fallback-model', '')).trim();
   // Same default as the plugin's normalizeOptions: empty = allow any.
-  const providersRaw = optOf(options, 'availableProviders', 'available-providers', 'opencode,opencode-go');
+  const providersRaw = optOf(options, 'availableProviders', 'available-providers', '');
   const allowedProviders = (Array.isArray(providersRaw) ? providersRaw : str(providersRaw).split(','))
     .map((p) => str(p).trim().toLowerCase()).filter(Boolean);
   const providerAllowed = (provider) => allowedProviders.length === 0 ||
