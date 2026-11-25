@@ -15,6 +15,8 @@
  * - `GET /chain?task=` — the models preview, computed here (`chain.js`).
  * - `GET /pick?session=` — the one-line pick behind the session action.
  * - `POST /quota` — the usage provider (`provides: ["quota"]`).
+ * - `POST /waits/start`, `POST /waits/check` — stateless wait answers: the host
+ *   owns the wait state, this service only reads the latch/sync files.
  * - `POST /session-events` — the agent's permission requests and forms, which
  *   the service answers on the user's behalf (`sessionControl.answers`) when
  *   the `sessionAnswers` switch is on; off, every event is dropped.
@@ -39,12 +41,18 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import routingShared from '../../../core/routing.js';
+import freeQuotaShared from '../../../core/free-quota.js';
 import {
   createServiceHost,
   readSessionEventRequest,
   SESSION_EVENTS_PATH,
   SERVICE_SCHEDULE_PATH,
-  readServiceScheduleRequest
+  readServiceScheduleRequest,
+  WAITS_START_PATH,
+  WAITS_CHECK_PATH,
+  WAIT_SUMMARY_MAX,
+  readWaitStartRequest,
+  readWaitCheckRequest,
 } from '@openchamber/sdk';
 import { buildView, pickSummary, TIER_OPTIONS } from './view.js';
 import { computeModelsView } from './chain.js';
@@ -52,6 +60,7 @@ import { computeFormValues, formMessage, knownValues, PAGE_MESSAGE, PERMISSION_M
 import * as store from './store.js';
 
 const { syncRouting } = routingShared;
+const { latchEntries, freeQuotaFresh } = freeQuotaShared;
 const {
   CACHE_REL,
   SESSION_MAP_FILE
@@ -736,6 +745,102 @@ async function handleSchedule(bodyText) {
   return { status: 200, body: { ok: true, id: run.id, handled: true } };
 }
 
+// Waits (contributes.waits, OpenChamber >= 2.7.3). The host owns the wait and
+// stores the JSON `state` it hands back on every check. This service keeps no
+// wait copy at all — persisted or in memory — so it can restart between
+// checks without losing anything. Every answer is derived from the request
+// plus a fresh read of the plugin's latch/sync files.
+
+/**
+ * One current snapshot of everything modelselect can wait on. The directory
+ * comes from the wait's args when it carries one, then from the host-owned
+ * `state` posted back on checks, so another project becoming "last" cannot
+ * silently move a wait. lastProject is only the start-time fallback.
+ */
+async function readWaitLiveState(wait) {
+  const args = wait && wait.args && typeof wait.args === 'object' ? wait.args : {};
+  const state = wait && wait.state && typeof wait.state === 'object' ? wait.state : {};
+  const argDir = [args.directory, args.projectDirectory, args.project]
+    .map((v) => (typeof v === 'string' && path.isAbsolute(v) ? v : null))
+    .find(Boolean);
+  const stateDir = typeof state.directory === 'string' && path.isAbsolute(state.directory)
+    ? state.directory : null;
+  const directory = argDir || stateDir || await store.lastProject();
+  const [latchData, syncOn] = await Promise.all([
+    directory ? store.readLatch(directory) : Promise.resolve(null),
+    directory ? store.readRoutingSync(directory) : Promise.resolve(false)
+  ]);
+  const now = Date.now();
+  const latched = latchEntries(latchData)
+    .filter((entry) => freeQuotaFresh(entry, now))
+    .map((entry) => ({
+      model: entry.model || '*',
+      kind: entry.kind === 'rate-limit' ? 'rate-limit' : 'exhaustion',
+      until: Number(entry.until),
+      retryInMs: Math.max(0, Number(entry.until) - now)
+    }));
+  return { version: 1, at: now, directory: directory, sync: Boolean(syncOn), latched: latched };
+}
+
+/**
+ * Compare the state the host posted with the live read. Returns which watched
+ * parts moved, or null when nothing changed. Absent state is "nothing seen
+ * yet": keep waiting until the live read has something to report.
+ */
+function waitChange(seen, live) {
+  if (!seen || typeof seen !== 'object' || Array.isArray(seen)) return null;
+  const before = Array.isArray(seen.latched) ? seen.latched : [];
+  const after = live.latched;
+  // latchEntries follows the file's key order, not a meaningful sequence:
+  // match by model so a key-order-only rewrite does not fire the wait.
+  const previous = new Map(before.map((entry) => [entry && entry.model, entry]));
+  const quota = before.length !== after.length || previous.size !== after.length ||
+    after.some((entry) => {
+      const old = previous.get(entry.model);
+      return !old || old.until !== entry.until || old.kind !== entry.kind;
+    });
+  const sync = Boolean(seen.sync) !== live.sync;
+  return quota || sync ? { quota: quota, sync: sync } : null;
+}
+
+/** The summary is the current state at answer time, never the start state. */
+function waitSummary(live, change) {
+  const parts = [];
+  if (change.quota) {
+    parts.push(live.latched.length
+      ? 'Free quota changed — ' + live.latched.length + ' latch(es), next retry in ' +
+        Math.ceil(Math.min.apply(null, live.latched.map((entry) => entry.retryInMs)) / 1000) + 's'
+      : 'Free quota reset — no active latches');
+  }
+  if (change.sync) parts.push('Routing sync is ' + (live.sync ? 'on' : 'off'));
+  return (parts.join('; ') || 'Wait state is current.').slice(0, WAIT_SUMMARY_MAX);
+}
+
+async function handleWaitStart(bodyText) {
+  const request = readWaitStartRequest(bodyText);
+  if (!request) return { status: 400, body: { message: 'Unsupported wait start request.' } };
+  // Return the current state as the host's initial copy. Nothing is written:
+  // the host stores it and posts it back on the next check.
+  return { status: 200, body: { ok: true, state: await readWaitLiveState(request.wait) } };
+}
+
+async function handleWaitCheck(bodyText) {
+  const request = readWaitCheckRequest(bodyText);
+  if (!request) return { status: 400, body: { message: 'Unsupported wait check request.' } };
+  // Every check re-reads the latch/sync files; no start-time copy is kept.
+  const results = [];
+  for (const wait of request.waits) {
+    const live = await readWaitLiveState(wait);
+    const change = waitChange(wait.state, live);
+    if (!change) {
+      results.push({ id: wait.id, fired: false, state: live });
+    } else {
+      results.push({ id: wait.id, fired: true, summary: waitSummary(live, change) });
+    }
+  }
+  return { status: 200, body: { results: results } };
+}
+
 async function handle(req, res) {
   if (!authorized(req)) {
     send(res, 401, { message: 'Unauthorized.' });
@@ -823,6 +928,16 @@ async function handle(req, res) {
   }
   if (url.pathname === '/quota' && req.method === 'POST') {
     send(res, 200, await handleQuota(await readBody(req)));
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === WAITS_START_PATH) {
+    const answer = await handleWaitStart(await readBody(req));
+    send(res, answer.status, answer.body);
+    return;
+  }
+  if (req.method === 'POST' && url.pathname === WAITS_CHECK_PATH) {
+    const answer = await handleWaitCheck(await readBody(req));
+    send(res, answer.status, answer.body);
     return;
   }
   if (url.pathname === SESSION_EVENTS_PATH && req.method === 'POST') {
