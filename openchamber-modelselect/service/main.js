@@ -4175,8 +4175,10 @@ async function handleSchedule(bodyText) {
 }
 async function readWaitLiveState(wait) {
   const args = wait && wait.args && typeof wait.args === "object" ? wait.args : {};
+  const state = wait && wait.state && typeof wait.state === "object" ? wait.state : {};
   const argDir = [args.directory, args.projectDirectory, args.project].map((v) => typeof v === "string" && path2.isAbsolute(v) ? v : null).find(Boolean);
-  const directory = argDir || await lastProject();
+  const stateDir = typeof state.directory === "string" && path2.isAbsolute(state.directory) ? state.directory : null;
+  const directory = argDir || stateDir || await lastProject();
   const [latchData, syncOn] = await Promise.all([
     directory ? readLatch(directory) : Promise.resolve(null),
     directory ? readRoutingSync(directory) : Promise.resolve(false)
@@ -4195,9 +4197,10 @@ function waitChange(seen, live) {
     return null;
   const before = Array.isArray(seen.latched) ? seen.latched : [];
   const after = live.latched;
-  const quota = before.length !== after.length || after.some((entry, i) => {
-    const old = before[i];
-    return !old || old.model !== entry.model || old.until !== entry.until || old.kind !== entry.kind;
+  const previous = new Map(before.map((entry) => [entry && entry.model, entry]));
+  const quota = before.length !== after.length || previous.size !== after.length || after.some((entry) => {
+    const old = previous.get(entry.model);
+    return !old || old.until !== entry.until || old.kind !== entry.kind;
   });
   const sync = Boolean(seen.sync) !== live.sync;
   return quota || sync ? { quota, sync } : null;
@@ -4205,7 +4208,7 @@ function waitChange(seen, live) {
 function waitSummary(live, change) {
   const parts = [];
   if (change.quota) {
-    parts.push(live.latched.length ? "Free quota changed — " + live.latched.length + " latch(es), next retry in " + Math.ceil(live.latched[0].retryInMs / 1000) + "s" : "Free quota reset — no active latches");
+    parts.push(live.latched.length ? "Free quota changed — " + live.latched.length + " latch(es), next retry in " + Math.ceil(Math.min.apply(null, live.latched.map((entry) => entry.retryInMs)) / 1000) + "s" : "Free quota reset — no active latches");
   }
   if (change.sync)
     parts.push("Routing sync is " + (live.sync ? "on" : "off"));

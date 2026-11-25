@@ -114,6 +114,58 @@ describe('stateless waits', () => {
     assert.match(checked.body.results[0].summary, /Free quota reset/);
   });
 
+  it('reuses the project recorded in the host state on later checks', async () => {
+    await service.get('/status', { directory: fixture.project });
+    const otherProject = path.join(fixture.root, 'another-project');
+    const started = await service.post('/waits/start', {}, {
+      v: 1,
+      requestId: 'start-w4',
+      wait: {
+        id: 'w4',
+        type: 'quota-reset',
+        args: { directory: otherProject },
+        session: { id: 'ses_test', directory: null },
+      },
+    });
+    assert.equal(started.body.state.directory, otherProject);
+    setLatch(fixture, freshLatch());
+
+    const checked = await service.post('/waits/check', {}, {
+      v: 1,
+      requestId: 'check-w4',
+      waits: [{ id: 'w4', type: 'quota-reset', args: {}, state: started.body.state }],
+    });
+    assert.equal(checked.body.results[0].fired, false);
+    assert.equal(checked.body.results[0].state.directory, otherProject);
+    assert.equal(checked.body.results[0].state.latched.length, 0);
+  });
+
+  it('does not fire when only the latch key order changes', async () => {
+    const at = Date.now();
+    const a = { at: at - 1000, until: at + 3600 * 1000, kind: 'exhaustion', detail: 'spent' };
+    const b = { at: at - 1000, until: at + 7200 * 1000, kind: 'exhaustion', detail: 'spent' };
+    setLatch(fixture, { 'opencode/model-a-free': a, 'opencode/model-b-free': b });
+    const started = await service.post('/waits/start', {}, startBody(fixture, 'w5'));
+    setLatch(fixture, { 'opencode/model-b-free': b, 'opencode/model-a-free': a });
+
+    const checked = await service.post('/waits/check', {}, checkBody(fixture, 'w5', started.body.state));
+    assert.equal(checked.body.results[0].fired, false);
+  });
+
+  it('reports the earliest retry across several latches', async () => {
+    const at = Date.now();
+    setLatch(fixture, {
+      'opencode/late-free': { at: at - 1000, until: at + 3600 * 1000, kind: 'exhaustion', detail: 'spent' },
+      'opencode/soon-free': { at: at - 1000, until: at + 60 * 1000, kind: 'rate-limit', detail: 'limited' },
+    });
+    const checked = await service.post('/waits/check', {}, checkBody(fixture, 'w6', {
+      version: 1, latched: [], sync: true, directory: fixture.project,
+    }));
+    assert.equal(checked.body.results[0].fired, true);
+    assert.match(checked.body.results[0].summary, /next retry in 60s/);
+    assert.doesNotMatch(checked.body.results[0].summary, /3600s/);
+  });
+
   it('refuses a wire version it does not know', async () => {
     const checked = await service.post('/waits/check', {}, { v: 2, requestId: 'r', waits: [] });
     assert.equal(checked.status, 400);

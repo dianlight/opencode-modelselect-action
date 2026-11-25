@@ -753,16 +753,19 @@ async function handleSchedule(bodyText) {
 
 /**
  * One current snapshot of everything modelselect can wait on. The directory
- * comes from the wait's own args when it carries one, so a check never has to
- * trust a remembered project; lastProject is only a fallback for waits that
- * were declared without a directory param.
+ * comes from the wait's args when it carries one, then from the host-owned
+ * `state` posted back on checks, so another project becoming "last" cannot
+ * silently move a wait. lastProject is only the start-time fallback.
  */
 async function readWaitLiveState(wait) {
   const args = wait && wait.args && typeof wait.args === 'object' ? wait.args : {};
+  const state = wait && wait.state && typeof wait.state === 'object' ? wait.state : {};
   const argDir = [args.directory, args.projectDirectory, args.project]
     .map((v) => (typeof v === 'string' && path.isAbsolute(v) ? v : null))
     .find(Boolean);
-  const directory = argDir || await store.lastProject();
+  const stateDir = typeof state.directory === 'string' && path.isAbsolute(state.directory)
+    ? state.directory : null;
+  const directory = argDir || stateDir || await store.lastProject();
   const [latchData, syncOn] = await Promise.all([
     directory ? store.readLatch(directory) : Promise.resolve(null),
     directory ? store.readRoutingSync(directory) : Promise.resolve(false)
@@ -788,11 +791,14 @@ function waitChange(seen, live) {
   if (!seen || typeof seen !== 'object' || Array.isArray(seen)) return null;
   const before = Array.isArray(seen.latched) ? seen.latched : [];
   const after = live.latched;
-  const quota = before.length !== after.length || after.some((entry, i) => {
-    const old = before[i];
-    return !old || old.model !== entry.model ||
-      old.until !== entry.until || old.kind !== entry.kind;
-  });
+  // latchEntries follows the file's key order, not a meaningful sequence:
+  // match by model so a key-order-only rewrite does not fire the wait.
+  const previous = new Map(before.map((entry) => [entry && entry.model, entry]));
+  const quota = before.length !== after.length || previous.size !== after.length ||
+    after.some((entry) => {
+      const old = previous.get(entry.model);
+      return !old || old.until !== entry.until || old.kind !== entry.kind;
+    });
   const sync = Boolean(seen.sync) !== live.sync;
   return quota || sync ? { quota: quota, sync: sync } : null;
 }
@@ -803,7 +809,7 @@ function waitSummary(live, change) {
   if (change.quota) {
     parts.push(live.latched.length
       ? 'Free quota changed — ' + live.latched.length + ' latch(es), next retry in ' +
-        Math.ceil(live.latched[0].retryInMs / 1000) + 's'
+        Math.ceil(Math.min.apply(null, live.latched.map((entry) => entry.retryInMs)) / 1000) + 's'
       : 'Free quota reset — no active latches');
   }
   if (change.sync) parts.push('Routing sync is ' + (live.sync ? 'on' : 'off'));

@@ -50,12 +50,49 @@ module.exports = {
         }],
       },
     },
+    // A later check reuses the project recorded in the host-owned state, not
+    // the last project the service happened to see.
+    {
+      method: 'POST',
+      path: '/waits/start',
+      body: {
+        v: 1,
+        requestId: 'start-2',
+        wait: {
+          id: 'kept-project',
+          type: 'quota-reset',
+          args: { directory: '/nonexistent-modelselect-project' },
+          session: { id: 'ses_test', directory: null },
+        },
+      },
+    },
+    {
+      method: 'POST',
+      path: '/waits/check',
+      body: {
+        v: 1,
+        requestId: 'check-2',
+        waits: [{
+          id: 'kept-project',
+          type: 'quota-reset',
+          args: {},
+          state: {
+            version: 1,
+            latched: [],
+            sync: true,
+            directory: '/nonexistent-modelselect-project',
+          },
+        }],
+      },
+    },
   ],
   expect: {
     http: [
       { status: 200 },
       { status: 200, jsonContains: { ok: true, state: { latched: [{ model: 'opencode/deepseek-v4.1-flash-free' }] } } },
       { status: 200, jsonContains: { results: [{ id: 'quota-reset', fired: true }] } },
+      { status: 200, jsonContains: { ok: true, state: { directory: '/nonexistent-modelselect-project', latched: [] } } },
+      { status: 200, jsonContains: { results: [{ id: 'kept-project', fired: false }] } },
     ],
   },
 };
