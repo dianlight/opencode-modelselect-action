@@ -1795,7 +1795,29 @@ var readSessionEventRequest = (body) => {
 var SERVICE_HOST_PATH = "/service/call";
 var OPENCHAMBER_HOST_CALLBACK_URL_ENV = "OPENCHAMBER_HOST_CALLBACK_URL";
 var SERVICE_HOST_TIMEOUT_MS = 30000;
+var SERVICE_SCHEDULE_PATH = "/schedule";
+var SERVICE_SCHEDULE_WIRE_VERSION = 1;
 var SERVICE_SCHEDULE_IDLE_MS = 10 * 60000;
+var readServiceScheduleRequest = (body) => {
+  let wire;
+  try {
+    wire = JSON.parse(body);
+  } catch {
+    return null;
+  }
+  if (Object(wire) !== wire || wire === null)
+    return null;
+  const { v, requestId, id, at } = wire;
+  if (v !== SERVICE_SCHEDULE_WIRE_VERSION)
+    return null;
+  if (String(requestId) !== requestId || requestId.length === 0)
+    return null;
+  if (String(id) !== id || id.length === 0)
+    return null;
+  if (!Number.isFinite(at))
+    return null;
+  return { v: SERVICE_SCHEDULE_WIRE_VERSION, requestId, id, at: Number(at) };
+};
 var MENTIONS_IDLE_MS = 10 * 60000;
 class ServiceHostError extends Error {
   code;
@@ -3505,7 +3527,9 @@ var SESSION_MAP_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 var SESSION_MAP_TOUCH_MS = 60 * 1000;
 var HOST_EVIDENCE_KEY = "openchamber";
 var ROUTING_SYNC_THROTTLE_MS = 30 * 1000;
-var MAINTAIN_EVERY_MS = 60 * 1000;
+var SCHEDULE_ROUTING_REFRESH = "routing-refresh";
+var SCHEDULE_QUOTA_PROBE = "quota-probe";
+var SCHEDULE_IDS = new Set([SCHEDULE_ROUTING_REFRESH, SCHEDULE_QUOTA_PROBE]);
 var BODY_MAX = 16 * 1024;
 var EVENT_BODY_MAX = 256 * 1024;
 var TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
@@ -4064,6 +4088,19 @@ async function handleQuota(bodyText) {
     data.error = "Usage snapshot has no readable windows yet.";
   return { ok: true, data };
 }
+async function handleSchedule(bodyText) {
+  const run = readServiceScheduleRequest(bodyText);
+  if (!run)
+    return { status: 400, body: { message: "Invalid schedule run." } };
+  if (!SCHEDULE_IDS.has(run.id)) {
+    return { status: 200, body: { ok: true, id: run.id, handled: false } };
+  }
+  const last = await lastProject();
+  if (last)
+    seenDirectories.add(last);
+  await maintain();
+  return { status: 200, body: { ok: true, id: run.id, handled: true } };
+}
 async function handle(req, res) {
   if (!authorized(req)) {
     send(res, 401, { message: "Unauthorized." });
@@ -4073,6 +4110,11 @@ async function handle(req, res) {
   const directory = projectDirectory(url);
   if (req.method === "GET" && url.pathname === "/health") {
     send(res, 200, { ok: true });
+    return;
+  }
+  if (req.method === "POST" && url.pathname === SERVICE_SCHEDULE_PATH) {
+    const answer = await handleSchedule(await readBody(req));
+    send(res, answer.status, answer.body);
     return;
   }
   if (url.pathname === "/status" && req.method === "GET") {
@@ -4156,11 +4198,6 @@ var server = http.createServer((req, res) => {
 });
 server.on("error", (err) => fail("cannot start: " + String(err && err.message || err)));
 server.listen(PORT, "127.0.0.1", () => {
-  const timer = setInterval(() => {
-    maintain();
-  }, MAINTAIN_EVERY_MS);
-  if (typeof timer.unref === "function")
-    timer.unref();
   process.stdout.write("[modelselect] listening on 127.0.0.1:" + server.address().port + `
 `);
 });

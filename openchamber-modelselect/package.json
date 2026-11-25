@@ -37,7 +37,10 @@
       "service": {
         "entry": "service/main.js",
         "runtime": "host",
-        "keepRunning": true,
+        "schedule": [
+          { "id": "routing-refresh", "cron": "*/1 * * * *" },
+          { "id": "quota-probe", "cron": "*/5 * * * *" }
+        ],
         "provides": ["quota"]
       },
       "quota": {

@@ -56,6 +56,85 @@ describe('status service', () => {
     assert.equal(res.status, 401);
   });
 
+  describe('/schedule (host automations)', () => {
+    const run = (id, v = 1) => ({ v, requestId: 'req_test', id, at: Date.now() });
+
+    it('accepts a valid routing-refresh wake', async () => {
+      const res = await service.post('/schedule', {}, run('routing-refresh'));
+      assert.equal(res.status, 200);
+      assert.equal(res.body.ok, true);
+      assert.equal(res.body.handled, true);
+    });
+
+    it('accepts a valid quota-probe wake', async () => {
+      const res = await service.post('/schedule', {}, run('quota-probe'));
+      assert.equal(res.status, 200);
+      assert.equal(res.body.handled, true);
+    });
+
+    it('rejects an unknown wire version', async () => {
+      const res = await service.post('/schedule', {}, run('routing-refresh', 2));
+      assert.equal(res.status, 400);
+      assert.match(res.body.message, /Invalid schedule run/);
+    });
+
+    it('accepts an unknown schedule id without doing work', async () => {
+      const res = await service.post('/schedule', {}, run('something-else'));
+      assert.equal(res.status, 200);
+      assert.equal(res.body.handled, false);
+    });
+  });
+
+  describe('scheduled refresh behavior', () => {
+    const taskTypes = { generic: { label: 'Generic', jev_criteria: 'criteria generic' } };
+    const routingFile = (fx) => path.join(fx.home, '.config', 'openchamber', 'routing.json');
+    const run = (id) => ({ v: 1, requestId: 'req_throttle', id, at: Date.now() });
+    const waitForFile = async (file) => {
+      for (let i = 0; i < 40 && !fs.existsSync(file); i += 1) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      assert.ok(fs.existsSync(file), 'routing.json was not written by the wake');
+    };
+
+    it('refreshes on a wake and honors the throttle on a second wake', async () => {
+      const fx = makeFixture({ taskTypesCache: taskTypes });
+      const svc = await startService(fx);
+      try {
+        await svc.get('/status', { directory: fx.project });
+        const first = await svc.post('/schedule', {}, run('routing-refresh'));
+        assert.equal(first.status, 200);
+        const file = routingFile(fx);
+        await waitForFile(file);
+        assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).categories.generic.description,
+          'criteria generic');
+        // Give an unthrottled refresh something to write: syncRouting is
+        // diff-only, so unchanged inputs would leave the file alone either way.
+        fx.write(path.join(fx.cache, 'task-types-cache.json'),
+          { generic: { label: 'Generic', jev_criteria: 'criteria changed' } });
+        const second = await svc.post('/schedule', {}, run('quota-probe'));
+        assert.equal(second.status, 200);
+        const after = JSON.parse(fs.readFileSync(file, 'utf8'));
+        assert.equal(after.categories.generic.description, 'criteria generic',
+          'the wake inside the window performed no extra refresh');
+      } finally {
+        svc.stop();
+      }
+    });
+
+    it('succeeds with no open project and performs no refresh', async () => {
+      const fx = makeFixture({ taskTypesCache: taskTypes });
+      const svc = await startService(fx);
+      try {
+        const res = await svc.post('/schedule', {}, run('routing-refresh'));
+        assert.equal(res.status, 200);
+        assert.equal(res.body.handled, true);
+        assert.equal(fs.existsSync(routingFile(fx)), false, 'no project means no routing refresh');
+      } finally {
+        svc.stop();
+      }
+    });
+  });
+
   it('answers a view the host schema accepts', async () => {
     const res = await service.get('/status', Object.assign({ locale: 'en' }, q()));
     assert.equal(res.status, 200);

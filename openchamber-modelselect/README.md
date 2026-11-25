@@ -46,9 +46,9 @@ Settings → Extensions → install from Folder / ZIP / URL pointing at
   store and the router switch. It runs with your own user access (no OS
   sandbox) and needs no `exec` or `socket` permission. Until it is approved the
   host answers `NO_SERVICE`, the section body stays empty and the panel shows
-  how to allow it. `keepRunning` means OpenChamber starts it with the app and
-  brings it back if it stops: the routing sync and the host-detection map then
-  stay fresh without a panel being open, which is what the approval line says.
+  how to allow it. The host wakes it on a clock (`service.schedule`) so the
+  routing sync and the host-detection map stay fresh without a panel being
+  open; there is no always-on polling process behind the approval line.
 - the **usage provider** role (`quota`) — the card on Settings → Usage.
 - the **session control** grant (`sessionControl`) — the service acts on
   sessions on its own; it uses it to send a message to a session.
@@ -154,9 +154,20 @@ stored-deviations shape) are kept fresh from two places, both best-effort:
 - The plugin, before every turn (the `prompt` + `context` hooks) while
   the router sync is ON — the plugin routes the pick itself (only virtual
   `modelselect/auto-*` sessions) and never hands off to OpenChamber's routing.
-- This service, on its own clock (`keepRunning`): at most once every 30 s per
-  project, immediately when the switch is turned back on, and right after the
-  panel saves plugin options. A read of `/status` never writes it.
+- This service, on host-scheduled wakes: at most once every 30 s per project,
+  and immediately when the switch is turned back on. Saving plugin options
+  only reloads OpenCode; routing refreshes on the next plugin sync or wake.
+  A read of `/status` never writes it. The manifest declares two cron entries,
+  `routing-refresh` (every minute) and `quota-probe` (every five minutes); both
+  post to `POST /schedule`, which the service accepts with the SDK's wire
+  contract. A wake with no remembered or previously seen project succeeds
+  without refreshing anything, and the service starts no timer of its own.
+
+Host automations are the only scheduler — there is no extension-side timer to
+fall back to. Setting `"automations": false` in your global `opencode.json`
+disables these wakes, so scheduled routing refresh stops entirely. A router
+switch toggle still refreshes immediately, and a `/status` read still stamps
+the host-detection map, so the data converges when you next look at the card.
 
 The header control (`Auto-update router`, On / Off, id `routing-sync`) writes
 `.opencode/.modelselect-cache/routing-sync.json`

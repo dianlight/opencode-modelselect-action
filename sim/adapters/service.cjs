@@ -7,7 +7,25 @@
  */
 
 const fs = require('node:fs');
+const path = require('node:path');
 const { makeFixture, startService, globalConfigPath, extConfigPath } = require('../../openchamber-modelselect/test/helpers/service.cjs');
+
+/**
+ * Control events such as the router-switch toggle fire the routing sync
+ * without awaiting it. Give those best-effort writes a bounded chance to land
+ * before SIGTERM, so file expectations do not race the shutdown.
+ */
+async function waitForExpectedFiles(root, files, timeoutMs = 1000) {
+  const wanted = Object.entries(files || {})
+    .filter(([, spec]) => spec && spec.exists !== false)
+    .map(([rel]) => path.join(root, rel));
+  if (!wanted.length) return;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (wanted.every((p) => fs.existsSync(p))) return;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+}
 
 async function run(scenario, ctx) {
   const fixture = makeFixture(scenario.fixture || {});
@@ -25,6 +43,7 @@ async function run(scenario, ctx) {
       http.push({ path: step.path, method: step.method || 'GET', status: res.status, body: res.body !== undefined ? res.body : await res.json().catch(() => null) });
     }
   } finally {
+    await waitForExpectedFiles(fixture.root, scenario.expect && scenario.expect.files);
     service.stop();
   }
   return {

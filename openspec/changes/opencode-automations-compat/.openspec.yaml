@@ -1,5 +1,6 @@
 schema: spec-driven
 created: 2026-11-24
+goal: Verify that the modelselect extension's host-automation wakes replace its retired polling without changing routing-sync and quota-probe behavior, and document that disabling host automations leaves no extension-side fallback.
 skip_specs: true
 
 x-minOpenchamberSdk:

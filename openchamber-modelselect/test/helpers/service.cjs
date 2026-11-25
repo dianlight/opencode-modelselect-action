@@ -125,6 +125,9 @@ function makeFixture(overrides) {
       : overrides.extConfig);
   write(path.join(cache, 'model-config-cache.json'),
     overrides.catalog === undefined ? Object.assign({ fetchedAt: now }, CATALOG) : overrides.catalog);
+  if (overrides.taskTypesCache !== undefined) {
+    write(path.join(cache, 'task-types-cache.json'), overrides.taskTypesCache);
+  }
   if (overrides.configV2 !== undefined) {
     write(path.join(cache, 'model-config-v2-cache.json'),
       Object.assign({ fetchedAt: now }, overrides.configV2));
