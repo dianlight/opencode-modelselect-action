@@ -1403,6 +1403,7 @@ async function setup(ctx) {
     const attempts = failoverAttempts.get(sessionID) || 0;
     if (attempts >= MAX_FAILOVER_ATTEMPTS) {
       if (opts.verbose) console.log(`[modelselect] failover exhausted (max attempts) session=${sessionID}`);
+      await emitFailoverReport(event, sessionID, triedFor(sessionID) || [], null);
       return;
     }
     try {
@@ -1490,7 +1491,10 @@ async function setup(ctx) {
         } catch (switchErr) {
           if (opts.verbose) console.log(`[modelselect] failover switch skipped: ${switchErr?.message ?? switchErr}`);
         }
-        if (!landed) return;
+        if (!landed) {
+          await emitFailoverReport(event, sessionID, tried, null);
+          return;
+        }
         const prev = where && where.prev ? where.prev : {};
         writeStatus(cacheDir, sessionID, {
           taskType,
@@ -1558,6 +1562,7 @@ async function setup(ctx) {
         failureReasons.delete(event.sessionID);
         failoverAttempts.delete(event.sessionID);
         failoverArmed.delete(event.sessionID);
+        fallbackExplained.delete(event.sessionID);
       }
       if (!virtualSessions.has(event.sessionID)) return;
       // v2 event: { sessionID, messageID, prompt: { text, files?, agents? },
@@ -1834,6 +1839,7 @@ async function setup(ctx) {
       const liveAvailabilityNow = await currentAvailability();
       const failingRef = refString(pick);
       if (inventoryRejects(liveAvailabilityNow, failingRef) && !(triedFor(sessionID) || []).includes(failingRef)) {
+        recordFailureReason(sessionID, failingRef, 'catalog-miss');
         markTried(sessionID, failingRef);
         recordModelMiss(cacheDir, failingRef, { source: 'http.request' });
         try {
@@ -1842,7 +1848,10 @@ async function setup(ctx) {
           if (refString(nextPick) !== failingRef) {
             pick = nextPick;
             lastVirtualPick.set(sessionID, pick);
+            await emitFailoverReport(event, sessionID, [failingRef], refString(nextPick));
             if (opts.verbose) console.log(`[modelselect] catalog miss ${failingRef} → ${refString(pick)} session=${sessionID}`);
+          } else {
+            await emitFailoverReport(event, sessionID, [failingRef], null);
           }
         } catch (err) {
           if (opts.verbose) console.log(`[modelselect] catalog-miss re-resolve skipped: ${err?.message ?? err}`);
@@ -2019,6 +2028,7 @@ async function setup(ctx) {
           const nextPick = pickFrom(picked, lastMedia.get(sessionID));
           if (refString(nextPick) === missingRef) {
             // No other candidate: retrying would hit the same catalog miss.
+            await emitFailoverReport(event, sessionID, [missingRef], null);
             return;
           }
           lastVirtualPick.set(sessionID, nextPick);

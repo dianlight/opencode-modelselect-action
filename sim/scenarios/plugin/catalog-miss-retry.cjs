@@ -58,6 +58,7 @@ module.exports = {
     plugin: {
       decisionRetry: true,
       catalogMissRef: 'opencode/qwen3.8-flash',
+      syntheticContains: 'chain failover — excluded 1: opencode/qwen3.8-flash (catalog-miss); using opencode-go/qwen3.8-flash',
       noSwitch: true,
     },
   },

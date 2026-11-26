@@ -194,9 +194,9 @@ function preselectModel() {
   return { model: outputs.model, chain };
 }
 
-/** Cheap access check against Zen; a 403 here is the "Model access is disabled" case. */
-async function modelReachable(model, token) {
-  if (!token) return true;
+/** Cheap access check against Zen; keep the exact HTTP gate for the warning. */
+async function probeModelAccess(model, token) {
+  if (!token) return { ok: true };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
@@ -211,15 +211,27 @@ async function modelReachable(model, token) {
         stream: false,
       }),
     });
-    if (res.ok) return true;
-    if (res.status === 400) return true; // session-gated free routes still dispatch from OpenCode
-    if (res.status === 403 || res.status === 404 || res.status === 401 || res.status === 402 || res.status === 429) return false;
-    return true; // unknown status: fail open, the plugin still gets a chance at failover
+    if (res.ok) return { ok: true };
+    if (res.status === 400) return { ok: true }; // session-gated free routes still dispatch from OpenCode
+    if ([401, 402, 403, 404, 429].includes(res.status)) return { ok: false, status: res.status };
+    return { ok: true }; // unknown status: fail open, the plugin still gets a chance at failover
   } catch {
-    return true; // unreachable probe is not evidence of a disabled model
+    return { ok: true }; // unreachable probe is not evidence of a disabled model
   } finally {
     clearTimeout(timer);
   }
+}
+
+function probeRejection(result) {
+  const labels = {
+    401: 'unauthorized',
+    402: 'payment required',
+    403: 'model access disabled',
+    404: 'model not found',
+    429: 'rate-limited',
+  };
+  const label = labels[result?.status] || 'probe rejected';
+  return `${label} (HTTP ${result?.status ?? '?'})`;
 }
 
 async function resolvedModel() {
@@ -230,14 +242,16 @@ async function resolvedModel() {
   const token = getInput('opencode-token') || process.env.OPENCODE_API_KEY || '';
   const checked = [];
   for (const candidate of picked.chain) {
-    if (await modelReachable(candidate, token)) return candidate;
-    warn(`Model '${candidate}' is not accessible with this token; trying the next chain candidate.`);
-    checked.push(candidate);
+    const probe = await probeModelAccess(candidate, token);
+    if (probe.ok) return candidate;
+    const reason = probeRejection(probe);
+    warn(`Model '${candidate}' was rejected by the access probe (${reason}); trying the next chain candidate.`);
+    checked.push({ ref: candidate, reason });
   }
   if (checked.length > 0) {
     warn(
       `No accessible chain candidate — checked ${checked.length}: ` +
-        `${checked.map((c) => `${c} (not accessible with this token)`).join(', ')}; ` +
+        `${checked.map((c) => `${c.ref} (${c.reason})`).join(', ')}; ` +
         `keeping '${picked.model}'.`,
     );
   }

@@ -9,7 +9,7 @@ const path = require('node:path');
 
 const ACTION = path.join(__dirname, '..', 'src', 'index.js');
 
-function run(inputs, { opencodeExit = 0 } = {}) {
+function run(inputs, { opencodeExit = 0, probeStatuses } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-v2-'));
   const binDir = path.join(dir, '.opencode', 'bin');
   fs.mkdirSync(binDir, { recursive: true });
@@ -44,12 +44,33 @@ function run(inputs, { opencodeExit = 0 } = {}) {
     OPENCODE_ARGS_FILE: argsFile,
     ...inputs,
   };
+  if (Array.isArray(probeStatuses)) {
+    const statusesPath = path.join(dir, 'probe-statuses.json');
+    const preloadPath = path.join(dir, 'probe-fetch.cjs');
+    fs.writeFileSync(statusesPath, JSON.stringify(probeStatuses));
+    fs.writeFileSync(preloadPath, `
+      const fs = require('node:fs');
+      const statuses = JSON.parse(fs.readFileSync(process.env.PROBE_STATUSES_FILE, 'utf8'));
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = async (url, init) => {
+        if (String(url).startsWith('https://opencode.ai/zen/v1/chat/completions')) {
+          const status = statuses.shift() ?? 200;
+          return { ok: status >= 200 && status < 300, status };
+        }
+        return originalFetch ? originalFetch(url, init) : Promise.reject(new Error('fetch unavailable'));
+      };
+    `);
+    env.PROBE_STATUSES_FILE = statusesPath;
+    env.NODE_OPTIONS = `${process.env.NODE_OPTIONS || ''} --require=${preloadPath}`.trim();
+  }
   let exit = 0;
+  let stdout = '';
   let stderr = '';
   try {
-    execFileSync(process.execPath, [ACTION], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    stdout = String(execFileSync(process.execPath, [ACTION], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }) ?? '');
   } catch (err) {
     exit = err.status ?? 1;
+    stdout = String(err.stdout ?? '');
     stderr = String(err.stderr ?? '');
   }
   const outputs = {};
@@ -63,6 +84,7 @@ function run(inputs, { opencodeExit = 0 } = {}) {
   return {
     dir,
     exit,
+    stdout,
     stderr,
     outputs,
     bin,
@@ -157,6 +179,30 @@ describe('opencode + modelselect v2 action', () => {
     assert.equal(r.exit, 0, r.stderr);
     const cfg = readConfig(r.dir, '.config/opencode/opencode.json');
     assert.ok(!JSON.stringify(cfg).includes('super-secret'));
+  });
+
+  it('warns with the exact probe status when a rate limit rejects the chain', () => {
+    const r = run({
+      'INPUT_TIER': 'free',
+      'INPUT_TASK-TYPE': 'review',
+      'INPUT_PROBE-MODEL-ACCESS': 'true',
+      'INPUT_OPENCODE-TOKEN': 'test-token',
+    }, { probeStatuses: [429] });
+    assert.equal(r.exit, 0, r.stderr);
+    assert.equal(r.outputs.model, 'opencode/free-model');
+    assert.match(r.stdout, /Model 'opencode\/free-model' was rejected by the access probe \(rate-limited \(HTTP 429\)\)/);
+    assert.match(r.stdout, /No accessible chain candidate — checked 1: opencode\/free-model \(rate-limited \(HTTP 429\)\); keeping 'opencode\/free-model'/);
+  });
+
+  it('distinguishes a disabled model from a rate limit in the probe warning', () => {
+    const r = run({
+      'INPUT_TIER': 'free',
+      'INPUT_TASK-TYPE': 'review',
+      'INPUT_PROBE-MODEL-ACCESS': 'true',
+      'INPUT_OPENCODE-TOKEN': 'test-token',
+    }, { probeStatuses: [403] });
+    assert.equal(r.exit, 0, r.stderr);
+    assert.match(r.stdout, /No accessible chain candidate — checked 1: opencode\/free-model \(model access disabled \(HTTP 403\)\)/);
   });
 
   it('writes V2 permission rules to both configs so unattended runs cannot hang on an ask', () => {
