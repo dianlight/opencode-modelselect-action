@@ -7,9 +7,9 @@
  * rules) and `anomalyco/opencode/github` (run the agent in CI). Instead of
  * pinning one model for the whole job, it installs OpenCode, writes a global
  * opencode.json that loads the bundled modelselect plugin configured from
- * this action's inputs, and runs `opencode github run`. The plugin resolves
- * the model per turn and fails over at runtime when a model is disabled,
- * unavailable, exhausted or errors for any other reason.
+ * this action's inputs, and runs `opencode run`. The plugin resolves the model
+ * per turn and fails over at runtime when a model is disabled, unavailable,
+ * exhausted or errors for any other reason.
  *
  * Inputs are read from INPUT_* env vars (GitHub Actions convention). The
  * OpenCode token is never written to the plugin config: it is taken from
@@ -70,7 +70,7 @@ function numberInput(name, fallback) {
 
 /**
  * Optional OpenCode 2 permission rules, supplied as the JSON array the V2
- * config expects. `opencode github run` is non-interactive: any rule that
+ * config expects. `opencode run` is non-interactive: any rule that
  * resolves to `ask` blocks until the step timeout instead of showing a prompt.
  */
 function permissionRules() {
@@ -137,7 +137,7 @@ function pluginOptions() {
 }
 
 /**
- * `opencode github run` validates MODEL before plugins register their virtual
+ * `opencode run` validates --model before plugins register their virtual
  * provider, so the virtual anchor cannot be passed as MODEL in CI. When the
  * caller leaves `model` empty, run the v1 select-model action with the same
  * inputs and use its resolved model as the explicit MODEL. The plugin still
@@ -228,9 +228,18 @@ async function resolvedModel() {
   const picked = preselectModel();
   if (!boolInput('probe-model-access')) return picked.model;
   const token = getInput('opencode-token') || process.env.OPENCODE_API_KEY || '';
+  const checked = [];
   for (const candidate of picked.chain) {
     if (await modelReachable(candidate, token)) return candidate;
     warn(`Model '${candidate}' is not accessible with this token; trying the next chain candidate.`);
+    checked.push(candidate);
+  }
+  if (checked.length > 0) {
+    warn(
+      `No accessible chain candidate — checked ${checked.length}: ` +
+        `${checked.map((c) => `${c} (not accessible with this token)`).join(', ')}; ` +
+        `keeping '${picked.model}'.`,
+    );
   }
   return picked.model; // no reachable candidate: keep the original so the error surfaces
 }
@@ -330,24 +339,35 @@ async function main() {
   const childEnv = {
     ...process.env,
     MODEL: model,
-    AGENT: getInput('agent'),
     SHARE: getInput('share'),
-    PROMPT: getInput('prompt'),
     USE_GITHUB_TOKEN: getInput('use_github_token', { fallback: 'false' }),
     MENTIONS: getInput('mentions'),
-    VARIANT: getInput('variant'),
     OIDC_BASE_URL: getInput('oidc_base_url'),
   };
   const token = getInput('opencode-token');
   if (token) childEnv.OPENCODE_API_KEY = token;
 
-  notice(`Running opencode github run with model '${model}' and modelselect plugin '${pluginSource}'.`);
+  // V2 dropped the `github` subcommand: the non-interactive entry point is
+  // `opencode run`. Pass the preselected model, agent and variant as CLI flags
+  // (run does not read MODEL/AGENT/VARIANT from the environment), and the
+  // prompt as a positional message after `--` so it can never be parsed as a
+  // flag. `--auto` keeps unattended runs from waiting on a permission ask;
+  // explicit deny rules from the permissions input still win.
+  const variant = getInput('variant');
+  const runModel = variant && !model.includes('#') ? `${model}#${variant}` : model;
+  const runArgs = ['run', '--model', runModel, '--auto'];
+  const agent = getInput('agent');
+  if (agent) runArgs.push('--agent', agent);
+  const prompt = getInput('prompt');
+  if (prompt) runArgs.push('--', prompt);
+
+  notice(`Running opencode run with model '${runModel}' and modelselect plugin '${pluginSource}'.`);
   let exitCode = 0;
   try {
-    execFileSync(bin, ['github', 'run'], { env: childEnv, cwd: workspace, stdio: 'inherit' });
+    execFileSync(bin, runArgs, { env: childEnv, cwd: workspace, stdio: 'inherit' });
   } catch (err) {
     exitCode = Number.isInteger(err?.status) ? err.status : 1;
-    console.error(`::error::opencode github run failed (exit ${exitCode}).`);
+    console.error(`::error::opencode run failed (exit ${exitCode}).`);
   }
 
   writeOutputs({

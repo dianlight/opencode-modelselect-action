@@ -52,8 +52,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { selectWithinBudget } = require('./shared/core/budget');
-const { buildChain } = require('./shared/core/chain');
-const { buildV2Chain, taskEntryV2 } = require('./shared/core/registry');
+const { buildChain, exclusionReason, rankedModels } = require('./shared/core/chain');
+const { indexCatalog, rowsForModel } = require('./shared/core/catalog');
+const { buildV2Chain, taskEntryV2, excludedVariants } = require('./shared/core/registry');
 const { parseGoUsageWindows, goWindowsExhausted, classifyFreeProbe } = require('./shared/core/probe');
 
 const FETCH_TIMEOUT_MS = 15000;
@@ -88,6 +89,39 @@ function warn(message) {
 
 function notice(message) {
   console.log(`::notice::${message}`);
+}
+
+// One warning line for the candidates a chain rejected, with the exact gate
+// that rejected each one. Mirrors the plugin's chat-visible fallback report.
+function warnExcluded(exclusions, label, using = null, limit = 6) {
+  const list = Array.isArray(exclusions) ? exclusions.filter((e) => e && e.ref) : [];
+  if (list.length === 0) return;
+  const shown = list.slice(0, Math.max(1, limit)).map((e) => `${e.ref} (${e.reason || 'unavailable'})`);
+  const extra = list.length - shown.length;
+  if (extra > 0) shown.push(`+${extra} more`);
+  warn(
+    `${label} — no usable model — checked ${list.length}: ${shown.join(', ')}` +
+      (using ? `; using ${using}` : ''),
+  );
+}
+
+function excludedV1Candidates({ entry, catalog, tier, providers, maxCost }) {
+  if (!entry || !catalog) return [];
+  const lists = [entry.ranked, entry.go_ranked, entry.free_ranked];
+  if (!lists.some((l) => Array.isArray(l) && l.length > 0)) return [];
+  const index = indexCatalog(catalog);
+  const mode = tier === 'free' ? 'free' : tier === 'go' ? 'go' : 'abs';
+  const seen = new Set();
+  const out = [];
+  for (const ranked of rankedModels(entry, mode)) {
+    for (const row of rowsForModel(index, ranked.model)) {
+      if (!row.key || seen.has(row.key)) continue;
+      seen.add(row.key);
+      const reason = exclusionReason(row, { providers, maxCost });
+      if (reason) out.push({ ref: row.key, reason });
+    }
+  }
+  return out;
 }
 
 function writeOutputs(outputs) {
@@ -651,17 +685,19 @@ async function main() {
   // external one (core/registry.js). No v2 entry or no usable variant falls
   // back to the v1 chain below.
   let chainRefs = [];
+  let checkedExclusions = [];
   let v2Picked = false;
   const v2Task = registry ? taskEntryV2(configV2, taskTypeInput) : null;
   if (!fromFallback && v2Task) {
-    const v2Chain = buildV2Chain({
+    const v2Args = {
       taskEntry: v2Task.entry,
       registry,
       preference,
       tier: tierSelected === 'free' ? 'free' : tierSelected === 'go' ? 'go' : null,
       providers: allowedProviders,
       maxCost,
-    });
+    };
+    const v2Chain = buildV2Chain(v2Args);
     if (v2Chain.length > 0) {
       const first = v2Chain[0];
       chainRefs = v2Chain.map((c) => `${c.provider}/${c.model}`);
@@ -678,10 +714,12 @@ async function main() {
       source = `${source}+v2`;
       v2Picked = true;
     } else {
+      checkedExclusions = excludedVariants(v2Args);
       notice(
         `v2: registry has no usable variant for task='${v2Task.key}' ` +
           `(providers: ${allowedProviders.join(', ') || 'any'}); using the v1 chain.`,
       );
+      warnExcluded(checkedExclusions, `v2 task='${v2Task.key}'`);
     }
   }
 
@@ -710,10 +748,14 @@ async function main() {
       }
       modelCost = first.cost === null || first.cost === undefined ? '' : String(first.cost);
     } else {
+      checkedExclusions = checkedExclusions.concat(
+        excludedV1Candidates({ entry, catalog, tier: tierSelected, providers: allowedProviders, maxCost }),
+      );
       warn(
         `Provider chain empty for task-type='${key}' (providers: ${allowedProviders.join(', ') || 'any'}); ` +
           'keeping the configured model.',
       );
+      warnExcluded(checkedExclusions, `task-type='${key}'`, model);
     }
   }
 
@@ -730,6 +772,7 @@ async function main() {
           `No '${tierSelected}' model for task-type='${key}' fits max-cost=${maxCost} ` +
             `(${budgeted.hint}); using fallback-model.`,
         );
+        warnExcluded(checkedExclusions, `task-type='${key}'`, fallbackModel);
         model = fallbackModel;
         source = `${source}+fallback`;
       } else {

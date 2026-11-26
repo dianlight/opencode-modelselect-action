@@ -169,15 +169,33 @@ function formatAnnounce({ taskType, tier, model, suggestOnly, jev, usage }) {
  * instead. Emitted even when `announce=off`: it is a failure report, not a
  * routing announcement.
  */
-function formatFallbackSummary(excluded, fallbackModel, limit = 6) {
+function exclusionParts(excluded, limit = 6) {
   const list = Array.isArray(excluded) ? excluded.filter((e) => e && e.ref) : [];
-  if (list.length === 0) return '';
+  if (list.length === 0) return null;
   const shown = list.slice(0, Math.max(1, limit));
   const parts = shown.map((e) => `${e.ref} (${e.reason || 'unavailable'})`);
   const extra = list.length - shown.length;
   if (extra > 0) parts.push(`+${extra} more`);
+  return { count: list.length, text: parts.join(', ') };
+}
+
+function formatFallbackSummary(excluded, fallbackModel, limit = 6) {
+  const parts = exclusionParts(excluded, limit);
+  if (!parts) return '';
   const tail = fallbackModel ? `; using ${fallbackModel}` : '';
-  return `[modelselect] no usable model — checked ${list.length}: ${parts.join(', ')}${tail}`;
+  return `[modelselect] no usable model — checked ${parts.count}: ${parts.text}${tail}`;
+}
+
+/**
+ * Chat-visible explanation for a runtime failover: the refs this session
+ * already failed on (with the classified cause) and the candidate now being
+ * tried. Same cap and dedupe shape as the terminal fallback report.
+ */
+function formatFailoverSummary(excluded, nextModel, limit = 6) {
+  const parts = exclusionParts(excluded, limit);
+  if (!parts) return '';
+  const tail = nextModel ? `; using ${nextModel}` : '; no candidate left';
+  return `[modelselect] chain failover — excluded ${parts.count}: ${parts.text}${tail}`;
 }
 
 /**
@@ -917,6 +935,10 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
           providers: Array.isArray(opts.availableProviders) && opts.availableProviders.length > 0 ? opts.availableProviders : null,
         };
         chain = buildV2Chain(v2Args);
+        // Keep the rejected pool for both terminal and fallback reports: a
+        // non-empty chain can still end on fallbackModel (budget/route), and
+        // those exclusions are the reason it moved.
+        exclusions = excludedVariants(v2Args);
         if (Array.isArray(tried) && tried.length > 0) {
           const done = new Set(tried.map((t) => String(t ?? '').trim()).filter(Boolean));
           chain = (Array.isArray(chain) ? chain : []).filter(
@@ -934,7 +956,6 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
           tier = first.class === 'free' ? 'free' : 'go';
           source = `${source}+v2`;
         } else {
-          exclusions = excludedVariants(v2Args);
           chain = null;
         }
       } catch (err) {
@@ -1045,7 +1066,11 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
   const chainAllRefs = (Array.isArray(chain) ? chain : [])
     .map((c) => (c ? String(c.ref ?? `${c.provider}/${c.model}`).trim() : ''))
     .filter(Boolean);
-  if (chainAllRefs.length === 0 && !sourceV2) {
+  // A fallback pick is a failure report too: the chain was non-empty, but
+  // none of its rows won, so explain the rejected rows in chat as well.
+  const fromFallback = isFallback || source.includes('+fallback');
+  const reportExclusions = chainAllRefs.length === 0 || fromFallback;
+  if (!sourceV2 && reportExclusions) {
     exclusions = mergeExclusions(
       exclusions,
       excludedV1Candidates({
@@ -1059,13 +1084,14 @@ async function resolveModel({ taskType, opts, cacheDir, media, capabilitiesFor, 
       }),
     );
   }
-  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia, chain: chainRefs, chainAll: chainAllRefs, excluded: chainAllRefs.length === 0 ? exclusions : [] };
+  return { model, taskType: key, tier, source, stale: stale ?? false, goOk, think: normalizeThink(entry.think), freeExhausted: freeExhausted || modelLatched, usage, endpoint: endpointFor(config, model), endpointPath: endpointPathFor(config, model), media: requestedMedia, chain: chainRefs, chainAll: chainAllRefs, excluded: reportExclusions ? exclusions : [] };
 }
 
 module.exports = {
   normalizeOptions,
   formatAnnounce,
   formatFallbackSummary,
+  formatFailoverSummary,
   usageNote,
   shouldAnnounce,
   loadConfig,

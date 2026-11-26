@@ -10,6 +10,11 @@
   get the freed slot; the extension now requires OpenChamber >= 2.7.2.
 
 ### Added
+- Chat-visible chain exclusion reports: the plugin now prints why candidates
+  were rejected when a pick lands on the fallback model and when a runtime
+  failure moves the session to the next chain candidate (even with
+  `announce=off`). Both GitHub Actions warn with the checked candidates and the
+  exact exclusion gate when they fall back.
 - Runtime model failover for explicit-model sessions: when a pinned model is
   rejected (disabled access, unavailable, exhausted, no credit, or any retry
   error), the plugin now switches the session to the next chain candidate,

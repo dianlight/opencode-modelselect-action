@@ -102,7 +102,7 @@ const {
   lastAssistantSnippet,
   truncate,
 } = require('./shared/continuation');
-const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, formatFallbackSummary, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, loadRegistryFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
+const { normalizeOptions, resolveModel, splitModelRef, endpointPathFor, formatAnnounce, formatFallbackSummary, formatFailoverSummary, usageNote, shouldAnnounce, loadConfig, loadCatalogFor, loadRegistryFor, collectMedia, detectMediaFromFiles, detectMediaFromParts } = require('./shared/select');
 const { nextCandidate } = require('./shared/core/chain');
 const { readRoutingSync, writeRoutingSync, writeStatus, statusFile } = require('./shared/status');
 const { resolveHost, sessionMapHit, sessionMapAnyHit, SESSION_MAP_FILE, SESSION_MAP_TTL_MS } = require('./shared/host');
@@ -473,6 +473,7 @@ async function setup(ctx) {
   const applied = new Map(); // sessionID -> "provider/id" already persisted
   const announced = new Map(); // sessionID -> last announced "provider/id" key
   const fallbackExplained = new Map(); // sessionID -> last fallback summary line
+  const failureReasons = new Map(); // sessionID -> Map<ref, classified cause> for this failover episode
   const history = new Map(); // sessionID -> { task, prompt } last substantive turn
   const failoverArmed = new Map(); // sessionID -> { armedAt, ref }: pending forced retry after a classified failure
   const failoverAttempts = new Map(); // sessionID -> forced retries used in this episode
@@ -1316,6 +1317,48 @@ async function setup(ctx) {
     };
   }
 
+  function recordFailureReason(sessionID, ref, reason) {
+    if (!sessionID || !ref) return;
+    let reasons = failureReasons.get(sessionID);
+    if (!reasons) {
+      reasons = new Map();
+      failureReasons.set(sessionID, reasons);
+    }
+    reasons.set(String(ref), String(reason ?? 'unavailable'));
+  }
+
+  // Chat-visible runtime failover report: the refs this episode already
+  // failed on (with their classified cause) and the candidate now tried.
+  // Zero model turn via synthetic messages; append to the hook prompt when
+  // one is available; last resort a queued prompt. Deduped against the
+  // selection-time fallback report so the same line is never printed twice.
+  async function emitFailoverReport(event, sessionID, refs, nextRef) {
+    if (!sessionID || !Array.isArray(refs) || refs.length === 0) return;
+    const reasons = failureReasons.get(sessionID) || new Map();
+    const items = refs.map((ref) => ({ ref, reason: reasons.get(String(ref)) || 'unavailable' }));
+    const line = formatFailoverSummary(items, nextRef);
+    if (!line || fallbackExplained.get(sessionID) === line) return;
+    let emitted = false;
+    if (event && appendPromptLine(event, line)) emitted = true;
+    if (!emitted && typeof ctx.session?.synthetic === 'function') {
+      try {
+        await ctx.session.synthetic({ sessionID, text: line });
+        emitted = true;
+      } catch (err) {
+        if (opts.verbose) console.log(`[modelselect] failover synthetic skipped: ${err?.message ?? err}`);
+      }
+    }
+    if (!emitted && typeof ctx.session?.prompt === 'function') {
+      try {
+        await ctx.session.prompt({ sessionID, text: line, delivery: 'queue' });
+        emitted = true;
+      } catch (err) {
+        if (opts.verbose) console.log(`[modelselect] failover prompt skipped: ${err?.message ?? err}`);
+      }
+    }
+    if (emitted) fallbackExplained.set(sessionID, line);
+  }
+
   // A classified failure: remember the ref (so the cascade never re-picks
   // it) and arm a forced retry. Applies to virtual anchors and explicit
   // models alike — a pinned model that is disabled, unavailable or out of
@@ -1333,6 +1376,7 @@ async function setup(ctx) {
       ? `${String(ref.providerID ?? '').toLowerCase()}/${String(rid)}`
       : String(ref ?? '');
     if (!failingRef) return;
+    recordFailureReason(sessionID, failingRef, cause);
     markTried(sessionID, failingRef);
     failoverArmed.set(sessionID, { armedAt: Date.now(), ref: failingRef });
     if (opts.verbose) {
@@ -1406,6 +1450,7 @@ async function setup(ctx) {
         const legacyRef = `${r.providerID}/${r.id}`;
         if (tried.includes(legacyRef)) {
           if (opts.verbose) console.log(`[modelselect] failover exhausted (no candidate left) session=${sessionID}`);
+          await emitFailoverReport(event, sessionID, tried, null);
           return;
         }
         chosen = legacyRef;
@@ -1465,6 +1510,7 @@ async function setup(ctx) {
         });
       }
       failoverAttempts.set(sessionID, attempts + 1);
+      await emitFailoverReport(event, sessionID, tried, `${ref.providerID}/${ref.id}`);
       event.decision = { retry: true, delay: 0 };
       if (opts.verbose) {
         console.log(`[modelselect] chain failover ${armed.ref} → ${ref.providerID}/${ref.id} (${attempts + 1}/${MAX_FAILOVER_ATTEMPTS}) session=${sessionID}`);
@@ -1509,6 +1555,7 @@ async function setup(ctx) {
       // so a later turn can retry every candidate again from scratch.
       if (event.sessionID) {
         clearTried(event.sessionID);
+        failureReasons.delete(event.sessionID);
         failoverAttempts.delete(event.sessionID);
         failoverArmed.delete(event.sessionID);
       }
@@ -1959,6 +2006,7 @@ async function setup(ctx) {
         // already had its chance. A stale arm is replaced below.
         if (armedAt !== undefined && Date.now() - armedAt <= CATALOG_MISS_RETRY_TTL_MS) return;
         catalogMissRetry.set(armKey, Date.now());
+        recordFailureReason(sessionID, missingRef, 'catalog-miss');
         markTried(sessionID, missingRef);
         recordModelMiss(cacheDir, missingRef, { source: 'retry' });
         try {
@@ -1975,6 +2023,7 @@ async function setup(ctx) {
           }
           lastVirtualPick.set(sessionID, nextPick);
           if (virtualId) await syncVirtualApiFor(nextPick, virtualId);
+          await emitFailoverReport(event, sessionID, [missingRef], refString(nextPick));
           event.decision = { retry: true, delay: 0 };
           if (opts.verbose) console.log(`[modelselect] catalog miss retry ${missingRef} → ${refString(nextPick)} session=${sessionID}`);
         } catch (missErr) {
