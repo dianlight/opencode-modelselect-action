@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-25T10:12:51.112551+00:00",
+  "timestamp": "2026-11-26T05:44:02.387340+00:00",
   "livebench_snapshot": "2026-11-06",
   "task-types": {
     "plan": {
@@ -208,8 +208,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -1241,8 +1240,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -1740,8 +1738,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -2396,8 +2393,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -3030,8 +3026,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -4176,8 +4171,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -4697,8 +4691,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -5444,8 +5437,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -5965,8 +5957,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -6712,8 +6703,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -7346,8 +7336,7 @@
           "context": 500000,
           "modalities": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -8584,7 +8573,7 @@
     "jev-1.13-free": "systemone",
     "nemotron-3.5-lightning-free": "chat",
     "hy4-flash-free": "chat",
-    "tidepool-alpha-free": "chat",
+    "seaglass-alpha-free": "chat",
     "deepseek-v4.1-flash": "chat",
     "deepseek-v4-pro": "chat",
     "glm-5.3": "chat",
@@ -8616,7 +8605,7 @@
     "opencode/nemotron-3.5-super-vl-free": "/inference/openai/v1",
     "opencode/nemotron-3.5-lightning-free": "/inference/openai/v1",
     "opencode/hy4-flash-free": "/inference/openai/v1",
-    "opencode/tidepool-alpha-free": "/inference/openai/v1",
+    "opencode/seaglass-alpha-free": "/inference/openai/v1",
     "opencode-go/deepseek-v4.1-flash": "/inference/openai/v1",
     "opencode-go/deepseek-v4-pro": "/inference/openai/v1",
     "opencode-go/glm-5.3": "/inference/openai/v1",
