@@ -6,7 +6,7 @@
 ## Model Recommendations by Task Type
 
 > Automatically updated by `opencode-maintenance` workflow.
-> Last updated: **2026-11-25 11:03 UTC**.
+> Last updated: **2026-11-26 05:43 UTC**.
 > LiveBench data: **356 models scored** (41 v2, 315 v1-only).
 > LiveBench v2 snapshot: **2026-11-06**.
 > v2 Source: https://livebench.ai/data/20261106/table.csv
@@ -87,6 +87,6 @@
 | `qwen3.8-flash` | Go (Paid) | 📋 Fallback | Plan, Review | 62.9 | 59.0 | 86.0 | 60.0 | 81.3 | $0.15 | $0.47 | $0.23 | 273.5 |
 | `qwen3.8-max` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 64.7 | 60.9 | 88.2 | 76.6 | — | $2 | $6 | $3 | 21.6 |
 | `qwen4-max` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 76.6 | 69.8 | 92.2 | 79.1 | — | $1.5 | $4.5 | $2.25 | 34.0 |
+| `seaglass-alpha-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |
 | `step-5-preview` | Go (Paid) | ✅ LiveBench v2 | Plan, Review | 57.9 | 67.6 | 83.8 | 70.8 | — | $1 | $2.7 | $1.425 | 40.6 |
 | `text-embedding-3-small` | Go (Paid) | ❌ Missing | — | — | — | — | — | — | $0.02 | $0 | $0.015 | — |
-| `tidepool-alpha-free` | Free | ❌ Missing | — | — | — | — | — | — | Free | Free | Free | — |

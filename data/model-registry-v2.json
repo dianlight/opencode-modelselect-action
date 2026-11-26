@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-25T10:12:49.517825+00:00",
+  "timestamp": "2026-11-26T05:44:01.100005+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -2147,8 +2147,7 @@
           "context": 500000,
           "media_in": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -2167,8 +2166,7 @@
           "context": 500000,
           "media_in": [
             "text",
-            "image",
-            "pdf"
+            "image"
           ],
           "output": 500000,
           "monthly_usage": {
@@ -3248,6 +3246,25 @@
       ],
       "score": 76.6
     },
+    "seaglass-alpha": {
+      "id": "seaglass-alpha",
+      "name": "Seaglass Alpha Free",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "seaglass-alpha-free",
+          "free": true,
+          "cost": 0.0,
+          "input_cost": 0.0,
+          "output_cost": 0.0,
+          "context": 1048576,
+          "media_in": [
+            "text"
+          ],
+          "output": 131072
+        }
+      ]
+    },
     "step-5-preview": {
       "id": "step-5-preview",
       "name": "Step 5 Preview",
@@ -3330,25 +3347,6 @@
             "go-plus": 40,
             "go-teams": 15
           }
-        }
-      ]
-    },
-    "tidepool-alpha": {
-      "id": "tidepool-alpha",
-      "name": "Tidepool Alpha Free",
-      "variants": [
-        {
-          "provider": "opencode",
-          "model": "tidepool-alpha-free",
-          "free": true,
-          "cost": 0.0,
-          "input_cost": 0.0,
-          "output_cost": 0.0,
-          "context": 1048576,
-          "media_in": [
-            "text"
-          ],
-          "output": 131072
         }
       ]
     },

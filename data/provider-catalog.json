@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-25T10:12:49.367316+00:00",
+  "timestamp": "2026-11-26T05:44:01.008532+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -1956,8 +1956,7 @@
       "context": 500000,
       "media_in": [
         "text",
-        "image",
-        "pdf"
+        "image"
       ],
       "media_out": [
         "text"
@@ -2562,6 +2561,25 @@
     },
     {
       "provider": "opencode",
+      "id": "seaglass-alpha-free",
+      "canonical": "seaglass-alpha",
+      "name": "Seaglass Alpha Free",
+      "class": "free",
+      "free": true,
+      "input_cost": 0.0,
+      "output_cost": 0.0,
+      "blended_cost": 0.0,
+      "context": 1048576,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ],
+      "output": 131072
+    },
+    {
+      "provider": "opencode",
       "id": "text-embedding-3-large",
       "canonical": "text-embedding-3-large",
       "name": "text-embedding-3-large",
@@ -2600,25 +2618,6 @@
         "go-plus": 40,
         "go-teams": 15
       }
-    },
-    {
-      "provider": "opencode",
-      "id": "tidepool-alpha-free",
-      "canonical": "tidepool-alpha",
-      "name": "Tidepool Alpha Free",
-      "class": "free",
-      "free": true,
-      "input_cost": 0.0,
-      "output_cost": 0.0,
-      "blended_cost": 0.0,
-      "context": 1048576,
-      "media_in": [
-        "text"
-      ],
-      "media_out": [
-        "text"
-      ],
-      "output": 131072
     },
     {
       "provider": "opencode",
@@ -2969,8 +2968,7 @@
       "context": 500000,
       "media_in": [
         "text",
-        "image",
-        "pdf"
+        "image"
       ],
       "media_out": [
         "text"
