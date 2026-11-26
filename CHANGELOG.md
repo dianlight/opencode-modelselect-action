@@ -1,4 +1,13 @@
 ## [Unreleased]
+### Fixed
+- `github-action-v2` now runs the V2 CLI's `opencode run` subcommand instead of
+  `opencode github run`, which OpenCode 2.4.x rejects with `Unexpected positional
+  argument: "run"`. The preselected model, optional agent and variant are passed
+  as `--model`/`--agent` flags, the prompt as a positional message, and `--auto`
+  keeps unattended runs from waiting on a permission ask. The v2 action no
+  longer takes a token from GitHub's OIDC exchange itself; the workflow keeps
+  doing that and passes the result as `OPENCODE_API_KEY`.
+
 ### Changed
 - The plugin and the Work Status chain preview now include external providers
   configured in the OpenCode console (e.g. FreeModel, OpenRouter) by default:
@@ -23,7 +32,7 @@
 - New `github-action-v2` (root shim `action-v2.yml`): the union of the
   select-model action and `anomalyco/opencode/github`. It accepts both sets of
   inputs, installs OpenCode, writes the bundled modelselect plugin into
-  `opencode.json` with those options, and runs `opencode github run`. With an
+  `opencode.json` with those options, and runs `opencode run`. With an
   empty `model` it resolves the model first with the v1 select-model rules
   (the CLI validates MODEL before plugins load); the plugin then owns runtime
   failover and replaces a rejected model with the next chain candidate. The

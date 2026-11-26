@@ -14,7 +14,8 @@ function run(inputs, { opencodeExit = 0 } = {}) {
   const binDir = path.join(dir, '.opencode', 'bin');
   fs.mkdirSync(binDir, { recursive: true });
   const bin = path.join(binDir, 'opencode');
-  fs.writeFileSync(bin, `#!/bin/sh\nif [ "$1" = "--version" ]; then echo 'opencode 2.3.0'; exit 0; fi\nexit ${opencodeExit}\n`, { mode: 0o755 });
+  const argsFile = path.join(dir, 'opencode-args.txt');
+  fs.writeFileSync(bin, `#!/bin/sh\nif [ "$1" = "--version" ]; then echo 'opencode 2.3.0'; exit 0; fi\nprintf '%s\\n' "$@" > "$OPENCODE_ARGS_FILE"\nexit ${opencodeExit}\n`, { mode: 0o755 });
   // The action resolves the bundled plugin two levels above src/.
   fs.mkdirSync(path.join(dir, 'plugin'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'plugin', 'index.js'), 'module.exports = {};\n');
@@ -40,6 +41,7 @@ function run(inputs, { opencodeExit = 0 } = {}) {
     HOME: dir,
     GITHUB_WORKSPACE: dir,
     GITHUB_OUTPUT: out,
+    OPENCODE_ARGS_FILE: argsFile,
     ...inputs,
   };
   let exit = 0;
@@ -58,7 +60,14 @@ function run(inputs, { opencodeExit = 0 } = {}) {
       outputs[line.slice(0, at)] = line.slice(at + 1);
     }
   }
-  return { dir, exit, stderr, outputs, bin };
+  return {
+    dir,
+    exit,
+    stderr,
+    outputs,
+    bin,
+    opencodeArgs: fs.existsSync(argsFile) ? fs.readFileSync(argsFile, 'utf8').trim().split('\n') : [],
+  };
 }
 
 function readConfig(dir, rel) {
@@ -106,6 +115,35 @@ describe('opencode + modelselect v2 action', () => {
     const r = run({ 'INPUT_TIER': 'unknown' });
     assert.equal(r.exit, 1);
     assert.match(r.stderr, /Input 'tier'/);
+  });
+
+  it('runs the V2 CLI with --model, --auto and the prompt as a positional message', () => {
+    const prompt = 'Fix coverage issues\nUse two sources';
+    const r = run({
+      'INPUT_TIER': 'free',
+      'INPUT_MODEL': 'opencode/free-model',
+      'INPUT_AGENT': 'reviewer',
+      'INPUT_VARIANT': 'high',
+      'INPUT_PROMPT': prompt,
+    });
+    assert.equal(r.exit, 0, r.stderr);
+    assert.deepEqual(r.opencodeArgs, [
+      'run',
+      '--model',
+      'opencode/free-model#high',
+      '--auto',
+      '--agent',
+      'reviewer',
+      '--',
+      'Fix coverage issues',
+      'Use two sources',
+    ]);
+  });
+
+  it('passes an empty prompt by omitting the positional message', () => {
+    const r = run({ 'INPUT_TIER': 'free' });
+    assert.equal(r.exit, 0, r.stderr);
+    assert.deepEqual(r.opencodeArgs, ['run', '--model', 'opencode/free-model', '--auto']);
   });
 
   it('propagates a failing opencode run but still writes outputs', () => {

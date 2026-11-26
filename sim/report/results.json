@@ -1,15 +1,15 @@
 {
-  "runId": "2026-11-25T15-23-38-600Z",
-  "startedAt": "2026-11-25T15:23:38.600Z",
-  "total": 50,
-  "passed": 50,
+  "runId": "2026-11-26T10-56-49-402Z",
+  "startedAt": "2026-11-26T10:56:49.402Z",
+  "total": 54,
+  "passed": 54,
   "failed": 0,
   "rows": [
     {
       "id": "action/auto-both-exhausted-fails",
       "component": "action",
       "ok": true,
-      "durationMs": 2669,
+      "durationMs": 2235,
       "failures": [],
       "error": null
     },
@@ -17,7 +17,7 @@
       "id": "action/auto-falls-back-to-go",
       "component": "action",
       "ok": true,
-      "durationMs": 275,
+      "durationMs": 322,
       "failures": [],
       "error": null
     },
@@ -25,7 +25,7 @@
       "id": "action/auto-prefers-free",
       "component": "action",
       "ok": true,
-      "durationMs": 297,
+      "durationMs": 245,
       "failures": [],
       "error": null
     },
@@ -33,7 +33,7 @@
       "id": "action/auto-waits-for-quota",
       "component": "action",
       "ok": true,
-      "durationMs": 1333,
+      "durationMs": 1244,
       "failures": [],
       "error": null
     },
@@ -41,7 +41,7 @@
       "id": "action/config-url-unreachable",
       "component": "action",
       "ok": true,
-      "durationMs": 159,
+      "durationMs": 155,
       "failures": [],
       "error": null
     },
@@ -49,7 +49,7 @@
       "id": "action/fallback-model-used",
       "component": "action",
       "ok": true,
-      "durationMs": 224,
+      "durationMs": 223,
       "failures": [],
       "error": null
     },
@@ -57,7 +57,7 @@
       "id": "action/free-tier-case-insensitive",
       "component": "action",
       "ok": true,
-      "durationMs": 222,
+      "durationMs": 313,
       "failures": [],
       "error": null
     },
@@ -65,7 +65,7 @@
       "id": "action/go-tier",
       "component": "action",
       "ok": true,
-      "durationMs": 224,
+      "durationMs": 222,
       "failures": [],
       "error": null
     },
@@ -73,7 +73,7 @@
       "id": "action/invalid-tier-rejected",
       "component": "action",
       "ok": true,
-      "durationMs": 143,
+      "durationMs": 134,
       "failures": [],
       "error": null
     },
@@ -89,7 +89,7 @@
       "id": "action/missing-task-type-fails-closed",
       "component": "action",
       "ok": true,
-      "durationMs": 224,
+      "durationMs": 226,
       "failures": [],
       "error": null
     },
@@ -97,7 +97,7 @@
       "id": "action-v2/failure-propagates",
       "component": "action-v2",
       "ok": true,
-      "durationMs": 313,
+      "durationMs": 268,
       "failures": [],
       "error": null
     },
@@ -105,7 +105,7 @@
       "id": "action-v2/permissions-preapproved",
       "component": "action-v2",
       "ok": true,
-      "durationMs": 483,
+      "durationMs": 384,
       "failures": [],
       "error": null
     },
@@ -113,7 +113,15 @@
       "id": "action-v2/preselect-and-config",
       "component": "action-v2",
       "ok": true,
-      "durationMs": 382,
+      "durationMs": 390,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "action-v2/valid-cli-invocation",
+      "component": "action-v2",
+      "ok": true,
+      "durationMs": 260,
       "failures": [],
       "error": null
     },
@@ -121,7 +129,7 @@
       "id": "plugin/announce-off-stays-quiet",
       "component": "plugin",
       "ok": true,
-      "durationMs": 238,
+      "durationMs": 237,
       "failures": [],
       "error": null
     },
@@ -129,7 +137,7 @@
       "id": "plugin/catalog-miss-retry",
       "component": "plugin",
       "ok": true,
-      "durationMs": 224,
+      "durationMs": 336,
       "failures": [],
       "error": null
     },
@@ -137,7 +145,7 @@
       "id": "plugin/chain-picks-external-provider",
       "component": "plugin",
       "ok": true,
-      "durationMs": 223,
+      "durationMs": 239,
       "failures": [],
       "error": null
     },
@@ -145,7 +153,31 @@
       "id": "plugin/explicit-model-failover",
       "component": "plugin",
       "ok": true,
-      "durationMs": 220,
+      "durationMs": 272,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/failover-reports-excluded-models",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 221,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/fallback-report-with-nonempty-chain",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 299,
+      "failures": [],
+      "error": null
+    },
+    {
+      "id": "plugin/fallback-reports-excluded-models",
+      "component": "plugin",
+      "ok": true,
+      "durationMs": 175,
       "failures": [],
       "error": null
     },
@@ -153,7 +185,7 @@
       "id": "plugin/fixed-task-type-pin",
       "component": "plugin",
       "ok": true,
-      "durationMs": 236,
+      "durationMs": 334,
       "failures": [],
       "error": null
     },
@@ -161,7 +193,7 @@
       "id": "plugin/http-request-stamps-pick",
       "component": "plugin",
       "ok": true,
-      "durationMs": 239,
+      "durationMs": 237,
       "failures": [],
       "error": null
     },
@@ -169,7 +201,7 @@
       "id": "plugin/routes-review-announce",
       "component": "plugin",
       "ok": true,
-      "durationMs": 243,
+      "durationMs": 315,
       "failures": [],
       "error": null
     },
@@ -177,7 +209,7 @@
       "id": "plugin/runtime-inventory-gate",
       "component": "plugin",
       "ok": true,
-      "durationMs": 226,
+      "durationMs": 284,
       "failures": [],
       "error": null
     },
@@ -185,7 +217,7 @@
       "id": "plugin/virtual-anchor-kept",
       "component": "plugin",
       "ok": true,
-      "durationMs": 236,
+      "durationMs": 234,
       "failures": [],
       "error": null
     },
@@ -193,7 +225,7 @@
       "id": "plugin/virtual-provider-registered",
       "component": "plugin",
       "ok": true,
-      "durationMs": 241,
+      "durationMs": 234,
       "failures": [],
       "error": null
     },
@@ -201,7 +233,7 @@
       "id": "service/chain-includes-external-providers",
       "component": "service",
       "ok": true,
-      "durationMs": 155,
+      "durationMs": 149,
       "failures": [],
       "error": null
     },
@@ -209,7 +241,7 @@
       "id": "service/chain-live-availability",
       "component": "service",
       "ok": true,
-      "durationMs": 135,
+      "durationMs": 132,
       "failures": [],
       "error": null
     },
@@ -217,7 +249,7 @@
       "id": "service/health-requires-token",
       "component": "service",
       "ok": true,
-      "durationMs": 130,
+      "durationMs": 136,
       "failures": [],
       "error": null
     },
@@ -225,7 +257,7 @@
       "id": "service/host-automations-no-project",
       "component": "service",
       "ok": true,
-      "durationMs": 132,
+      "durationMs": 133,
       "failures": [],
       "error": null
     },
@@ -233,7 +265,7 @@
       "id": "service/host-automations-switch-toggle",
       "component": "service",
       "ok": true,
-      "durationMs": 135,
+      "durationMs": 144,
       "failures": [],
       "error": null
     },
@@ -241,7 +273,7 @@
       "id": "service/host-automations-throttle",
       "component": "service",
       "ok": true,
-      "durationMs": 138,
+      "durationMs": 136,
       "failures": [],
       "error": null
     },
@@ -257,7 +289,7 @@
       "id": "service/schedule-no-project",
       "component": "service",
       "ok": true,
-      "durationMs": 130,
+      "durationMs": 134,
       "failures": [],
       "error": null
     },
@@ -265,7 +297,7 @@
       "id": "service/schedule-refresh",
       "component": "service",
       "ok": true,
-      "durationMs": 138,
+      "durationMs": 135,
       "failures": [],
       "error": null
     },
@@ -273,7 +305,7 @@
       "id": "service/schedule-switch-toggle",
       "component": "service",
       "ok": true,
-      "durationMs": 162,
+      "durationMs": 159,
       "failures": [],
       "error": null
     },
@@ -281,7 +313,7 @@
       "id": "service/stateless-waits",
       "component": "service",
       "ok": true,
-      "durationMs": 135,
+      "durationMs": 145,
       "failures": [],
       "error": null
     },
@@ -297,7 +329,7 @@
       "id": "service/status-ok",
       "component": "service",
       "ok": true,
-      "durationMs": 130,
+      "durationMs": 136,
       "failures": [],
       "error": null
     },
@@ -313,7 +345,7 @@
       "id": "panel/render-from-managed",
       "component": "panel",
       "ok": true,
-      "durationMs": 176,
+      "durationMs": 171,
       "failures": [],
       "error": null
     },
@@ -321,7 +353,7 @@
       "id": "panel/save-history-chars",
       "component": "panel",
       "ok": true,
-      "durationMs": 254,
+      "durationMs": 243,
       "failures": [],
       "error": null
     },
@@ -329,7 +361,7 @@
       "id": "pipeline/benchmark-dry-run",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 622,
+      "durationMs": 678,
       "failures": [],
       "error": null
     },
@@ -337,7 +369,7 @@
       "id": "pipeline/benchmark-no-key",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 64,
+      "durationMs": 82,
       "failures": [],
       "error": null
     },
@@ -345,7 +377,7 @@
       "id": "pipeline/maintenance-coverage-issues",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 64,
+      "durationMs": 62,
       "failures": [],
       "error": null
     },
@@ -353,7 +385,7 @@
       "id": "pipeline/maintenance-coverage-unscorable",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 77,
+      "durationMs": 59,
       "failures": [],
       "error": null
     },
@@ -361,7 +393,7 @@
       "id": "pipeline/maintenance-go-native-cost",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 62,
+      "durationMs": 58,
       "failures": [],
       "error": null
     },
@@ -369,7 +401,7 @@
       "id": "pipeline/maintenance-go-native-price-wins",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 59,
+      "durationMs": 57,
       "failures": [],
       "error": null
     },
@@ -377,7 +409,7 @@
       "id": "pipeline/maintenance-online-catalog",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 58,
+      "durationMs": 60,
       "failures": [],
       "error": null
     },
@@ -385,7 +417,7 @@
       "id": "pipeline/maintenance-v2-full-ranking",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 60,
+      "durationMs": 61,
       "failures": [],
       "error": null
     },
@@ -393,7 +425,7 @@
       "id": "pipeline/maintenance-zen-down",
       "component": "pipeline",
       "ok": true,
-      "durationMs": 57,
+      "durationMs": 58,
       "failures": [],
       "error": null
     },

@@ -20,7 +20,7 @@ inputs:
     required: false
     default: ""
   prompt:
-    description: Prompt forwarded to `opencode github run`.
+    description: Prompt forwarded to `opencode run` as the positional message.
     required: false
     default: ""
   use_github_token:
@@ -168,7 +168,7 @@ inputs:
     default: "false"
 outputs:
   model:
-    description: Model passed to `opencode github run` (virtual anchor by default).
+    description: Model passed to `opencode run` via --model (virtual anchor by default).
   plugin-config:
     description: Path of the opencode.json the plugin was written to.
   plugin-source:

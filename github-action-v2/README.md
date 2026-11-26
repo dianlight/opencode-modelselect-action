@@ -7,12 +7,12 @@ inside OpenCode:
    cached 1.x binary), because the bundled plugin uses the V2 plugin API,
 2. writes the bundled `plugin/` into the global and project `opencode.json`
    with the options passed to this action,
-3. runs `opencode github run` with the OpenCode action's environment.
+3. runs `opencode run` with the preselected model and prompt as CLI flags.
 
 When `model` is empty the action first runs the v1 select-model rules
 (`task-type`, `tier`, `fallback-model`, budget, provider allowlist) and passes
-that resolved model to `opencode github run`; this is required because the
-CLI validates MODEL before plugins register their virtual provider. The
+that resolved model to `--model`; this is required because the CLI validates
+the model before plugins register their virtual provider. The
 plugin still receives every routing option and owns runtime failover: when
 the chosen model is disabled, unavailable, exhausted or errors for any other
 reason it moves to the next chain candidate (different provider first) and
@@ -42,12 +42,12 @@ OpenCode action inputs:
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `model` | `""` | Model passed to `opencode github run`. Empty resolves one with the v1 select-model rules. An explicit `modelselect/auto-*` anchor works on hosts that register virtual providers early. |
+| `model` | `""` | Model passed to `opencode run` via `--model`. Empty resolves one with the v1 select-model rules. An explicit `modelselect/auto-*` anchor works on hosts that register virtual providers early. |
 | `agent` | `""` | Primary agent. |
 | `share` | `""` | Share the OpenCode session. |
 | `prompt` | `""` | Prompt forwarded to OpenCode. |
 | `use_github_token` | `false` | Use `GITHUB_TOKEN` instead of OpenCode App token exchange. |
-| `permissions` | `""` | JSON array of OpenCode 2 permission rules (`{ action, resource, effect }`) appended to both generated configs. Pre-approve narrow resources; an `ask` blocks `opencode github run` until the step timeout. |
+| `permissions` | `""` | JSON array of OpenCode 2 permission rules (`{ action, resource, effect }`) appended to both generated configs. Use `--auto`-friendly deny/allow rules so unattended runs never wait on an `ask`. |
 | `mentions` | `""` | Comma-separated trigger phrases. |
 | `variant` | `""` | Reasoning-effort variant. |
 | `oidc_base_url` | `""` | Custom OIDC exchange base URL. |
@@ -88,14 +88,14 @@ Modelselect/plugin inputs (all forwarded as plugin options):
 | `probe-model-access` | `false` | Probe preselected chain candidates against Zen and skip disabled/unavailable models before starting OpenCode. |
 
 Secrets are never written to `opencode.json`: `opencode-token` is passed only
-to the `opencode github run` child process as `OPENCODE_API_KEY`, and
+to the `opencode run` child process as `OPENCODE_API_KEY`, and
 `jev-token` should be supplied through the same environment variable.
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| `model` | Model passed to `opencode github run` (virtual anchor by default). |
+| `model` | Model passed to `opencode run` via `--model` (virtual anchor by default). |
 | `plugin-config` | Path of the `opencode.json` the plugin was written to. |
 | `plugin-source` | Plugin package/path used in the generated config. |
 
