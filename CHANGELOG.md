@@ -1,4 +1,11 @@
 ## [Unreleased]
+### Added
+- `github-action-v2` accepts a `websearch` input written to both generated
+  `opencode.json` files. `false` removes the web search tool from unattended
+  runs; an object such as `{"provider":"exa"}` configures a search provider.
+  The maintenance workflow passes `false` so its fix agent cannot call Web
+  Search and cancel a provider-selection question it cannot answer.
+
 ### Fixed
 - `github-action-v2` now runs the V2 CLI's `opencode run` subcommand instead of
   `opencode github run`, which OpenCode 2.4.x rejects with `Unexpected positional

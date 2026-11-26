@@ -48,6 +48,7 @@ OpenCode action inputs:
 | `prompt` | `""` | Prompt forwarded to OpenCode. |
 | `use_github_token` | `false` | Use `GITHUB_TOKEN` instead of OpenCode App token exchange. |
 | `permissions` | `""` | JSON array of OpenCode 2 permission rules (`{ action, resource, effect }`) appended to both generated configs. Use `--auto`-friendly deny/allow rules so unattended runs never wait on an `ask`. |
+| `websearch` | `""` | OpenCode 2 websearch config written to both generated configs. Use `false` to remove the tool from unattended runs; `{"provider":"exa"}` enables a configured provider. Empty leaves the caller's config untouched. |
 | `mentions` | `""` | Comma-separated trigger phrases. |
 | `variant` | `""` | Reasoning-effort variant. |
 | `oidc_base_url` | `""` | Custom OIDC exchange base URL. |

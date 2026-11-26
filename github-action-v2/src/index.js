@@ -263,7 +263,7 @@ async function resolvedModel() {
  * other settings. Existing plugin entries for the same package are replaced.
  * A file that is not valid JSON (e.g. JSONC with comments) is left untouched.
  */
-function mergeConfig(file, pluginSource, options, permissions) {
+function mergeConfig(file, pluginSource, options, permissions, websearch) {
   let config = {};
   if (fs.existsSync(file)) {
     try {
@@ -285,6 +285,10 @@ function mergeConfig(file, pluginSource, options, permissions) {
   if (permissions.length) {
     config.permissions = [...(Array.isArray(config.permissions) ? config.permissions : []), ...permissions];
   }
+  // V2 removes the web search tool when `websearch` is false. Unattended runs
+  // cannot answer its provider-selection question, so callers that do not wire
+  // a search provider should disable it explicitly.
+  if (websearch !== undefined) config.websearch = websearch;
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
   return true;
@@ -333,6 +337,18 @@ async function main() {
   const model = await resolvedModel();
   const options = pluginOptions();
   const permissions = permissionRules();
+  const websearchRaw = getInput('websearch');
+  let websearch;
+  if (websearchRaw !== '') {
+    try {
+      websearch = JSON.parse(websearchRaw);
+    } catch (err) {
+      fail(`Input 'websearch' is not valid JSON: ${err.message}`);
+    }
+    if (websearch !== false && (websearch === null || typeof websearch !== 'object' || Array.isArray(websearch))) {
+      fail("Input 'websearch' must be false or a JSON object (e.g. {\"provider\":\"exa\"}).");
+    }
+  }
   const pluginPackage = getInput('plugin-package');
   const bundled = path.resolve(__dirname, '..', '..', 'plugin');
   const pluginSource = pluginPackage || bundled;
@@ -344,8 +360,8 @@ async function main() {
   const globalConfig = path.join(os.homedir(), '.config', 'opencode', 'opencode.json');
   const projectConfig = path.join(workspace, '.opencode', 'opencode.json');
   const written = [
-    mergeConfig(globalConfig, pluginSource, options, permissions),
-    mergeConfig(projectConfig, pluginSource, options, permissions),
+    mergeConfig(globalConfig, pluginSource, options, permissions, websearch),
+    mergeConfig(projectConfig, pluginSource, options, permissions, websearch),
   ];
   if (!written.some(Boolean)) fail(`Could not write a plugin config (tried ${globalConfig} and ${projectConfig}).`);
 

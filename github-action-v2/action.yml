@@ -31,7 +31,15 @@ inputs:
     description: >-
       JSON array of OpenCode 2 permission rules ({ action, resource, effect })
       appended to both generated opencode.json files. Use this to pre-approve
-      narrow resources that would otherwise block `opencode github run`.
+      narrow resources that would otherwise block an unattended run.
+    required: false
+    default: ""
+  websearch:
+    description: >-
+      OpenCode 2 websearch config written to both generated opencode.json
+      files. `false` removes the web search tool from unattended runs; an object
+      such as {"provider":"exa"} enables a configured provider. Empty leaves
+      the caller's config untouched.
     required: false
     default: ""
   mentions:

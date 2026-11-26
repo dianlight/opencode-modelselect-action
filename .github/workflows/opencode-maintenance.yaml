@@ -374,6 +374,7 @@ jobs:
           auto-preference: free-first
           fallback-model: opencode/beam-free
           probe-model-access: true
+          websearch: "false"
           verbose: true
           announce: "off"
           use_github_token: true

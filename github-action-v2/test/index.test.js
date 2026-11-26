@@ -254,4 +254,25 @@ describe('opencode + modelselect v2 action', () => {
     assert.equal(r.exit, 1);
     assert.match(r.stderr, /Input 'permissions'/);
   });
+
+  it('writes websearch: false to both configs when requested', () => {
+    const r = run({ 'INPUT_TIER': 'free', 'INPUT_WEBSEARCH': 'false' });
+    assert.equal(r.exit, 0, r.stderr);
+    for (const rel of ['.config/opencode/opencode.json', '.opencode/opencode.json']) {
+      assert.equal(readConfig(r.dir, rel).websearch, false);
+    }
+  });
+
+  it('writes a websearch provider object without disturbing other config', () => {
+    const r = run({ 'INPUT_TIER': 'free', 'INPUT_WEBSEARCH': '{"provider":"exa"}' });
+    assert.equal(r.exit, 0, r.stderr);
+    assert.deepEqual(readConfig(r.dir, '.config/opencode/opencode.json').websearch, { provider: 'exa' });
+  });
+
+  it('rejects invalid websearch config before writing configs', () => {
+    const r = run({ 'INPUT_TIER': 'free', 'INPUT_WEBSEARCH': 'true' });
+    assert.equal(r.exit, 1);
+    assert.match(r.stderr, /Input 'websearch'/);
+    assert.equal(readConfig(r.dir, '.config/opencode/opencode.json'), null);
+  });
 });

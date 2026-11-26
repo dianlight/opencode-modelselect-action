@@ -27,6 +27,14 @@ inputs:
     description: Use GITHUB_TOKEN directly instead of the OpenCode App exchange.
     required: false
     default: "false"
+  websearch:
+    description: >-
+      OpenCode 2 websearch config written to both generated opencode.json
+      files. `false` removes the web search tool from unattended runs; an object
+      such as {"provider":"exa"} enables a configured provider. Empty leaves
+      the caller's config untouched.
+    required: false
+    default: ""
   mentions:
     description: Comma-separated trigger phrases.
     required: false
