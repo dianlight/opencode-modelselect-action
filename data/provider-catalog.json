@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-26T05:44:01.008532+00:00",
+  "timestamp": "2026-11-27T05:38:45.614527+00:00",
   "sources": {
     "zen": "https://opencode.ai/docs/it/zen#pricing",
     "go": "https://opencode.ai/docs/go",
@@ -1909,6 +1909,24 @@
     },
     {
       "provider": "opencode",
+      "id": "gpt-transcribe",
+      "canonical": "gpt-transcribe",
+      "name": "GPT-Transcribe",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
       "id": "grok-4.5",
       "canonical": "grok-4-5",
       "name": "Grok 4.5",
@@ -2027,6 +2045,24 @@
       "id": "grok-imagine-video-1.5-lite",
       "canonical": "grok-imagine-video-1-5-lite",
       "name": "Grok Imagine Video 1.5 Lite",
+      "class": "zen",
+      "free": false,
+      "input_cost": null,
+      "output_cost": null,
+      "blended_cost": null,
+      "context": null,
+      "media_in": [
+        "text"
+      ],
+      "media_out": [
+        "text"
+      ]
+    },
+    {
+      "provider": "opencode",
+      "id": "grok-voice-transcribe-2.0",
+      "canonical": "grok-voice-transcribe-2-0",
+      "name": "Grok Voice Transcribe 2.0",
       "class": "zen",
       "free": false,
       "input_cost": null,

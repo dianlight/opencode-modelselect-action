@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "timestamp": "2026-11-26T05:44:01.100005+00:00",
+  "timestamp": "2026-11-27T05:38:45.745150+00:00",
   "models": {
     "beam": {
       "id": "beam",
@@ -2097,6 +2097,24 @@
         }
       ]
     },
+    "gpt-transcribe": {
+      "id": "gpt-transcribe",
+      "name": "GPT-Transcribe",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "gpt-transcribe",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
     "grok-4-5": {
       "id": "grok-4-5",
       "name": "Grok 4.5",
@@ -2238,6 +2256,24 @@
         {
           "provider": "opencode",
           "model": "grok-imagine-video-1.5-lite",
+          "free": false,
+          "cost": null,
+          "input_cost": null,
+          "output_cost": null,
+          "context": null,
+          "media_in": [
+            "text"
+          ]
+        }
+      ]
+    },
+    "grok-voice-transcribe-2-0": {
+      "id": "grok-voice-transcribe-2-0",
+      "name": "Grok Voice Transcribe 2.0",
+      "variants": [
+        {
+          "provider": "opencode",
+          "model": "grok-voice-transcribe-2.0",
           "free": false,
           "cost": null,
           "input_cost": null,
