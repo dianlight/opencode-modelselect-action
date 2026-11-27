@@ -19,7 +19,7 @@ mode and overflow the collapsed header.
 ## Minimum OpenChamber SDK version
 
 - Canary: `@openchamber/sdk` `2.8.1-canary.20261124.30`.
-- Stable: OpenChamber `>=2.8.1` (not yet released; canary-only).
+- Stable: OpenChamber `>=2.8.1` (released 2026-11-26; graduated from the `2.8.1-canary` line).
 
 ## Capabilities
 

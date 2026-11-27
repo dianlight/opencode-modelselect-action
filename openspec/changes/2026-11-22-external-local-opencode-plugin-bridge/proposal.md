@@ -14,7 +14,7 @@ The canary adds `opencode serve --service` shared OpenCode mode with an external
 ## Minimum OpenChamber SDK version
 
 - Canary: `@openchamber/sdk` `2.8.1-canary.20261122.28`.
-- Stable: OpenChamber `>=2.8.1` (not yet released; canary-only).
+- Stable: OpenChamber `>=2.8.1` (released 2026-11-26; graduated from the `2.8.1-canary` line).
 
 ## Capabilities
 

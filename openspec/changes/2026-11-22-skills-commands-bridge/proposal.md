@@ -14,7 +14,7 @@ The canary adds `skills/commands` bridge so extensions can share OpenCode servic
 ## Minimum OpenChamber SDK version
 
 - Canary: `@openchamber/sdk` `2.8.1-canary.20261122.28`.
-- Stable: OpenChamber `>=2.8.1` (not yet released; canary-only).
+- Stable: OpenChamber `>=2.8.1` (released 2026-11-26; graduated from the `2.8.1-canary` line).
 
 ## Capabilities
 
