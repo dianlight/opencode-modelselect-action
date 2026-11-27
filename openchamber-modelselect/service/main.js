@@ -1637,6 +1637,7 @@ __export(exports_store, {
   readRegistry: () => readRegistry,
   readRoutingSync: () => readRoutingSync,
   readRuntimeInventory: () => readRuntimeInventory,
+  readSessionDelivery: () => readSessionDelivery,
   readSessionStatus: () => readSessionStatus,
   readUsage: () => readUsage,
   rememberProject: () => rememberProject,
@@ -1645,11 +1646,13 @@ __export(exports_store, {
   saveExtensionConfig: () => saveExtensionConfig,
   savePluginOptions: () => savePluginOptions,
   sessionAnswersEnabled: () => sessionAnswersEnabled,
+  sessionDeliveryFile: () => sessionDeliveryFile,
   setPluginOption: () => setPluginOption,
   storedPluginOptions: () => storedPluginOptions,
   writeJsonAt: () => writeJsonAt,
   writeJsonAtomic: () => writeJsonAtomic,
-  writeRoutingSync: () => writeRoutingSync
+  writeRoutingSync: () => writeRoutingSync,
+  writeSessionDelivery: () => writeSessionDelivery
 });
 
 // service/src/main.js
@@ -2041,6 +2044,7 @@ var LABEL_MAX = 60;
 var VALUE_MAX = 80;
 var TEXT_MAX = 200;
 var NOTE_MAX = 300;
+var DELIVERY_MAX = 160;
 var ICON = {
   task: "task-line",
   tier: "stack-line",
@@ -2049,7 +2053,8 @@ var ICON = {
   jev: "lightbulb-line",
   source: "git-branch-line",
   updated: "time-line",
-  usage: "pie-chart-2-line"
+  usage: "pie-chart-2-line",
+  delivery: "pulse-line"
 };
 var ROUTING_OPTIONS = [{ value: "on", label: "On" }, { value: "off", label: "Off" }];
 var TIER_OPTIONS = [
@@ -2311,7 +2316,31 @@ function statusRows(snap, rows) {
     tooltip: "Session " + (snap.sessionID || "unknown") + " · " + (typeof status.updatedAt === "number" ? new Date(status.updatedAt).toISOString() : "no timestamp") + (stale ? " — the pick has not been rewritten for a while (stale by design outside routed turns)." : "")
   }));
 }
-function pickSummary(status, now) {
+function deliveryLine(delivery) {
+  if (!delivery || typeof delivery !== "object")
+    return "";
+  const activity = str(delivery.activity);
+  if (["running", "idle", "failed"].indexOf(activity) === -1)
+    return "";
+  const detail = activity === "failed" ? str(delivery.error) : str(delivery.reply);
+  return cut(activity + (detail ? " — " + detail : ""), DELIVERY_MAX);
+}
+function deliveryRow(snap, rows) {
+  const lineText = deliveryLine(snap.delivery);
+  if (!lineText || rows.length >= ROWS_MAX)
+    return;
+  const activity = str(snap.delivery.activity);
+  const at = typeof snap.delivery.at === "number" && Number.isFinite(snap.delivery.at) ? snap.delivery.at : null;
+  rows.push(line({
+    id: "delivery",
+    label: "Delivery",
+    icon: ICON.delivery,
+    value: activity,
+    dot: activity === "failed" ? "error" : activity === "idle" ? "success" : "info",
+    tooltip: "Host session event" + (at ? " at " + new Date(at).toISOString() : "") + " · " + lineText
+  }));
+}
+function pickSummary(status, now, delivery) {
   if (!status)
     return null;
   const at = typeof now === "number" ? now : Date.now();
@@ -2326,8 +2355,12 @@ function pickSummary(status, now) {
   parts.push(formatAge(at, status.updatedAt));
   if (isStale(status, at))
     parts.push("last known");
+  const deliveryText = deliveryLine(delivery);
+  if (deliveryText)
+    parts.push(deliveryText);
   return {
     text: parts.join(" · "),
+    delivery: deliveryText,
     taskType: str(status.taskType),
     tier: str(status.tier),
     model: str(status.model),
@@ -2354,6 +2387,7 @@ function buildView(snap) {
     }
   } else if (snap.status) {
     statusRows(snap, rows);
+    deliveryRow(snap, rows);
   }
   const u = usageMonthly(snap.usage);
   if (u) {
@@ -3530,6 +3564,20 @@ async function readSessionStatus(directory, sessionID) {
   const data = await readJsonFile(file);
   return data && typeof data === "object" && !Array.isArray(data) ? data : null;
 }
+function sessionDeliveryFile(directory, sessionID) {
+  return path.join(cacheDirOf(directory), "delivery-" + sanitizeSessionID(sessionID) + ".json");
+}
+async function readSessionDelivery(directory, sessionID) {
+  if (!directory || !sessionID)
+    return null;
+  const data = await readJsonFile(sessionDeliveryFile(directory, sessionID));
+  return data && typeof data === "object" && !Array.isArray(data) ? data : null;
+}
+async function writeSessionDelivery(directory, sessionID, state) {
+  if (!directory || !sessionID)
+    return;
+  await writeJsonAtomic(sessionDeliveryFile(directory, sessionID), state);
+}
 function knownTaskTypes(cfg) {
   const table = cfg && (cfg.config || cfg) || {};
   const bucket = table["task-types"] || table.taskTypes || {};
@@ -3619,6 +3667,8 @@ var SCHEDULE_IDS = new Set([SCHEDULE_ROUTING_REFRESH, SCHEDULE_QUOTA_PROBE]);
 var BODY_MAX = 16 * 1024;
 var EVENT_BODY_MAX = 256 * 1024;
 var TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
+var TURN_EVENT_TYPES = new Set(["turn-started", "turn-finished", "turn-failed"]);
+var DELIVERY_PREVIEW_MAX = 160;
 var RELOAD_PATH = "/api/location/reload";
 var DEFAULT_PORT = 4096;
 function reloadPorts(env = process.env) {
@@ -3776,12 +3826,13 @@ async function readView(directory) {
   const cacheDir = cacheDirOf(directory);
   const statuses = await listStatuses(cacheDir);
   const newest = newestStatus(statuses);
-  const [syncOn, freeQuota, usage, config, pluginConfig] = await Promise.all([
+  const [syncOn, freeQuota, usage, config, pluginConfig, delivery] = await Promise.all([
     readRoutingSync(directory),
     readLatch(directory),
     readUsage(directory),
     readJsonAt(directory, path2.join(CACHE_REL2, "model-config-cache.json")),
-    readPluginConfig()
+    readPluginConfig(),
+    readSessionDelivery(directory, newest ? newest.sessionID : "")
   ]);
   if (!pluginConfig.parseOk) {
     reportCardState("config-broken", "The global OpenCode config is not valid JSON, so the settings panel cannot save. Fix " + pluginConfig.path + " and reload OpenCode.");
@@ -3802,7 +3853,8 @@ async function readView(directory) {
     freeQuota,
     usage,
     globalEntry: { checked: true, entry: pluginConfig.entry.form !== "missing" },
-    tierOption: tierOf(pluginConfig)
+    tierOption: tierOf(pluginConfig),
+    delivery
   });
 }
 function publicOptions(options) {
@@ -3903,6 +3955,19 @@ async function answerQuestion(event, content, directory) {
   const values = computeFormValues(fields, knownValues(directory, pick));
   await answer("form", () => serviceHost.sessions.answerForm(sessionId, formId, values, formMessage(values)));
 }
+function deliveryFromEvent(event, content) {
+  const at = typeof event.at === "number" && Number.isFinite(event.at) ? event.at : Date.now();
+  const text = (v) => String(v == null ? "" : v).trim().slice(0, DELIVERY_PREVIEW_MAX);
+  if (event.type === "turn-started") {
+    return { activity: "running", at, reply: "", error: "" };
+  }
+  if (event.type === "turn-finished") {
+    const reply = content && content.type === "turn-finished" ? text(content.reply) : "";
+    return { activity: "idle", at, reply, error: "" };
+  }
+  const error = content && content.type === "turn-failed" && content.error ? text(content.error.message) : "";
+  return { activity: "failed", at, reply: "", error };
+}
 async function handleSessionEvent(bodyText) {
   const request = readSessionEventRequest(bodyText);
   if (!request) {
@@ -3912,6 +3977,14 @@ async function handleSessionEvent(bodyText) {
   const directory = event.project ? event.project.directory : null;
   if (!servesDirectory(directory)) {
     return { status: 200, body: { ok: true } };
+  }
+  if (TURN_EVENT_TYPES.has(event.type) && event.session && event.session.id) {
+    try {
+      await writeSessionDelivery(directory, event.session.id, deliveryFromEvent(event, request.content));
+    } catch (e) {
+      process.stderr.write("[modelselect] could not record delivery state: " + messageOf(e, "unknown error") + `
+`);
+    }
   }
   if (!await sessionAnswersEnabled()) {
     return { status: 200, body: { ok: true } };
@@ -4317,7 +4390,8 @@ async function handle(req, res) {
       const newest = newestStatus(await listStatuses(cacheDirOf(directory)));
       picked = newest ? newest.data : null;
     }
-    const summary = pickSummary(picked, Date.now());
+    const delivery = picked ? await readSessionDelivery(directory, sessionID) : null;
+    const summary = pickSummary(picked, Date.now(), delivery);
     if (!summary) {
       send(res, 404, { message: "No pick for this session yet — it routes on the first turn." });
       return;

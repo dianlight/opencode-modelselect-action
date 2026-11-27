@@ -35,8 +35,9 @@ async function run(scenario, ctx) {
     for (const step of scenario.steps || []) {
       const query = { ...(step.query || {}) };
       if (query.directory === '{{project}}') query.directory = fixture.project;
+      const body = JSON.parse(JSON.stringify(step.body || {}).replaceAll('{{project}}', fixture.project));
       const res = step.method === 'POST'
-        ? await service.post(step.path, query, step.body, step.headers)
+        ? await service.post(step.path, query, body, step.headers)
         : step.auth === false
           ? await fetch(new URL(step.path + '?' + new URLSearchParams(query), service.base).href)
           : await service.get(step.path, query);

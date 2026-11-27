@@ -292,6 +292,30 @@ describe('status view', () => {
     assert.match(stale.text, /last known$/);
   });
 
+  it('shows event-derived delivery state only after the first turn event', () => {
+    const without = rowsById(validate(buildView(snapshot())));
+    assert.equal(without.delivery, undefined, 'no guessed delivery row from the status file age');
+    assert.equal(pickSummary(status(), NOW).delivery, '');
+
+    const delivery = { activity: 'idle', at: NOW - 60000, reply: 'Done: the wait fired.', error: '' };
+    const withEvent = rowsById(validate(buildView(snapshot({ delivery: delivery }))));
+    assert.equal(withEvent.delivery.value, 'idle');
+    assert.match(withEvent.delivery.tooltip, /Done: the wait fired/);
+    const summary = pickSummary(status(), NOW, delivery);
+    assert.equal(summary.text,
+      'bugfix · free · opencode/zen-free · High · 5m ago · idle — Done: the wait fired.');
+    assert.equal(summary.delivery, 'idle — Done: the wait fired.');
+  });
+
+  it('shows a failed turn without a reply preview', () => {
+    const delivery = { activity: 'failed', at: NOW - 1000, reply: '', error: 'provider refused the turn' };
+    const rows = rowsById(validate(buildView(snapshot({ delivery: delivery }))));
+    assert.equal(rows.delivery.value, 'failed');
+    assert.equal(rows.delivery.dot, 'error');
+    assert.match(rows.delivery.tooltip, /provider refused the turn/);
+    assert.doesNotMatch(rows.delivery.tooltip, /Done:/);
+  });
+
   it('moves the router out of the rows into a unique header control', () => {
     const view = validate(buildView(snapshot({ tierOption: 'go' })));
     assert.equal(rowsById(view).router, undefined, 'no router row spends the cap');

@@ -17,9 +17,10 @@
  * - `POST /quota` — the usage provider (`provides: ["quota"]`).
  * - `POST /waits/start`, `POST /waits/check` — stateless wait answers: the host
  *   owns the wait state, this service only reads the latch/sync files.
- * - `POST /session-events` — the agent's permission requests and forms, which
- *   the service answers on the user's behalf (`sessionControl.answers`) when
- *   the `sessionAnswers` switch is on; off, every event is dropped.
+ * - `POST /session-events` — turn lifecycle events, which the service records
+ *   as per-session delivery state, plus the agent's permission requests and
+ *   forms, which it answers on the user's behalf (`sessionControl.answers`)
+ *   when the `sessionAnswers` switch is on; off, only the ask events are dropped.
  * - `GET /health` — the host's ready probe.
  * Every request carries `Authorization: Bearer $OPENCHAMBER_SERVICE_TOKEN`.
  *
@@ -30,6 +31,7 @@
  *
  * Project cache (written by the plugin, see plugin/src/shared/):
  * - `status-<sessionID>.json`   newest pick per session
+ * - `delivery-<sessionID>.json` last turn state from host session events (service-owned)
  * - `free-quota.json`           per-model free-tier latch
  * - `usage-limits.json`         Go quota snapshot
  * - `routing-sync.json`         {"sync":bool} — the switch this section owns
@@ -84,6 +86,11 @@ const BODY_MAX = 16 * 1024;
 // than a control event.
 const EVENT_BODY_MAX = 256 * 1024;
 const TIER_VALUES = TIER_OPTIONS.map((o) => o.value);
+// Guest SDK session events are turn/presence types only: there is no
+// `delivery` or `activity` event. The turn events carry the state we can show.
+const TURN_EVENT_TYPES = new Set(['turn-started', 'turn-finished', 'turn-failed']);
+// A view row/toast never needs the full 64k reply the host may send.
+const DELIVERY_PREVIEW_MAX = 160;
 
 // OpenCode local port candidates, same as plugin/src/shared/usage.js.
 // The config reload endpoint lives on the bundled OpenCode server inside
@@ -279,12 +286,13 @@ async function readView(directory) {
   const cacheDir = store.cacheDirOf(directory);
   const statuses = await store.listStatuses(cacheDir);
   const newest = store.newestStatus(statuses);
-  const [syncOn, freeQuota, usage, config, pluginConfig] = await Promise.all([
+  const [syncOn, freeQuota, usage, config, pluginConfig, delivery] = await Promise.all([
     store.readRoutingSync(directory),
     store.readLatch(directory),
     store.readUsage(directory),
     store.readJsonAt(directory, path.join(CACHE_REL, 'model-config-cache.json')),
-    store.readPluginConfig()
+    store.readPluginConfig(),
+    store.readSessionDelivery(directory, newest ? newest.sessionID : '')
   ]);
 
   // The card carries the fix; the section only says it is empty.
@@ -312,7 +320,8 @@ async function readView(directory) {
     freeQuota: freeQuota,
     usage: usage,
     globalEntry: { checked: true, entry: pluginConfig.entry.form !== 'missing' },
-    tierOption: tierOf(pluginConfig)
+    tierOption: tierOf(pluginConfig),
+    delivery: delivery
   });
 }
 
@@ -445,7 +454,23 @@ async function answerQuestion(event, content, directory) {
   ));
 }
 
-/** One session event: a request to answer, or nothing to do. */
+/** The small, display-only delivery record behind a turn event. */
+function deliveryFromEvent(event, content) {
+  const at = typeof event.at === 'number' && Number.isFinite(event.at) ? event.at : Date.now();
+  const text = (v) => String(v == null ? '' : v).trim().slice(0, DELIVERY_PREVIEW_MAX);
+  if (event.type === 'turn-started') {
+    return { activity: 'running', at: at, reply: '', error: '' };
+  }
+  if (event.type === 'turn-finished') {
+    const reply = content && content.type === 'turn-finished' ? text(content.reply) : '';
+    return { activity: 'idle', at: at, reply: reply, error: '' };
+  }
+  const error = content && content.type === 'turn-failed' && content.error
+    ? text(content.error.message) : '';
+  return { activity: 'failed', at: at, reply: '', error: error };
+}
+
+/** One session event: record turn state, and answer asks when allowed. */
 async function handleSessionEvent(bodyText) {
   const request = readSessionEventRequest(bodyText);
   if (!request) {
@@ -456,8 +481,19 @@ async function handleSessionEvent(bodyText) {
   if (!servesDirectory(directory)) {
     return { status: 200, body: { ok: true } };
   }
+  // Turn state is observed regardless of the answers switch: it is a read of
+  // what the host already told us, not an action taken on the user's behalf.
+  if (TURN_EVENT_TYPES.has(event.type) && event.session && event.session.id) {
+    try {
+      await store.writeSessionDelivery(directory, event.session.id,
+        deliveryFromEvent(event, request.content));
+    } catch (e) {
+      process.stderr.write('[modelselect] could not record delivery state: ' +
+        messageOf(e, 'unknown error') + '\n');
+    }
+  }
   // The switch is off by default: the host keeps posting events (the manifest
-  // grant is static), and every one of them is dropped here unanswered.
+  // grant is static), and every ask is dropped here unanswered.
   if (!(await store.sessionAnswersEnabled())) {
     return { status: 200, body: { ok: true } };
   }
@@ -918,7 +954,8 @@ async function handle(req, res) {
       const newest = store.newestStatus(await store.listStatuses(store.cacheDirOf(directory)));
       picked = newest ? newest.data : null;
     }
-    const summary = pickSummary(picked, Date.now());
+    const delivery = picked ? await store.readSessionDelivery(directory, sessionID) : null;
+    const summary = pickSummary(picked, Date.now(), delivery);
     if (!summary) {
       send(res, 404, { message: 'No pick for this session yet — it routes on the first turn.' });
       return;

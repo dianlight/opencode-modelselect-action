@@ -25,6 +25,8 @@
  * - Usage snapshot: `usage-limits.json` (see plugin/src/shared/usage.js).
  * - Router-sync file: `routing-sync.json` = {"sync":true|false}; anything
  *   else means ON.
+ * - Delivery file: `delivery-<sessionID>.json` (service-owned, from host turn
+ *   events): `{ activity: running|idle|failed, at, reply, error }`.
  *
  * Every string is clamped to the schema's limits (ids match
  * `^[a-z][a-z0-9-]{0,39}$`), colours are theme tones only, and the router
@@ -43,6 +45,7 @@ const LABEL_MAX = 60;
 const VALUE_MAX = 80;
 const TEXT_MAX = 200;
 const NOTE_MAX = 300;
+const DELIVERY_MAX = 160;
 
 /** Static Remixicon names for the fixed rows (all match GUEST_STATUS_VIEW_ICON). */
 const ICON = {
@@ -53,7 +56,8 @@ const ICON = {
   jev: 'lightbulb-line',
   source: 'git-branch-line',
   updated: 'time-line',
-  usage: 'pie-chart-2-line'
+  usage: 'pie-chart-2-line',
+  delivery: 'pulse-line'
 };
 
 /** The router switch is a header control, keeping the service's control id. */
@@ -334,11 +338,38 @@ function statusRows(snap, rows) {
   }));
 }
 
+/** The current event-derived line, or '' before the first turn event. */
+function deliveryLine(delivery) {
+  if (!delivery || typeof delivery !== 'object') return '';
+  const activity = str(delivery.activity);
+  if (['running', 'idle', 'failed'].indexOf(activity) === -1) return '';
+  const detail = activity === 'failed' ? str(delivery.error) : str(delivery.reply);
+  return cut(activity + (detail ? ' — ' + detail : ''), DELIVERY_MAX);
+}
+
+/** One Delivery row; absent entirely until a host turn event arrives. */
+function deliveryRow(snap, rows) {
+  const lineText = deliveryLine(snap.delivery);
+  if (!lineText || rows.length >= ROWS_MAX) return;
+  const activity = str(snap.delivery.activity);
+  const at = typeof snap.delivery.at === 'number' && Number.isFinite(snap.delivery.at)
+    ? snap.delivery.at : null;
+  rows.push(line({
+    id: 'delivery',
+    label: 'Delivery',
+    icon: ICON.delivery,
+    value: activity,
+    dot: activity === 'failed' ? 'error' : activity === 'idle' ? 'success' : 'info',
+    tooltip: 'Host session event' + (at ? ' at ' + new Date(at).toISOString() : '') +
+      ' · ' + lineText
+  }));
+}
+
 /**
  * One pick, as the background action's toast shows it: the fields plus a
  * single line to copy. `null` without a status file.
  */
-export function pickSummary(status, now) {
+export function pickSummary(status, now, delivery) {
   if (!status) return null;
   const at = typeof now === 'number' ? now : Date.now();
   const parts = [
@@ -350,8 +381,11 @@ export function pickSummary(status, now) {
   if (status.suggestOnly) parts.push('suggest only');
   parts.push(formatAge(at, status.updatedAt));
   if (isStale(status, at)) parts.push('last known');
+  const deliveryText = deliveryLine(delivery);
+  if (deliveryText) parts.push(deliveryText);
   return {
     text: parts.join(' · '),
+    delivery: deliveryText,
     taskType: str(status.taskType),
     tier: str(status.tier),
     model: str(status.model),
@@ -378,6 +412,7 @@ export function pickSummary(status, now) {
  * - `globalEntry` `{ checked, entry }` plugin-presence probe
  * - `tierOption` the plugin's stored `tier` option (or null when there is no
  *   entry) — present turns the Tier row into a select control
+ * - `delivery` the service's event-derived record for the newest pick's session
  */
 export function buildView(snap) {
   const now = typeof snap.now === 'number' ? snap.now : Date.now();
@@ -396,6 +431,7 @@ export function buildView(snap) {
     }
   } else if (snap.status) {
     statusRows(snap, rows);
+    deliveryRow(snap, rows);
   }
 
   const u = usageMonthly(snap.usage);

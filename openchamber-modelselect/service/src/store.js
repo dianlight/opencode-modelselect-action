@@ -16,7 +16,8 @@
  * - Project cache (`<directory>/.opencode/.modelselect-cache/`) is written by
  *   the plugin: `status-<sessionID>.json`, `model-config-cache.json`,
  *   `model-config-v2-cache.json`, `free-quota.json`, `usage-limits.json`,
- *   `routing-sync.json`.
+ *   `routing-sync.json`. The service owns `delivery-<sessionID>.json` (host
+ *   turn events) next to them.
  */
 import fsp from 'node:fs/promises';
 import os from 'node:os';
@@ -515,6 +516,25 @@ export async function readSessionStatus(directory, sessionID) {
   const file = path.join(cacheDirOf(directory), 'status-' + sanitizeSessionID(sessionID) + '.json');
   const data = await readJsonFile(file);
   return (data && typeof data === 'object' && !Array.isArray(data)) ? data : null;
+}
+
+export function sessionDeliveryFile(directory, sessionID) {
+  return path.join(cacheDirOf(directory), 'delivery-' + sanitizeSessionID(sessionID) + '.json');
+}
+
+/**
+ * The service's own delivery record for one session. Kept apart from the
+ * plugin's status file, which only describes the last model pick.
+ */
+export async function readSessionDelivery(directory, sessionID) {
+  if (!directory || !sessionID) return null;
+  const data = await readJsonFile(sessionDeliveryFile(directory, sessionID));
+  return (data && typeof data === 'object' && !Array.isArray(data)) ? data : null;
+}
+
+export async function writeSessionDelivery(directory, sessionID, state) {
+  if (!directory || !sessionID) return;
+  await writeJsonAtomic(sessionDeliveryFile(directory, sessionID), state);
 }
 
 export function knownTaskTypes(cfg) {

@@ -50,7 +50,7 @@
         "answers": true
       },
       "sessionEvents": {
-        "events": ["permission-asked", "question-asked"],
+        "events": ["turn-started", "turn-finished", "turn-failed", "permission-asked", "question-asked"],
         "content": true
       },
       "actions": [

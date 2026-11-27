@@ -54,9 +54,9 @@ describe('extension manifest', () => {
     assert.equal(contributes.filesystem, undefined, 'no filesystem paths any more');
     assert.deepEqual(contributes.sessionControl, { answers: true }, 'the service answers requests for the user');
     assert.deepEqual(contributes.sessionEvents, {
-      events: ['permission-asked', 'question-asked'],
+      events: ['turn-started', 'turn-finished', 'turn-failed', 'permission-asked', 'question-asked'],
       content: true,
-    }, 'the service learns what the agent asks');
+    }, 'the service learns turn state and what the agent asks');
     assert.equal(contributes.actions.length, 1);
     assert.deepEqual(contributes.actions[0], {
       id: 'model-pick',

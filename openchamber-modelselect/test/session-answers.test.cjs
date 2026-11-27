@@ -14,7 +14,9 @@
 
 const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const http = require('node:http');
+const path = require('node:path');
 const { makeFixture, startService } = require('./helpers/service.cjs');
 
 const EVENTS_PATH = '/session-events';
@@ -221,6 +223,107 @@ describe('session answers', () => {
     const res = await postEvent({ v: 99, requestId: 'req_x' });
     assert.equal(res.status, 400);
     assert.equal(res.body.ok, false);
+  });
+});
+
+describe('event-driven delivery state', () => {
+  let fixture;
+  let service;
+  let host;
+
+  const turnEvent = (type, extra) => event(type, Object.assign({
+    event: Object.assign(event(type).event, {
+      at: 1730000000123,
+      project: { directory: fixture.project },
+    }),
+  }, extra || {}));
+
+  const record = () => JSON.parse(fs.readFileSync(
+    path.join(fixture.cache, 'delivery-ses_test.json'), 'utf8'));
+  const sessionCalls = () => host.calls.filter((call) => String(call.method || '').startsWith('sessions.'));
+
+  before(async () => {
+    // No sessionAnswers switch: turn events are state reads, not answers.
+    fixture = makeFixture();
+    host = await startFakeHost();
+    service = await startService(fixture, { hostCallbackUrl: host.url });
+    const res = await service.get('/status', { directory: fixture.project });
+    assert.equal(res.status, 200);
+  });
+
+  after(() => {
+    if (service) service.stop();
+    if (host) host.stop();
+  });
+
+  it('records a running turn without asking the host to do anything', async () => {
+    const res = await service.post(EVENTS_PATH, {}, turnEvent('turn-started', {
+      content: { type: 'turn-started', sessionTitle: 'Fix the parser' },
+    }));
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body, { ok: true });
+    assert.deepEqual(record(), { activity: 'running', at: 1730000000123, reply: '', error: '' });
+    assert.equal(sessionCalls().length, 0);
+  });
+
+  it('replaces the preview on a finished turn and surfaces it in /pick and /status', async () => {
+    const done = await service.post(EVENTS_PATH, {}, turnEvent('turn-finished', {
+      content: {
+        type: 'turn-finished',
+        sessionTitle: 'Fix the parser',
+        reply: 'Done: the wait fired after the pull request merged.',
+        replyTruncated: false,
+      },
+    }));
+    assert.equal(done.status, 200);
+    assert.deepEqual(record(), {
+      activity: 'idle',
+      at: 1730000000123,
+      reply: 'Done: the wait fired after the pull request merged.',
+      error: '',
+    });
+
+    const pick = await service.get('/pick', { directory: fixture.project, session: 'ses_test' });
+    assert.equal(pick.status, 200);
+    assert.match(pick.body.text, /idle — Done: the wait fired/);
+    assert.match(pick.body.delivery, /idle — Done: the wait fired/);
+
+    const status = await service.get('/status', { directory: fixture.project });
+    const delivery = status.body.rows.find((row) => row.id === 'delivery');
+    assert.equal(delivery.value, 'idle');
+    assert.match(delivery.tooltip, /Done: the wait fired/);
+    assert.equal(sessionCalls().length, 0);
+  });
+
+  it('records a failed turn as failed with no reply preview', async () => {
+    const res = await service.post(EVENTS_PATH, {}, turnEvent('turn-failed', {
+      content: {
+        type: 'turn-failed',
+        sessionTitle: 'Fix the parser',
+        error: { type: 'ProviderError', message: 'provider refused the turn' },
+      },
+    }));
+    assert.equal(res.status, 200);
+    assert.deepEqual(record(), {
+      activity: 'failed', at: 1730000000123, reply: '', error: 'provider refused the turn',
+    });
+    const status = await service.get('/status', { directory: fixture.project });
+    const delivery = status.body.rows.find((row) => row.id === 'delivery');
+    assert.equal(delivery.value, 'failed');
+    assert.match(delivery.tooltip, /provider refused the turn/);
+  });
+
+  it('ignores a turn event from a project the service does not serve', async () => {
+    const body = event('turn-started', {
+      event: Object.assign(event('turn-started').event, {
+        project: { directory: '/somewhere/else' },
+        session: { id: 'ses_unserved', parentId: null },
+      }),
+      content: { type: 'turn-started', sessionTitle: null },
+    });
+    const res = await service.post(EVENTS_PATH, {}, body);
+    assert.equal(res.status, 200);
+    assert.equal(fs.existsSync(path.join(fixture.cache, 'delivery-ses_unserved.json')), false);
   });
 });
 
