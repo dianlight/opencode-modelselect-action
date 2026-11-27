@@ -1184,6 +1184,27 @@ var require_chain = __commonJS(function(exports, module) {
       return true;
     return remaining > 0;
   }
+  function exclusionReason(row, { availability, providers, maxCost, media, contextNeed } = {}) {
+    if (!isAllowedProvider(row, providers))
+      return "provider not allowed";
+    const state = providerState(availability, row);
+    if (state.unavailable === true || state.available === false)
+      return "provider unavailable";
+    if (!withinSpend(row, state))
+      return "no budget remaining";
+    if (!modelPresent(availability, row))
+      return "not in runtime inventory";
+    if (latched(availability, row))
+      return "free quota latched";
+    if (!supportsMedia(row, media))
+      return "media unsupported";
+    if (!withinContext(row, contextNeed))
+      return "context too small";
+    if (!withinBudget(row, maxCost)) {
+      return row.blended_cost === null || row.blended_cost === undefined ? "no cost data (maxCost set)" : `over maxCost $${maxCost}`;
+    }
+    return null;
+  }
   function rankedModels(entry, tier) {
     if (!entry || typeof entry !== "object")
       return [];
@@ -1263,22 +1284,7 @@ var require_chain = __commonJS(function(exports, module) {
         if (!row.key || seen.has(row.key))
           continue;
         seen.add(row.key);
-        if (!isAllowedProvider(row, providers))
-          continue;
-        const state = providerState(availability, row);
-        if (state.unavailable === true || state.available === false)
-          continue;
-        if (!withinSpend(row, state))
-          continue;
-        if (!modelPresent(availability, row))
-          continue;
-        if (latched(availability, row))
-          continue;
-        if (!supportsMedia(row, media))
-          continue;
-        if (!withinContext(row, contextNeed))
-          continue;
-        if (!withinBudget(row, maxCost))
+        if (exclusionReason(row, { availability, providers, maxCost, media, contextNeed }))
           continue;
         candidates.push({
           provider: row.provider,
@@ -1344,6 +1350,7 @@ var require_chain = __commonJS(function(exports, module) {
     withinContext,
     withinBudget,
     withinSpend,
+    exclusionReason,
     sortRows
   };
 });
@@ -1351,16 +1358,7 @@ var require_chain = __commonJS(function(exports, module) {
 // ../core/registry.js
 var require_registry = __commonJS(function(exports, module) {
   var { classOf, canonicalModel, providerSlug } = require_catalog();
-  var {
-    isAllowedProvider,
-    providerState,
-    latched,
-    modelPresent,
-    supportsMedia,
-    withinContext,
-    withinBudget,
-    withinSpend
-  } = require_chain();
+  var { exclusionReason } = require_chain();
   var V2_SCHEMA_VERSION = 2;
   var ENGINE_PROVIDERS = new Set(["opencode", "opencode-go"]);
   function isObject(v) {
@@ -1513,22 +1511,10 @@ var require_registry = __commonJS(function(exports, module) {
     const paid = list.filter((r) => !(r.free === true || r.class === "free")).sort(compareVariants);
     return freeFirst ? free.concat(paid) : paid.concat(free);
   }
-  function buildV2Chain({
-    taskEntry,
-    registry,
-    availability,
-    preference = "free-first",
-    tier = null,
-    media,
-    contextNeed = 0,
-    maxCost = null,
-    providers = null
-  } = {}) {
+  function poolVariants(taskEntry, registry) {
     if (!isObject(taskEntry))
       return [];
     const models = Array.isArray(taskEntry.models) && taskEntry.models.length ? taskEntry.models.map((m) => str(m && (typeof m === "string" ? m : m.model))).filter(Boolean) : [str(taskEntry.model ?? taskEntry.id)].filter(Boolean);
-    if (models.length === 0)
-      return [];
     const seenKeys = new Set;
     const pooled = [];
     for (const model of models) {
@@ -1542,40 +1528,67 @@ var require_registry = __commonJS(function(exports, module) {
         pooled.push(row);
       }
     }
+    return pooled;
+  }
+  function candidateFrom(row) {
+    return {
+      provider: row.provider,
+      model: row.model,
+      ref: row.ref,
+      canonical: row.canonical,
+      class: row.class,
+      cost: row.cost,
+      context: row.context,
+      media_in: row.media_in,
+      score: row.score
+    };
+  }
+  function buildV2Chain({
+    taskEntry,
+    registry,
+    availability,
+    preference = "free-first",
+    tier = null,
+    media,
+    contextNeed = 0,
+    maxCost = null,
+    providers = null
+  } = {}) {
+    const pooled = poolVariants(taskEntry, registry);
     if (pooled.length === 0)
       return [];
     const candidates = [];
     for (const row of pooled) {
-      if (!isAllowedProvider(row, providers))
+      if (exclusionReason(row, { availability, providers, maxCost, media, contextNeed }))
         continue;
-      const state = providerState(availability, row);
-      if (state.unavailable === true || state.available === false)
-        continue;
-      if (!withinSpend(row, state))
-        continue;
-      if (!modelPresent(availability, row))
-        continue;
-      if (latched(availability, row))
-        continue;
-      if (!supportsMedia(row, media))
-        continue;
-      if (!withinContext(row, contextNeed))
-        continue;
-      if (!withinBudget(row, maxCost))
-        continue;
-      candidates.push({
-        provider: row.provider,
-        model: row.model,
-        ref: row.ref,
-        canonical: row.canonical,
-        class: row.class,
-        cost: row.cost,
-        context: row.context,
-        media_in: row.media_in,
-        score: row.score
-      });
+      candidates.push(candidateFrom(row));
     }
     return rankVariants(candidates, { preference, tier });
+  }
+  function excludedVariants({
+    taskEntry,
+    registry,
+    availability,
+    preference = "free-first",
+    tier = null,
+    media,
+    contextNeed = 0,
+    maxCost = null,
+    providers = null
+  } = {}) {
+    const pooled = poolVariants(taskEntry, registry);
+    if (pooled.length === 0)
+      return [];
+    const ranked = rankVariants(pooled.map(candidateFrom), { preference, tier });
+    const byRef = new Map(pooled.map((row) => [row.ref, row]));
+    const out = [];
+    for (const candidate of ranked) {
+      const row = byRef.get(candidate.ref);
+      const reason = row && exclusionReason(row, { availability, providers, maxCost, media, contextNeed });
+      if (reason)
+        out.push({ ref: candidate.ref, reason });
+    }
+    return out;
   }
   module.exports = {
     V2_SCHEMA_VERSION,
@@ -1586,7 +1599,8 @@ var require_registry = __commonJS(function(exports, module) {
     variantRows,
     compareVariants,
     rankVariants,
-    buildV2Chain
+    buildV2Chain,
+    excludedVariants
   };
 });
 
