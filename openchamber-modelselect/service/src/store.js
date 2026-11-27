@@ -453,8 +453,8 @@ export async function saveExtensionConfig(directory, values) {
     : {};
   next.autoSmallModel = Boolean(values.autoSmallModel);
   next.autoWalkthroughModel = Boolean(values.autoWalkthroughModel);
-  next.smallModelTask = str(values.smallModelTask) || 'generic';
-  next.walkthroughModelTask = str(values.walkthroughModelTask) || 'generic';
+  next.smallModelTask = str(values.smallModelTask) || 'small-model';
+  next.walkthroughModelTask = str(values.walkthroughModelTask) || 'review';
   next.sessionAnswers = values.sessionAnswers === true;
   await writeJsonAt(null, MODELSELECT_CONFIG_PATH, next);
   return next;

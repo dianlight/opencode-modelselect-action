@@ -34,7 +34,10 @@
  *   (the Settings → Sessions → Changes Walkthrough Model row; the
  *   per-panel "Walkthrough model" picker defaults to the small model, so
  *   keeping the small override fresh covers it). Writes happen only on
- *   diff; all failures are silent so the view never breaks.
+ *   diff; all failures are silent so the view never breaks. Resolved refs
+ *   are always concrete: a `modelselect/auto-*` entry is a routing switch,
+ *   not a model that can answer a stateless Small/Walkthrough request, so
+ *   autoset walks the ranked chain to the first real model instead.
  *
  * Rules:
  * - Category + fallback models come from the plugin's model-config cache,
@@ -149,6 +152,31 @@ function isModelselectEntry(name) {
   return /modelselect/i.test(String(name == null ? '' : name));
 }
 
+// A `modelselect/auto-*` ref is a routing switch, not a model that can answer
+// a request: stateless callers (OpenChamber Small Model, OpenCode title /
+// generate) bypass the session hooks that stamp the proxy's routing headers.
+// Never persist one as a concrete Small/Walkthrough override.
+function isVirtualModelRef(value) {
+  const s = String(value == null ? '' : value).trim();
+  if (/^auto-(free|go)-first$/i.test(s)) return true;
+  const ref = splitModelRef(s);
+  return Boolean(
+    ref &&
+      ref.providerID.toLowerCase() === 'modelselect' &&
+      /^auto-(free|go)-first$/i.test(ref.modelID),
+  );
+}
+
+// Return a "provider/model" string only when it is concrete (not a virtual
+// routing anchor). Used by autoset so a model-config row carrying a virtual
+// model still resolves to a real model from its ranked chain.
+function concreteModelRef(value) {
+  const ref = splitModelRef(value);
+  if (!ref) return null;
+  const full = `${ref.providerID}/${ref.modelID}`;
+  return isVirtualModelRef(full) ? null : full;
+}
+
 // Find the modelselect plugin options in a decoded OpenCode config.
 // Supports v2 `plugins` (string | { package, options }) and v1 `plugin`
 // (string | [name, options] tuples).
@@ -257,17 +285,41 @@ function pickSideRef(modelTable, taskName, preference, avoidFree = false) {
   const entry = key ? table[key] : null;
   if (!isObject(entry)) return null;
   if (entryAvoided(avoidFree, entry)) {
-    const paid = firstPaidModel(entry);
-    if (paid) {
-      const paidRef = splitModelRef(paid);
-      if (paidRef) return `${paidRef.providerID}/${paidRef.modelID}`;
-    }
-    return null;
+    return concreteModelRef(firstPaidModel(entry));
   }
-  const side = preference === 'go-first' ? entry.go : entry.free;
-  const ref = splitModelRef(side) || splitModelRef(entry.free) || splitModelRef(entry.go);
-  if (!ref) return null;
-  return `${ref.providerID}/${ref.modelID}`;
+  const sides = preference === 'go-first' ? ['go', 'free'] : ['free', 'go'];
+  for (const side of sides) {
+    const direct = concreteModelRef(entry[side]);
+    if (direct) return direct;
+    const ranked = Array.isArray(entry[`${side}_ranked`]) ? entry[`${side}_ranked`] : [];
+    for (const row of ranked) {
+      const ref = concreteModelRef(row && row.model);
+      if (ref) return ref;
+    }
+  }
+  return null;
+}
+
+const VIRTUAL_OVERRIDE_KEYS = new Set([
+  'smallModelOverride',
+  'walkthroughModelOverride',
+]);
+
+// Defense in depth: no code path may persist a virtual routing anchor as a
+// concrete Small/Walkthrough override. `syncRouting` sanitizes first so an
+// all-virtual update becomes a no-op; these guards cover direct callers too.
+function sanitizeOverrideUpdates(updates) {
+  if (!isObject(updates)) return updates;
+  const next = {};
+  let dropped = false;
+  for (const k of Object.keys(updates)) {
+    if (VIRTUAL_OVERRIDE_KEYS.has(k) && isVirtualModelRef(updates[k])) {
+      dropped = true;
+      continue;
+    }
+    next[k] = updates[k];
+  }
+  return dropped ? next : updates;
 }
 
 // Merge autoset values into a decoded OpenChamber `settings.json` (flat
@@ -275,6 +327,7 @@ function pickSideRef(modelTable, taskName, preference, avoidFree = false) {
 // missing/unusable stored doc means "no write" — the server owns that file.
 function mergeSettingsOverrides(stored, updates) {
   if (!isObject(stored) || !isObject(updates)) return null;
+  updates = sanitizeOverrideUpdates(updates);
   const keys = Object.keys(updates);
   if (!keys.length) return null;
   let changed = false;
@@ -296,7 +349,9 @@ function mergeSettingsOverrides(stored, updates) {
 // or null when nothing changed. A missing doc is created with just our keys;
 // an unusable (non-object) doc means "no write".
 function mergePreferencesOverrides(stored, updates, now) {
-  if (!isObject(updates) || !Object.keys(updates).length) return null;
+  if (!isObject(updates)) return null;
+  updates = sanitizeOverrideUpdates(updates);
+  if (!Object.keys(updates).length) return null;
   if (stored === null || stored === undefined) {
     const fields = {};
     const keys = Object.keys(updates);
@@ -553,6 +608,7 @@ function syncRouting(io, opts) {
           const walkRef = pickSideRef(modelTable, msConfig.walkthroughModelTask, preference, avoidFree);
           if (walkRef) settingsUpdates.walkthroughModelOverride = walkRef;
         }
+        settingsUpdates = sanitizeOverrideUpdates(settingsUpdates);
         if (!Object.keys(settingsUpdates).length) settingsUpdates = null;
       }
       const routingDirty = nextCats !== null || nextFallback !== null;
@@ -629,7 +685,10 @@ module.exports = {
   findPluginOptions,
   autoPreferenceOf,
   normalizeModelselectConfig,
+  isVirtualModelRef,
+  concreteModelRef,
   pickSideRef,
+  sanitizeOverrideUpdates,
   mergeSettingsOverrides,
   mergePreferencesOverrides,
   splitModelRef,

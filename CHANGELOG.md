@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [1.2.0] - 2026-11-27
 ### Added
 - `github-action-v2` accepts a `websearch` input written to both generated
   `opencode.json` files. `false` removes the web search tool from unattended
@@ -7,6 +9,11 @@
   Search and cancel a provider-selection question it cannot answer.
 
 ### Fixed
+- `modelselect/auto-*` models now work for stateless Small Model calls in
+  OpenChamber and one-shot title/generate calls in OpenCode. The local proxy
+  resolves a `small-model` pick when the session hooks cannot run, and autoset
+  never writes a virtual id as a Small/Walkthrough override — it walks the
+  ranked chain to a concrete model and repairs existing virtual overrides.
 - `github-action-v2` now runs the V2 CLI's `opencode run` subcommand instead of
   `opencode github run`, which OpenCode 2.4.x rejects with `Unexpected positional
   argument: "run"`. The preselected model, optional agent and variant are passed

@@ -185,6 +185,24 @@ const ENDPOINT_PACKAGES = {
   google: '@ai-sdk/google',
 };
 
+// The wire path the driver already chose for a stateless request. The proxy
+// cannot change a protocol mid-flight, so a no-session fallback must resolve
+// a pick that speaks the same protocol; otherwise it walks the chain.
+function protocolFromRequestPath(pathname) {
+  const p = String(pathname ?? '');
+  if (/\/responses\/?$/.test(p)) return 'responses';
+  if (/\/messages\/?$/.test(p)) return 'messages';
+  if (/\/chat\/completions\/?$/.test(p)) return 'chat';
+  if (/\/v1beta\//.test(p)) return 'google';
+  return null;
+}
+
+function protocolMatches(endpoint, expected) {
+  if (!expected) return true;
+  const actual = String(endpoint ?? '').trim().toLowerCase() || 'chat';
+  return actual === expected;
+}
+
 /**
  * Legacy Google-root derivation for cached configs without endpoint_paths.
  * Current catalogs may publish a different route (for example, Go Gemini
@@ -705,6 +723,55 @@ async function setup(ctx) {
   // picker variant needs no wanted state here: the host merges the session
   // ref's variant overlay over these model-level values at dispatch time.
   const virtualThinkWanted = new Map(); // virtual model id -> effort level | null
+
+  // Stateless callers never reach the session hooks, so they arrive at the
+  // proxy with no routing headers. Resolve them here from the `small-model`
+  // task (commit messages, titles/renames, short summaries) under the same
+  // preference/latch rules. The incoming wire path is already fixed by the
+  // driver, so incompatible protocols are skipped until the chain finds a
+  // model that can serve it. No session state is written or mutated.
+  async function resolveStatelessVirtualPick({ virtualId, body, pathname }) {
+    const preference = preferenceForVirtualId(virtualId) || opts.autoPreference;
+    const expected = protocolFromRequestPath(pathname);
+    const tried = [];
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const picked = await resolveModel({
+        taskType: 'small-model',
+        opts: { ...opts, autoPreference: preference },
+        cacheDir,
+        media: [],
+        capabilitiesFor: liveCapabilitiesFor,
+        catalog,
+        registry,
+        availability: await currentAvailability(),
+        tried: tried.slice(),
+      });
+      const ref = splitModelRef(picked.model);
+      if (!ref) return null;
+      const full = `${ref.providerID}/${ref.id}`;
+      if (ref.providerID === VIRTUAL_PROVIDER) {
+        if (tried.includes(full)) return null;
+        tried.push(full);
+        continue;
+      }
+      if (!protocolMatches(picked.endpoint, expected)) {
+        if (tried.includes(full)) return null;
+        tried.push(full);
+        continue;
+      }
+      if (opts.verbose) {
+        console.log(`[modelselect] stateless route ${virtualId} → ${full} (kind=${expected || 'default'})`);
+      }
+      return {
+        providerID: ref.providerID,
+        id: ref.id,
+        endpoint: picked.endpoint ?? null,
+        endpointPath: picked.endpointPath ?? null,
+      };
+    }
+    return null;
+  }
+
   try {
     proxy = await startProxy({
       getUpstream: upstreamFor,
@@ -715,6 +782,8 @@ async function setup(ctx) {
           return '';
         }
       },
+      resolveFallback: resolveStatelessVirtualPick,
+      isVirtualModel: (id) => VIRTUAL_MODELS.includes(String(id ?? '')),
       verbose: opts.verbose,
     });
   } catch (err) {
@@ -1760,13 +1829,10 @@ async function setup(ctx) {
         let pick = lastVirtualPick.get(sessionID);
         if (!pick) {
           const mediaReq = lastMedia.get(sessionID) ?? collectMedia({ files: promptFiles.get(sessionID) ?? [] });
-          const { taskType } = await resolveTask({
-            sessionID,
-            text: prompts.get(sessionID) ?? '',
-            files: promptFiles.get(sessionID) ?? [],
-            agent: undefined,
-            assistantSnippet: '',
-          });
+          // Title/rename, generate and compaction are exactly the work the
+          // `small-model` task exists for. Don't inherit the main turn's
+          // task (or the generic default) for these auxiliary calls.
+          const taskType = 'small-model';
           const picked = await resolveModel({
             taskType,
             opts: { ...opts, autoPreference: preferenceForVirtualId(virtualId) },
@@ -2206,7 +2272,9 @@ async function setup(ctx) {
   });
 
   // Unload cleanup: drop our catalog registrations and stop the proxy.
-  return async () => {
+  // The port is exposed for the sim harness so it can exercise the real
+  // stateless route through the real HTTP proxy.
+  const cleanup = async () => {
     for (const reg of registrations) {
       try {
         await reg.dispose?.();
@@ -2223,6 +2291,8 @@ async function setup(ctx) {
       proxy = null;
     }
   };
+  cleanup.proxyPort = proxy ? proxy.port : null;
+  return cleanup;
 }
 
 module.exports = {

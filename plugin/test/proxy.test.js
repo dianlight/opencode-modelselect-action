@@ -105,6 +105,36 @@ describe('modelselect proxy', () => {
     }
   });
 
+  it('resolves a stateless virtual request when session hooks did not stamp headers', async () => {
+    const stub = await startStub(async (req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end('{}');
+    });
+    let fallbackArgs = null;
+    const proxy = await startProxyTo(stub, {
+      resolveFallback: async (args) => {
+        fallbackArgs = args;
+        return { providerID: 'opencode', id: 'small-free', endpointPath: null };
+      },
+      isVirtualModel: (id) => id === 'auto-free-first',
+    });
+    try {
+      const r = await fetch(`http://127.0.0.1:${proxy.port}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'auto-free-first', prompt: 'name this session' }),
+      });
+      assert.equal(r.status, 200);
+      assert.deepEqual(fallbackArgs.virtualId, 'auto-free-first');
+      assert.equal(fallbackArgs.pathname, '/v1/chat/completions');
+      assert.equal(JSON.parse(stub.seen.requests[0].body).model, 'small-free');
+      assert.equal(stub.seen.requests[0].url, '/v1/chat/completions');
+    } finally {
+      await proxy.close();
+      await stub.close();
+    }
+  });
+
   it('returns 502 for an unknown provider', async () => {
     const stub = await startStub(async (req, res) => {
       res.writeHead(200, { 'content-type': 'application/json' });

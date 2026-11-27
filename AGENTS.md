@@ -52,6 +52,8 @@ The maintenance script recomputes the config each run and the workflow commits `
 
 To change a model: never edit workflow files. Run `mise run maintenance`, review the committed `data/model-config.json` diff — downstream workflows pick it up automatically at their next run.
 
+`modelselect/auto-*` ids are routing anchors, not answerers. Session turns route through the plugin's hooks; stateless Small Model / title / generate calls do not have a session, so the local proxy resolves a `small-model` pick itself. Never persist a virtual id as `smallModelOverride` or `walkthroughModelOverride` — autoset walks the ranked chain to the first concrete model and repairs virtual overrides.
+
 ### Sync system
 
 `.github/sync.yml` defines 4 downstream repos and an empty file list (nothing is synced). The `sync-actions.yml` workflow only opens the cleanup PRs removing deprecated workflows. Requires a `GH_PAT` secret.

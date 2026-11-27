@@ -88,6 +88,42 @@ const fakeCtx = {
   try {
     const cleanup = await v2.setup(fakeCtx);
     for (const step of scenario.steps || []) {
+      if (step.hook === 'proxy.request') {
+        // Exercise the real proxy over HTTP with the upstream replayed from
+        // the scenario. `originalFetch` drives the loopback request; the
+        // stub only answers the proxy's forwarded call.
+        const originalFetch = global.fetch;
+        global.fetch = async (url, init) => {
+          seen.proxyFetch = { url: String(url), init };
+          return new Response(step.with.response || '{}', {
+            status: step.with.status || 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        };
+        try {
+          const res = await originalFetch(
+            `http://127.0.0.1:${cleanup.proxyPort}${step.with.path || '/v1/chat/completions'}`,
+            {
+              method: step.with.method || 'POST',
+              headers: { 'content-type': 'application/json', ...(step.with.headers || {}) },
+              body: step.with.body === undefined ? undefined : JSON.stringify(step.with.body),
+            },
+          );
+          seen.proxyStatus = res.status;
+          seen.proxyResponse = await res.text();
+          const body = seen.proxyFetch && seen.proxyFetch.init && seen.proxyFetch.init.body;
+          if (body) {
+            try {
+              seen.proxyWireBody = JSON.parse(body);
+            } catch {
+              seen.proxyWireBody = null;
+            }
+          }
+        } finally {
+          global.fetch = originalFetch;
+        }
+        continue;
+      }
       if (step.hook === 'http.request') {
         const headerMap = {};
         const headers = {
@@ -129,6 +165,9 @@ const fakeCtx = {
         contextModel: seen.contextModel,
         headers: seen.headers,
         decisions: seen.decisions,
+        proxyStatus: seen.proxyStatus,
+        proxyFetchUrl: seen.proxyFetch ? seen.proxyFetch.url : undefined,
+        proxyWireModel: seen.proxyWireBody ? seen.proxyWireBody.model : undefined,
         catalogMiss,
       },
       error: null,

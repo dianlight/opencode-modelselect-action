@@ -106,37 +106,60 @@ function sendJson(res, status, obj) {
  * Resolves `{ port, close }`. The listening socket is unref'd so unit
  * tests don't hang on exit; the OpenCode host stays alive on its own.
  */
-async function startProxy({ getUpstream, getToken, verbose } = {}) {
+async function startProxy({ getUpstream, getToken, resolveFallback, isVirtualModel, verbose } = {}) {
   const server = http.createServer(async (req, res) => {
     try {
       const raw = await readBody(req);
-      const providerID = String(req.headers[HEADER_PROVIDER] ?? '').trim();
-      const model = String(req.headers[HEADER_MODEL] ?? '').trim();
+      const inUrl = new URL(req.url || '/', 'http://127.0.0.1');
+      let providerID = String(req.headers[HEADER_PROVIDER] ?? '').trim();
+      let model = String(req.headers[HEADER_MODEL] ?? '').trim();
+      let endpointBasePath = safeEndpointBasePath(req.headers[HEADER_ENDPOINT_PATH]);
+      let parsedBody = null;
+      if (raw.length) {
+        try {
+          parsedBody = JSON.parse(raw.toString('utf8'));
+        } catch {
+          // Non-JSON body: forward untouched.
+        }
+      }
+      // Stateless callers (OpenChamber Small Model, OpenCode one-shot
+      // generate/title) dispatch through the virtual model without a session
+      // and therefore without the session hooks that stamp routing headers.
+      // Resolve a pick here using the same rules so the virtual id stays a
+      // routing switch rather than a dead endpoint.
       if (!providerID || !model) {
-        sendJson(res, 400, {
-          error: { message: 'modelselect proxy: missing routing headers (not a virtual request?)' },
-        });
-        return;
+        const virtualId = parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : '';
+        if (!resolveFallback || !isVirtualModel || !isVirtualModel(virtualId)) {
+          sendJson(res, 400, {
+            error: { message: 'modelselect proxy: missing routing headers (not a virtual request?)' },
+          });
+          return;
+        }
+        let pick = null;
+        try {
+          pick = await resolveFallback({ virtualId, body: parsedBody, pathname: inUrl.pathname });
+        } catch (err) {
+          sendJson(res, 502, { error: { message: `modelselect proxy: ${err?.message ?? err}` } });
+          return;
+        }
+        if (!pick || !pick.providerID || !pick.id) {
+          sendJson(res, 503, { error: { message: `modelselect proxy: no route for virtual model '${virtualId}'` } });
+          return;
+        }
+        providerID = String(pick.providerID);
+        model = String(pick.id);
+        endpointBasePath = safeEndpointBasePath(pick.endpointPath) || endpointBasePath;
       }
       const up = getUpstream ? getUpstream(providerID) : null;
       if (!up || !up.baseURL) {
         sendJson(res, 502, { error: { message: `modelselect proxy: no upstream for provider '${providerID}'` } });
         return;
       }
-      const endpointBasePath = safeEndpointBasePath(req.headers[HEADER_ENDPOINT_PATH]);
       let out = raw.length ? raw.toString('utf8') : '';
-      if (out) {
-        try {
-          const parsed = JSON.parse(out);
-          if (parsed && typeof parsed === 'object' && parsed.model !== undefined) {
-            parsed.model = model;
-            out = JSON.stringify(parsed);
-          }
-        } catch {
-          // Non-JSON body: forward untouched.
-        }
+      if (out && parsedBody && typeof parsedBody === 'object' && parsedBody.model !== undefined) {
+        parsedBody.model = model;
+        out = JSON.stringify(parsedBody);
       }
-      const inUrl = new URL(req.url || '/', 'http://127.0.0.1');
       const upstreamBase = endpointBasePath
         ? `${new URL(up.baseURL).origin}${endpointBasePath}`
         : String(up.baseURL).replace(/\/+$/, '');

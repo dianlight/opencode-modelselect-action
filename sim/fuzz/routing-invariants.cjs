@@ -11,7 +11,7 @@ const path = require('node:path');
 const { mulberry32, int, pick, catalog } = require('../engine/prng.cjs');
 const { normModelName } = require('../../core/model-ref');
 const { selectWithinBudget } = require('../../core/budget');
-const { buildDesired, syncRouting, mergeCategories } = require('../../core/routing');
+const { buildDesired, syncRouting, mergeCategories, pickSideRef, isVirtualModelRef } = require('../../core/routing');
 
 const TASK_NAMES = ['generic', 'review', 'code', 'docs', 'bugfix'];
 const MODEL_NAMES = ['opencode/a-free', 'opencode/b-free', 'opencode-go/c', 'opencode-go/d'];
@@ -115,6 +115,24 @@ async function run(seed) {
     const broken = fakeIo({ [ROUTING_PATH]: '{broken' });
     await syncRouting(broken);
     if (broken.writes.length) failures.push(`seed ${seed} case ${i}: wrote from a broken payload`);
+
+    // 3b. autoset never resolves a virtual routing anchor as a concrete ref.
+    const virtualTable = {
+      ...table,
+      generic: {
+        ...(table.generic || {}),
+        free: 'modelselect/auto-free-first',
+        free_ranked: [
+          { model: 'modelselect/auto-free-first' },
+          { model: 'opencode/concrete-free' },
+        ],
+      },
+    };
+    for (const preference of ['free-first', 'go-first']) {
+      const ref = pickSideRef(virtualTable, 'generic', preference);
+      if (!ref) failures.push(`seed ${seed} case ${i}: ${preference} resolved no ref with a concrete fallback`);
+      else if (isVirtualModelRef(ref)) failures.push(`seed ${seed} case ${i}: ${preference} resolved virtual ${ref}`);
+    }
   }
 
   // 4. mergeCategories: stale entries get disabled, never dropped silently.

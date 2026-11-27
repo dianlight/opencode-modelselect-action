@@ -154,6 +154,10 @@ stored-deviations shape) are kept fresh from two places, both best-effort:
 - The plugin, before every turn (the `prompt` + `context` hooks) while
   the router sync is ON — the plugin routes the pick itself (only virtual
   `modelselect/auto-*` sessions) and never hands off to OpenChamber's routing.
+  Stateless callers (OpenChamber Small Model, OpenCode one-shot title /
+  generate) have no session hooks; the local proxy resolves the same
+  `small-model` chain for them when the virtual request arrives without
+  routing headers.
 - This service, on host-scheduled wakes: at most once every 30 s per project,
   and immediately when the switch is turned back on. Saving plugin options
   only reloads OpenCode; routing refreshes on the next plugin sync or wake.
@@ -305,7 +309,11 @@ virtual `modelselect/auto-*` models are the routing switch now):
   Walkthrough Model row; the per-panel Walkthrough model picker
   defaults to the small model). Both follow the same go/free
   preference and active free-tier latch window as the categories, write
-  only on diff, and never touch `variant`.
+  only on diff, and never touch `variant`. Resolved refs are always
+  concrete: a `modelselect/auto-*` entry is a routing switch that cannot
+  answer a stateless Small/Walkthrough request, so autoset walks the
+  ranked chain to the first real model and replaces any virtual override
+  it finds.
 - `sessionAnswers: true` opts the local service in to answering the agent's
   permission requests and computable forms on the user's behalf (default off,
   via Session control → `sessionAnswers` in the settings panel's Extension

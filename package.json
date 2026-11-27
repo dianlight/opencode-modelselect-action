@@ -1,6 +1,6 @@
 {
   "name": "opencode-modelselect-action",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Model routing ecosystem for OpenCode: GitHub Action for CI, live plugin for sessions, OpenChamber status view, and LiveBench-driven model ranking from one central config",
   "main": "src/index.js",

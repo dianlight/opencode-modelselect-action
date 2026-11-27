@@ -22,6 +22,7 @@ const {
   findPluginOptions,
   autoPreferenceOf,
   normalizeModelselectConfig,
+  isVirtualModelRef,
   pickSideRef,
   mergeSettingsOverrides,
   mergePreferencesOverrides,
@@ -134,6 +135,35 @@ describe('routing core helpers', () => {
     );
   });
 
+  it('never resolves a virtual routing anchor as a concrete override', () => {
+    const virtual = {
+      ...MODEL_TABLE,
+      'small-model': {
+        free: 'modelselect/auto-free-first',
+        free_ranked: [
+          { model: 'modelselect/auto-free-first' },
+          { model: 'opencode/beam-free' },
+        ],
+        go: 'g/s',
+        go_ranked: [{ model: 'g/s' }],
+      },
+    };
+    assert.equal(isVirtualModelRef('modelselect/auto-free-first'), true);
+    assert.equal(isVirtualModelRef('auto-go-first'), true);
+    assert.equal(isVirtualModelRef('opencode/beam-free'), false);
+    assert.equal(pickSideRef(virtual, 'small-model', 'free-first'), 'opencode/beam-free');
+    assert.equal(pickSideRef(virtual, 'small-model', 'go-first'), 'g/s');
+    assert.equal(
+      pickSideRef({ small: { free: 'modelselect/auto-free-first', free_ranked: [] } }, 'small', 'free-first'),
+      null,
+    );
+    assert.equal(
+      mergeSettingsOverrides({ a: 1 }, { smallModelOverride: 'modelselect/auto-free-first' }),
+      null,
+      'mergeSettingsOverrides drops virtual updates',
+    );
+  });
+
   it('splitModelRef parses provider/model and rejects junk', () => {
     assert.deepEqual(splitModelRef('a/b'), { providerID: 'a', modelID: 'b' });
     assert.equal(splitModelRef('nope'), null);
@@ -218,7 +248,7 @@ describe('syncRouting', () => {
   it('honors autoPreference from the managed config', async () => {
     const io = fakeIo({
       ...caches(),
-      '~/.config/openchamber/opencode.managed.json': {
+      '~/.config/opencode/opencode.jsonc': {
         plugins: [{ package: '@dianlight/opencode-modelselect-plugin', options: { autoPreference: 'go-first' } }],
       },
     });
@@ -396,6 +426,42 @@ describe('syncRouting', () => {
     // Second sync with everything in place writes nothing.
     const again = await syncRouting(io);
     assert.equal(again.settingsWritten, false);
+  });
+
+  it('autoset repairs a manually selected virtual Small Model', async () => {
+    const taskTypes = {
+      ...TASK_TYPES,
+      'small-model': { label: 'Small Model', jev_criteria: 'Trivial work.' },
+    };
+    const modelTable = {
+      ...MODEL_TABLE,
+      'small-model': {
+        free: 'modelselect/auto-free-first',
+        free_ranked: [{ model: 'opencode/beam-free' }],
+        go: 'g/s',
+        go_ranked: [{ model: 'g/s' }],
+      },
+    };
+    const io = fakeIo({
+      ...caches({ taskTypes }),
+      '.opencode/.modelselect-cache/model-config-cache.json': {
+        fetchedAt: 1,
+        config: { 'task-types': modelTable },
+      },
+      '~/.config/openchamber/modelselect.json': { autoSmallModel: true },
+      '~/.config/openchamber/settings.json': { smallModelOverride: 'modelselect/auto-free-first' },
+      '~/.config/openchamber/preferences.json': {
+        version: 1,
+        fields: { smallModelOverride: { value: 'modelselect/auto-free-first' } },
+      },
+    });
+    const r = await syncRouting(io);
+    assert.equal(r.settingsWritten, true);
+    assert.equal(io.files.get('~/.config/openchamber/settings.json').smallModelOverride, 'opencode/beam-free');
+    assert.equal(
+      io.files.get('~/.config/openchamber/preferences.json').fields.smallModelOverride.value,
+      'opencode/beam-free',
+    );
   });
 
   it('autoset follows the go side while the free-quota latch is fresh', async () => {

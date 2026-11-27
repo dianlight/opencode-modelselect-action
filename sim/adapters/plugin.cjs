@@ -78,6 +78,15 @@ function verify(scenario, result) {
   if (e.decisionRetry !== undefined && retried !== e.decisionRetry) {
     failures.push(`retry decision ${retried} != ${e.decisionRetry} (decisions: ${JSON.stringify(seen.decisions)})`);
   }
+  if (e.proxyStatus !== undefined && seen.proxyStatus !== e.proxyStatus) {
+    failures.push(`proxy status ${seen.proxyStatus} != ${e.proxyStatus}`);
+  }
+  if (e.proxyFetchContains && !String(seen.proxyFetchUrl || '').includes(e.proxyFetchContains)) {
+    failures.push(`proxy upstream ${JSON.stringify(seen.proxyFetchUrl)} missing ${JSON.stringify(e.proxyFetchContains)}`);
+  }
+  if (e.proxyWireModel !== undefined && seen.proxyWireModel !== e.proxyWireModel) {
+    failures.push(`proxy wire model ${JSON.stringify(seen.proxyWireModel)} != ${JSON.stringify(e.proxyWireModel)}`);
+  }
   if (e.catalogMissRef && !String(seen.catalogMiss || '').includes(e.catalogMissRef)) {
     failures.push(`catalog-miss.json missing ${e.catalogMissRef}`);
   }

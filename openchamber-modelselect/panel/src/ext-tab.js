@@ -52,14 +52,14 @@ export function mountExtensionTab(pane, snapshot, ctx) {
   });
   fields.smallModelTask = mkSelect(pane, {
     label: 'smallModelTask',
-    value: str(extConfig.smallModelTask) || 'generic',
+    value: str(extConfig.smallModelTask) || 'small-model',
     options: typeOptions(types),
     searchable: true,
     searchPlaceholder: 'Filter task types…'
   });
   fields.walkthroughModelTask = mkSelect(pane, {
     label: 'walkthroughModelTask',
-    value: str(extConfig.walkthroughModelTask) || 'generic',
+    value: str(extConfig.walkthroughModelTask) || 'review',
     options: typeOptions(types),
     searchable: true,
     searchPlaceholder: 'Filter task types…'

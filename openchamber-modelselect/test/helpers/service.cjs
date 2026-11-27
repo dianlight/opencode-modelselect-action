@@ -158,6 +158,11 @@ function makeFixture(overrides) {
   if (overrides.runtimeInventory !== undefined) {
     write(path.join(cache, 'runtime-inventory.json'), overrides.runtimeInventory);
   }
+  if (overrides.files && typeof overrides.files === 'object') {
+    for (const [rel, value] of Object.entries(overrides.files)) {
+      write(path.join(root, rel), value);
+    }
+  }
 
   return { root, home, project, cache, configDir, write };
 }
