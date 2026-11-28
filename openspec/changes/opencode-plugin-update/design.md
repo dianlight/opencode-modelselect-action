@@ -3,9 +3,10 @@
 ## Context
 
 See `proposal.md` for motivation. The SDK exposes `contributes.opencodePlugin`
-as a folder inside the package, and OpenCode `2.3.1` can update plugins from
-Settings independently. The panel talks to the service only through
-`panel/src/api.js`; the service is the only owner of file I/O.
+as a folder inside the package, OpenCode `2.3.1` can update plugins from
+Settings, and `2.4.0` can auto-update them. The panel talks to the service only
+through `panel/src/api.js`; the service is the only owner of file I/O. Version
+parity still has to be detected after an automatic update.
 
 ## Goals / Non-Goals
 

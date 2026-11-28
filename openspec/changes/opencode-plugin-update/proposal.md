@@ -2,11 +2,12 @@
 
 ## Why
 
-OpenCode `2.3.1` added "Update Plugins from Settings", so a user can refresh a
-plugin independently of the OpenChamber extension that shipped it. Once the
-modelselect plugin is bundled through `contributes.opencodePlugin`, the version
-OpenCode loads can drift from the version the extension expects, producing
-routing behavior that no longer matches the panel and status section.
+OpenCode `2.3.1` added "Update Plugins from Settings", and `2.4.0` added plugin
+auto-updates, so the loaded plugin can change without the extension that shipped
+it. Once the modelselect plugin is bundled through `contributes.opencodePlugin`,
+the version OpenCode loads can drift from the version the extension expects,
+producing routing behavior that no longer matches the panel and status section.
+Auto-updates remove the manual step but do not remove the need to detect drift.
 
 ## What Changes
 
@@ -15,18 +16,18 @@ routing behavior that no longer matches the panel and status section.
 - Surface a clear mismatch state in the Models tab with the two versions and a
   pointer to the update action, while keeping the Models tab usable.
 - Add a test for matching, mismatching and missing versions and document the
-  update path in the extension README.
+  update and auto-update paths in the extension README.
 
 ## Out of Scope
 
-- Auto-updating the plugin or pinning OpenCode to a single plugin version.
+- Pinning OpenCode to a single plugin version or changing the auto-update policy.
 - Changing how model picks are computed.
 - Localizing the Models tab (covered by the status section work separately).
 
 ## Minimum OpenChamber SDK version
 
-- Canary: `@openchamber/sdk` `2.7.3-canary.20261117.23`.
-- Stable: OpenChamber `>=2.7.3` (bundles OpenCode `2.3.2`).
+- Canary: `@openchamber/sdk` `2.8.1-canary.20261126.32`.
+- Stable: OpenChamber `>=2.8.1` (bundles OpenCode `2.4.2`).
 
 ## Capabilities
 

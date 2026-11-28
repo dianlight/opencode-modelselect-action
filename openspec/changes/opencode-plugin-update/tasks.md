@@ -8,4 +8,5 @@
 ## 2. Models tab notice
 
 - [ ] 2.1 Render a non-blocking version badge in `panel/src/models-tab.js` with both versions and an update pointer, and verify the mismatch does not hide model rows.
-- [ ] 2.2 Document the update path in the extension README and verify the wording matches OpenCode `2.3.1` Settings behavior.
+- [ ] 2.2 Document the manual update path in the extension README and verify the wording matches OpenCode `2.3.1` Settings behavior.
+- [ ] 2.3 Document how an auto-updated plugin is detected by the parity check and verify the wording matches OpenCode `2.4.0` behavior.
