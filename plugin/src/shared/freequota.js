@@ -13,11 +13,12 @@
  *   `{ version: 2, models: { "<provider/model>": { at, until, kind,
  *      detail, updatedAt } } }`. `at` is the FIRST detection for that
  *   model and `until = at + ttl`, where quota exhaustion uses
- *   FREE_QUOTA_TTL_MS (12h) and rate-limiting uses
- *   FREE_RATE_LIMIT_TTL_MS (1h). The window is never extended while
+ *   FREE_QUOTA_TTL_MS (12h), rate-limiting uses
+ *   FREE_RATE_LIMIT_TTL_MS (1h), and a paid-side limit uses
+ *   PAID_LIMIT_TTL_MS (12h). The window is never extended while
  *   fresh, so after `until` the latch clears and the next real failure
  *   may register again (the "new check"). A latch only affects ITS
- *   model: other free models keep routing free. The key `'*'` is the
+ *   model: other models keep routing normally. The key `'*'` is the
  *   legacy global latch (a model-less v1 entry still read through
  *   `latchEntries` in shared/routing.js) and affects every free model.
  * - Consumers of a fresh entry for the model at hand:
@@ -68,6 +69,10 @@ const {
 } = require('./core/free-quota');
 
 const FREE_QUOTA_BASENAME = path.basename(FREE_QUOTA_FILE);
+// Paid/external models have no quota API either: a real limit failure is the
+// only evidence. Keep them out of the chain for the same window as spent
+// quota so a new prompt does not walk the same dead ref again.
+const PAID_LIMIT_TTL_MS = FREE_QUOTA_TTL_MS;
 
 function freeQuotaFile(cacheDir) {
   return path.join(String(cacheDir), FREE_QUOTA_BASENAME);
@@ -107,7 +112,8 @@ function isFreeQuotaFresh(cacheDir, now, model) {
 
 /**
  * Register a soft error for ONE model. `kind` is `'exhaustion'` for
- * spent quota or `'rate-limit'` for transient rate limiting; `model` is
+ * spent quota, `'rate-limit'` for transient rate limiting, or
+ * `'paid-limit'` for a paid/external side limit; `model` is
  * the `"provider/model"` key (a missing model latches the legacy global
  * `'*'` entry). While that key's entry is fresh the original `at`,
  * `until`, and `kind` are kept (the window runs from the first
@@ -124,10 +130,20 @@ function markFreeQuota(cacheDir, fields = {}, now = Date.now()) {
     const key = modelRaw || '*';
     const prev = prevEntries.find((e) => e.key === key) || null;
     const fresh = prev ? freeQuotaFresh(prev, now) : false;
-    const kind = fields.kind === 'rate-limit' ? 'rate-limit' : 'exhaustion';
-    const windowKind =
-      fresh && (prev.kind === 'rate-limit' || prev.kind === 'exhaustion') ? prev.kind : kind;
-    const ttl = windowKind === 'rate-limit' ? FREE_RATE_LIMIT_TTL_MS : FREE_QUOTA_TTL_MS;
+    const kind =
+      fields.kind === 'rate-limit'
+        ? 'rate-limit'
+        : fields.kind === 'paid-limit'
+          ? 'paid-limit'
+          : 'exhaustion';
+    const knownKinds = ['rate-limit', 'exhaustion', 'paid-limit'];
+    const windowKind = fresh && knownKinds.includes(prev.kind) ? prev.kind : kind;
+    const ttl =
+      windowKind === 'rate-limit'
+        ? FREE_RATE_LIMIT_TTL_MS
+        : windowKind === 'paid-limit'
+          ? PAID_LIMIT_TTL_MS
+          : FREE_QUOTA_TTL_MS;
     const at = fresh ? Number(prev.at) : now;
     const until = fresh ? Number(prev.until) : now + ttl;
     const entry = {
@@ -175,6 +191,7 @@ function readModelTable(cacheDir) {
 module.exports = {
   FREE_QUOTA_BASENAME,
   FREE_RATE_LIMIT_TTL_MS,
+  PAID_LIMIT_TTL_MS,
   EXHAUST_BODY_RE,
   RATE_LIMIT_BODY_RE,
   RATE_LIMIT_MESSAGE_RE,

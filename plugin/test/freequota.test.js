@@ -18,6 +18,7 @@ const path = require('node:path');
 const {
   FREE_QUOTA_BASENAME,
   FREE_RATE_LIMIT_TTL_MS,
+  PAID_LIMIT_TTL_MS,
   RATE_LIMIT_MESSAGE_RE,
   UNAVAILABLE_MODEL_RE,
   ACCESS_DISABLED_RE,
@@ -285,6 +286,34 @@ describe('markFreeQuota / freshness (first-detection windows)', () => {
     }
   });
 
+  it('uses a twelve-hour window for a paid/external limit and keeps its kind', () => {
+    const dir = tempCache('modelselect-fq-paid-');
+    try {
+      const at = Date.now();
+      const first = markFreeQuota(
+        dir,
+        { kind: 'paid-limit', model: 'console-openrouter/openrouter/free', detail: 'retry error' },
+        at,
+      );
+      assert.equal(first.kind, 'paid-limit');
+      assert.equal(first.until, at + PAID_LIMIT_TTL_MS);
+      assert.equal(isFreeQuotaFresh(dir, at, 'console-openrouter/openrouter/free'), true);
+      assert.equal(isFreeQuotaFresh(dir, at + PAID_LIMIT_TTL_MS - 1), true);
+      assert.equal(isFreeQuotaFresh(dir, at + PAID_LIMIT_TTL_MS), false);
+
+      // A later failure of any kind keeps the first paid-limit window.
+      const later = markFreeQuota(
+        dir,
+        { kind: 'exhaustion', model: 'console-openrouter/openrouter/free', detail: 'again' },
+        at + 60_000,
+      );
+      assert.equal(later.kind, 'paid-limit');
+      assert.equal(later.until, at + PAID_LIMIT_TTL_MS);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('opens a NEW window only after expiry (the "new check")', () => {
     const dir = tempCache('modelselect-fq-');
     try {
@@ -373,6 +402,7 @@ describe('markFreeQuota / freshness (first-detection windows)', () => {
     assert.equal(FREE_QUOTA_FILE, '.opencode/.modelselect-cache/free-quota.json');
     assert.equal(FREE_QUOTA_TTL_MS, 12 * 60 * 60 * 1000);
     assert.equal(FREE_RATE_LIMIT_TTL_MS, 60 * 60 * 1000);
+    assert.equal(PAID_LIMIT_TTL_MS, FREE_QUOTA_TTL_MS);
     const dir = tempCache('modelselect-fq-');
     try {
       markFreeQuota(dir, { detail: 'x' });

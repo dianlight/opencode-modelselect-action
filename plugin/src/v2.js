@@ -2263,6 +2263,24 @@ async function setup(ctx) {
           outcome.rateLimited ? 'rate-limit' : 'exhaustion',
         );
       } else {
+        // Paid/external refs had only in-session failover memory, which the
+        // next prompt clears — so every later commit-message/title request
+        // walked the same dead ref again. Persist it as a latch so the
+        // resolver skips it until the window expires, then refresh the
+        // cached availability before the forced retry re-resolves.
+        const failedRef =
+          ref && typeof ref === 'object'
+            ? `${String(ref.providerID ?? '').toLowerCase()}/${String(ref.id ?? ref.modelID ?? '')}`
+            : String(ref ?? '');
+        if (failedRef && failedRef !== '/') {
+          markFreeQuota(cacheDir, {
+            model: failedRef,
+            detail: `retry ${err?.type ?? 'error'}`,
+            kind: 'paid-limit',
+          });
+          await currentAvailability({ force: true });
+          await syncRoutingNow();
+        }
         armFailover(event.sessionID, ref, 'paid-limit');
       }
       await forceRetryFromArm();

@@ -456,7 +456,9 @@ exceeded. Please try again later.”), the plugin:
    `autoPreference` says) and `resolveModel` picks `go` for them (also
    for a pinned `tier: "free"` when a token exists). Sibling free models
    are unaffected and keep routing free. Spent quota uses a 12h window;
-   transient rate limiting uses a 1h window. A legacy model-less entry
+   transient rate limiting uses a 1h window. Paid/external-side limits use a
+    12h window too, so a later prompt does not re-pick a ref that already
+    failed. A legacy model-less entry
    still reads as a global latch over every free model;
 2. arms a forced retry. Every retry re-resolves the whole provider chain,
    skipping all refs that session already failed on, preferring another

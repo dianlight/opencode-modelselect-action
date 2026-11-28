@@ -3,8 +3,8 @@
 /**
  * Free-tier fail-soft (v2): the `http.response`/`retry` hooks classify a
  * real failure (free exhaustion, paid quota, rate limit), register the 12h
- * latch (`.opencode/.modelselect-cache/free-quota.json`) for free models and
- * arm a forced retry. Virtual sessions keep their anchor and re-route through
+ * latch (`.opencode/.modelselect-cache/free-quota.json`) for free and
+ * paid/external refs, and arm a forced retry. Virtual sessions keep their anchor and re-route through
  * the proxy; explicit-model sessions are moved with `switchModel`. Each
  * failure re-arms so the cascade walks the whole provider chain (another
  * provider first, then free), skipping every ref already tried, and stops
@@ -267,6 +267,33 @@ describe('v2 free-tier fail-soft', () => {
       const r = retryEvent('s-go', { providerID: 'opencode-go', id: 'paid-a' });
       await seen.retry(r);
       assert.deepEqual(r.decision, { retry: true, delay: 0 }, 'paid failure arms the chain failover retry');
+    } finally {
+      restore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a paid-side limit latches the ref so the next prompt does not re-pick it', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'modelselect-fs-paid-latch-'));
+    const restore = isolateAuth(dir);
+    try {
+      const seen = await setupRoutedSession(dir);
+      await virtualTurn(seen, 's-paid');
+      const r = retryEvent('s-paid', { providerID: 'opencode-go', id: 'paid-a' });
+      await seen.retry(r);
+      assert.deepEqual(r.decision, { retry: true, delay: 0 });
+
+      const entry = JSON.parse(fs.readFileSync(LATCH(dir), 'utf8')).models['opencode-go/paid-a'];
+      assert.equal(entry.kind, 'paid-limit');
+      assert.equal(entry.until - entry.at, FREE_QUOTA_TTL_MS);
+      assert.equal(isFreeQuotaFresh(CACHE(dir), entry.until - 1, 'opencode-go/paid-a'), true);
+
+      // A new prompt resets the in-session failover history, but the latch
+      // survives it: the next wire request must not route to the dead ref.
+      await seen.prompt({ sessionID: 's-paid', prompt: 'review this diff' });
+      const ev = httpEvent('s-paid');
+      await seen['http.request'](ev);
+      assert.equal(headersOf(ev).model, 'free-a', 'the paid-limit ref is skipped on a later turn');
     } finally {
       restore();
       fs.rmSync(dir, { recursive: true, force: true });
